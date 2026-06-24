@@ -1,14 +1,15 @@
 package com.yusufteker.pulse.feature.auth.presentation.register
 
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.feature.auth.domain.usecase.RegisterUseCase
+import com.yusufteker.pulse.shared.api.RegisterRequest
 
 /**
  * ViewModel for the Register screen.
- *
- * Handles form validation and registration flow.
- * Repository integration will be added in future phases.
  */
-class RegisterViewModel : BaseViewModel<RegisterState, RegisterEvent, RegisterEffect>(
+class RegisterViewModel(
+    private val registerUseCase: RegisterUseCase
+) : BaseViewModel<RegisterState, RegisterEvent, RegisterEffect>(
     initialState = RegisterState()
 ) {
 
@@ -35,10 +36,28 @@ class RegisterViewModel : BaseViewModel<RegisterState, RegisterEvent, RegisterEf
             }
 
             is RegisterEvent.RegisterClicked -> {
-                // TODO: Implement registration with repository
                 if (validateForm()) {
                     setState { copy(isLoading = true) }
-                    setEffect(RegisterEffect.NavigateToHome)
+                    
+                    launch {
+                        val request = RegisterRequest(
+                            name = currentState.name,
+                            email = currentState.email,
+                            password = currentState.password
+                        )
+                        val result = registerUseCase(request)
+                        
+                        setState { copy(isLoading = false) }
+                        
+                        result.fold(
+                            onSuccess = {
+                                setEffect(RegisterEffect.NavigateToHome)
+                            },
+                            onFailure = { error ->
+                                setState { copy(emailError = "Kayıt başarısız: ${error.message}") }
+                            }
+                        )
+                    }
                 }
             }
 

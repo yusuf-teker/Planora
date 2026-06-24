@@ -52,6 +52,9 @@ kotlin {
 
             // Kotlinx
             implementation(libs.kotlinx.coroutines.core)
+
+            implementation(project(":shared"))
+
         }
 
         commonTest.dependencies {

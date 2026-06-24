@@ -1,14 +1,15 @@
 package com.yusufteker.pulse.feature.auth.presentation.login
 
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.feature.auth.domain.usecase.LoginUseCase
+import com.yusufteker.pulse.shared.api.AuthRequest
 
 /**
  * ViewModel for the Login screen.
- *
- * Handles form validation and login flow.
- * Repository integration will be added in future phases.
  */
-class LoginViewModel : BaseViewModel<LoginState, LoginEvent, LoginEffect>(
+class LoginViewModel(
+    private val loginUseCase: LoginUseCase
+) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(
     initialState = LoginState()
 ) {
 
@@ -27,11 +28,28 @@ class LoginViewModel : BaseViewModel<LoginState, LoginEvent, LoginEffect>(
             }
 
             is LoginEvent.LoginClicked -> {
-                // TODO: Implement login with repository
-                // For now, navigate to Home directly
                 if (validateForm()) {
+                    // Yükleme animasyonunu başlat
                     setState { copy(isLoading = true) }
-                    setEffect(LoginEffect.NavigateToHome)
+                    
+                    // Arka planda sunucuya istek at (Coroutine Launch)
+                    launch {
+                        val result = loginUseCase(AuthRequest(currentState.email, currentState.password))
+                        
+                        // İşlem bittiğinde yükleme animasyonunu durdur
+                        setState { copy(isLoading = false) }
+                        
+                        result.fold(
+                            onSuccess = {
+                                // Başarılıysa doğrudan ana sayfaya yönlendir
+                                setEffect(LoginEffect.NavigateToHome)
+                            },
+                            onFailure = { error ->
+                                // Hata durumunda UI'da hatayı göster
+                                setState { copy(emailError = "Giriş başarısız: ${error.message}") }
+                            }
+                        )
+                    }
                 }
             }
 

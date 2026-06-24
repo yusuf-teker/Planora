@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -15,6 +16,8 @@ kotlin {
             isStatic = true
         }
     }
+
+    jvm()
 
     androidLibrary {
         namespace = "com.yusufteker.pulse.shared"
@@ -30,6 +33,7 @@ kotlin {
         commonMain.dependencies {
             // Kotlinx
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
         }
 
         commonTest.dependencies {

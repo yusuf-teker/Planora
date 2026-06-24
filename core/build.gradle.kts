@@ -58,6 +58,23 @@ kotlin {
 
             // DataStore
             api(libs.datastore.preferences.core)
+
+            // Ktor Client
+            api(libs.ktor.client.core)
+            api(libs.ktor.client.content.negotiation)
+            api(libs.ktor.client.logging)
+            api(libs.ktor.client.auth)
+            api(libs.ktor.serialization.kotlinx.json)
+
+            implementation(project(":shared"))
+        }
+
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
 
         commonTest.dependencies {
