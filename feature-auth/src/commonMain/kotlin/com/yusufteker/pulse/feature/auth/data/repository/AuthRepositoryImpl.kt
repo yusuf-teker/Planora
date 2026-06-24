@@ -1,5 +1,6 @@
 package com.yusufteker.pulse.feature.auth.data.repository
 
+import io.github.aakira.napier.Napier
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.auth.domain.repository.AuthRepository
 import com.yusufteker.pulse.shared.api.AuthRequest
@@ -26,7 +27,10 @@ class AuthRepositoryImpl(
             }.body()
 
             // Giriş başarılıysa token'ları güvenli depoya kaydet.
+            Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
+            sessionPreferences.saveUserProfile(response.name, response.avatarId)
+            Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}'" })
             Result.success(response)
         } catch (e: Exception) {
             // Ağ hatası, yanlış şifre (401) veya sunucu kapalıysa (500) hata olarak döner.
@@ -40,6 +44,7 @@ class AuthRepositoryImpl(
                 setBody(request)
             }.body()
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
+            sessionPreferences.saveUserProfile(response.name, response.avatarId)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)

@@ -32,7 +32,17 @@ data class AuthResponse(
     val accessToken: String,
     val refreshToken: String,
     val userId: Int,
-    val name: String
+    val name: String,
+    val avatarId: String
+)
+
+/**
+ * The data sent to the server to update the user's profile.
+ */
+@Serializable
+data class UpdateProfileRequest(
+    val name: String,
+    val avatarId: String
 )
 
 /**

@@ -52,6 +52,8 @@ kotlin {
 
             // Kotlinx
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.compose.components.resources)
+
         }
 
         commonTest.dependencies {

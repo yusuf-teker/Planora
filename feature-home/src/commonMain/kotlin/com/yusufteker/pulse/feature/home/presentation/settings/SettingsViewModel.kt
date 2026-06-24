@@ -1,11 +1,13 @@
 package com.yusufteker.pulse.feature.home.presentation.settings
 
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.preferences.ThemePreferences
 import kotlinx.coroutines.flow.first
 
 class SettingsViewModel(
-    private val themePreferences: ThemePreferences
+    private val themePreferences: ThemePreferences,
+    private val sessionPreferences: SessionPreferences
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {
@@ -13,7 +15,8 @@ class SettingsViewModel(
     init {
         launch {
             val isDark = themePreferences.isDarkMode.first() ?: false
-            setState { copy(isDarkMode = isDark) }
+            val color = themePreferences.themeColor.first()
+            setState { copy(isDarkMode = isDark, themeColor = color) }
         }
     }
 
@@ -30,9 +33,18 @@ class SettingsViewModel(
                 }
             }
 
+            is SettingsEvent.ThemeColorSelected -> {
+                setState { copy(themeColor = event.color) }
+                launch {
+                    themePreferences.setThemeColor(event.color)
+                }
+            }
+
             is SettingsEvent.LogoutClicked -> {
-                // TODO: Clear session and navigate to login
-                setEffect(SettingsEffect.NavigateToLogin)
+                launch {
+                    sessionPreferences.clearSession()
+                    setEffect(SettingsEffect.NavigateToLogin)
+                }
             }
         }
     }

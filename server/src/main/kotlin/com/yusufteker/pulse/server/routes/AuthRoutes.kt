@@ -68,7 +68,7 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya token'ları dönüyoruz.
-            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name))
+            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.avatarId))
         }
 
         // --- 2. LOGIN ENDPOINT ---
@@ -98,7 +98,7 @@ fun Route.authRoutes() {
                 }
             }
 
-            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name))
+            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.avatarId))
         }
 
         // --- 3. REFRESH TOKEN ENDPOINT ---
@@ -134,7 +134,7 @@ fun Route.authRoutes() {
                 }
             }
 
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, newRefreshToken, user.id.value, user.name))
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, newRefreshToken, user.id.value, user.name, user.avatarId))
         }
 
         // --- 4. PROTECTED ENDPOINT (Sadece giriş yapmış kullanıcılar girebilir) ---
@@ -156,7 +156,34 @@ fun Route.authRoutes() {
                 }
 
                 if (user != null) {
-                    call.respond(HttpStatusCode.OK, mapOf("id" to user.id.value, "name" to user.name, "email" to user.email))
+                    call.respond(HttpStatusCode.OK, mapOf("id" to user.id.value, "name" to user.name, "email" to user.email, "avatarId" to user.avatarId))
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
+            }
+
+            put("/profile") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@put
+                }
+
+                val request = call.receive<com.yusufteker.pulse.shared.api.UpdateProfileRequest>()
+
+                val user = dbQuery {
+                    val entity = UserEntity.findById(userId)
+                    if (entity != null) {
+                        entity.name = request.name
+                        entity.avatarId = request.avatarId
+                    }
+                    entity
+                }
+
+                if (user != null) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Profile updated successfully"))
                 } else {
                     call.respond(HttpStatusCode.NotFound)
                 }

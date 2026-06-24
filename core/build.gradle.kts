@@ -38,6 +38,9 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
 
+            // Logging (KMP)
+            api(libs.napier)
+
             // Lifecycle
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
@@ -55,6 +58,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.compose.materialIconsExtended)
 
             // DataStore
             api(libs.datastore.preferences.core)
@@ -81,4 +85,8 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
 }

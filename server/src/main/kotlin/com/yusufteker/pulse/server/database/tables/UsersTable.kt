@@ -14,6 +14,7 @@ object UsersTable : IntIdTable("users") {
     val email = varchar("email", 255).uniqueIndex()
     val passwordHash = varchar("password_hash", 255)
     val createdAt = timestamp("created_at")
+    val avatarId = varchar("avatar_id", 255).default("avatar_1")
 }
 
 /**
@@ -26,4 +27,5 @@ class UserEntity(id: EntityID<Int>) : IntEntity(id) {
     var email by UsersTable.email
     var passwordHash by UsersTable.passwordHash
     var createdAt by UsersTable.createdAt
+    var avatarId by UsersTable.avatarId
 }

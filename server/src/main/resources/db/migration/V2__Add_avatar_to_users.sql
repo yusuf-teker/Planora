@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN avatar_id VARCHAR(255) DEFAULT 'avatar_1' NOT NULL;

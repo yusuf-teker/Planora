@@ -5,4 +5,7 @@ import com.yusufteker.pulse.core.base.UiEvent
 sealed interface ProfileEvent : UiEvent {
     data object BackClicked : ProfileEvent
     data object EditProfileClicked : ProfileEvent
+    data class NameChanged(val name: String) : ProfileEvent
+    data class AvatarSelected(val avatarId: String) : ProfileEvent
+    data object SaveClicked : ProfileEvent
 }

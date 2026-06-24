@@ -41,9 +41,10 @@ import org.koin.compose.viewmodel.koinViewModel
 fun App() {
     val themePreferences = koinInject<ThemePreferences>()
     val isDarkModePref by themePreferences.isDarkMode.collectAsState(initial = null)
+    val themeColorPref by themePreferences.themeColor.collectAsState(initial = com.yusufteker.pulse.core.preferences.ThemeColor.BLUE)
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
-    PulseTheme(darkTheme = isDark) {
+    PulseTheme(themeColor = themeColorPref, darkTheme = isDark) {
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
 
         NavDisplay(

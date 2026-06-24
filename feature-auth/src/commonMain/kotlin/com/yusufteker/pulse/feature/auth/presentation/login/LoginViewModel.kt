@@ -56,6 +56,10 @@ class LoginViewModel(
             is LoginEvent.RegisterClicked -> {
                 setEffect(LoginEffect.NavigateToRegister)
             }
+
+            is LoginEvent.ClearForm -> {
+                setState { LoginState() }
+            }
         }
     }
 

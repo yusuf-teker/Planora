@@ -35,3 +35,7 @@ google-services.json
 
 *.agent
 *.docs
+
+# Secrets
+.env
+*.env

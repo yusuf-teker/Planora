@@ -5,6 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import com.yusufteker.pulse.core.preferences.ThemeColor
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ColorScheme
 
 /**
  * Light color scheme for Pulse.
@@ -66,23 +69,50 @@ private val DarkColorScheme = darkColorScheme(
     onErrorContainer = PulseColors.OnErrorContainerDark
 )
 
+
+
+/**
+ * Generates a color scheme based on the selected theme color.
+ */
+fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
+    val primaryColor = when(themeColor) {
+        ThemeColor.BLUE -> Color(0xFF6C5CE7)
+        ThemeColor.RED -> Color(0xFFE63946)
+        ThemeColor.GREEN -> Color(0xFF2A9D8F)
+        ThemeColor.PURPLE -> Color(0xFF9D4EDD)
+        ThemeColor.PINK -> Color(0xFFE83E8C)
+        ThemeColor.ORANGE -> Color(0xFFF4A261)
+        ThemeColor.TEAL -> Color(0xFF00B4D8)
+        ThemeColor.INDIGO -> Color(0xFF3F37C9)
+        ThemeColor.AMBER -> Color(0xFFFFB703)
+        ThemeColor.BROWN -> Color(0xFF7F4F24)
+    }
+
+    val baseScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    
+    // We tint the primary color. In a full production app, we could generate all tonal palettes.
+    return baseScheme.copy(
+        primary = primaryColor,
+        // We can optionally tint secondary to match, or leave it as the baseline secondary.
+        // For distinct visual themes, copying primary to secondary works well for simple tinting.
+        secondary = primaryColor.copy(alpha = 0.8f)
+    )
+}
+
 /**
  * Pulse application theme.
  *
- * Wraps [MaterialTheme] with Pulse's custom color schemes,
- * typography, and shapes. Automatically switches between
- * light and dark themes based on system preference.
- *
+ * @param themeColor The selected ThemeColor.
  * @param darkTheme Whether to use the dark color scheme.
- *                  Defaults to the system dark theme setting.
  * @param content The composable content to theme.
  */
 @Composable
 fun PulseTheme(
+    themeColor: ThemeColor = ThemeColor.BLUE,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = getAppColorScheme(themeColor, darkTheme)
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -59,6 +59,10 @@ fun RegisterScreen(
         }
     }
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> RegisterScreen açıldı" })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()

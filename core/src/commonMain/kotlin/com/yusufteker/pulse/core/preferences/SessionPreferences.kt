@@ -15,24 +15,32 @@ class SessionPreferences(
 ) {
     private val accessTokenKey = stringPreferencesKey("access_token")
     private val refreshTokenKey = stringPreferencesKey("refresh_token")
+    private val userNameKey = stringPreferencesKey("user_name")
+    private val userAvatarKey = stringPreferencesKey("user_avatar")
 
-    /**
-     * Get the current access token. Suspends until read is complete.
-     */
     suspend fun getAccessToken(): String? {
         return dataStore.data.map { it[accessTokenKey] }.first()
     }
 
-    /**
-     * Get the current refresh token.
-     */
     suspend fun getRefreshToken(): String? {
         return dataStore.data.map { it[refreshTokenKey] }.first()
     }
 
-    /**
-     * Save tokens after a successful login or token refresh.
-     */
+    // Flow tabanlı: DataStore değişince otomatik güncellenir
+    val userNameFlow: kotlinx.coroutines.flow.Flow<String?> =
+        dataStore.data.map { it[userNameKey] }
+
+    val userAvatarFlow: kotlinx.coroutines.flow.Flow<String?> =
+        dataStore.data.map { it[userAvatarKey] }
+
+    suspend fun getUserName(): String? {
+        return dataStore.data.map { it[userNameKey] }.first()
+    }
+
+    suspend fun getUserAvatar(): String? {
+        return dataStore.data.map { it[userAvatarKey] }.first()
+    }
+
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
         dataStore.edit { prefs ->
             prefs[accessTokenKey] = accessToken
@@ -40,13 +48,19 @@ class SessionPreferences(
         }
     }
 
-    /**
-     * Clear tokens (e.g. upon logout).
-     */
+    suspend fun saveUserProfile(name: String, avatarId: String) {
+        dataStore.edit { prefs ->
+            prefs[userNameKey] = name
+            prefs[userAvatarKey] = avatarId
+        }
+    }
+
     suspend fun clearSession() {
         dataStore.edit { prefs ->
             prefs.remove(accessTokenKey)
             prefs.remove(refreshTokenKey)
+            prefs.remove(userNameKey)
+            prefs.remove(userAvatarKey)
         }
     }
 }

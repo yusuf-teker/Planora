@@ -20,7 +20,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,6 +28,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import androidx.compose.foundation.Image
+import kotlin.collections.getOrNull
+import com.yusufteker.pulse.core.ui.components.AvatarImage
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 
 /**
  * Profile screen composable.
@@ -47,12 +54,17 @@ fun ProfileScreen(
         }
     }
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> ProfileScreen açıldı | state.name=${state.name}" })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .safeContentPadding()
     ) {
+
         TopAppBar(
             title = {
                 Text(
@@ -73,44 +85,112 @@ fun ProfileScreen(
             )
         )
 
-        // Placeholder profile content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Box(
+        val avatarList = List(10) { "avatar_${it + 1}" }
+        val currentAvatarId = if (state.avatarId in avatarList) state.avatarId else "avatar_1"
+
+        if (state.isEditing) {
+            Column(
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                Text(
+                    text = "Avatar Seç",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(5),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(180.dp)
+                ) {
+                    items(avatarList.size) { index ->
+                        val avatarName = avatarList[index]
+                        val isSelected = state.avatarId == avatarName
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (isSelected) 3.dp else 0.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    viewModel.onEvent(ProfileEvent.AvatarSelected(avatarName))
+                                }
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AvatarImage(
+                                avatarId = avatarName,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                androidx.compose.material3.OutlinedTextField(
+                    value = state.name,
+                    onValueChange = { /* Disabled by user request */ },
+                    label = { Text("Kullanıcı Adı") },
+                    singleLine = true,
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                androidx.compose.material3.Button(
+                    onClick = { viewModel.onEvent(ProfileEvent.SaveClicked) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Kaydet")
+                }
             }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AvatarImage(
+                        avatarId = currentAvatarId,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Kullanıcı Adı",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+                Text(
+                    text = state.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "Profil bilgileri burada görüntülenecek",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { viewModel.onEvent(ProfileEvent.EditProfileClicked) }
+                ) {
+                    Text("Profili Düzenle")
+                }
+            }
         }
     }
 }

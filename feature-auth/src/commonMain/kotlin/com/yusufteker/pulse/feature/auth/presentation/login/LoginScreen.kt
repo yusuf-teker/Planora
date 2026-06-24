@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,12 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Ekran her açıldığında (logout sonrası dahil) formu temizle
+    LaunchedEffect(Unit) {
+        io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> LoginScreen açıldı" })
+        viewModel.onEvent(LoginEvent.ClearForm)
+    }
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
