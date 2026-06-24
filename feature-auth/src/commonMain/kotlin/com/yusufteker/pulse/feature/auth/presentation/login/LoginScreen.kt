@@ -1,0 +1,190 @@
+package com.yusufteker.pulse.feature.auth.presentation.login
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yusufteker.pulse.core.base.CollectEffect
+
+/**
+ * Login screen composable.
+ *
+ * Provides email/password form with validation feedback.
+ */
+@Composable
+fun LoginScreen(
+    viewModel: LoginViewModel,
+    onNavigateToHome: () -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    viewModel.effect.CollectEffect { effect ->
+        when (effect) {
+            is LoginEffect.NavigateToHome -> onNavigateToHome()
+            is LoginEffect.NavigateToRegister -> onNavigateToRegister()
+            is LoginEffect.ShowError -> {
+                // TODO: Show snackbar or dialog
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .safeContentPadding()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header
+        Text(
+            text = "Giriş Yap",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Hesabınıza giriş yapın",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Email field
+        OutlinedTextField(
+            value = state.email,
+            onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
+            label = { Text("E-posta") },
+            isError = state.emailError != null,
+            supportingText = state.emailError?.let { error ->
+                { Text(error) }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Password field
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
+            label = { Text("Şifre") },
+            isError = state.passwordError != null,
+            supportingText = state.passwordError?.let { error ->
+                { Text(error) }
+            },
+            visualTransformation = if (state.isPasswordVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                IconButton(
+                    onClick = { viewModel.onEvent(LoginEvent.TogglePasswordVisibility) }
+                ) {
+                    Icon(
+                        imageVector = if (state.isPasswordVisible) {
+                            Icons.Rounded.VisibilityOff
+                        } else {
+                            Icons.Rounded.Visibility
+                        },
+                        contentDescription = if (state.isPasswordVisible) {
+                            "Şifreyi gizle"
+                        } else {
+                            "Şifreyi göster"
+                        }
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Login button
+        Button(
+            onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
+            enabled = !state.isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            if (state.isLoading) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(
+                    text = "Giriş Yap",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Register link
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Hesabınız yok mu?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(onClick = { viewModel.onEvent(LoginEvent.RegisterClicked) }) {
+                Text(
+                    text = "Kayıt Ol",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
