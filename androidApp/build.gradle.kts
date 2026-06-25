@@ -57,4 +57,25 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs(
+                project(":core").file("build/generated/compose/assets")
+            )
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.configureEach {
+        if (name.startsWith("merge") && name.endsWith("Assets")) {
+            dependsOn(project(":core").tasks.matching { 
+                (it.name.contains("ComposeResources") || it.name.contains("ValueResources")) && 
+                !it.name.contains("Ios") && 
+                !it.name.contains("Apple") &&
+                !it.name.contains("Native")
+            })
+        }
+    }
 }

@@ -32,21 +32,24 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Compose
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
+            api(libs.compose.runtime)
+            api(libs.compose.foundation)
+            api(libs.compose.material3)
+            api(libs.compose.ui)
+            api(libs.compose.components.resources)
 
             // Logging (KMP)
             api(libs.napier)
 
+            // Settings
+            api(libs.multiplatform.settings)
+
             // Lifecycle
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
+            api(libs.androidx.lifecycle.viewmodelCompose)
+            api(libs.androidx.lifecycle.runtimeCompose)
 
             // Navigation 3
-            implementation(libs.jetbrains.navigation3.ui)
+            api(libs.jetbrains.navigation3.ui)
 
             // Koin
             implementation(project.dependencies.platform(libs.koin.bom))
@@ -75,6 +78,8 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.security.crypto)
+            
         }
 
         iosMain.dependencies {
@@ -89,4 +94,14 @@ kotlin {
 
 compose.resources {
     publicResClass = true
+}
+
+// Workaround for Compose Multiplatform bug with androidMultiplatformLibrary
+tasks.matching { it.name == "copyAndroidMainComposeResourcesToAndroidAssets" }.configureEach {
+    val dir = layout.buildDirectory.dir("generated/compose/assets")
+    try {
+        val method = this::class.java.methods.firstOrNull { it.name == "getOutputDirectory" }
+        val prop = method?.invoke(this) as? org.gradle.api.file.DirectoryProperty
+        prop?.set(dir)
+    } catch (e: Exception) {}
 }

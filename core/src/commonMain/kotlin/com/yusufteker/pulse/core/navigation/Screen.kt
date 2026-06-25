@@ -32,17 +32,25 @@ sealed interface Screen {
     @Serializable
     data object Register : Screen
 
-    // ── Home Graph ───────────────────────────────────────────
-
-    /** Home feed screen */
+    // ── Main Graph (Container for Bottom Navigation) ─────────
+    
+    /** Main container screen holding the Bottom Navigation */
     @Serializable
-    data object Home : Screen
+    data object Main : Screen
 
-    /** User profile screen */
-    @Serializable
-    data object Profile : Screen
+    /** 
+     * Destinations within the Main Graph (Bottom Navigation Tabs).
+     * These are not part of the root Screen hierarchy, but their own nested hierarchy.
+     */
+    sealed interface MainDestination {
+        @Serializable
+        data object Home : MainDestination
 
-    /** Settings screen */
-    @Serializable
-    data object Settings : Screen
+        @Serializable
+        data object Profile : MainDestination
+
+        @Serializable
+        data object Settings : MainDestination
+    }
 }
+

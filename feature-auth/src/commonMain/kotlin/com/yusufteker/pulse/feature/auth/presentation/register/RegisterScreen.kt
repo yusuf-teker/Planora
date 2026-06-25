@@ -35,6 +35,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.*
 
 /**
  * Register screen composable.
@@ -75,7 +78,7 @@ fun RegisterScreen(
     ) {
         // Header
         Text(
-            text = "Kayıt Ol",
+            text = stringResource(Res.string.action_register),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -83,7 +86,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Yeni bir hesap oluşturun",
+            text = stringResource(Res.string.register_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -94,10 +97,10 @@ fun RegisterScreen(
         OutlinedTextField(
             value = state.name,
             onValueChange = { viewModel.onEvent(RegisterEvent.NameChanged(it)) },
-            label = { Text("İsim") },
+            label = { Text(stringResource(Res.string.name)) },
             isError = state.nameError != null,
             supportingText = state.nameError?.let { error ->
-                { Text(error) }
+                { Text(error.asString()) }
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
@@ -114,10 +117,10 @@ fun RegisterScreen(
         OutlinedTextField(
             value = state.email,
             onValueChange = { viewModel.onEvent(RegisterEvent.EmailChanged(it)) },
-            label = { Text("E-posta") },
+            label = { Text(stringResource(Res.string.email)) },
             isError = state.emailError != null,
             supportingText = state.emailError?.let { error ->
-                { Text(error) }
+                { Text(error.asString()) }
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -134,10 +137,10 @@ fun RegisterScreen(
         OutlinedTextField(
             value = state.password,
             onValueChange = { viewModel.onEvent(RegisterEvent.PasswordChanged(it)) },
-            label = { Text("Şifre") },
+            label = { Text(stringResource(Res.string.password)) },
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { error ->
-                { Text(error) }
+                { Text(error.asString()) }
             },
             visualTransformation = if (state.isPasswordVisible) {
                 VisualTransformation.None
@@ -155,9 +158,9 @@ fun RegisterScreen(
                             Icons.Rounded.Visibility
                         },
                         contentDescription = if (state.isPasswordVisible) {
-                            "Şifreyi gizle"
+                            stringResource(Res.string.hide_password)
                         } else {
-                            "Şifreyi göster"
+                            stringResource(Res.string.show_password)
                         }
                     )
                 }
@@ -177,10 +180,10 @@ fun RegisterScreen(
         OutlinedTextField(
             value = state.confirmPassword,
             onValueChange = { viewModel.onEvent(RegisterEvent.ConfirmPasswordChanged(it)) },
-            label = { Text("Şifre Tekrar") },
+            label = { Text(stringResource(Res.string.confirm_password)) },
             isError = state.confirmPasswordError != null,
             supportingText = state.confirmPasswordError?.let { error ->
-                { Text(error) }
+                { Text(error.asString()) }
             },
             visualTransformation = if (state.isPasswordVisible) {
                 VisualTransformation.None
@@ -213,7 +216,7 @@ fun RegisterScreen(
                 )
             } else {
                 Text(
-                    text = "Kayıt Ol",
+                    text = stringResource(Res.string.action_register),
                     style = MaterialTheme.typography.labelLarge
                 )
             }
@@ -226,13 +229,13 @@ fun RegisterScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Zaten hesabınız var mı?",
+                text = stringResource(Res.string.already_have_account_prompt),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = { viewModel.onEvent(RegisterEvent.LoginClicked) }) {
                 Text(
-                    text = "Giriş Yap",
+                    text = stringResource(Res.string.action_login),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )

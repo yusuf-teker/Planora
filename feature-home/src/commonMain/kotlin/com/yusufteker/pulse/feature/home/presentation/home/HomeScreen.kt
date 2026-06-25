@@ -24,6 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.tab_home
+import pulse.core.generated.resources.home_feed_placeholder
 
 /**
  * Home screen composable.
@@ -56,39 +60,6 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background)
             .safeContentPadding()
     ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Pulse",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            actions = {
-                IconButton(
-                    onClick = { viewModel.onEvent(HomeEvent.ProfileClicked) }
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
-                        contentDescription = "Profil",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(
-                    onClick = { viewModel.onEvent(HomeEvent.SettingsClicked) }
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Ayarlar",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background
-            )
-        )
-
         // Placeholder content
         Box(
             modifier = Modifier
@@ -101,12 +72,12 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Ana Sayfa",
+                    text = stringResource(Res.string.tab_home),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Feed içeriği burada görüntülenecek",
+                    text = stringResource(Res.string.home_feed_placeholder),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

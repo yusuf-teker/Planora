@@ -1,5 +1,9 @@
 package com.yusufteker.pulse.core.di
 
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import com.russhwolf.settings.SharedPreferencesSettings
+import com.yusufteker.pulse.core.preferences.SecureSettings
 import com.yusufteker.pulse.core.preferences.createDataStore
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -12,5 +16,22 @@ actual val platformCoreModule = module {
         createDataStore {
             androidContext().filesDir.resolve("pulse.preferences_pb").absolutePath
         }
+    }
+
+    single {
+        val context = androidContext()
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+            
+        val sharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        
+        SecureSettings(SharedPreferencesSettings(sharedPreferences))
     }
 }

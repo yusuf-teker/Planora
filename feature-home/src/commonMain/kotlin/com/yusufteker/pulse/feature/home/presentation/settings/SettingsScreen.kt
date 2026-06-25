@@ -32,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.*
 
 /**
  * Settings screen composable.
@@ -65,17 +68,9 @@ fun SettingsScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = "Ayarlar",
+                    text = stringResource(Res.string.tab_settings),
                     style = MaterialTheme.typography.titleLarge
                 )
-            },
-            navigationIcon = {
-                IconButton(onClick = { viewModel.onEvent(SettingsEvent.BackClicked) }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Geri"
-                    )
-                }
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background
@@ -91,12 +86,12 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Karanlık Mod",
+                    text = stringResource(Res.string.settings_dark_mode_title),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Koyu tema kullan",
+                    text = stringResource(Res.string.settings_dark_mode_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -121,7 +116,7 @@ fun SettingsScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             Text(
-                text = "Tema Rengi",
+                text = stringResource(Res.string.settings_theme_color),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 12.dp)
@@ -179,7 +174,7 @@ fun SettingsScreen(
                 .padding(24.dp)
         ) {
             Text(
-                text = "Çıkış Yap",
+                text = stringResource(Res.string.action_logout),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.error
             )

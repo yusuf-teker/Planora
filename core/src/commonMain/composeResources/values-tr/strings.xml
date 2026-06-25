@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="name">İsim</string>
+    <string name="email">E-posta</string>
+    <string name="password">Şifre</string>
+    <string name="confirm_password">Şifre Tekrar</string>
+    <string name="cancel">İptal</string>
+    <string name="save">Kaydet</string>
+    <string name="back">Geri</string>
+    <string name="hide_password">Şifreyi gizle</string>
+    <string name="show_password">Şifreyi göster</string>
+
+    <!-- Auth -->
+    <string name="action_login">Giriş Yap</string>
+    <string name="action_register">Kayıt Ol</string>
+    <string name="login_subtitle">Hesabınıza giriş yapın</string>
+    <string name="no_account_prompt">Hesabınız yok mu?</string>
+    <string name="register_subtitle">Yeni bir hesap oluşturun</string>
+    <string name="already_have_account_prompt">Zaten hesabınız var mı?</string>
+    
+    <!-- Auth Errors -->
+    <string name="error_login_failed">Giriş başarısız: %1$s</string>
+    <string name="error_register_failed">Kayıt başarısız: %1$s</string>
+    <string name="error_email_required">E-posta adresi gerekli</string>
+    <string name="error_password_required">Şifre gerekli</string>
+    <string name="error_name_required">İsim gerekli</string>
+    <string name="error_password_short">Şifre en az 6 karakter olmalı</string>
+    <string name="error_passwords_mismatch">Şifreler eşleşmiyor</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Hoş Geldin</string>
+    <string name="onboarding_desc_1">Pulse ile üretkenliğini artır ve hedeflerine ulaş.</string>
+    <string name="onboarding_title_2">Sosyal Üretkenlik</string>
+    <string name="onboarding_desc_2">Arkadaşlarınla birlikte hedefler belirle ve motive ol.</string>
+    <string name="onboarding_title_3">Başlamaya Hazır mısın?</string>
+    <string name="onboarding_desc_3">Hemen kayıt ol ve yolculuğuna başla.</string>
+    <string name="action_skip">Atla</string>
+    <string name="action_next">İleri</string>
+    <string name="action_start">Başla</string>
+
+    <!-- Main / Home -->
+    <string name="tab_home">Ana Sayfa</string>
+    <string name="tab_profile">Profil</string>
+    <string name="tab_settings">Ayarlar</string>
+    <string name="home_feed_placeholder">Feed içeriği burada görüntülenecek</string>
+
+    <!-- Profile -->
+    <string name="profile_choose_avatar">Avatar Seç</string>
+    <string name="profile_username">Kullanıcı Adı</string>
+    <string name="action_edit_profile">Profili Düzenle</string>
+
+    <!-- Settings -->
+    <string name="settings_dark_mode_title">Karanlık Mod</string>
+    <string name="settings_dark_mode_desc">Koyu tema kullan</string>
+    <string name="settings_theme_color">Tema Rengi</string>
+    <string name="action_logout">Çıkış Yap</string>
+</resources>

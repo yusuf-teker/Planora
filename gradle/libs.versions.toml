@@ -44,6 +44,10 @@ coil = "3.2.0"
 # Napier (KMP Logging)
 napier = "2.7.1"
 
+# Secure Storage
+multiplatformSettings = "1.1.1"
+androidxSecurityCrypto = "1.1.0-alpha06"
+
 # Testing
 junit = "4.13.2"
 
@@ -118,8 +122,10 @@ sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", 
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 
-# DataStore
+# DataStore & Settings
 datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidxSecurityCrypto" }
 
 # Kotlinx
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }

@@ -28,6 +28,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.*
 import androidx.compose.foundation.Image
 import kotlin.collections.getOrNull
 import com.yusufteker.pulse.core.ui.components.AvatarImage
@@ -68,17 +71,9 @@ fun ProfileScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = "Profil",
+                    text = stringResource(Res.string.tab_profile),
                     style = MaterialTheme.typography.titleLarge
                 )
-            },
-            navigationIcon = {
-                IconButton(onClick = { viewModel.onEvent(ProfileEvent.BackClicked) }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Geri"
-                    )
-                }
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background
@@ -96,7 +91,7 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Avatar Seç",
+                    text = stringResource(Res.string.profile_choose_avatar),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -139,7 +134,7 @@ fun ProfileScreen(
                 androidx.compose.material3.OutlinedTextField(
                     value = state.name,
                     onValueChange = { /* Disabled by user request */ },
-                    label = { Text("Kullanıcı Adı") },
+                    label = { Text(stringResource(Res.string.profile_username)) },
                     singleLine = true,
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth()
@@ -151,7 +146,7 @@ fun ProfileScreen(
                     onClick = { viewModel.onEvent(ProfileEvent.SaveClicked) },
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Text("Kaydet")
+                    Text(stringResource(Res.string.save))
                 }
             }
         } else {
@@ -188,7 +183,7 @@ fun ProfileScreen(
                 androidx.compose.material3.OutlinedButton(
                     onClick = { viewModel.onEvent(ProfileEvent.EditProfileClicked) }
                 ) {
-                    Text("Profili Düzenle")
+                    Text(stringResource(Res.string.action_edit_profile))
                 }
             }
         }

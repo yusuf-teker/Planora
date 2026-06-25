@@ -34,6 +34,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.*
 
 /**
  * Login screen composable.
@@ -75,7 +78,7 @@ fun LoginScreen(
     ) {
         // Header
         Text(
-            text = "Giriş Yap",
+            text = stringResource(Res.string.action_login),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -83,7 +86,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Hesabınıza giriş yapın",
+            text = stringResource(Res.string.login_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -94,10 +97,10 @@ fun LoginScreen(
         OutlinedTextField(
             value = state.email,
             onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
-            label = { Text("E-posta") },
+            label = { Text(stringResource(Res.string.email)) },
             isError = state.emailError != null,
             supportingText = state.emailError?.let { error ->
-                { Text(error) }
+                { Text(error.asString()) }
             },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -114,10 +117,10 @@ fun LoginScreen(
         OutlinedTextField(
             value = state.password,
             onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
-            label = { Text("Şifre") },
+            label = { Text(stringResource(Res.string.password)) },
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { error ->
-                { Text(error) }
+                { Text(error.asString()) }
             },
             visualTransformation = if (state.isPasswordVisible) {
                 VisualTransformation.None
@@ -135,9 +138,9 @@ fun LoginScreen(
                             Icons.Rounded.Visibility
                         },
                         contentDescription = if (state.isPasswordVisible) {
-                            "Şifreyi gizle"
+                            stringResource(Res.string.hide_password)
                         } else {
-                            "Şifreyi göster"
+                            stringResource(Res.string.show_password)
                         }
                     )
                 }
@@ -168,7 +171,7 @@ fun LoginScreen(
                 )
             } else {
                 Text(
-                    text = "Giriş Yap",
+                    text = stringResource(Res.string.action_login),
                     style = MaterialTheme.typography.labelLarge
                 )
             }
@@ -181,13 +184,13 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Hesabınız yok mu?",
+                text = stringResource(Res.string.no_account_prompt),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = { viewModel.onEvent(LoginEvent.RegisterClicked) }) {
                 Text(
-                    text = "Kayıt Ol",
+                    text = stringResource(Res.string.action_register),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )

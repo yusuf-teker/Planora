@@ -26,6 +26,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.*
 
 /**
  * Onboarding screen composable.
@@ -50,16 +54,16 @@ fun OnboardingScreen(
 
     val pages = listOf(
         OnboardingPage(
-            title = "Hoş Geldin",
-            description = "Pulse ile üretkenliğini artır ve hedeflerine ulaş."
+            title = Res.string.onboarding_title_1,
+            description = Res.string.onboarding_desc_1
         ),
         OnboardingPage(
-            title = "Sosyal Üretkenlik",
-            description = "Arkadaşlarınla birlikte hedefler belirle ve motive ol."
+            title = Res.string.onboarding_title_2,
+            description = Res.string.onboarding_desc_2
         ),
         OnboardingPage(
-            title = "Başlamaya Hazır mısın?",
-            description = "Hemen kayıt ol ve yolculuğuna başla."
+            title = Res.string.onboarding_title_3,
+            description = Res.string.onboarding_desc_3
         )
     )
 
@@ -79,7 +83,7 @@ fun OnboardingScreen(
             if (state.currentPage < state.totalPages - 1) {
                 TextButton(onClick = { viewModel.onEvent(OnboardingEvent.SkipClicked) }) {
                     Text(
-                        text = "Atla",
+                        text = stringResource(Res.string.action_skip),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -90,7 +94,7 @@ fun OnboardingScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         Text(
-            text = pages[state.currentPage].title,
+            text = stringResource(pages[state.currentPage].title),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
@@ -99,7 +103,7 @@ fun OnboardingScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = pages[state.currentPage].description,
+            text = stringResource(pages[state.currentPage].description),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -144,7 +148,10 @@ fun OnboardingScreen(
             shape = MaterialTheme.shapes.medium
         ) {
             Text(
-                text = if (state.currentPage == state.totalPages - 1) "Başla" else "İleri",
+                text = if (state.currentPage == state.totalPages - 1) 
+                    stringResource(Res.string.action_start) 
+                else 
+                    stringResource(Res.string.action_next),
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -155,6 +162,6 @@ fun OnboardingScreen(
  * Data class representing a single onboarding page.
  */
 private data class OnboardingPage(
-    val title: String,
-    val description: String
+    val title: StringResource,
+    val description: StringResource
 )

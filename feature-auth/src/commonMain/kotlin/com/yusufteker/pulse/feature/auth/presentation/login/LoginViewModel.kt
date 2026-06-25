@@ -1,8 +1,13 @@
 package com.yusufteker.pulse.feature.auth.presentation.login
 
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.core.ui.text.UiText
 import com.yusufteker.pulse.feature.auth.domain.usecase.LoginUseCase
 import com.yusufteker.pulse.shared.api.AuthRequest
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.error_email_required
+import pulse.core.generated.resources.error_login_failed
+import pulse.core.generated.resources.error_password_required
 
 /**
  * ViewModel for the Login screen.
@@ -46,7 +51,7 @@ class LoginViewModel(
                             },
                             onFailure = { error ->
                                 // Hata durumunda UI'da hatayı göster
-                                setState { copy(emailError = "Giriş başarısız: ${error.message}") }
+                                setState { copy(emailError = UiText.StringResourceId(Res.string.error_login_failed, error.message ?: "Unknown")) }
                             }
                         )
                     }
@@ -67,12 +72,12 @@ class LoginViewModel(
         var isValid = true
 
         if (currentState.email.isBlank()) {
-            setState { copy(emailError = "E-posta adresi gerekli") }
+            setState { copy(emailError = UiText.StringResourceId(Res.string.error_email_required)) }
             isValid = false
         }
 
         if (currentState.password.isBlank()) {
-            setState { copy(passwordError = "Şifre gerekli") }
+            setState { copy(passwordError = UiText.StringResourceId(Res.string.error_password_required)) }
             isValid = false
         }
 

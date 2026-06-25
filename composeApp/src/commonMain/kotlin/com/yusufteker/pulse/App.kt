@@ -21,12 +21,7 @@ import com.yusufteker.pulse.feature.auth.presentation.register.RegisterScreen
 import com.yusufteker.pulse.feature.auth.presentation.register.RegisterViewModel
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashScreen
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashViewModel
-import com.yusufteker.pulse.feature.home.presentation.home.HomeScreen
-import com.yusufteker.pulse.feature.home.presentation.home.HomeViewModel
-import com.yusufteker.pulse.feature.home.presentation.profile.ProfileScreen
-import com.yusufteker.pulse.feature.home.presentation.profile.ProfileViewModel
-import com.yusufteker.pulse.feature.home.presentation.settings.SettingsScreen
-import com.yusufteker.pulse.feature.home.presentation.settings.SettingsViewModel
+import com.yusufteker.pulse.feature.home.presentation.main.MainScreen
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -49,7 +44,11 @@ fun App() {
 
         NavDisplay(
             backStack = backStack,
-            onBack = { backStack.removeLastOrNull() },
+            onBack = { 
+                if (backStack.size > 1) {
+                    backStack.removeLastOrNull() 
+                }
+            },
             entryProvider = entryProvider {
                 // ── Splash Graph ─────────────────────────
                 entry<Screen.Splash> {
@@ -62,7 +61,7 @@ fun App() {
                         },
                         onNavigateToHome = {
                             backStack.clear()
-                            backStack.add(Screen.Home)
+                            backStack.add(Screen.Main)
                         }
                     )
                 }
@@ -85,7 +84,7 @@ fun App() {
                         viewModel = viewModel,
                         onNavigateToHome = {
                             backStack.clear()
-                            backStack.add(Screen.Home)
+                            backStack.add(Screen.Main)
                         },
                         onNavigateToRegister = {
                             backStack.add(Screen.Register)
@@ -99,7 +98,7 @@ fun App() {
                         viewModel = viewModel,
                         onNavigateToHome = {
                             backStack.clear()
-                            backStack.add(Screen.Home)
+                            backStack.add(Screen.Main)
                         },
                         onNavigateBack = {
                             backStack.removeLastOrNull()
@@ -107,37 +106,9 @@ fun App() {
                     )
                 }
 
-                // ── Home Graph ───────────────────────────
-                entry<Screen.Home> {
-                    val viewModel = koinViewModel<HomeViewModel>()
-                    HomeScreen(
-                        viewModel = viewModel,
-                        onNavigateToProfile = {
-                            backStack.add(Screen.Profile)
-                        },
-                        onNavigateToSettings = {
-                            backStack.add(Screen.Settings)
-                        }
-                    )
-                }
-
-                entry<Screen.Profile> {
-                    val viewModel = koinViewModel<ProfileViewModel>()
-                    ProfileScreen(
-                        viewModel = viewModel,
-                        onNavigateBack = {
-                            backStack.removeLastOrNull()
-                        }
-                    )
-                }
-
-                entry<Screen.Settings> {
-                    val viewModel = koinViewModel<SettingsViewModel>()
-                    SettingsScreen(
-                        viewModel = viewModel,
-                        onNavigateBack = {
-                            backStack.removeLastOrNull()
-                        },
+                // ── Main Graph (Container for Bottom Navigation) ─────────
+                entry<Screen.Main> {
+                    MainScreen(
                         onNavigateToLogin = {
                             backStack.clear()
                             backStack.add(Screen.Login)

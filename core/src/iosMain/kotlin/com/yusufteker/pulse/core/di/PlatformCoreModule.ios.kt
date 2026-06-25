@@ -1,5 +1,7 @@
 package com.yusufteker.pulse.core.di
 
+import com.russhwolf.settings.KeychainSettings
+import com.yusufteker.pulse.core.preferences.SecureSettings
 import com.yusufteker.pulse.core.preferences.createDataStore
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.dsl.module
@@ -24,5 +26,10 @@ actual val platformCoreModule = module {
             )
             requireNotNull(documentDirectory).path + "/pulse.preferences_pb"
         }
+    }
+
+    single {
+        // KeychainSettings uses iOS Keychain for secure storage
+        SecureSettings(KeychainSettings(service = "PulseSecureStore"))
     }
 }

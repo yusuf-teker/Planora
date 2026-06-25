@@ -1,8 +1,15 @@
 package com.yusufteker.pulse.feature.auth.presentation.register
 
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.core.ui.text.UiText
 import com.yusufteker.pulse.feature.auth.domain.usecase.RegisterUseCase
 import com.yusufteker.pulse.shared.api.RegisterRequest
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.error_email_required
+import pulse.core.generated.resources.error_name_required
+import pulse.core.generated.resources.error_password_short
+import pulse.core.generated.resources.error_passwords_mismatch
+import pulse.core.generated.resources.error_register_failed
 
 /**
  * ViewModel for the Register screen.
@@ -54,7 +61,7 @@ class RegisterViewModel(
                                 setEffect(RegisterEffect.NavigateToHome)
                             },
                             onFailure = { error ->
-                                setState { copy(emailError = "Kayıt başarısız: ${error.message}") }
+                                setState { copy(emailError = UiText.StringResourceId(Res.string.error_register_failed, error.message ?: "Unknown")) }
                             }
                         )
                     }
@@ -71,22 +78,22 @@ class RegisterViewModel(
         var isValid = true
 
         if (currentState.name.isBlank()) {
-            setState { copy(nameError = "İsim gerekli") }
+            setState { copy(nameError = UiText.StringResourceId(Res.string.error_name_required)) }
             isValid = false
         }
 
-        if (currentState.email.isBlank()) {
-            setState { copy(emailError = "E-posta adresi gerekli") }
+        if (currentState.email.isBlank() || !currentState.email.contains("@")) {
+            setState { copy(emailError = UiText.StringResourceId(Res.string.error_email_required)) }
             isValid = false
         }
 
         if (currentState.password.length < 6) {
-            setState { copy(passwordError = "Şifre en az 6 karakter olmalı") }
+            setState { copy(passwordError = UiText.StringResourceId(Res.string.error_password_short)) }
             isValid = false
         }
 
         if (currentState.password != currentState.confirmPassword) {
-            setState { copy(confirmPasswordError = "Şifreler eşleşmiyor") }
+            setState { copy(confirmPasswordError = UiText.StringResourceId(Res.string.error_passwords_mismatch)) }
             isValid = false
         }
 

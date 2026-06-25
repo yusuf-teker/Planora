@@ -8,22 +8,27 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
- * Manages user session tokens (Access & Refresh) using DataStore.
+ * Manages user session tokens (Access & Refresh) using SecureSettings (Keychain/EncryptedPrefs)
+ * and non-sensitive user profile data using DataStore.
  */
 class SessionPreferences(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val secureSettings: SecureSettings
 ) {
-    private val accessTokenKey = stringPreferencesKey("access_token")
-    private val refreshTokenKey = stringPreferencesKey("refresh_token")
+    // Keys for Settings (Tokens)
+    private val accessTokenKeyString = "access_token"
+    private val refreshTokenKeyString = "refresh_token"
+
+    // Keys for DataStore (Profile info)
     private val userNameKey = stringPreferencesKey("user_name")
     private val userAvatarKey = stringPreferencesKey("user_avatar")
 
     suspend fun getAccessToken(): String? {
-        return dataStore.data.map { it[accessTokenKey] }.first()
+        return secureSettings.settings.getStringOrNull(accessTokenKeyString)
     }
 
     suspend fun getRefreshToken(): String? {
-        return dataStore.data.map { it[refreshTokenKey] }.first()
+        return secureSettings.settings.getStringOrNull(refreshTokenKeyString)
     }
 
     // Flow tabanlı: DataStore değişince otomatik güncellenir
@@ -42,10 +47,8 @@ class SessionPreferences(
     }
 
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
-        dataStore.edit { prefs ->
-            prefs[accessTokenKey] = accessToken
-            prefs[refreshTokenKey] = refreshToken
-        }
+        secureSettings.settings.putString(accessTokenKeyString, accessToken)
+        secureSettings.settings.putString(refreshTokenKeyString, refreshToken)
     }
 
     suspend fun saveUserProfile(name: String, avatarId: String) {
@@ -56,9 +59,12 @@ class SessionPreferences(
     }
 
     suspend fun clearSession() {
+        // Clear secure tokens
+        secureSettings.settings.remove(accessTokenKeyString)
+        secureSettings.settings.remove(refreshTokenKeyString)
+        
+        // Clear DataStore profile info
         dataStore.edit { prefs ->
-            prefs.remove(accessTokenKey)
-            prefs.remove(refreshTokenKey)
             prefs.remove(userNameKey)
             prefs.remove(userAvatarKey)
         }
