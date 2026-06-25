@@ -1,8 +1,8 @@
 package com.yusufteker.pulse.server.database
 
+import com.yusufteker.pulse.server.AppConfig
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.config.*
 import kotlinx.coroutines.Dispatchers
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
@@ -12,21 +12,14 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
  * Handles PostgreSQL database connection, connection pooling, and migrations.
  */
 object DatabaseFactory {
-    fun init(config: ApplicationConfig) {
-        val driverClass = "org.postgresql.Driver"
-        val url = config.property("database.url").getString()
-        val user = config.property("database.user").getString()
-        val password = config.property("database.password").getString()
-
-        println("========== DATABASE CONFIG ==========")
-        println("DB_URL = $url")
-        println("DB_USER = $user")
-        println("DB_PASSWORD = ${password?.replace(Regex("."), "*")}")
-        println("====================================")
+    fun init() {
+        val url = AppConfig.dbUrl
+        val user = AppConfig.dbUser
+        val password = AppConfig.dbPassword
 
         // 1. Configure HikariCP Connection Pool
         val hikariConfig = HikariConfig().apply {
-            driverClassName = driverClass
+            driverClassName = "org.postgresql.Driver"
             jdbcUrl = url
             username = user
             this.password = password
@@ -44,7 +37,9 @@ object DatabaseFactory {
             .load()
 
         flyway.migrate()
-        println("Flyway OK")        // 3. Connect Exposed ORM to the Data Source
+        println("Flyway OK")
+
+        // 3. Connect Exposed ORM to the Data Source
         Database.connect(dataSource)
     }
 

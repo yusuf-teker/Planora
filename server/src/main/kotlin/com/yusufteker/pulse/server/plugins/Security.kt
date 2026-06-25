@@ -2,6 +2,7 @@ package com.yusufteker.pulse.server.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.yusufteker.pulse.server.AppConfig
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -10,8 +11,8 @@ import io.ktor.server.auth.jwt.*
  * Configures the Ktor Authentication plugin to automatically validate incoming JWTs.
  */
 fun Application.configureSecurity() {
-    val secret = environment.config.propertyOrNull("jwt.secret")?.getString() ?: "secret"
-    val issuer = environment.config.propertyOrNull("jwt.issuer")?.getString() ?: "pulse"
+    val secret = AppConfig.jwtSecret
+    val issuer = AppConfig.jwtIssuer
 
     install(Authentication) {
         jwt("auth-jwt") {

@@ -31,6 +31,9 @@ dependencies {
     // Security
     implementation(libs.bcrypt)
 
+    // Dotenv
+    implementation(libs.dotenv.kotlin)
+
     // Shared module (API Models)
     implementation(project(":shared"))
 }

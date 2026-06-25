@@ -68,17 +68,7 @@ fun ProfileScreen(
             .safeContentPadding()
     ) {
 
-        TopAppBar(
-            title = {
-                Text(
-                    text = stringResource(Res.string.tab_profile),
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background
-            )
-        )
+
 
         val avatarList = List(10) { "avatar_${it + 1}" }
         val currentAvatarId = if (state.avatarId in avatarList) state.avatarId else "avatar_1"

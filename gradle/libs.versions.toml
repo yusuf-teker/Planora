@@ -47,6 +47,7 @@ napier = "2.7.1"
 # Secure Storage
 multiplatformSettings = "1.1.1"
 androidxSecurityCrypto = "1.1.0-alpha06"
+dotenv = "6.5.1"
 
 # Testing
 junit = "4.13.2"
@@ -116,6 +117,7 @@ bcrypt = { module = "at.favre.lib:bcrypt", version.ref = "bcrypt" }
 # Logging
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+dotenv-kotlin = { module = "io.github.cdimascio:dotenv-kotlin", version.ref = "dotenv" }
 
 # SQLDelight
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
