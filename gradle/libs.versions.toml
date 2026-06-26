@@ -13,6 +13,10 @@ kotlin = "2.4.0"
 # Navigation 3
 navigation3 = "1.0.0-alpha05"
 
+# Paging
+paging = "3.3.0-alpha02-0.5.1"
+
+
 # Koin
 koin-bom = "4.1.0"
 
@@ -28,7 +32,7 @@ bcrypt = "0.10.2"
 logback = "1.5.11"
 
 # SQLDelight
-sqldelight = "2.0.2"
+sqldelight = "2.3.2"
 
 # DataStore
 datastore = "1.1.7"
@@ -78,6 +82,11 @@ androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle
 # Navigation 3
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 
+# Paging
+paging-common = { module = "app.cash.paging:paging-common", version.ref = "paging" }
+paging-compose = { module = "app.cash.paging:paging-compose-common", version.ref = "paging" }
+
+
 # Koin
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin-bom" }
 koin-core = { module = "io.insert-koin:koin-core" }
@@ -121,6 +130,7 @@ dotenv-kotlin = { module = "io.github.cdimascio:dotenv-kotlin", version.ref = "d
 
 # SQLDelight
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-paging3 = { module = "app.cash.sqldelight:androidx-paging3-extensions", version.ref = "sqldelight" }
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 

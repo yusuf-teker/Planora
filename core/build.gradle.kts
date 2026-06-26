@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -73,17 +74,22 @@ kotlin {
             api(libs.ktor.client.auth)
             api(libs.ktor.serialization.kotlinx.json)
 
+            // Paging & Database
+            api(libs.paging.common)
+            api(libs.sqldelight.coroutines)
+
             implementation(project(":shared"))
         }
 
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
-            
+            implementation(libs.sqldelight.android.driver)
         }
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
         }
 
         commonTest.dependencies {
@@ -94,6 +100,14 @@ kotlin {
 
 compose.resources {
     publicResClass = true
+}
+
+sqldelight {
+    databases {
+        create("PulseDatabase") {
+            packageName.set("com.yusufteker.pulse.core.database")
+        }
+    }
 }
 
 // Workaround for Compose Multiplatform bug with androidMultiplatformLibrary

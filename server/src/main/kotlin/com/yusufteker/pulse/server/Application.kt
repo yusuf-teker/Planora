@@ -9,6 +9,7 @@ import io.ktor.server.routing.routing
 import com.yusufteker.pulse.server.database.DatabaseFactory
 import com.yusufteker.pulse.server.plugins.configureSecurity
 import com.yusufteker.pulse.server.routes.authRoutes
+import com.yusufteker.pulse.server.routes.postRoutes
 
 /**
  * Main entry point for the Ktor server.
@@ -37,5 +38,6 @@ fun Application.module() {
     // 4. API rotalarını yönlendir.
     routing {
         authRoutes()
+        postRoutes()
     }
 }

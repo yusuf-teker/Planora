@@ -5,6 +5,9 @@ import androidx.security.crypto.MasterKey
 import com.russhwolf.settings.SharedPreferencesSettings
 import com.yusufteker.pulse.core.preferences.SecureSettings
 import com.yusufteker.pulse.core.preferences.createDataStore
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import com.yusufteker.pulse.core.database.PulseDatabase
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -34,4 +37,6 @@ actual val platformCoreModule = module {
         
         SecureSettings(SharedPreferencesSettings(sharedPreferences))
     }
+
+    single<SqlDriver> { AndroidSqliteDriver(PulseDatabase.Schema, androidContext(), "pulse.db") }
 }

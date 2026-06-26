@@ -47,6 +47,9 @@ sealed interface Screen {
         data object Home : MainDestination
 
         @Serializable
+        data object Social : MainDestination
+
+        @Serializable
         data object Profile : MainDestination
 
         @Serializable

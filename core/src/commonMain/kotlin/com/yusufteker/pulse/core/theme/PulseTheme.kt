@@ -9,6 +9,9 @@ import com.yusufteker.pulse.core.preferences.ThemeColor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.ColorScheme
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+
 /**
  * Light color scheme for Pulse.
  */
@@ -101,6 +104,11 @@ fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
 }
 
 /**
+ * CompositionLocal to provide the current dark theme state across the app.
+ */
+val LocalIsDarkTheme = compositionLocalOf { false }
+
+/**
  * Pulse application theme.
  *
  * @param themeColor The selected ThemeColor.
@@ -115,10 +123,12 @@ fun PulseTheme(
 ) {
     val colorScheme = getAppColorScheme(themeColor, darkTheme)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = PulseTypography,
-        shapes = PulseShapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = PulseTypography,
+            shapes = PulseShapes,
+            content = content
+        )
+    }
 }

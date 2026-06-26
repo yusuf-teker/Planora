@@ -55,6 +55,12 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.components.resources)
 
+            // Paging
+            implementation(libs.paging.compose)
+            implementation(libs.paging.common)
+
+            implementation(libs.kotlinx.datetime)
+
         }
 
         commonTest.dependencies {

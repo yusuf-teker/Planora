@@ -16,19 +16,22 @@ class SplashViewModel(
 ) : BaseViewModel<SplashState, SplashEvent, SplashEffect>(
     initialState = SplashState()
 ) {
+    init {
+        checkSession()
+    }
 
-    override fun onEvent(event: SplashEvent) {
-        when (event) {
-            is SplashEvent.AnimationCompleted -> {
-                launch {
-                    val hasSession = autoLoginUseCase()
-                    if (hasSession) {
-                        setEffect(SplashEffect.NavigateToHome)
-                    } else {
-                        setEffect(SplashEffect.NavigateToOnboarding)
-                    }
-                }
+    private fun checkSession() {
+        launch {
+            val hasSession = autoLoginUseCase()
+            if (hasSession) {
+                setEffect(SplashEffect.NavigateToHome)
+            } else {
+                setEffect(SplashEffect.NavigateToOnboarding)
             }
         }
+    }
+
+    override fun onEvent(event: SplashEvent) {
+        // No longer waiting for animation
     }
 }

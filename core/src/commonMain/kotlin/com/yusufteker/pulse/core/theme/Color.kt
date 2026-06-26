@@ -41,14 +41,14 @@ object PulseColors {
     val OutlineVariantLight = Color(0xFFE8E8F0)
 
     // ── Background & Surface (Dark) ──────────────────────────
-    val BackgroundDark = Color(0xFF0F0F1A)
+    val BackgroundDark = Color(0xFF000000)
     val OnBackgroundDark = Color(0xFFE4E4F0)
-    val SurfaceDark = Color(0xFF1A1A2E)
+    val SurfaceDark = Color(0xFF000000)
     val OnSurfaceDark = Color(0xFFE4E4F0)
-    val SurfaceVariantDark = Color(0xFF252540)
+    val SurfaceVariantDark = Color(0xFF161616)
     val OnSurfaceVariantDark = Color(0xFFCACAD8)
-    val OutlineDark = Color(0xFF3D3D56)
-    val OutlineVariantDark = Color(0xFF2D2D44)
+    val OutlineDark = Color(0xFF333333)
+    val OutlineVariantDark = Color(0xFF1F1F1F)
 
     // ── Error ────────────────────────────────────────────────
     val Error = Color(0xFFFF4757)

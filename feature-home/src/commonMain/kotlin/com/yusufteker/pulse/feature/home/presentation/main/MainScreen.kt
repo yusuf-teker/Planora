@@ -3,9 +3,11 @@ package com.yusufteker.pulse.feature.home.presentation.main
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -26,9 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -43,13 +45,18 @@ import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
 import pulse.core.generated.resources.tab_settings
+import pulse.core.generated.resources.tab_social
 import com.yusufteker.pulse.feature.home.presentation.home.HomeScreen
 import com.yusufteker.pulse.feature.home.presentation.home.HomeViewModel
+import com.yusufteker.pulse.feature.home.presentation.social.SocialScreen
+import com.yusufteker.pulse.feature.home.presentation.social.SocialViewModel
 import com.yusufteker.pulse.feature.home.presentation.profile.ProfileScreen
 import com.yusufteker.pulse.feature.home.presentation.profile.ProfileViewModel
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsScreen
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
+
+import com.yusufteker.pulse.core.theme.LocalIsDarkTheme
 
 @Composable
 fun MainScreen() {
@@ -58,6 +65,8 @@ fun MainScreen() {
     val navigator = remember { Navigator(backStack) }
 
     val currentDestination = backStack.lastOrNull() ?: MainDestination.Home
+
+    val isDark = LocalIsDarkTheme.current
 
     val navigateToTab: (MainDestination) -> Unit = { destination ->
         if (currentDestination != destination) {
@@ -71,16 +80,15 @@ fun MainScreen() {
     Scaffold(
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
+                color = if (isDark) Color.Black else MaterialTheme.colorScheme.surface,
+                tonalElevation = if (isDark) 0.dp else 3.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars)
-                        .height(60.dp)
-                        .padding(horizontal = 8.dp),
+                        .height(60.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -91,7 +99,7 @@ fun MainScreen() {
                         modifier = Modifier
                             .clip(CircleShape)
                             .clickable { navigateToTab(MainDestination.Home) }
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp)
                     ) {
                         Icon(
                             imageVector = if (isHomeSelected) Icons.Filled.Home else Icons.Outlined.Home,
@@ -101,6 +109,29 @@ fun MainScreen() {
                         if (isHomeSelected) {
                             Text(
                                 text = stringResource(Res.string.tab_home),
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    // Social Tab
+                    val isSocialSelected = currentDestination is MainDestination.Social
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable { navigateToTab(MainDestination.Social) }
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isSocialSelected) Icons.Filled.People else Icons.Outlined.People,
+                            contentDescription = "Social",
+                            tint = if (isSocialSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (isSocialSelected) {
+                            Text(
+                                text = stringResource(Res.string.tab_social),
                                 fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -160,11 +191,16 @@ fun MainScreen() {
             NavDisplay(
                 backStack = navigator.backStack,
                 onBack = { navigator.pop() },
-                modifier = Modifier.padding(paddingValues),
+               // modifier = Modifier.padding(paddingValues),
                 entryProvider = entryProvider {
                     entry<MainDestination.Home> {
                         val viewModel = koinViewModel<HomeViewModel>()
                         HomeScreen(viewModel = viewModel)
+                    }
+
+                    entry<MainDestination.Social> {
+                        val viewModel = koinViewModel<SocialViewModel>()
+                        SocialScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.Profile> {

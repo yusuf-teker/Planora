@@ -46,6 +46,9 @@ object DatabaseFactory {
 
         // 3. Connect Exposed ORM to the Data Source
         Database.connect(dataSource)
+
+        // Seed dummy data if DB is empty
+        DatabaseSeeder.seed()
     }
 
     /**

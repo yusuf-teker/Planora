@@ -63,7 +63,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                     }
                 }
 
-                // Eğer istek auth/login veya auth/register ise, token ekleme ve refresh işlemlerini atla. (Kullanıcı henüz giriş yapmadığı için token yoktur)
+                // Login veya Register ise Authorization header ekleme, çünkü bu endpoint'ler token istemez.
                 sendWithoutRequest { request -> 
                     val path = request.url.buildString()
                     !path.contains("auth/login") && !path.contains("auth/register")
