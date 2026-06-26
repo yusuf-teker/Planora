@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
@@ -41,14 +43,14 @@ import pulse.core.generated.resources.*
  */
 @Composable
 fun OnboardingScreen(
-    viewModel: OnboardingViewModel,
-    onNavigateToLogin: () -> Unit
+    viewModel: OnboardingViewModel
 ) {
+    val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is OnboardingEffect.NavigateToLogin -> onNavigateToLogin()
+            is OnboardingEffect.NavigateToLogin -> navigator.setRoot(Screen.Login)
         }
     }
 

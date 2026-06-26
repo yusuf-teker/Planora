@@ -9,8 +9,10 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 /**
  * Definition of the `refresh_tokens` table for Exposed ORM.
  */
+
 object RefreshTokensTable : IntIdTable("refresh_tokens") {
-    val userId = reference("user_id", UsersTable)
+    // IntId sayesinde integer("id").autoIncrement().primaryKey() // otomatik id oluşturuyor yazmaya gerek yok
+    val userId = reference("user_id", UsersTable) // refresh_tokens.user_id -> users.id foreign key
     val token = varchar("token", 255).uniqueIndex()
     val expiresAt = timestamp("expires_at")
     val createdAt = timestamp("created_at")
@@ -20,6 +22,7 @@ object RefreshTokensTable : IntIdTable("refresh_tokens") {
  * DAO representing a single row in the `refresh_tokens` table.
  */
 class RefreshTokenEntity(id: EntityID<Int>) : IntEntity(id) {
+    // Exposed içindeki IntEntityClass (içinde new ve find gibi fonksiyonlar var) ile RefreshTokensTable tablosuna bağlanıyoruz.
     companion object : IntEntityClass<RefreshTokenEntity>(RefreshTokensTable)
     
     var user by UserEntity referencedOn RefreshTokensTable.userId

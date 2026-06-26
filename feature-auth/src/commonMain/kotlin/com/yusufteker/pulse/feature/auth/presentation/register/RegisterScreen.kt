@@ -35,6 +35,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
@@ -46,16 +48,15 @@ import pulse.core.generated.resources.*
  */
 @Composable
 fun RegisterScreen(
-    viewModel: RegisterViewModel,
-    onNavigateToHome: () -> Unit,
-    onNavigateBack: () -> Unit
+    viewModel: RegisterViewModel
 ) {
+    val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is RegisterEffect.NavigateToHome -> onNavigateToHome()
-            is RegisterEffect.NavigateBack -> onNavigateBack()
+            is RegisterEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is RegisterEffect.NavigateBack -> navigator.pop()
             is RegisterEffect.ShowError -> {
                 // TODO: Show snackbar or dialog
             }

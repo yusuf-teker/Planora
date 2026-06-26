@@ -15,12 +15,23 @@ fun Application.configureSecurity() {
     val issuer = AppConfig.jwtIssuer
 
     install(Authentication) {
-        jwt("auth-jwt") {
+        jwt("auth-jwt") { // Use "auth-jwt" as the name for this authentication provider
             realm = "Pulse Server"
-            verifier(
+            verifier( // Configure the JWT verifier with the secret, issuer, and audience
                 JWT
-                    .require(Algorithm.HMAC256(secret))
-                    .withAudience("pulse-client")
+
+                    //JWT.create() JWT ilk oluştruludgudune içine USER ID EMAIL VE SECRET Bilgisi koyuluyor
+                    //    .withClaim("userId", 1)
+                    //    .withClaim("email", "yusuf@gmail.com")
+                    //    .sign(Algorithm.HMAC256(secret))
+                    //   "accessToken": "eyJ...eyJ...abc123" gibi birşeyi clienta döner
+                    // client her istek attığında
+                    //GET /profile
+                    //Authorization:
+                    //Bearer eyJ...eyJ...abc123 gönderir
+
+                    .require(Algorithm.HMAC256(secret)) //  HMAC256 algorithm
+                    .withAudience("pulse-client") // Bu tokenın hangi client için geçerli olduğunu belirler. Örneğin, birden fazla client varsa (web, mobile), her biri için farklı audience belirlenebilir.
                     .withIssuer(issuer)
                     .build()
             )

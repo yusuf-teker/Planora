@@ -18,22 +18,27 @@ object DatabaseFactory {
         val password = AppConfig.dbPassword
 
         // 1. Configure HikariCP Connection Pool
+        // ktor ile postgresql bağlantısı kurmak için HikariCP kullanıyoruz.
+        // Birden fazla connection açıp havuzda saklıyoruz. Böylece her istekte tekrar bağlantı açmak yerine
+        // havuzdan bir connection alıp kullanıyoruz.
         val hikariConfig = HikariConfig().apply {
             driverClassName = "org.postgresql.Driver"
             jdbcUrl = url
             username = user
             this.password = password
             maximumPoolSize = 10
-            isAutoCommit = false
+            isAutoCommit = false //Birden fazla sıralı istek olduğunda hepsini tek seferde commit et
+            // birisi patlarsa diğerinide iptal etmesi için autoCommit false yapıyoruz.
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
             validate()
         }
         val dataSource = HikariDataSource(hikariConfig)
 
-        // 2. Run Flyway Migrations automatically on startup
+        // Flyaw database migration'ları çalıştırmak için Flyway kullanıyoruz.
+        // Migration'lar, veritabanı şemasını güncel tutmamızı sağlar.
         val flyway = Flyway.configure()
             .dataSource(dataSource)
-            .baselineOnMigrate(true)
+            .baselineOnMigrate(true) // Eğer veritabanı boşsa, mevcut şemayı baseline olarak kabul et.
             .load()
 
         flyway.migrate()
@@ -47,5 +52,5 @@ object DatabaseFactory {
      * Utility function to run database operations safely in a coroutine off the main thread.
      */
     suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(Dispatchers.IO) { block() } //Transaction oluştur IO 'da çalıştır
 }

@@ -5,8 +5,11 @@ import com.yusufteker.pulse.core.preferences.SessionPreferences
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.combine
 
+import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+
 class ProfileViewModel(
-    private val sessionPreferences: SessionPreferences
+    private val sessionPreferences: SessionPreferences,
+    private val profileRepository: ProfileRepository
 ) : BaseViewModel<ProfileState, ProfileEvent, ProfileEffect>(
     initialState = ProfileState()
 ) {
@@ -50,11 +53,15 @@ class ProfileViewModel(
             }
 
             is ProfileEvent.SaveClicked -> {
-                // TODO: Backend API çağrısı eklenecek (PUT /auth/profile)
                 launch {
-                    sessionPreferences.saveUserProfile(state.value.name, state.value.avatarId)
+                    val result = profileRepository.updateProfile(state.value.name, state.value.avatarId)
+                    if (result.isSuccess) {
+                        setState { copy(isEditing = false) }
+                        Napier.d(tag = "Screen", message = { "Profil backend'e kaydedildi." })
+                    } else {
+                        Napier.e(tag = "Screen", message = { "Profil kaydedilemedi: ${result.exceptionOrNull()?.message}" })
+                    }
                 }
-                setState { copy(isEditing = false) }
             }
         }
     }

@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.tab_home
@@ -37,16 +39,21 @@ import pulse.core.generated.resources.home_feed_placeholder
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel,
-    onNavigateToProfile: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    viewModel: HomeViewModel
 ) {
+    val mainNavigator = LocalMainNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is HomeEffect.NavigateToProfile -> onNavigateToProfile()
-            is HomeEffect.NavigateToSettings -> onNavigateToSettings()
+            is HomeEffect.NavigateToProfile -> {
+                mainNavigator.setRoot(MainDestination.Home)
+                mainNavigator.navigate(MainDestination.Profile)
+            }
+            is HomeEffect.NavigateToSettings -> {
+                mainNavigator.setRoot(MainDestination.Home)
+                mainNavigator.navigate(MainDestination.Settings)
+            }
         }
     }
 

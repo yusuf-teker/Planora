@@ -27,7 +27,7 @@ fun Route.authRoutes() {
     route("/auth") {
         
         // --- 1. REGISTER ENDPOINT ---
-        post("/register") {
+        post("/register") { // auth/register geldiğinde
             // Client'tan (Uygulamadan) gelen JSON verisini Kotlin objesine dönüştürüyoruz.
             val request = call.receive<RegisterRequest>()
             
@@ -54,6 +54,7 @@ fun Route.authRoutes() {
             }
 
             // Kayıt olan kullanıcı için hemen yetkilendirme (Access) ve yenileme (Refresh) token'ları üretiyoruz.
+            // accessToken -> userId, email,expirationDate,  hashli secret içerir. 15 dk geçerlidir.
             val accessToken = TokenService.generateAccessToken(newUser.id.value, newUser.email)
             val refreshToken = TokenService.generateRefreshToken()
 
@@ -67,13 +68,13 @@ fun Route.authRoutes() {
                 }
             }
 
-            // İşlem başarılı! Uygulamaya token'ları dönüyoruz.
+            // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
             call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.avatarId))
         }
 
         // --- 2. LOGIN ENDPOINT ---
         post("/login") {
-            val request = call.receive<AuthRequest>()
+            val request = call.receive<AuthRequest>() // Kullanıcı email ve şifre gönderir
 
             // Veritabanından emaile göre kullanıcıyı arıyoruz.
             val user = dbQuery {
@@ -85,10 +86,11 @@ fun Route.authRoutes() {
                 call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
                 return@post
             }
-
+            // email ve şifre doğru ise token üretiyoruz ve kullanıcıya dönüyoruz.
             val accessToken = TokenService.generateAccessToken(user.id.value, user.email)
             val refreshToken = TokenService.generateRefreshToken()
 
+            //refresh tokenı veritabanına kaydediyoruz. (Refresh tokenlar DB'de tutulur, Access tokenlar tutulmaz)
             dbQuery {
                 RefreshTokenEntity.new {
                     this.user = user
@@ -97,7 +99,7 @@ fun Route.authRoutes() {
                     createdAt = Instant.now()
                 }
             }
-
+            // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
             call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.avatarId))
         }
 
@@ -106,9 +108,11 @@ fun Route.authRoutes() {
         post("/refresh") {
             val request = call.receive<RefreshTokenRequest>()
 
+            // Client -> Server: Refresh Token gönderir. Server bu tokenı veritabanında arar.
             val refreshTokenEntity = dbQuery {
                 RefreshTokenEntity.find { RefreshTokensTable.token eq request.refreshToken }.firstOrNull()
             }
+
 
             // Token veritabanında yoksa veya süresi dolmuşsa geçersiz kılıyoruz.
             if (refreshTokenEntity == null || refreshTokenEntity.expiresAt.isBefore(Instant.now())) {
@@ -116,6 +120,7 @@ fun Route.authRoutes() {
                 return@post
             }
 
+            // Token geçerli ise, ilişkili kullanıcıyı buluyoruz.
             val user = dbQuery { refreshTokenEntity.user }
 
             // Eski token geçerli olduğu için kullanıcıya yeni tokenlar veriyoruz.
@@ -134,6 +139,7 @@ fun Route.authRoutes() {
                 }
             }
 
+            // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
             call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, newRefreshToken, user.id.value, user.name, user.avatarId))
         }
 
@@ -142,8 +148,21 @@ fun Route.authRoutes() {
         // Gelen Header'da "Bearer <token>" yoksa Ktor otomatik olarak 401 Unauthorized döner, aşağıdaki kod hiç çalışmaz.
         authenticate("auth-jwt") {
             get("/me") {
+
+                //GET /auth/me
+                //Authorization: Bearer eyJhbGciOi...
+                //Client tarafından gönderilen token'ı Ktor otomatik olarak doğrular. Token geçersizse 401 döner.
+
                 // Token doğrulandıysa içindeki şifreli veriyi (Payload) okuyabiliriz.
+                //JWTPrincipal( // Token içinde userId ve email var. Bunları okuyabiliriz.
+                //    payload = {
+                //        userId = 1,
+                //        email = "yusuf@gmail.com"
+                //    }
+                //)
                 val principal = call.principal<JWTPrincipal>()
+
+
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
 
                 if (userId == null) {
@@ -156,7 +175,12 @@ fun Route.authRoutes() {
                 }
 
                 if (user != null) {
-                    call.respond(HttpStatusCode.OK, mapOf("id" to user.id.value, "name" to user.name, "email" to user.email, "avatarId" to user.avatarId))
+                    call.respond(HttpStatusCode.OK, com.yusufteker.pulse.shared.api.UserProfileResponse(
+                        id = user.id.value,
+                        name = user.name,
+                        email = user.email,
+                        avatarId = user.avatarId
+                    ))
                 } else {
                     call.respond(HttpStatusCode.NotFound)
                 }
@@ -173,6 +197,7 @@ fun Route.authRoutes() {
 
                 val request = call.receive<com.yusufteker.pulse.shared.api.UpdateProfileRequest>()
 
+                // name ve avatarId güncellemesini veritabanında yapıyoruz.
                 val user = dbQuery {
                     val entity = UserEntity.findById(userId)
                     if (entity != null) {

@@ -8,6 +8,11 @@ import com.yusufteker.pulse.feature.auth.domain.repository.AuthRepository
  */
 class AutoLoginUseCase(private val authRepository: AuthRepository) {
     suspend operator fun invoke(): Boolean {
-        return authRepository.hasValidSession()
+        val hasSession = authRepository.hasValidSession()
+        if (hasSession) {
+            // Fetch the latest profile from the server to keep the local DataStore up-to-date
+            authRepository.fetchMyProfile()
+        }
+        return hasSession
     }
 }

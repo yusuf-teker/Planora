@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
@@ -46,14 +47,14 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel,
-    onNavigateBack: () -> Unit
+    viewModel: ProfileViewModel
 ) {
+    val mainNavigator = LocalMainNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is ProfileEffect.NavigateBack -> onNavigateBack()
+            is ProfileEffect.NavigateBack -> mainNavigator.pop()
         }
     }
 

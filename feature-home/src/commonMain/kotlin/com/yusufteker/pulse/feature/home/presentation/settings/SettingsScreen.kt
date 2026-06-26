@@ -32,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
@@ -42,16 +45,16 @@ import pulse.core.generated.resources.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel,
-    onNavigateBack: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    viewModel: SettingsViewModel
 ) {
+    val mainNavigator = LocalMainNavigator.current
+    val rootNavigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is SettingsEffect.NavigateBack -> onNavigateBack()
-            is SettingsEffect.NavigateToLogin -> onNavigateToLogin()
+            is SettingsEffect.NavigateBack -> mainNavigator.pop()
+            is SettingsEffect.NavigateToLogin -> rootNavigator.setRoot(Screen.Login)
         }
     }
 

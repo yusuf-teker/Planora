@@ -8,7 +8,9 @@ import com.yusufteker.pulse.shared.api.AuthResponse
 import com.yusufteker.pulse.shared.api.RegisterRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 
 /**
@@ -59,5 +61,28 @@ class AuthRepositoryImpl(
 
     override suspend fun logout() {
         sessionPreferences.clearSession()
+    }
+
+    override suspend fun updateProfile(name: String, avatarId: String): Result<Unit> {
+        return try {
+            httpClient.put("auth/profile") {
+                setBody(com.yusufteker.pulse.shared.api.UpdateProfileRequest(name, avatarId))
+            }
+            // Update local DataStore upon successful server update
+            sessionPreferences.saveUserProfile(name, avatarId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun fetchMyProfile(): Result<Unit> {
+        return try {
+            val profile = httpClient.get("auth/me").body<com.yusufteker.pulse.shared.api.UserProfileResponse>()
+            sessionPreferences.saveUserProfile(profile.name, profile.avatarId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

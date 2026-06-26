@@ -34,6 +34,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
@@ -45,10 +47,9 @@ import pulse.core.generated.resources.*
  */
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel,
-    onNavigateToHome: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    viewModel: LoginViewModel
 ) {
+    val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Ekran her açıldığında (logout sonrası dahil) formu temizle
@@ -59,8 +60,8 @@ fun LoginScreen(
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is LoginEffect.NavigateToHome -> onNavigateToHome()
-            is LoginEffect.NavigateToRegister -> onNavigateToRegister()
+            is LoginEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is LoginEffect.NavigateToRegister -> navigator.navigate(Screen.Register)
             is LoginEffect.ShowError -> {
                 // TODO: Show snackbar or dialog
             }

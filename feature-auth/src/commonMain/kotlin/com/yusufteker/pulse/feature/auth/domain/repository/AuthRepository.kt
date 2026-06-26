@@ -28,4 +28,14 @@ interface AuthRepository {
      * Clears local session tokens.
      */
     suspend fun logout()
+
+    /**
+     * Updates the user's profile on the server.
+     */
+    suspend fun updateProfile(name: String, avatarId: String): Result<Unit>
+
+    /**
+     * Fetches the user's profile from the server and updates local session.
+     */
+    suspend fun fetchMyProfile(): Result<Unit>
 }

@@ -1,18 +1,19 @@
 package com.yusufteker.pulse
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.preferences.ThemePreferences
 import com.yusufteker.pulse.core.theme.PulseTheme
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.foundation.isSystemInDarkTheme
-import org.koin.compose.koinInject
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginScreen
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginViewModel
 import com.yusufteker.pulse.feature.auth.presentation.onboarding.OnboardingScreen
@@ -22,6 +23,7 @@ import com.yusufteker.pulse.feature.auth.presentation.register.RegisterViewModel
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashScreen
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashViewModel
 import com.yusufteker.pulse.feature.home.presentation.main.MainScreen
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -41,81 +43,49 @@ fun App() {
 
     PulseTheme(themeColor = themeColorPref, darkTheme = isDark) {
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
+        val navigator = remember { Navigator(backStack) }
 
-        NavDisplay(
-            backStack = backStack,
-            onBack = { 
-                if (backStack.size > 1) {
-                    backStack.removeLastOrNull() 
-                }
-            },
-            entryProvider = entryProvider {
-                // ── Splash Graph ─────────────────────────
-                entry<Screen.Splash> {
-                    val viewModel = koinViewModel<SplashViewModel>()
-                    SplashScreen(
-                        viewModel = viewModel,
-                        onNavigateToOnboarding = {
-                            backStack.clear()
-                            backStack.add(Screen.Onboarding)
-                        },
-                        onNavigateToHome = {
-                            backStack.clear()
-                            backStack.add(Screen.Main)
-                        }
-                    )
-                }
+        CompositionLocalProvider(LocalNavigator provides navigator) {
+            NavDisplay(
+                backStack = navigator.backStack,
+                onBack = { navigator.pop() },
+                entryProvider = entryProvider {
+                    // ── Splash Graph ─────────────────────────
+                    entry<Screen.Splash> {
+                        val viewModel = koinViewModel<SplashViewModel>()
+                        SplashScreen(
+                            viewModel = viewModel
+                        )
+                    }
 
-                entry<Screen.Onboarding> {
-                    val viewModel = koinViewModel<OnboardingViewModel>()
-                    OnboardingScreen(
-                        viewModel = viewModel,
-                        onNavigateToLogin = {
-                            backStack.clear()
-                            backStack.add(Screen.Login)
-                        }
-                    )
-                }
+                    entry<Screen.Onboarding> {
+                        val viewModel = koinViewModel<OnboardingViewModel>()
+                        OnboardingScreen(
+                            viewModel = viewModel
+                        )
+                    }
 
-                // ── Auth Graph ───────────────────────────
-                entry<Screen.Login> {
-                    val viewModel = koinViewModel<LoginViewModel>()
-                    LoginScreen(
-                        viewModel = viewModel,
-                        onNavigateToHome = {
-                            backStack.clear()
-                            backStack.add(Screen.Main)
-                        },
-                        onNavigateToRegister = {
-                            backStack.add(Screen.Register)
-                        }
-                    )
-                }
+                    // ── Auth Graph ───────────────────────────
+                    entry<Screen.Login> {
+                        val viewModel = koinViewModel<LoginViewModel>()
+                        LoginScreen(
+                            viewModel = viewModel
+                        )
+                    }
 
-                entry<Screen.Register> {
-                    val viewModel = koinViewModel<RegisterViewModel>()
-                    RegisterScreen(
-                        viewModel = viewModel,
-                        onNavigateToHome = {
-                            backStack.clear()
-                            backStack.add(Screen.Main)
-                        },
-                        onNavigateBack = {
-                            backStack.removeLastOrNull()
-                        }
-                    )
-                }
+                    entry<Screen.Register> {
+                        val viewModel = koinViewModel<RegisterViewModel>()
+                        RegisterScreen(
+                            viewModel = viewModel
+                        )
+                    }
 
-                // ── Main Graph (Container for Bottom Navigation) ─────────
-                entry<Screen.Main> {
-                    MainScreen(
-                        onNavigateToLogin = {
-                            backStack.clear()
-                            backStack.add(Screen.Login)
-                        }
-                    )
+                    // ── Main Graph (Container for Bottom Navigation) ─────────
+                    entry<Screen.Main> {
+                        MainScreen()
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 }

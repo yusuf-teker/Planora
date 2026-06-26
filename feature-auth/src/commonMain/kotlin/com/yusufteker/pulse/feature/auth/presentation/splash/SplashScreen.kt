@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import kotlinx.coroutines.delay
 
 /**
@@ -35,17 +37,16 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun SplashScreen(
-    viewModel: SplashViewModel,
-    onNavigateToOnboarding: () -> Unit,
-    onNavigateToHome: () -> Unit
+    viewModel: SplashViewModel
 ) {
+    val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Collect side effects
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is SplashEffect.NavigateToOnboarding -> onNavigateToOnboarding()
-            is SplashEffect.NavigateToHome -> onNavigateToHome()
+            is SplashEffect.NavigateToOnboarding -> navigator.setRoot(Screen.Onboarding)
+            is SplashEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
         }
     }
 

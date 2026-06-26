@@ -32,6 +32,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core)
+            implementation(projects.shared)
 
             // Compose
             implementation(libs.compose.runtime)

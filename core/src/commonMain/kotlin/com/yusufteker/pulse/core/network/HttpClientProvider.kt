@@ -30,7 +30,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         // Sunucu adresini ve formatı varsayılan olarak ayarlıyoruz. (Android emülatörü için 10.0.2.2, iOS için localhost)
         // Not: Gerçekte bunu bir build config üzerinden (Environment Variable) vermek gerekir.
         defaultRequest {
-            url("http://10.0.2.2:8080/")
+            url(getBaseUrl())
             contentType(ContentType.Application.Json)
         }
 
@@ -44,7 +44,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    println("Ktor Client: $message")
+                    io.github.aakira.napier.Napier.d(message = message, tag = "HTTP_LOG")
                 }
             }
             level = LogLevel.ALL
@@ -61,6 +61,12 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                     } else {
                         null
                     }
+                }
+
+                // Eğer istek auth/login veya auth/register ise, token ekleme ve refresh işlemlerini atla. (Kullanıcı henüz giriş yapmadığı için token yoktur)
+                sendWithoutRequest { request -> 
+                    val path = request.url.buildString()
+                    !path.contains("auth/login") && !path.contains("auth/register")
                 }
 
                 // Eğer sunucudan 401 Unauthorized dönerse (örneğin Access Token'ın süresi 15 dk dolduğunda),
