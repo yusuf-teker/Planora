@@ -39,3 +39,90 @@ google-services.json
 # Secrets
 .env
 *.env
+# Xcode kullanıcı dosyaları
+xcuserdata/
+*.xcuserstate
+
+# Build çıktıları
+DerivedData/
+build/
+
+# Swift Package Manager
+.build/
+
+# CocoaPods
+Pods/
+
+# Fastlane çıktıları
+fastlane/report.xml
+fastlane/screenshots/
+fastlane/test_output/
+
+# macOS
+.DS_Store
+
+
+##############################################
+# IntelliJ / Android Studio
+##############################################
+
+.idea/
+*.iml
+out/
+
+##############################################
+# Gradle
+##############################################
+
+.gradle/
+build/
+**/build/
+local.properties
+
+##############################################
+# Kotlin
+##############################################
+
+.kotlin/
+.konan/
+
+##############################################
+# Kotlin Native
+##############################################
+
+*.klib
+
+##############################################
+# Xcode
+##############################################
+
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+##############################################
+# macOS
+##############################################
+
+.DS_Store
+
+##############################################
+# Logs
+##############################################
+
+*.log
+
+##############################################
+# Temporary files
+##############################################
+
+tmp/
+temp/
+
+##############################################
+# Kotlin Multiplatform generated
+##############################################
+
+composeApp/build/
+shared/build/
+iosApp/build/

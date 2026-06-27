@@ -8,6 +8,9 @@ import com.yusufteker.pulse.core.database.PostEntity
 import com.yusufteker.pulse.core.database.PulseDatabase
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 
+// 1. REMOTE MEDIATOR NEDİR?
+// Burası, API (Ağ) ile Yerel Veritabanı (SQLDelight) arasındaki köprüdür.
+// Kullanıcı listeyi kaydırıp sonuna geldiğinde Paging sistemi API isteğini buraya yönlendirir.
 @OptIn(ExperimentalPagingApi::class)
 class FeedRemoteMediator(
     private val database: PulseDatabase,
@@ -19,10 +22,15 @@ class FeedRemoteMediator(
         state: PagingState<Int, PostEntity>
     ): MediatorResult {
         return try {
+            // 2. KAYDIRMA (SCROLL) OLAYININ YAKALANMASI:
+            // loadType bize kullanıcının ne yaptığını söyler.
             val page = when (loadType) {
+                // REFRESH: Kullanıcı listeyi en yukarıdan tutup aşağı çekti (Yenileme)
                 LoadType.REFRESH -> 1
                 LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
+                // APPEND: Kullanıcı listeyi aşağı kaydırdı ve listenin sonuna yaklaştı.
                 LoadType.APPEND -> {
+                    // Sayfa sonuna gelindiğinde sıradaki sayfanın ne olduğunu veritabanından (Remote Key tablosundan) okuruz.
                     val remoteKey = database.pulseDatabaseQueries.getRemoteKey("feed").executeAsOneOrNull()
                     if (remoteKey?.nextPage == null) {
                         return MediatorResult.Success(endOfPaginationReached = true)
@@ -31,6 +39,7 @@ class FeedRemoteMediator(
                 }
             }
 
+            // 3. API'DEN VERİ ÇEKİLMESİ
             val responseResult = feedApi.getPosts(page = page, limit = state.config.pageSize)
             
             if (responseResult.isFailure) {
@@ -41,6 +50,9 @@ class FeedRemoteMediator(
             val posts = response.posts
             val endOfPaginationReached = posts.isEmpty() || !response.hasMore
 
+            // 4. VERİLERİN YEREL VERİTABANINA YAZILMASI (Offline-First Kuralı)
+            // Ağdan dönen veriyi UI'a göndermeyiz. Sadece veritabanına kaydederiz.
+            // Çünkü UI (SocialScreen), doğrudan veritabanını dinler!
             database.transaction {
                 if (loadType == LoadType.REFRESH) {
                     database.pulseDatabaseQueries.deleteAllPosts()

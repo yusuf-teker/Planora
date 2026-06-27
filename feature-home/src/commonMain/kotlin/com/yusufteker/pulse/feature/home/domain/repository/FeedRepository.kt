@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 
+// 1. YEREL VERİTABANI SAYFALAMA KAYNAĞI (PagingSource):
+// Paging 3 kütüphanesi veritabanından veri okumak için bu sınıfı kullanır.
 class FeedPagingSource(
     private val database: PulseDatabase
 ) : PagingSource<Int, PostEntity>(), Query.Listener {
@@ -69,6 +71,9 @@ class FeedPagingSource(
     }
 }
 
+// 2. REPOSITORY PATTERN
+// Temiz Mimari'nin kalbidir. SocialViewModel veriyi doğrudan API veya Veritabanından istemez,
+// Gelip bu sınıftan (Repository) ister. Repository, verinin nereden alınacağını koordine eder.
 class FeedRepository(
     private val database: PulseDatabase,
     private val feedApi: FeedApi
@@ -76,9 +81,12 @@ class FeedRepository(
 
     @OptIn(ExperimentalPagingApi::class)
     fun getFeed(): Flow<PagingData<Post>> {
+        // Pager nesnesi, Sayfalama (Paging) işleminin orkestra şefidir.
+        // Hem RemoteMediator'a (API) hem de PagingSource'a (Veritabanı) bağlanır.
         return Pager(
             config = PagingConfig(
-                pageSize = 20
+                pageSize = 20,
+                initialLoadSize = 20 // Paging3 default olarak ilk açılışta 3 sayfa (60 item) çeker, bunu engellemek için 20'ye sabitledik.
             ),
             remoteMediator = FeedRemoteMediator(
                 database,
@@ -90,6 +98,9 @@ class FeedRepository(
         )
             .flow
             .map { pagingData ->
+                // Veritabanından gelen saf SQL nesnelerini (PostEntity),
+                // Uygulamanın anladığı saf iş nesnelerine (Post) dönüştürür.
+                // Bu sayede UI (Arayüz) veritabanı detaylarıyla uğraşmaz.
                 pagingData.map { entity ->
                     Post(
                         id = entity.id,

@@ -1,3 +1,11 @@
+-- 1. SQLDelight vs PostgreSQL Farkı:
+-- PostgreSQL backend (sunucu) tarafında çalışan ana veritabanıdır.
+-- SQLDelight ise uygulamanın içine gömülü (telefonun hafızasındaki) SQLite tabanlı YEREL bir veritabanıdır.
+-- Soru: Neden Post'lar için oluşturduk da User (Login/Register) için oluşturmadık?
+-- Cevap: Kullanıcı giriş yaptığında dönen User verisi (isim, token vs.) çok ufaktır ve DataStore gibi basit yerlerde saklanabilir.
+-- Ancak Ana Sayfadaki "Postlar", binlerce veri içerebilir, bunlar üzerinde sayfalama, filtreleme ve çevrimdışı (internetsiz) okuma (Offline-First) yapmamız gerekir.
+-- Bu yüzden Post'lar için telefonda gerçek bir ilişkisel veritabanına ihtiyacımız var.
+
 CREATE TABLE postEntity (
     id TEXT NOT NULL PRIMARY KEY,
     authorId TEXT NOT NULL,
@@ -10,6 +18,9 @@ CREATE TABLE postEntity (
     isLikedByMe INTEGER NOT NULL
 );
 
+-- 2. SAYFALAMA BİLGİSİNİ TUTAN TABLO (Remote Key):
+-- İnternetsiz çalışırken uygulamanın en son hangi sayfada kaldığını bilmesi gerekir.
+-- "nextPage", API'den dönen ve bir sonraki isteği atarken kullanılacak olan sayfalamanın anahtarıdır.
 CREATE TABLE remoteKeyEntity (
     id TEXT NOT NULL PRIMARY KEY,
     nextPage TEXT
