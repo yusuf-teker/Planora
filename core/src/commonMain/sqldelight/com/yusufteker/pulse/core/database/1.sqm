@@ -1,0 +1,6 @@
+CREATE TABLE pendingPostEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    content TEXT NOT NULL,
+    isDraft INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+);

@@ -58,10 +58,41 @@ import org.koin.compose.viewmodel.koinViewModel
 
 import com.yusufteker.pulse.core.theme.LocalIsDarkTheme
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.listSaver
+
 @Composable
 fun MainScreen() {
-    // Nested back stack for the bottom navigation
-    val backStack = remember { mutableStateListOf<MainDestination>(MainDestination.Home) }
+    // Nested back stack for the bottom navigation, saved across compositions
+    val backStack = rememberSaveable(
+        saver = listSaver(
+            save = { list ->
+                list.map { dest ->
+                    when (dest) {
+                        MainDestination.Home -> "Home"
+                        MainDestination.Social -> "Social"
+                        MainDestination.Profile -> "Profile"
+                        MainDestination.Settings -> "Settings"
+                    }
+                }
+            },
+            restore = { savedList ->
+                val list = mutableStateListOf<MainDestination>()
+                savedList.forEach { name ->
+                    when (name) {
+                        "Home" -> list.add(MainDestination.Home)
+                        "Social" -> list.add(MainDestination.Social)
+                        "Profile" -> list.add(MainDestination.Profile)
+                        "Settings" -> list.add(MainDestination.Settings)
+                    }
+                }
+                if (list.isEmpty()) list.add(MainDestination.Home)
+                list
+            }
+        )
+    ) {
+        mutableStateListOf<MainDestination>(MainDestination.Home)
+    }
     val navigator = remember { Navigator(backStack) }
 
     val currentDestination = backStack.lastOrNull() ?: MainDestination.Home
@@ -191,7 +222,7 @@ fun MainScreen() {
             NavDisplay(
                 backStack = navigator.backStack,
                 onBack = { navigator.pop() },
-               // modifier = Modifier.padding(paddingValues),
+                modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
                 entryProvider = entryProvider {
                     entry<MainDestination.Home> {
                         val viewModel = koinViewModel<HomeViewModel>()

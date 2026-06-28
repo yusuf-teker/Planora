@@ -7,6 +7,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.yusufteker.pulse.core.navigation.LocalNavigator
@@ -22,6 +24,8 @@ import com.yusufteker.pulse.feature.auth.presentation.register.RegisterScreen
 import com.yusufteker.pulse.feature.auth.presentation.register.RegisterViewModel
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashScreen
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashViewModel
+import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostScreen
+import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostViewModel
 import com.yusufteker.pulse.feature.home.presentation.main.MainScreen
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -42,14 +46,30 @@ fun App() {
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
     PulseTheme(themeColor = themeColorPref, darkTheme = isDark) {
+        val snackbarManager = koinInject<com.yusufteker.pulse.core.snackbar.SnackbarManager>()
+        val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+        val activeMessage by snackbarManager.messages.collectAsState()
+
+        androidx.compose.runtime.LaunchedEffect(activeMessage) {
+            activeMessage?.let { msg ->
+                snackbarHostState.showSnackbar(msg.message)
+                snackbarManager.clearMessage(msg.id)
+            }
+        }
+
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
         val navigator = remember { Navigator(backStack) }
 
         CompositionLocalProvider(LocalNavigator provides navigator) {
-            NavDisplay(
-                backStack = navigator.backStack,
-                onBack = { navigator.pop() },
-                entryProvider = entryProvider {
+            androidx.compose.material3.Scaffold(
+                snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+                modifier = androidx.compose.ui.Modifier.fillMaxSize()
+            ) { _ -> // paddingValues kullanılmıyor, iç sayfalarda insets kendileri hesaplanıyor
+                NavDisplay(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    backStack = navigator.backStack,
+                    onBack = { navigator.pop() },
+                    entryProvider = entryProvider {
                     // ── Splash Graph ─────────────────────────
                     entry<Screen.Splash> {
                         val viewModel = koinViewModel<SplashViewModel>()
@@ -84,8 +104,28 @@ fun App() {
                     entry<Screen.Main> {
                         MainScreen()
                     }
+
+                    entry<Screen.PendingPosts> {
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel>()
+                        com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToEdit = { postId -> navigator.navigate(Screen.CreatePost(postId)) }
+                        )
+                    }
+
+                    entry<Screen.CreatePost> { screen ->
+                        val viewModel = koinViewModel<CreatePostViewModel>(
+                            parameters = { org.koin.core.parameter.parametersOf(screen.postId) }
+                        )
+                        CreatePostScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
                 }
             )
+            } // Close Scaffold
         }
     }
 }

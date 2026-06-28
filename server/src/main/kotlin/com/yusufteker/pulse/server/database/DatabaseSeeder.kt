@@ -12,14 +12,16 @@ object DatabaseSeeder {
 
             println("Users: ${UserEntity.count()}")
             println("Posts: ${PostEntity.count()}")
-            val dummyUser = UserEntity.new {
-                name = "Dummy User"
-                email = "dummy@pulse.com"
-                passwordHash = HashingService.hashPassword("password")
-                createdAt = Instant.now()
+            
+            var dummyUser = UserEntity.all().find { it.email == "dummy@pulse.com" }
+            if (dummyUser == null) {
+                dummyUser = UserEntity.new {
+                    name = "Dummy User"
+                    email = "dummy@pulse.com"
+                    passwordHash = HashingService.hashPassword("password")
+                    createdAt = Instant.now()
+                }
             }
-
-
 
             if (PostEntity.count() == 0L) {
                 for (i in 1..50) {

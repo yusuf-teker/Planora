@@ -38,6 +38,20 @@ sealed interface Screen {
     @Serializable
     data object Main : Screen
 
+    /**
+     * "Bekleyen Gönderiler / Taslaklar" ekranı.
+     * Offline-First mimarisinde gönderilmeyi bekleyen veya taslak olarak kaydedilen postları listeler.
+     */
+    @Serializable
+    data object PendingPosts : Screen
+
+    /**
+     * Yeni gönderi oluşturma veya var olan taslağı düzenleme ekranı.
+     * @param postId Düzenlenecek taslağın ID'si, yeni gönderi oluşturuluyorsa null olur.
+     */
+    @Serializable
+    data class CreatePost(val postId: String? = null) : Screen
+
     /** 
      * Destinations within the Main Graph (Bottom Navigation Tabs).
      * These are not part of the root Screen hierarchy, but their own nested hierarchy.

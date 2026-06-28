@@ -61,6 +61,9 @@ kotlin {
 
             implementation(libs.kotlinx.datetime)
 
+            // Markdown
+            implementation(libs.compose.markdown)
+            implementation(libs.compose.markdown.m3)
         }
 
         commonTest.dependencies {

@@ -21,3 +21,8 @@ data class FeedResponse(
     val nextCursor: String?,
     val hasMore: Boolean
 )
+
+@Serializable
+data class CreatePostRequest(
+    val content: String
+)

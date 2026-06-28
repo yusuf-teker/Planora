@@ -24,9 +24,23 @@ import kotlinx.coroutines.launch
  * @param F The screen's effect type implementing [UiEffect]
  * @param initialState The initial state of the screen
  */
+import com.yusufteker.pulse.core.snackbar.SnackbarManager
+import com.yusufteker.pulse.core.snackbar.SnackbarType
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 abstract class BaseViewModel<S : UiState, E : UiEvent, F : UiEffect>(
     initialState: S
-) : ViewModel() {
+) : ViewModel(), KoinComponent {
+
+    private val snackbarManager: SnackbarManager by inject()
+
+    /**
+     * Uygulama genelinde uyarı mesajı göstermek için kullanılır.
+     */
+    protected fun showSnackbar(message: String, type: SnackbarType = SnackbarType.INFO) {
+        snackbarManager.showMessage(message, type)
+    }
 
     private val _state = MutableStateFlow(initialState)
 

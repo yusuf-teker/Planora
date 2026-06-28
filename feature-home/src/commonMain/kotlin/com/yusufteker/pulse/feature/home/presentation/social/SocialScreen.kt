@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
@@ -66,11 +69,35 @@ fun SocialScreen(
         label = "refresh_offset"
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Sosyal", style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    IconButton(onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.PendingPosts) }) {
+                        Icon(imageVector = androidx.compose.material.icons.Icons.Default.Drafts, contentDescription = "Bekleyenler")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        floatingActionButton = {
+            androidx.compose.material3.FloatingActionButton(
+                onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) }
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Add,
+                    contentDescription = "Yeni Post"
+                )
+            }
+        }
+    ) { paddingValues ->
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,7 +115,7 @@ fun SocialScreen(
             indicator = {
                 // Varsayılan oklu indicator'ı tamamen gizliyoruz
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
             LazyColumn(
                 modifier = Modifier

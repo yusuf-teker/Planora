@@ -5,12 +5,16 @@ import com.yusufteker.pulse.server.database.tables.PostEntity
 import com.yusufteker.pulse.server.database.tables.PostsTable
 import com.yusufteker.pulse.shared.api.FeedResponse
 import com.yusufteker.pulse.shared.api.PostDto
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.authenticate
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import io.ktor.server.request.receiveNullable
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.response.respond
+import io.ktor.http.HttpStatusCode
 import org.jetbrains.exposed.sql.SortOrder
 
 fun Route.postRoutes() {
@@ -53,6 +57,39 @@ fun Route.postRoutes() {
                         hasMore = hasMore
                     )
                 )
+            }
+
+            post {
+                val principal = call.principal<io.ktor.server.auth.jwt.JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@post
+                }
+
+                val request = call.receiveNullable<com.yusufteker.pulse.shared.api.CreatePostRequest>()
+                if (request == null || request.content.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, "Content cannot be empty")
+                    return@post
+                }
+
+                dbQuery {
+                    val user = com.yusufteker.pulse.server.database.tables.UserEntity.findById(userId)
+                    if (user == null) {
+                        return@dbQuery
+                    }
+
+                    PostEntity.new {
+                        this.author = user
+                        this.content = request.content
+                        this.createdAt = java.time.Instant.now()
+                        this.likesCount = 0
+                        this.commentsCount = 0
+                    }
+                }
+
+                call.respond(HttpStatusCode.Created, "Post created successfully")
             }
         }
     }

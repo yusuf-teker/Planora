@@ -25,4 +25,9 @@ val coreModule = module {
     
     // Database
     single { PulseDatabase(get<SqlDriver>()) }
+
+    // Snackbar Manager
+    single<com.yusufteker.pulse.core.snackbar.SnackbarManager> { 
+        com.yusufteker.pulse.core.snackbar.DefaultSnackbarManager() 
+    }
 }
