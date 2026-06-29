@@ -23,11 +23,11 @@ import kotlin.math.max
 // 1. YEREL VERİTABANI SAYFALAMA KAYNAĞI (PagingSource):
 // Paging 3 kütüphanesi veritabanından veri okumak için bu sınıfı kullanır.
 class FeedPagingSource(
-    private val database: PulseDatabase,
+    private val localDatabase: PulseDatabase,
     private val topic: String?
 ) : PagingSource<Int, PostEntity>(), Query.Listener {
 
-    private val query = database.pulseDatabaseQueries.getAllPosts(topic = topic, limit = 0, offset = 0)
+    private val query = localDatabase.pulseDatabaseQueries.getAllPosts(topic = topic, limit = 0, offset = 0)
 
     init {
         query.addListener(this)
@@ -47,8 +47,8 @@ class FeedPagingSource(
                 val limit = params.loadSize.toLong()
                 val offset = key.toLong()
 
-                val count = database.pulseDatabaseQueries.countAllPosts(topic).executeAsOne()
-                val data = database.pulseDatabaseQueries.getAllPosts(topic = topic, limit = limit, offset = offset).executeAsList()
+                val count = localDatabase.pulseDatabaseQueries.countAllPosts(topic).executeAsOne()
+                val data = localDatabase.pulseDatabaseQueries.getAllPosts(topic = topic, limit = limit, offset = offset).executeAsList()
 
                 val nextKey = if (offset + data.size >= count) null else key + data.size
                 val prevKey = if (key <= 0) null else max(0, key - params.loadSize)
@@ -76,7 +76,7 @@ class FeedPagingSource(
 // Temiz Mimari'nin kalbidir. SocialViewModel veriyi doğrudan API veya Veritabanından istemez,
 // Gelip bu sınıftan (Repository) ister. Repository, verinin nereden alınacağını koordine eder.
 class FeedRepository(
-    private val database: PulseDatabase,
+    private val localDatabase: PulseDatabase,
     private val feedApi: FeedApi
 ) {
 
@@ -90,12 +90,12 @@ class FeedRepository(
                 initialLoadSize = 20 // Paging3 default olarak ilk açılışta 3 sayfa (60 item) çeker, bunu engellemek için 20'ye sabitledik.
             ),
             remoteMediator = FeedRemoteMediator(
-                database,
+                localDatabase,
                 feedApi,
                 topic
             ),
             pagingSourceFactory = {
-                FeedPagingSource(database, topic)
+                FeedPagingSource(localDatabase, topic)
             }
         )
             .flow
@@ -114,9 +114,52 @@ class FeedRepository(
                         likesCount = entity.likesCount.toInt(),
                         commentsCount = entity.commentsCount.toInt(),
                         isLikedByMe = entity.isLikedByMe == 1L,
+                        isBookmarkedByMe = entity.isBookmarkedByMe == 1L,
                         topic = entity.topic
                     )
                 }
             }
+    }
+
+    suspend fun toggleBookmark(postId: String): Result<Unit> {
+        val currentPost = localDatabase.pulseDatabaseQueries.getAllPosts(null, 1, 0)
+            .executeAsList().find { it.id == postId }
+            
+        if (currentPost != null) {
+            val newStatus = if (currentPost.isBookmarkedByMe == 1L) 0L else 1L
+            // Optimistically update DB
+            localDatabase.pulseDatabaseQueries.insertPost(
+                id = currentPost.id,
+                authorId = currentPost.authorId,
+                authorName = currentPost.authorName,
+                authorUsername = currentPost.authorUsername,
+                content = currentPost.content,
+                createdAt = currentPost.createdAt,
+                likesCount = currentPost.likesCount,
+                commentsCount = currentPost.commentsCount,
+                isLikedByMe = currentPost.isLikedByMe,
+                isBookmarkedByMe = newStatus,
+                topic = currentPost.topic
+            )
+        }
+        
+        return feedApi.toggleBookmark(postId).onFailure {
+            // Revert DB on failure
+            if (currentPost != null) {
+                localDatabase.pulseDatabaseQueries.insertPost(
+                    id = currentPost.id,
+                    authorId = currentPost.authorId,
+                    authorName = currentPost.authorName,
+                    authorUsername = currentPost.authorUsername,
+                    content = currentPost.content,
+                    createdAt = currentPost.createdAt,
+                    likesCount = currentPost.likesCount,
+                    commentsCount = currentPost.commentsCount,
+                    isLikedByMe = currentPost.isLikedByMe,
+                    isBookmarkedByMe = currentPost.isBookmarkedByMe,
+                    topic = currentPost.topic
+                )
+            }
+        }
     }
 }

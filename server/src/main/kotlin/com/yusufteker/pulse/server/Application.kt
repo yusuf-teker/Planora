@@ -11,6 +11,7 @@ import com.yusufteker.pulse.server.plugins.configureSecurity
 import com.yusufteker.pulse.server.routes.authRoutes
 import com.yusufteker.pulse.server.routes.postRoutes
 import com.yusufteker.pulse.server.routes.commentRoutes
+import com.yusufteker.pulse.server.routes.userRoutes
 
 /**
  * Main entry point for the Ktor server.
@@ -41,5 +42,6 @@ fun Application.module() {
         authRoutes()
         postRoutes()
         commentRoutes()
+        userRoutes()
     }
 }

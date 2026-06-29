@@ -24,6 +24,17 @@ object DatabaseSeeder {
                 }
             }
 
+            var secondaryUser = UserEntity.all().find { it.email == "test@pulse.com" }
+            if (secondaryUser == null) {
+                secondaryUser = UserEntity.new {
+                    name = "Test User"
+                    email = "test@pulse.com"
+                    passwordHash = HashingService.hashPassword("password")
+                    createdAt = Instant.now()
+                    avatarId = "avatar_3"
+                }
+            }
+
             if (PostEntity.count() == 0L) {
                 for (i in 1..50) {
                     val commentsC = (0..5).random()
@@ -63,6 +74,32 @@ object DatabaseSeeder {
             }
             // Fix fake comment counts from previous seeders
             exec("UPDATE posts SET comments_count = (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id)")
+            
+            // Seed Followers (Dummy follows Test, Test follows Dummy)
+            if (com.yusufteker.pulse.server.database.tables.FollowerEntity.count() == 0L) {
+                com.yusufteker.pulse.server.database.tables.FollowerEntity.new {
+                    follower = dummyUser!!
+                    followed = secondaryUser!!
+                    createdAt = Instant.now()
+                }
+                com.yusufteker.pulse.server.database.tables.FollowerEntity.new {
+                    follower = secondaryUser!!
+                    followed = dummyUser!!
+                    createdAt = Instant.now()
+                }
+            }
+
+            // Seed Bookmarks (Dummy bookmarks first 5 posts)
+            if (com.yusufteker.pulse.server.database.tables.BookmarkEntity.count() == 0L) {
+                val posts = PostEntity.all().limit(5).toList()
+                posts.forEach { post ->
+                    com.yusufteker.pulse.server.database.tables.BookmarkEntity.new {
+                        user = dummyUser!!
+                        this.post = post
+                        createdAt = Instant.now()
+                    }
+                }
+            }
             
             println("Seed completed.")
         }

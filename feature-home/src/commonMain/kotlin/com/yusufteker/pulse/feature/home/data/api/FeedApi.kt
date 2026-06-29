@@ -36,4 +36,13 @@ class FeedApi(private val httpClient: HttpClient) {
             Result.failure(e)
         }
     }
+
+    suspend fun toggleBookmark(postId: String): Result<Unit> {
+        return try {
+            httpClient.post("posts/$postId/bookmark")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

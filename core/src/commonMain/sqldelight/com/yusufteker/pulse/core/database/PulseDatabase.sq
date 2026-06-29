@@ -16,6 +16,7 @@ CREATE TABLE postEntity (
     likesCount INTEGER NOT NULL,
     commentsCount INTEGER NOT NULL,
     isLikedByMe INTEGER NOT NULL,
+    isBookmarkedByMe INTEGER NOT NULL DEFAULT 0,
     topic TEXT NOT NULL
 );
 
@@ -29,8 +30,8 @@ CREATE TABLE remoteKeyEntity (
 
 insertPost:
 INSERT OR REPLACE INTO postEntity(
-    id, authorId, authorName, authorUsername, content, createdAt, likesCount, commentsCount, isLikedByMe, topic
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, authorId, authorName, authorUsername, content, createdAt, likesCount, commentsCount, isLikedByMe, isBookmarkedByMe, topic
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getAllPosts:
 SELECT * FROM postEntity
@@ -41,6 +42,11 @@ LIMIT :limit OFFSET :offset;
 countAllPosts:
 SELECT count(*) FROM postEntity
 WHERE :topic IS NULL OR :topic = 'Tümü' OR topic = :topic;
+
+getBookmarkedPosts:
+SELECT * FROM postEntity
+WHERE isBookmarkedByMe = 1
+ORDER BY createdAt DESC;
 
 deleteAllPosts:
 DELETE FROM postEntity;

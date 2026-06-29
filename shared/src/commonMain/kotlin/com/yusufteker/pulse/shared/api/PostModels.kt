@@ -13,6 +13,7 @@ data class PostDto(
     val likesCount: Int = 0,
     val commentsCount: Int = 0,
     val isLikedByMe: Boolean = false,
+    val isBookmarkedByMe: Boolean = false,
     val topic: String? = null
 )
 

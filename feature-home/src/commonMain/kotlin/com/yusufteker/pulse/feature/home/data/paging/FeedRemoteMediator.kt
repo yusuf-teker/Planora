@@ -13,7 +13,7 @@ import com.yusufteker.pulse.feature.home.data.api.FeedApi
 // Kullanıcı listeyi kaydırıp sonuna geldiğinde Paging sistemi API isteğini buraya yönlendirir.
 @OptIn(ExperimentalPagingApi::class)
 class FeedRemoteMediator(
-    private val database: PulseDatabase,
+    private val localDatabase: PulseDatabase,
     private val feedApi: FeedApi,
     private val topic: String?
 ) : RemoteMediator<Int, PostEntity>() {
@@ -33,7 +33,7 @@ class FeedRemoteMediator(
                 LoadType.APPEND -> {
                     // Sayfa sonuna gelindiğinde sıradaki sayfanın ne olduğunu veritabanından (Remote Key tablosundan) okuruz.
                     val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
-                    val remoteKey = database.pulseDatabaseQueries.getRemoteKey(remoteKeyId).executeAsOneOrNull()
+                    val remoteKey = localDatabase.pulseDatabaseQueries.getRemoteKey(remoteKeyId).executeAsOneOrNull()
                     if (remoteKey?.nextPage == null) {
                         return MediatorResult.Success(endOfPaginationReached = true)
                     }
@@ -55,22 +55,22 @@ class FeedRemoteMediator(
             // 4. VERİLERİN YEREL VERİTABANINA YAZILMASI (Offline-First Kuralı)
             // Ağdan dönen veriyi UI'a göndermeyiz. Sadece veritabanına kaydederiz.
             // Çünkü UI (SocialScreen), doğrudan veritabanını dinler!
-            database.transaction {
+            localDatabase.transaction {
                 if (loadType == LoadType.REFRESH) {
                     if (topic == null) {
-                        database.pulseDatabaseQueries.deleteAllPosts()
-                        database.pulseDatabaseQueries.deleteAllRemoteKeys()
+                        localDatabase.pulseDatabaseQueries.deleteAllPosts()
+                        localDatabase.pulseDatabaseQueries.deleteAllRemoteKeys()
                     }
                 }
 
                 val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
-                database.pulseDatabaseQueries.insertRemoteKey(
+                localDatabase.pulseDatabaseQueries.insertRemoteKey(
                     id = remoteKeyId,
                     nextPage = response.nextCursor
                 )
 
                 posts.forEach { post ->
-                    database.pulseDatabaseQueries.insertPost(
+                    localDatabase.pulseDatabaseQueries.insertPost(
                         id = post.id,
                         authorId = post.authorId,
                         authorName = post.authorName,
@@ -80,6 +80,7 @@ class FeedRemoteMediator(
                         likesCount = post.likesCount.toLong(),
                         commentsCount = post.commentsCount.toLong(),
                         isLikedByMe = if (post.isLikedByMe) 1L else 0L,
+                        isBookmarkedByMe = if (post.isBookmarkedByMe) 1L else 0L,
                         topic = post.topic ?: "Genel"
                     )
                 }

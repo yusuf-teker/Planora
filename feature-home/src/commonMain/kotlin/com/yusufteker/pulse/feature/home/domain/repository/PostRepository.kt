@@ -14,7 +14,7 @@ import app.cash.sqldelight.coroutines.mapToList
  * veritabanına veya API'ye erişmez, bu repository ile iletişim kurar.
  */
 class PostRepository(
-    private val database: PulseDatabase,
+    private val localDatabase: PulseDatabase,
     private val syncManager: PostSyncManager
 ) {
 
@@ -35,7 +35,7 @@ class PostRepository(
             val isDraftInt = if (isDraft) 1L else 0L
 
             // 1. Yerel veritabanına kaydet
-            database.pulseDatabaseQueries.insertPendingPost(
+            localDatabase.pulseDatabaseQueries.insertPendingPost(
                 id = localId,
                 content = content,
                 isDraft = isDraftInt,
@@ -55,7 +55,7 @@ class PostRepository(
      * Tüm bekleyen gönderileri (taslaklar ve gönderilmeyi bekleyenler) döndürür.
      */
     fun getAllPendingPosts(): kotlinx.coroutines.flow.Flow<List<com.yusufteker.pulse.core.database.PendingPostEntity>> {
-        return database.pulseDatabaseQueries.getAllPendingPosts().asFlow()
+        return localDatabase.pulseDatabaseQueries.getAllPendingPosts().asFlow()
             .mapToList(Dispatchers.IO)
     }
 
@@ -64,7 +64,7 @@ class PostRepository(
      */
     suspend fun getPendingPostById(id: String): com.yusufteker.pulse.core.database.PendingPostEntity? {
         return withContext(Dispatchers.IO) {
-            database.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
+            localDatabase.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
         }
     }
 
@@ -74,10 +74,10 @@ class PostRepository(
     suspend fun updatePendingPost(id: String, content: String, isDraft: Boolean, topic: String) {
         withContext(Dispatchers.IO) {
             val isDraftInt = if (isDraft) 1L else 0L
-            val existingPost = database.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
+            val existingPost = localDatabase.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
             
             if (existingPost != null) {
-                database.pulseDatabaseQueries.insertPendingPost(
+                localDatabase.pulseDatabaseQueries.insertPendingPost(
                     id = existingPost.id,
                     content = content,
                     isDraft = isDraftInt,
@@ -97,7 +97,7 @@ class PostRepository(
      */
     suspend fun deletePendingPost(id: String) {
         withContext(Dispatchers.IO) {
-            database.pulseDatabaseQueries.deletePendingPost(id)
+            localDatabase.pulseDatabaseQueries.deletePendingPost(id)
         }
     }
 }

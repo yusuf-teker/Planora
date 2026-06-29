@@ -60,6 +60,9 @@ fun ProfileScreen(
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> ProfileScreen açıldı | state.name=${state.name}" })
+        // If passing userId through navigation, we would trigger LoadProfile(userId) here.
+        // For now, assuming default load triggered elsewhere, or just loading current user.
+        viewModel.onEvent(ProfileEvent.LoadProfile())
     }
 
     Column(
@@ -171,10 +174,40 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                androidx.compose.material3.OutlinedButton(
-                    onClick = { viewModel.onEvent(ProfileEvent.EditProfileClicked) }
+                // Stats Row
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(Res.string.action_edit_profile))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "-", style = MaterialTheme.typography.titleLarge)
+                        Text(text = "Posts", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = state.followersCount.toString(), style = MaterialTheme.typography.titleLarge)
+                        Text(text = "Followers", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = state.followingCount.toString(), style = MaterialTheme.typography.titleLarge)
+                        Text(text = "Following", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                if (state.isMyProfile) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { viewModel.onEvent(ProfileEvent.EditProfileClicked) }
+                    ) {
+                        Text(stringResource(Res.string.action_edit_profile))
+                    }
+                } else {
+                    androidx.compose.material3.Button(
+                        onClick = { viewModel.onEvent(ProfileEvent.ToggleFollowClicked) }
+                    ) {
+                        Text(text = if (state.isFollowedByMe) "Unfollow" else "Follow")
+                    }
                 }
             }
         }

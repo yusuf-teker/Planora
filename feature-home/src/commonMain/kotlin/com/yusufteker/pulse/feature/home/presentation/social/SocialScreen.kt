@@ -148,7 +148,8 @@ fun SocialScreen(
                     if (post != null) {
                         PostCard(
                             post = post,
-                            onClick = { viewModel.onEvent(SocialEvent.OnPostClicked(post)) }
+                            onClick = { viewModel.onEvent(SocialEvent.OnPostClicked(post)) },
+                            onBookmarkClick = { viewModel.onEvent(SocialEvent.OnBookmarkClicked(post.id)) }
                         )
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),

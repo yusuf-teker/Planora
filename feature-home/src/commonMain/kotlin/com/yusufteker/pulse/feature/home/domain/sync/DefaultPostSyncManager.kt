@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
  * İleride Android WorkManager bağlandığında bu mantık WorkWorker içine taşınabilir.
  */
 class DefaultPostSyncManager(
-    private val database: PulseDatabase,
+    private val localDatabase: PulseDatabase,
     private val api: FeedApi
 ) : PostSyncManager {
 
@@ -25,7 +25,7 @@ class DefaultPostSyncManager(
         scope.launch {
             try {
                 // 1. Veritabanından "Gönderilmeyi Bekleyen" (Taslak olmayan) postları çek.
-                val pendingPosts = database.pulseDatabaseQueries.getPendingPostsToSync().executeAsList()
+                val pendingPosts = localDatabase.pulseDatabaseQueries.getPendingPostsToSync().executeAsList()
 
                 // 2. Her bir post için API'ye istek at.
                 for (post in pendingPosts) {
@@ -34,7 +34,7 @@ class DefaultPostSyncManager(
 
                     if (result.isSuccess) {
                         // 3. Başarılı olursa, yerel veritabanındaki kuyruktan sil.
-                        database.pulseDatabaseQueries.deletePendingPost(post.id)
+                        localDatabase.pulseDatabaseQueries.deletePendingPost(post.id)
                         
                         // İsteğe bağlı olarak: postEntity tablosuna eklenebilir veya 
                         // feed sayfası pull-to-refresh yapıldığında yeni veri otomatik gelir.

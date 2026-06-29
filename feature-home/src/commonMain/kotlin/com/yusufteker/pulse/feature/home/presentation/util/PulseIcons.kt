@@ -31,4 +31,54 @@ object PulseIcons {
             arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 1.099f, 0.092f)
             arcToRelative(10f, 10f, 0f, isMoreThanHalf = true, isPositiveArc = false, -4.777f, -4.719f)
         }.build()
+
+    val Bookmark: ImageVector
+        get() = ImageVector.Builder(
+            name = "Bookmark",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).path(
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(19f, 21f)
+            lineTo(12f, 17f)
+            lineTo(5f, 21f)
+            lineTo(5f, 5f)
+            arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, -2f)
+            lineTo(17f, 3f)
+            arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 2f)
+            lineTo(19f, 21f)
+            close()
+        }.build()
+
+    val BookmarkFilled: ImageVector
+        get() = ImageVector.Builder(
+            name = "BookmarkFilled",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).path(
+            fill = SolidColor(Color.Black),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round
+        ) {
+            moveTo(19f, 21f)
+            lineTo(12f, 17f)
+            lineTo(5f, 21f)
+            lineTo(5f, 5f)
+            arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, -2f)
+            lineTo(17f, 3f)
+            arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 2f, 2f)
+            lineTo(19f, 21f)
+            close()
+        }.build()
 }

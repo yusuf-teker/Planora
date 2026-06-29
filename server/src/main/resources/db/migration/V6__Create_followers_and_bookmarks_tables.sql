@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS followers (
+    id SERIAL PRIMARY KEY,
+    follower_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_follow UNIQUE (follower_id, followed_id)
+);
+
+CREATE TABLE IF NOT EXISTS bookmarks (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_bookmark UNIQUE (user_id, post_id)
+);

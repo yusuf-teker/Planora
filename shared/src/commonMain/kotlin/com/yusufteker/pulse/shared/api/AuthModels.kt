@@ -61,5 +61,8 @@ data class UserProfileResponse(
     val id: Int,
     val name: String,
     val email: String,
-    val avatarId: String
+    val avatarId: String,
+    val followersCount: Int = 0,
+    val followingCount: Int = 0,
+    val isFollowedByMe: Boolean = false
 )

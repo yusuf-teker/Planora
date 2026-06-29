@@ -41,11 +41,12 @@ sealed interface SocialEvent : UiEvent {
     data object OnCloseComments : SocialEvent // BottomSheet kapatıldığında
     data class OnReplyClicked(val comment: Comment) : SocialEvent // "Yanıtla" butonuna basıldığında
     data class OnSubmitComment(val content: String) : SocialEvent // "Gönder" ikonuna basıldığında
+    data class OnBookmarkClicked(val postId: String) : SocialEvent // Bookmark tıklandığında
 }
 sealed interface SocialEffect : UiEffect
 
 class SocialViewModel(
-    feedRepository: FeedRepository,
+    private val feedRepository: FeedRepository,
     private val commentRepository: CommentRepository
 ) : BaseViewModel<SocialState, SocialEvent, SocialEffect>(
     initialState = SocialState()
@@ -133,6 +134,15 @@ class SocialViewModel(
                                 } else c
                             })}
                         }
+                    }
+                }
+            }
+            
+            is SocialEvent.OnBookmarkClicked -> {
+                viewModelScope.launch {
+                    val result = feedRepository.toggleBookmark(event.postId)
+                    if (result.isSuccess) {
+                        // TODO: Update local database to reflect optimistic UI (already handled if we update DB directly, but we need FeedRepository method)
                     }
                 }
             }

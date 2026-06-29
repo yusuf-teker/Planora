@@ -147,6 +147,7 @@ fun Route.commentRoutes() {
                     post.commentsCount += 1
                     
                     // Yeni oluşturduğumuz yorumu istemciye dönmek için DTO'ya çeviriyoruz.
+                    com.yusufteker.pulse.shared.api.CommentResponse(
                         id = newComment.id.value.toString(),
                         postId = newComment.post.id.value.toString(),
                         authorId = user.id.value.toString(),
@@ -157,7 +158,7 @@ fun Route.commentRoutes() {
                         content = newComment.content,
                         createdAt = newComment.createdAt.toEpochMilli(),
                         likesCount = newComment.likesCount,
-                        replies = emptyList()
+                        replies = emptyList<com.yusufteker.pulse.shared.api.CommentResponse>()
                     )
                 }
                 

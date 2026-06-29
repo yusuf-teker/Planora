@@ -23,4 +23,12 @@ class ProfileRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun getProfile(userId: String): Result<com.yusufteker.pulse.shared.api.UserProfileResponse> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).getProfile(userId)
+    }
+
+    override suspend fun toggleFollow(userId: Int): Result<Unit> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).toggleFollow(userId)
+    }
 }

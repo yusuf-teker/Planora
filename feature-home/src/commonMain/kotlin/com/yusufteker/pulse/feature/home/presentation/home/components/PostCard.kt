@@ -32,6 +32,7 @@ import com.mikepenz.markdown.m3.Markdown
 fun PostCard(
     post: Post,
     onClick: () -> Unit = {},
+    onBookmarkClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -179,6 +180,19 @@ fun PostCard(
                             imageVector = Icons.Rounded.Share,
                             contentDescription = "Share",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Bookmark
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onBookmarkClick() }.padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (post.isBookmarkedByMe) PulseIcons.BookmarkFilled else PulseIcons.Bookmark,
+                            contentDescription = "Bookmark",
+                            tint = if (post.isBookmarkedByMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                     }

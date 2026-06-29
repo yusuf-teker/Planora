@@ -8,4 +8,6 @@ sealed interface ProfileEvent : UiEvent {
     data class NameChanged(val name: String) : ProfileEvent
     data class AvatarSelected(val avatarId: String) : ProfileEvent
     data object SaveClicked : ProfileEvent
+    data class LoadProfile(val userId: Int? = null) : ProfileEvent
+    data object ToggleFollowClicked : ProfileEvent
 }
