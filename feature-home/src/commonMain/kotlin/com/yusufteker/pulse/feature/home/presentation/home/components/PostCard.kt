@@ -20,8 +20,13 @@ import androidx.compose.ui.text.font.FontWeight
 import kotlin.math.absoluteValue
 import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.feature.home.domain.model.Post
+import com.yusufteker.pulse.feature.home.domain.model.Topic
+import com.yusufteker.pulse.feature.home.presentation.util.color
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+
+import androidx.compose.material.icons.rounded.Share
+import com.mikepenz.markdown.m3.Markdown
 
 @Composable
 fun PostCard(
@@ -29,102 +34,155 @@ fun PostCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        )
+        color = Color.Transparent
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.Top
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(generateAvatarColor(post.authorUsername))
+            // Sol Taraf: Avatar
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(generateAvatarColor(post.authorUsername))
+            ) {
+                Text(
+                    text = post.authorName.take(1).uppercase(),
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Sağ Taraf: İçerik
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // Başlık Satırı: İsim, @KullanıcıAdı, Tarih
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = post.authorName.take(1).uppercase(),
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Column {
                     Text(
                         text = post.authorName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "@${post.authorUsername}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Text(
-                text = post.content,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (post.isLikedByMe) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = "Like",
-                        tint = if (post.isLikedByMe) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp)
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = post.likesCount.toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    Icon(
-                        imageVector = Icons.Rounded.ModeComment,
-                        contentDescription = "Comment",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp)
+                        text = "·",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
+                    val date = kotlinx.datetime.Instant.fromEpochMilliseconds(post.createdAt)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
                     Text(
-                        text = post.commentsCount.toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                        text = "${date.dayOfMonth} ${date.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    val topicEnum = Topic.fromId(post.topic)
+                    val topicColor = topicEnum.color
+                    Text(
+                        text = topicEnum.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = topicColor,
+                        modifier = Modifier
+                            .background(topicColor.copy(alpha = 0.1f), shape = RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
                 
-                val date = kotlinx.datetime.Instant.fromEpochMilliseconds(post.createdAt)
-                    .toLocalDateTime(TimeZone.currentSystemDefault())
-                Text(
-                    text = "${date.dayOfMonth} ${date.month.name.take(3)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                // İçerik: Markdown Desteği ile
+                Markdown(
+                    content = post.content,
+                    modifier = Modifier.fillMaxWidth()
                 )
+                
+                Spacer(modifier = Modifier.height(14.dp))
+                
+                // Aksiyon Butonları: Beğen, Yorum, Paylaş
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(end = 32.dp), // Sağdan biraz boşluk bırak
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Yorum
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { /* Comment action */ }.padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.ModeComment,
+                            contentDescription = "Comment",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        if (post.commentsCount > 0) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = post.commentsCount.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Beğeni
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { /* Like action */ }.padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (post.isLikedByMe) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint = if (post.isLikedByMe) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        if (post.likesCount > 0) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = post.likesCount.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (post.isLikedByMe) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Paylaş
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { /* Share action */ }.padding(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
     }

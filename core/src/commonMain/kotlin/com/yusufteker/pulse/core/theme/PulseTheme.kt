@@ -78,7 +78,14 @@ private val DarkColorScheme = darkColorScheme(
  * Generates a color scheme based on the selected theme color.
  */
 fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
+    val baseScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    
+    if (themeColor == ThemeColor.DEFAULT) {
+        return baseScheme
+    }
+
     val primaryColor = when(themeColor) {
+        ThemeColor.DEFAULT -> return baseScheme // Zaten yukarıda halledildi
         ThemeColor.BLUE -> Color(0xFF6C5CE7)
         ThemeColor.RED -> Color(0xFFE63946)
         ThemeColor.GREEN -> Color(0xFF2A9D8F)
@@ -91,8 +98,6 @@ fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
         ThemeColor.BROWN -> Color(0xFF7F4F24)
     }
 
-    val baseScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    
     // We tint the primary color. In a full production app, we could generate all tonal palettes.
     return baseScheme.copy(
         primary = primaryColor,

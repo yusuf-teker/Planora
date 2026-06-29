@@ -13,6 +13,7 @@ object PostsTable : UUIDTable("posts") {
     val createdAt = timestamp("created_at")
     val likesCount = integer("likes_count").default(0)
     val commentsCount = integer("comments_count").default(0)
+    val topic = varchar("topic", 50).default("GENERAL")
 }
 
 class PostEntity(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -23,4 +24,5 @@ class PostEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var createdAt by PostsTable.createdAt
     var likesCount by PostsTable.likesCount
     var commentsCount by PostsTable.commentsCount
+    var topic by PostsTable.topic
 }

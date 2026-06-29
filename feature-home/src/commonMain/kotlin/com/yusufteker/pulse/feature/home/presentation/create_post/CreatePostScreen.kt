@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -31,9 +34,32 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.FormatStrikethrough
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import com.yusufteker.pulse.feature.home.domain.model.Topic
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.yusufteker.pulse.feature.home.presentation.util.color
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreatePostScreen(
     onNavigateBack: () -> Unit,
@@ -48,10 +74,19 @@ fun CreatePostScreen(
         }
     }
 
+    val rootNavigator = LocalNavigator.current
+    val richTextState = rememberRichTextState()
+
+    LaunchedEffect(state.isEditing, state.content) {
+        if (state.isEditing && richTextState.toMarkdown().isBlank() && state.content.isNotBlank()) {
+            richTextState.setMarkdown(state.content)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Yeni Post Oluştur") },
+                title = { Text(if (state.isEditing) "Gönderiyi Düzenle" else "Yeni Post Oluştur") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
@@ -59,8 +94,8 @@ fun CreatePostScreen(
                 },
                 actions = {
                     Button(
-                        onClick = { viewModel.onEvent(CreatePostEvent.OnPost) },
-                        enabled = state.content.isNotBlank() && !state.isSaving
+                        onClick = { viewModel.onEvent(CreatePostEvent.OnPost(richTextState.toMarkdown())) },
+                        enabled = richTextState.annotatedString.text.isNotBlank() && !state.isSaving
                     ) {
                         Text("Paylaş")
                     }
@@ -74,43 +109,109 @@ fun CreatePostScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Editör / Önizleme geçiş butonu
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // Butonlar Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedButton(
-                    onClick = { viewModel.onEvent(CreatePostEvent.OnTogglePreview) },
+                    onClick = { rootNavigator.navigate(Screen.PendingPosts) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(if (state.showMarkdownPreview) "Editöre Dön" else "Önizlemeyi Gör (Markdown)")
+                    Text("Taslaklarım")
                 }
-                Spacer(modifier = Modifier.width(8.dp))
                 OutlinedButton(
-                    onClick = { viewModel.onEvent(CreatePostEvent.OnSaveDraft) },
-                    enabled = state.content.isNotBlank() && !state.isSaving,
+                    onClick = { viewModel.onEvent(CreatePostEvent.OnSaveDraft(richTextState.toMarkdown())) },
+                    enabled = richTextState.annotatedString.text.isNotBlank() && !state.isSaving,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Taslak Kaydet")
                 }
             }
 
-            if (state.showMarkdownPreview) {
-                // Markdown Önizlemesi
-                Markdown(
-                    content = state.content,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 16.dp)
-                )
-            } else {
-                // Metin Editörü
-                OutlinedTextField(
-                    value = state.content,
-                    onValueChange = { viewModel.onEvent(CreatePostEvent.OnContentChanged(it)) },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 16.dp),
-                    placeholder = { Text("Ne düşünüyorsun? (Markdown destekler: **kalın**, *italik*)") }
-                )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Araç Çubuğu (Toolbar)
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    IconButton(onClick = { richTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) }) {
+                        Icon(imageVector = Icons.Default.FormatBold, contentDescription = "Kalın")
+                    }
+                }
+                item {
+                    IconButton(onClick = { richTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) }) {
+                        Icon(imageVector = Icons.Default.FormatItalic, contentDescription = "İtalik")
+                    }
+                }
+                item {
+                    IconButton(onClick = { richTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) }) {
+                        Icon(imageVector = Icons.Default.FormatStrikethrough, contentDescription = "Üstü Çizili")
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            var isTopicsExpanded by remember { mutableStateOf(false) }
+
+            // Topic Selector (Konu Seçimi)
+            Text(
+                text = "Konu Seç",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            val topics = Topic.entries
+            val displayTopics = if (isTopicsExpanded) topics else topics.take(6)
+            
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                displayTopics.forEach { topic ->
+                    val isSelected = state.selectedTopic == topic.id
+                    val chipColor = topic.color
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { viewModel.onEvent(CreatePostEvent.OnTopicSelected(topic.id)) },
+                        label = { Text(topic.displayName) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = chipColor.copy(alpha = 0.2f),
+                            selectedLabelColor = chipColor
+                        )
+                    )
+                }
+                
+                if (!isTopicsExpanded && topics.size > 6) {
+                    FilterChip(
+                        selected = false,
+                        onClick = { isTopicsExpanded = true },
+                        label = { Text("+ Daha Fazla") }
+                    )
+                } else if (isTopicsExpanded) {
+                    FilterChip(
+                        selected = false,
+                        onClick = { isTopicsExpanded = false },
+                        label = { Text("- Gizle") }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Metin Editörü
+            RichTextEditor(
+                state = richTextState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 8.dp),
+                placeholder = { Text("Ne düşünüyorsun? (Seçip formatlayabilirsin)") }
+            )
         }
     }
 }

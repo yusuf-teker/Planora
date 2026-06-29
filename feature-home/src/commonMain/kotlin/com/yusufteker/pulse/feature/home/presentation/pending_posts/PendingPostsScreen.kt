@@ -4,10 +4,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Drafts
-import androidx.compose.material.icons.filled.ScheduleSend
+import androidx.compose.material.icons.automirrored.filled.ScheduleSend
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +27,8 @@ import com.yusufteker.pulse.core.database.PendingPostEntity
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.yusufteker.pulse.feature.home.domain.model.Topic
+import com.yusufteker.pulse.feature.home.presentation.util.color
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +77,8 @@ fun PendingPostsScreen(
                 items(state.posts) { post ->
                     PendingPostCard(
                         post = post,
-                        onClick = { viewModel.onEvent(PendingPostsEvent.OnPostClicked(post.id)) }
+                        onEditClick = { viewModel.onEvent(PendingPostsEvent.OnPostClicked(post.id)) },
+                        onDeleteClick = { viewModel.onEvent(PendingPostsEvent.OnDeleteClicked(post.id)) }
                     )
                 }
             }
@@ -80,54 +89,101 @@ fun PendingPostsScreen(
 @Composable
 fun PendingPostCard(
     post: PendingPostEntity,
-    onClick: () -> Unit
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val isDraft = post.isDraft == 1L
-    val icon = if (isDraft) Icons.Default.Drafts else Icons.Default.ScheduleSend
+    val icon = if (isDraft) Icons.Default.Drafts else Icons.AutoMirrored.Filled.ScheduleSend
     val statusText = if (isDraft) "Taslak" else "Gönderilmeyi Bekliyor"
     val date = Instant.fromEpochMilliseconds(post.createdAt).toLocalDateTime(TimeZone.currentSystemDefault())
     val dateString = "${date.dayOfMonth}/${date.monthNumber}/${date.year} ${date.hour}:${date.minute.toString().padStart(2, '0')}"
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isDraft) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (isDraft) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    val topicEnum = Topic.fromId(post.topic)
+                    Text(
+                        text = "$statusText • ${topicEnum.displayName}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isDraft) MaterialTheme.colorScheme.secondary else topicEnum.color
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = dateString,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isDraft) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = dateString,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = post.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = post.content,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF4CAF50).copy(alpha = 0.15f))
+                        .clickable { onEditClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Düzenle",
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
+                        .clickable { onDeleteClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Sil",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }

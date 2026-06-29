@@ -13,7 +13,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
  * Defines the available dynamic theme colors.
  */
 enum class ThemeColor {
-    BLUE, RED, GREEN, PURPLE, PINK, ORANGE, TEAL, INDIGO, AMBER, BROWN
+    DEFAULT, BLUE, RED, GREEN, PURPLE, PINK, ORANGE, TEAL, INDIGO, AMBER, BROWN
 }
 
 /**
@@ -37,11 +37,11 @@ class ThemePreferences(
      * Emits the currently selected ThemeColor.
      */
     val themeColor: Flow<ThemeColor> = dataStore.data.map { preferences ->
-        val colorName = preferences[themeColorKey] ?: ThemeColor.BLUE.name
+        val colorName = preferences[themeColorKey] ?: ThemeColor.DEFAULT.name
         try {
             ThemeColor.valueOf(colorName)
         } catch (e: Exception) {
-            ThemeColor.BLUE
+            ThemeColor.DEFAULT
         }
     }
 

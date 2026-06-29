@@ -136,6 +136,7 @@ fun SettingsScreen(
                     val themeColor = com.yusufteker.pulse.core.preferences.ThemeColor.values()[index]
                     val isSelected = state.themeColor == themeColor
                     val colorHex = when(themeColor) {
+                        com.yusufteker.pulse.core.preferences.ThemeColor.DEFAULT -> null
                         com.yusufteker.pulse.core.preferences.ThemeColor.BLUE -> 0xFF6C5CE7
                         com.yusufteker.pulse.core.preferences.ThemeColor.RED -> 0xFFE63946
                         com.yusufteker.pulse.core.preferences.ThemeColor.GREEN -> 0xFF2A9D8F
@@ -151,7 +152,7 @@ fun SettingsScreen(
                         modifier = Modifier
                             .aspectRatio(1f)
                             .background(
-                                color = androidx.compose.ui.graphics.Color(colorHex),
+                                color = if (colorHex != null) androidx.compose.ui.graphics.Color(colorHex) else MaterialTheme.colorScheme.surfaceVariant,
                                 shape = androidx.compose.foundation.shape.CircleShape
                             )
                             .border(
@@ -161,8 +162,17 @@ fun SettingsScreen(
                             )
                             .clickable {
                                 viewModel.onEvent(SettingsEvent.ThemeColorSelected(themeColor))
-                            }
-                    )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (colorHex == null) {
+                            androidx.compose.material3.Text(
+                                text = "✕",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
                 }
             }
         }

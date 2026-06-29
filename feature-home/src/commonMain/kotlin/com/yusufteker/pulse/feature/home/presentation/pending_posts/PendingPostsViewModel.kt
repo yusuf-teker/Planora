@@ -9,6 +9,7 @@ import com.yusufteker.pulse.core.database.PendingPostEntity
 import com.yusufteker.pulse.feature.home.domain.repository.PostRepository
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 data class PendingPostsState(
     val posts: List<PendingPostEntity> = emptyList(),
@@ -17,6 +18,7 @@ data class PendingPostsState(
 
 sealed interface PendingPostsEvent : UiEvent {
     data class OnPostClicked(val postId: String) : PendingPostsEvent
+    data class OnDeleteClicked(val postId: String) : PendingPostsEvent
 }
 
 sealed interface PendingPostsEffect : UiEffect {
@@ -40,6 +42,11 @@ class PendingPostsViewModel(
         when (event) {
             is PendingPostsEvent.OnPostClicked -> {
                 setEffect(PendingPostsEffect.NavigateToEditPost(event.postId))
+            }
+            is PendingPostsEvent.OnDeleteClicked -> {
+                viewModelScope.launch {
+                    postRepository.deletePendingPost(event.postId)
+                }
             }
         }
     }

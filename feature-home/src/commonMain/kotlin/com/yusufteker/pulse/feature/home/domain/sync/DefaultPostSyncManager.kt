@@ -29,7 +29,7 @@ class DefaultPostSyncManager(
 
                 // 2. Her bir post için API'ye istek at.
                 for (post in pendingPosts) {
-                    val request = CreatePostRequest(content = post.content)
+                    val request = CreatePostRequest(content = post.content, topic = post.topic)
                     val result = api.createPost(request)
 
                     if (result.isSuccess) {

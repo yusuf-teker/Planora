@@ -11,11 +11,11 @@ import androidx.compose.ui.graphics.Color
 object PulseColors {
 
     // ── Primary ──────────────────────────────────────────────
-    val Primary = Color(0xFF6C5CE7)
-    val PrimaryVariant = Color(0xFF5A4BD1)
+    val Primary = Color(0xFF1D9BF0) // Sleek Vibrant Blue
+    val PrimaryVariant = Color(0xFF0C85D0)
     val OnPrimary = Color(0xFFFFFFFF)
-    val PrimaryContainer = Color(0xFFE8E0FF)
-    val OnPrimaryContainer = Color(0xFF1E0A4E)
+    val PrimaryContainer = Color(0xFFE1F5FE)
+    val OnPrimaryContainer = Color(0xFF003355)
 
     // ── Secondary ────────────────────────────────────────────
     val Secondary = Color(0xFF00CEC9)

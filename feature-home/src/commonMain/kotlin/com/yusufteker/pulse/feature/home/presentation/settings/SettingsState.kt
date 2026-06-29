@@ -5,5 +5,5 @@ import com.yusufteker.pulse.core.preferences.ThemeColor
 
 data class SettingsState(
     val isDarkMode: Boolean = false,
-    val themeColor: ThemeColor = ThemeColor.BLUE
+    val themeColor: ThemeColor = ThemeColor.DEFAULT
 ) : UiState

@@ -14,7 +14,8 @@ import com.yusufteker.pulse.feature.home.data.api.FeedApi
 @OptIn(ExperimentalPagingApi::class)
 class FeedRemoteMediator(
     private val database: PulseDatabase,
-    private val feedApi: FeedApi
+    private val feedApi: FeedApi,
+    private val topic: String?
 ) : RemoteMediator<Int, PostEntity>() {
 
     override suspend fun load(
@@ -31,7 +32,8 @@ class FeedRemoteMediator(
                 // APPEND: Kullanıcı listeyi aşağı kaydırdı ve listenin sonuna yaklaştı.
                 LoadType.APPEND -> {
                     // Sayfa sonuna gelindiğinde sıradaki sayfanın ne olduğunu veritabanından (Remote Key tablosundan) okuruz.
-                    val remoteKey = database.pulseDatabaseQueries.getRemoteKey("feed").executeAsOneOrNull()
+                    val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
+                    val remoteKey = database.pulseDatabaseQueries.getRemoteKey(remoteKeyId).executeAsOneOrNull()
                     if (remoteKey?.nextPage == null) {
                         return MediatorResult.Success(endOfPaginationReached = true)
                     }
@@ -40,7 +42,7 @@ class FeedRemoteMediator(
             }
 
             // 3. API'DEN VERİ ÇEKİLMESİ
-            val responseResult = feedApi.getPosts(page = page, limit = state.config.pageSize)
+            val responseResult = feedApi.getPosts(page = page, limit = state.config.pageSize, topic = topic)
             
             if (responseResult.isFailure) {
                 return MediatorResult.Error(responseResult.exceptionOrNull() ?: Exception("Unknown error"))
@@ -55,12 +57,15 @@ class FeedRemoteMediator(
             // Çünkü UI (SocialScreen), doğrudan veritabanını dinler!
             database.transaction {
                 if (loadType == LoadType.REFRESH) {
-                    database.pulseDatabaseQueries.deleteAllPosts()
-                    database.pulseDatabaseQueries.deleteAllRemoteKeys()
+                    if (topic == null) {
+                        database.pulseDatabaseQueries.deleteAllPosts()
+                        database.pulseDatabaseQueries.deleteAllRemoteKeys()
+                    }
                 }
 
+                val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
                 database.pulseDatabaseQueries.insertRemoteKey(
-                    id = "feed",
+                    id = remoteKeyId,
                     nextPage = response.nextCursor
                 )
 
@@ -74,7 +79,8 @@ class FeedRemoteMediator(
                         createdAt = post.createdAt,
                         likesCount = post.likesCount.toLong(),
                         commentsCount = post.commentsCount.toLong(),
-                        isLikedByMe = if (post.isLikedByMe) 1L else 0L
+                        isLikedByMe = if (post.isLikedByMe) 1L else 0L,
+                        topic = post.topic ?: "Genel"
                     )
                 }
             }

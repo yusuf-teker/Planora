@@ -12,11 +12,12 @@ import io.ktor.http.contentType
 import com.yusufteker.pulse.shared.api.CreatePostRequest
 
 class FeedApi(private val httpClient: HttpClient) {
-    suspend fun getPosts(page: Int, limit: Int): Result<FeedResponse> {
+    suspend fun getPosts(page: Int, limit: Int, topic: String?): Result<FeedResponse> {
         return try {
             val response: FeedResponse = httpClient.get("posts") {
                 parameter("page", page)
                 parameter("limit", limit)
+                topic?.let { parameter("topic", it) }
             }.body()
             Result.success(response)
         } catch (e: Exception) {

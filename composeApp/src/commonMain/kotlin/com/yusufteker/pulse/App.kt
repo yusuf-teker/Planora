@@ -42,7 +42,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun App() {
     val themePreferences = koinInject<ThemePreferences>()
     val isDarkModePref by themePreferences.isDarkMode.collectAsState(initial = null)
-    val themeColorPref by themePreferences.themeColor.collectAsState(initial = com.yusufteker.pulse.core.preferences.ThemeColor.BLUE)
+    val themeColorPref by themePreferences.themeColor.collectAsState(initial = com.yusufteker.pulse.core.preferences.ThemeColor.DEFAULT)
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
     PulseTheme(themeColor = themeColorPref, darkTheme = isDark) {
@@ -116,6 +116,7 @@ fun App() {
 
                     entry<Screen.CreatePost> { screen ->
                         val viewModel = koinViewModel<CreatePostViewModel>(
+                            key = screen.id.toString(),
                             parameters = { org.koin.core.parameter.parametersOf(screen.postId) }
                         )
                         CreatePostScreen(

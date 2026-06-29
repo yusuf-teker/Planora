@@ -9,5 +9,6 @@ data class Post(
     val createdAt: Long,
     val likesCount: Int,
     val commentsCount: Int,
-    val isLikedByMe: Boolean
+    val isLikedByMe: Boolean,
+    val topic: String
 )

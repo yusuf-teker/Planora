@@ -23,10 +23,11 @@ import kotlin.math.max
 // 1. YEREL VERİTABANI SAYFALAMA KAYNAĞI (PagingSource):
 // Paging 3 kütüphanesi veritabanından veri okumak için bu sınıfı kullanır.
 class FeedPagingSource(
-    private val database: PulseDatabase
+    private val database: PulseDatabase,
+    private val topic: String?
 ) : PagingSource<Int, PostEntity>(), Query.Listener {
 
-    private val query = database.pulseDatabaseQueries.getAllPosts(0, 0)
+    private val query = database.pulseDatabaseQueries.getAllPosts(topic = topic, limit = 0, offset = 0)
 
     init {
         query.addListener(this)
@@ -46,8 +47,8 @@ class FeedPagingSource(
                 val limit = params.loadSize.toLong()
                 val offset = key.toLong()
 
-                val count = database.pulseDatabaseQueries.countAllPosts().executeAsOne()
-                val data = database.pulseDatabaseQueries.getAllPosts(limit, offset).executeAsList()
+                val count = database.pulseDatabaseQueries.countAllPosts(topic).executeAsOne()
+                val data = database.pulseDatabaseQueries.getAllPosts(topic = topic, limit = limit, offset = offset).executeAsList()
 
                 val nextKey = if (offset + data.size >= count) null else key + data.size
                 val prevKey = if (key <= 0) null else max(0, key - params.loadSize)
@@ -80,7 +81,7 @@ class FeedRepository(
 ) {
 
     @OptIn(ExperimentalPagingApi::class)
-    fun getFeed(): Flow<PagingData<Post>> {
+    fun getFeed(topic: String?): Flow<PagingData<Post>> {
         // Pager nesnesi, Sayfalama (Paging) işleminin orkestra şefidir.
         // Hem RemoteMediator'a (API) hem de PagingSource'a (Veritabanı) bağlanır.
         return Pager(
@@ -90,10 +91,11 @@ class FeedRepository(
             ),
             remoteMediator = FeedRemoteMediator(
                 database,
-                feedApi
+                feedApi,
+                topic
             ),
             pagingSourceFactory = {
-                FeedPagingSource(database)
+                FeedPagingSource(database, topic)
             }
         )
             .flow
@@ -111,7 +113,8 @@ class FeedRepository(
                         createdAt = entity.createdAt,
                         likesCount = entity.likesCount.toInt(),
                         commentsCount = entity.commentsCount.toInt(),
-                        isLikedByMe = entity.isLikedByMe == 1L
+                        isLikedByMe = entity.isLikedByMe == 1L,
+                        topic = entity.topic
                     )
                 }
             }

@@ -12,7 +12,8 @@ data class PostDto(
     val createdAt: Long,
     val likesCount: Int = 0,
     val commentsCount: Int = 0,
-    val isLikedByMe: Boolean = false
+    val isLikedByMe: Boolean = false,
+    val topic: String? = null
 )
 
 @Serializable
@@ -24,5 +25,6 @@ data class FeedResponse(
 
 @Serializable
 data class CreatePostRequest(
-    val content: String
+    val content: String,
+    val topic: String? = null
 )

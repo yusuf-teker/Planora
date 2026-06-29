@@ -3,6 +3,7 @@ package com.yusufteker.pulse.feature.home.presentation.social
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import com.yusufteker.pulse.feature.home.presentation.util.color
 import com.yusufteker.pulse.feature.home.presentation.home.components.PostCard
 import app.cash.paging.compose.itemContentType
 import app.cash.paging.compose.itemKey
@@ -78,9 +80,7 @@ fun SocialScreen(
             TopAppBar(
                 title = { Text("Sosyal", style = MaterialTheme.typography.titleLarge) },
                 actions = {
-                    IconButton(onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.PendingPosts) }) {
-                        Icon(imageVector = androidx.compose.material.icons.Icons.Default.Drafts, contentDescription = "Bekleyenler")
-                    }
+                    // "Mail/Bekleyenler" ikonu kaldırıldı
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -89,7 +89,9 @@ fun SocialScreen(
         },
         floatingActionButton = {
             androidx.compose.material3.FloatingActionButton(
-                onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) }
+                onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.Add,
@@ -123,8 +125,30 @@ fun SocialScreen(
                     .graphicsLayer {
                         translationY = animatedOffset
                     },
-                contentPadding = PaddingValues(bottom = 100.dp)
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp)
             ) {
+                item {
+                    val allTopics = listOf(null) + com.yusufteker.pulse.feature.home.domain.model.Topic.entries
+                    androidx.compose.foundation.lazy.LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(allTopics) { topic ->
+                            val chipColor = topic?.color ?: MaterialTheme.colorScheme.primary
+                            FilterChip(
+                                selected = state.selectedTopic == topic?.id,
+                                onClick = { viewModel.onEvent(SocialEvent.OnTopicSelected(topic?.id)) },
+                                label = { Text(topic?.displayName ?: "Tümü") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = chipColor.copy(alpha = 0.2f),
+                                    selectedLabelColor = chipColor,
+                                    selectedLeadingIconColor = chipColor
+                                )
+                            )
+                        }
+                    }
+                }
+
                 items(
                     count = feedItems.itemCount,
                     key = feedItems.itemKey { it.id },
@@ -138,8 +162,8 @@ fun SocialScreen(
                                 onClick = { /* Detail navigation to be added later */ }
                             )
                             HorizontalDivider(
-                                thickness = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant
+                                thickness = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             )
                         }
                     }

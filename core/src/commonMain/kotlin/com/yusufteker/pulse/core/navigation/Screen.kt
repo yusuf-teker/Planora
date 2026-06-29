@@ -50,7 +50,7 @@ sealed interface Screen {
      * @param postId Düzenlenecek taslağın ID'si, yeni gönderi oluşturuluyorsa null olur.
      */
     @Serializable
-    data class CreatePost(val postId: String? = null) : Screen
+    data class CreatePost(val postId: String? = null, val id: Int = kotlin.random.Random.nextInt()) : Screen
 
     /** 
      * Destinations within the Main Graph (Bottom Navigation Tabs).

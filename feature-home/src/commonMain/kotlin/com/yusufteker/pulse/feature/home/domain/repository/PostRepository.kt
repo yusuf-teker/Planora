@@ -26,7 +26,7 @@ class PostRepository(
      * 2. Kaydedilen veriyi "Gönderilmeyi Bekliyor" (isDraft=0) veya "Taslak" (isDraft=1) olarak işaretleriz.
      * 3. Eğer taslak değilse, SyncManager'a "Kuyruktaki işleri başlat" emri veririz.
      */
-    suspend fun createPost(content: String, isDraft: Boolean) {
+    suspend fun createPost(content: String, isDraft: Boolean, topic: String) {
         withContext(Dispatchers.IO) {
             // Benzersiz bir ID oluşturuyoruz (Geçici olarak zaman damgası + rastgele sayı kullanıyoruz)
             val createdAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
@@ -39,7 +39,8 @@ class PostRepository(
                 id = localId,
                 content = content,
                 isDraft = isDraftInt,
-                createdAt = createdAt
+                createdAt = createdAt,
+                topic = topic
             )
 
             // 2. Eğer taslak değilse (Yani kullanıcı Paylaş butonuna bastıysa), 
@@ -70,7 +71,7 @@ class PostRepository(
     /**
      * Var olan bir taslağı günceller veya tekrar gönderim kuyruğuna sokar.
      */
-    suspend fun updatePendingPost(id: String, content: String, isDraft: Boolean) {
+    suspend fun updatePendingPost(id: String, content: String, isDraft: Boolean, topic: String) {
         withContext(Dispatchers.IO) {
             val isDraftInt = if (isDraft) 1L else 0L
             val existingPost = database.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
@@ -80,13 +81,23 @@ class PostRepository(
                     id = existingPost.id,
                     content = content,
                     isDraft = isDraftInt,
-                    createdAt = existingPost.createdAt // Mevcut oluşturulma tarihini koru
+                    createdAt = existingPost.createdAt, // Mevcut oluşturulma tarihini koru
+                    topic = topic
                 )
             }
 
             if (!isDraft) {
                 syncManager.syncPendingPosts()
             }
+        }
+    }
+
+    /**
+     * Bekleyen gönderiyi (veya taslağı) veritabanından siler.
+     */
+    suspend fun deletePendingPost(id: String) {
+        withContext(Dispatchers.IO) {
+            database.pulseDatabaseQueries.deletePendingPost(id)
         }
     }
 }

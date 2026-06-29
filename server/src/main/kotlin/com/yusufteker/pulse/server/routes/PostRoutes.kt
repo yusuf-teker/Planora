@@ -25,8 +25,16 @@ fun Route.postRoutes() {
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
                 val offset = ((page - 1) * limit).toLong()
 
+                val topicFilter = call.request.queryParameters["topic"]
+
                 val posts = dbQuery {
-                    val entities = PostEntity.all()
+                    val query = if (topicFilter != null) {
+                        PostEntity.find { PostsTable.topic eq topicFilter }
+                    } else {
+                        PostEntity.all()
+                    }
+
+                    val entities = query
                         .orderBy(PostsTable.createdAt to SortOrder.DESC)
                         .limit(n = limit, offset = offset)
                         .toList()
@@ -42,7 +50,8 @@ fun Route.postRoutes() {
                             createdAt = entity.createdAt.toEpochMilli(),
                             likesCount = entity.likesCount,
                             commentsCount = entity.commentsCount,
-                            isLikedByMe = false
+                            isLikedByMe = false,
+                            topic = entity.topic
                         )
                     }
                 }
@@ -83,6 +92,7 @@ fun Route.postRoutes() {
                     PostEntity.new {
                         this.author = user
                         this.content = request.content
+                        this.topic = request.topic ?: "GENERAL"
                         this.createdAt = java.time.Instant.now()
                         this.likesCount = 0
                         this.commentsCount = 0

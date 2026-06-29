@@ -15,7 +15,8 @@ CREATE TABLE postEntity (
     createdAt INTEGER NOT NULL,
     likesCount INTEGER NOT NULL,
     commentsCount INTEGER NOT NULL,
-    isLikedByMe INTEGER NOT NULL
+    isLikedByMe INTEGER NOT NULL,
+    topic TEXT NOT NULL
 );
 
 -- 2. SAYFALAMA BİLGİSİNİ TUTAN TABLO (Remote Key):
@@ -28,16 +29,18 @@ CREATE TABLE remoteKeyEntity (
 
 insertPost:
 INSERT OR REPLACE INTO postEntity(
-    id, authorId, authorName, authorUsername, content, createdAt, likesCount, commentsCount, isLikedByMe
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, authorId, authorName, authorUsername, content, createdAt, likesCount, commentsCount, isLikedByMe, topic
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getAllPosts:
 SELECT * FROM postEntity
+WHERE :topic IS NULL OR :topic = 'Tümü' OR topic = :topic
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
 
 countAllPosts:
-SELECT count(*) FROM postEntity;
+SELECT count(*) FROM postEntity
+WHERE :topic IS NULL OR :topic = 'Tümü' OR topic = :topic;
 
 deleteAllPosts:
 DELETE FROM postEntity;
@@ -58,12 +61,13 @@ CREATE TABLE pendingPostEntity (
     id TEXT NOT NULL PRIMARY KEY,
     content TEXT NOT NULL,
     isDraft INTEGER NOT NULL, -- 1=Taslak, 0=Gönderilmeyi Bekliyor (Kuyruk)
-    createdAt INTEGER NOT NULL
+    createdAt INTEGER NOT NULL,
+    topic TEXT NOT NULL
 );
 
 insertPendingPost:
-INSERT OR REPLACE INTO pendingPostEntity(id, content, isDraft, createdAt)
-VALUES (?, ?, ?, ?);
+INSERT OR REPLACE INTO pendingPostEntity(id, content, isDraft, createdAt, topic)
+VALUES (?, ?, ?, ?, ?);
 
 getAllPendingPosts:
 SELECT * FROM pendingPostEntity

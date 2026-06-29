@@ -11,14 +11,15 @@ import kotlinx.coroutines.launch
 data class CreatePostState(
     val content: String = "",
     val isSaving: Boolean = false,
-    val showMarkdownPreview: Boolean = false
+    val isEditing: Boolean = false,
+    val originalIsDraft: Boolean = false,
+    val selectedTopic: String = "GENERAL"
 ) : UiState
 
 sealed interface CreatePostEvent : UiEvent {
-    data class OnContentChanged(val content: String) : CreatePostEvent
-    data object OnTogglePreview : CreatePostEvent
-    data object OnSaveDraft : CreatePostEvent
-    data object OnPost : CreatePostEvent
+    data class OnPost(val content: String) : CreatePostEvent
+    data class OnSaveDraft(val content: String) : CreatePostEvent
+    data class OnTopicSelected(val topic: String) : CreatePostEvent
 }
 
 sealed interface CreatePostEffect : UiEffect {
@@ -37,7 +38,14 @@ class CreatePostViewModel(
             viewModelScope.launch {
                 val existingPost = postRepository.getPendingPostById(postId)
                 if (existingPost != null) {
-                    setState { copy(content = existingPost.content) }
+                    setState { 
+                        copy(
+                            content = existingPost.content, 
+                            isEditing = true, 
+                            originalIsDraft = existingPost.isDraft == 1L,
+                            selectedTopic = existingPost.topic
+                        ) 
+                    }
                 } else {
                     showSnackbar("Gönderi bulunamadı", com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
                     setEffect(CreatePostEffect.NavigateBack)
@@ -48,19 +56,13 @@ class CreatePostViewModel(
 
     override fun onEvent(event: CreatePostEvent) {
         when (event) {
-            is CreatePostEvent.OnContentChanged -> {
-                setState { copy(content = event.content) }
-            }
-            CreatePostEvent.OnSaveDraft -> savePost(isDraft = true)
-            CreatePostEvent.OnPost -> savePost(isDraft = false)
-            CreatePostEvent.OnTogglePreview -> {
-                setState { copy(showMarkdownPreview = !showMarkdownPreview) }
-            }
+            is CreatePostEvent.OnSaveDraft -> savePost(content = event.content, isDraft = true, topic = currentState.selectedTopic)
+            is CreatePostEvent.OnPost -> savePost(content = event.content, isDraft = false, topic = currentState.selectedTopic)
+            is CreatePostEvent.OnTopicSelected -> setState { copy(selectedTopic = event.topic) }
         }
     }
 
-    private fun savePost(isDraft: Boolean) {
-        val content = currentState.content
+    private fun savePost(content: String, isDraft: Boolean, topic: String) {
         if (content.isBlank()) {
             showSnackbar("Gönderi içeriği boş olamaz", com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
             return
@@ -69,14 +71,21 @@ class CreatePostViewModel(
         viewModelScope.launch {
             setState { copy(isSaving = true) }
             try {
-                if (postId != null) {
+                val originalIsDraft = currentState.originalIsDraft
+                // Eğer eski post "Bekleyen" (isDraft=false) ve biz bunu "Taslak" (isDraft=true) yapmak istiyorsak,
+                // bunu güncellemek yerine yeni bir taslak olarak yaratırız.
+                val shouldCreateNew = (postId == null) || (isDraft && !originalIsDraft)
+
+                if (!shouldCreateNew) {
                     // Var olanı güncelliyoruz
-                    postRepository.updatePendingPost(id = postId, content = content, isDraft = isDraft)
-                    showSnackbar("Gönderi güncellendi", com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
+                    postRepository.updatePendingPost(id = postId!!, content = content, isDraft = isDraft, topic = topic)
+                    val message = if (isDraft) "Taslak güncellendi" else "Gönderi güncellendi"
+                    showSnackbar(message, com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
                 } else {
                     // Yeni oluşturuyoruz
-                    postRepository.createPost(content = content, isDraft = isDraft)
-                    showSnackbar("Gönderi oluşturuldu", com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
+                    postRepository.createPost(content = content, isDraft = isDraft, topic = topic)
+                    val message = if (isDraft) "Taslak olarak kaydedildi" else "Gönderi oluşturuldu"
+                    showSnackbar(message, com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
                 }
                 
                 // Başarılı olursa önceki ekrana dön
