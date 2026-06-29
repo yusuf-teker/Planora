@@ -56,4 +56,15 @@
     <string name="settings_dark_mode_desc">Use dark theme</string>
     <string name="settings_theme_color">Theme Color</string>
     <string name="action_logout">Log out</string>
+
+    <!-- Comments -->
+    <string name="title_comments">Comments</string>
+    <string name="empty_comments_prompt">No comments yet. Be the first to comment!</string>
+    <string name="replying_to">Replying to: %1$s</string>
+    <string name="add_comment_placeholder">Add a comment...</string>
+    <string name="action_send">Send</string>
+    <string name="time_just_now">Just now</string>
+    <string name="action_reply">Reply</string>
+    <string name="view_replies">──  %1$s replies</string>
+    <string name="error_failed_to_send">Failed to send</string>
 </resources>

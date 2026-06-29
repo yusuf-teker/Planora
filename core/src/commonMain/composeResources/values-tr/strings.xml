@@ -55,4 +55,15 @@
     <string name="settings_dark_mode_desc">Koyu tema kullan</string>
     <string name="settings_theme_color">Tema Rengi</string>
     <string name="action_logout">Çıkış Yap</string>
+
+    <!-- Comments -->
+    <string name="title_comments">Yorumlar</string>
+    <string name="empty_comments_prompt">Henüz yorum yok. İlk yorumu sen yap!</string>
+    <string name="replying_to">Yanıtlanıyor: %1$s</string>
+    <string name="add_comment_placeholder">Yorum ekle...</string>
+    <string name="action_send">Gönder</string>
+    <string name="time_just_now">Biraz önce</string>
+    <string name="action_reply">Yanıtla</string>
+    <string name="view_replies">──  %1$s yanıtı görüntüle</string>
+    <string name="error_failed_to_send">Gönderilemedi</string>
 </resources>

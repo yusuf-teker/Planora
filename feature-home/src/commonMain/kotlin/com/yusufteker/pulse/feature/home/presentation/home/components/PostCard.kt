@@ -10,7 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.ModeComment
+import com.yusufteker.pulse.feature.home.presentation.util.PulseIcons
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,13 +131,13 @@ fun PostCard(
                     // Yorum
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { /* Comment action */ }.padding(4.dp)
+                        modifier = Modifier.clickable { onClick() }.padding(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.ModeComment,
+                            imageVector = PulseIcons.MessageCircle,
                             contentDescription = "Comment",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         if (post.commentsCount > 0) {
                             Spacer(modifier = Modifier.width(6.dp))

@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.yusufteker.pulse.feature.home.presentation.util.color
 import com.yusufteker.pulse.feature.home.presentation.home.components.PostCard
+import com.yusufteker.pulse.feature.home.presentation.social.components.CommentsBottomSheet
 import app.cash.paging.compose.itemContentType
 import app.cash.paging.compose.itemKey
 import com.yusufteker.pulse.core.base.CollectEffect
@@ -76,17 +77,6 @@ fun SocialScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = { Text("Sosyal", style = MaterialTheme.typography.titleLarge) },
-                actions = {
-                    // "Mail/Bekleyenler" ikonu kaldırıldı
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
         floatingActionButton = {
             androidx.compose.material3.FloatingActionButton(
                 onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) },
@@ -156,16 +146,14 @@ fun SocialScreen(
                 ) { index ->
                     val post = feedItems[index]
                     if (post != null) {
-                        Column {
-                            PostCard(
-                                post = post,
-                                onClick = { /* Detail navigation to be added later */ }
-                            )
-                            HorizontalDivider(
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                        }
+                        PostCard(
+                            post = post,
+                            onClick = { viewModel.onEvent(SocialEvent.OnPostClicked(post)) }
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
                     }
                 }
 
@@ -221,5 +209,17 @@ fun SocialScreen(
                 }
             }
         }
+    }
+
+    if (state.selectedPostForComments != null) {
+        CommentsBottomSheet(
+            post = state.selectedPostForComments!!,
+            comments = state.comments,
+            isLoading = state.isCommentsLoading,
+            replyToComment = state.replyToComment,
+            onDismissRequest = { viewModel.onEvent(SocialEvent.OnCloseComments) },
+            onReplyClicked = { viewModel.onEvent(SocialEvent.OnReplyClicked(it)) },
+            onSubmitComment = { viewModel.onEvent(SocialEvent.OnSubmitComment(it)) }
+        )
     }
 }
