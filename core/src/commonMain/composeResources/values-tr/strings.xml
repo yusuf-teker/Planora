@@ -73,4 +73,48 @@
     <string name="search_no_results">Sonuç bulunamadı.</string>
     <string name="action_following">Takiptesin</string>
     <string name="action_follow">Takip Et</string>
+
+    <!-- Create Task -->
+    <string name="create_task_title">Görev / Not Ekle</string>
+    <string name="task_title_label">Başlık</string>
+    <string name="task_desc_label">Açıklama (İsteğe Bağlı)</string>
+    <string name="task_type_label">Tür</string>
+    <string name="task_start_time">Başlangıç Seç</string>
+    <string name="task_end_time">Bitiş Seç</string>
+    <string name="task_visibility_label">Görünürlük</string>
+    <string name="task_visibility_private">Sadece Ben</string>
+    <string name="task_visibility_shared">Odalarda Paylaş</string>
+    <string name="task_rooms_title">Paylaşılacak Odaları Seçin</string>
+    <string name="task_rooms_empty">Üye olduğunuz bir oda bulunamadı.</string>
+    <string name="action_create">Oluştur</string>
+    <string name="fab_new_room">Yeni Oda</string>
+    
+    <!-- Plan Rooms -->
+    <string name="error_room_name_empty">Oda adı boş olamaz</string>
+    <string name="room_created_success">Oda başarıyla oluşturuldu</string>
+    <string name="error_create_room_failed">Oda oluşturulamadı</string>
+    <string name="error_invalid_user_id">Geçersiz Kullanıcı ID</string>
+    <string name="invitation_sent_success">Davetiye gönderildi!</string>
+    <string name="error_send_invitation_failed">Davetiye gönderilemedi</string>
+    <string name="room_joined_success">Odaya katılıldı!</string>
+    <string name="invitation_declined">Reddedildi</string>
+    <string name="error_operation_failed">İşlem başarısız</string>
+    
+    <string name="fab_new_task">Görev / Not Ekle</string>
+    <string name="task_all_day">Tüm Gün</string>
+    <string name="task_recurring">Tekrarlanan</string>
+    <string name="task_one_time">Tek Seferlik</string>
+    <string name="task_days">Günler</string>
+    <string name="error_task_title_empty">Başlık boş olamaz</string>
+    <string name="error_task_room_required">Paylaşmak için en az bir oda seçmelisiniz</string>
+    <string name="error_task_end_time_before_start">Bitiş tarihi başlangıç tarihinden önce olamaz</string>
+    <string name="task_created_success">Görev başarıyla eklendi</string>
+    <string name="error_task_create_failed">Görev eklenirken bir hata oluştu: %1$s</string>
+    <string name="task_day_mo">Pzt</string>
+    <string name="task_day_tu">Sal</string>
+    <string name="task_day_we">Çar</string>
+    <string name="task_day_th">Per</string>
+    <string name="task_day_fr">Cum</string>
+    <string name="task_day_sa">Cmt</string>
+    <string name="task_day_su">Paz</string>
 </resources>

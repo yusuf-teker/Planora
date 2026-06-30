@@ -74,4 +74,48 @@
     <string name="search_no_results">No results found.</string>
     <string name="action_following">Following</string>
     <string name="action_follow">Follow</string>
+
+    <!-- Create Task -->
+    <string name="create_task_title">Create Task / Note</string>
+    <string name="task_title_label">Title</string>
+    <string name="task_desc_label">Description (Optional)</string>
+    <string name="task_type_label">Type</string>
+    <string name="task_start_time">Select Start</string>
+    <string name="task_end_time">Select End</string>
+    <string name="task_visibility_label">Visibility</string>
+    <string name="task_visibility_private">Only Me</string>
+    <string name="task_visibility_shared">Share in Rooms</string>
+    <string name="task_rooms_title">Select Rooms to Share</string>
+    <string name="task_rooms_empty">No rooms found that you are a member of.</string>
+    <string name="action_create">Create</string>
+    <string name="fab_new_room">New Room</string>
+    
+    <!-- Plan Rooms -->
+    <string name="error_room_name_empty">Room name cannot be empty</string>
+    <string name="room_created_success">Room created successfully</string>
+    <string name="error_create_room_failed">Failed to create room</string>
+    <string name="error_invalid_user_id">Invalid User ID</string>
+    <string name="invitation_sent_success">Invitation sent!</string>
+    <string name="error_send_invitation_failed">Failed to send invitation</string>
+    <string name="room_joined_success">Joined the room!</string>
+    <string name="invitation_declined">Declined</string>
+    <string name="error_operation_failed">Operation failed</string>
+    
+    <string name="fab_new_task">Create Task</string>
+    <string name="task_all_day">All Day</string>
+    <string name="task_recurring">Recurring</string>
+    <string name="task_one_time">One-Time</string>
+    <string name="task_days">Days</string>
+    <string name="error_task_title_empty">Title cannot be empty</string>
+    <string name="error_task_room_required">You must select at least one room to share</string>
+    <string name="error_task_end_time_before_start">End time cannot be before start time</string>
+    <string name="task_created_success">Task created successfully</string>
+    <string name="error_task_create_failed">Failed to create task: %1$s</string>
+    <string name="task_day_mo">Mon</string>
+    <string name="task_day_tu">Tue</string>
+    <string name="task_day_we">Wed</string>
+    <string name="task_day_th">Thu</string>
+    <string name="task_day_fr">Fri</string>
+    <string name="task_day_sa">Sat</string>
+    <string name="task_day_su">Sun</string>
 </resources>

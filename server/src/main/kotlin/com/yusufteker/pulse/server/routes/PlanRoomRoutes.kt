@@ -45,22 +45,76 @@ fun Route.planRoomRoutes() {
                 }
 
                 val rooms = dbQuery {
-                    PlanRoomMembersTable.selectAll().where {
-                        (PlanRoomMembersTable.userId eq userId) and 
-                        (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED)
-                    }.mapNotNull { row ->
-                        val roomId = row[PlanRoomMembersTable.roomId]
+
+                    // =========================================================================
+                    // ADIM 1: KULLANICININ İÇİNDE OLDUĞU VE DAVETİNİ KABUL ETTİĞİ ODALARI BUL
+                    // =========================================================================
+                    // PlanRoomMembersTable, hangi kullanıcının hangi odada olduğunu tutan bir tablodur.
+                    val acceptedRoomIds = PlanRoomMembersTable.selectAll().where {
+
+                        // İstek atan kullanıcının ID'sini arıyoruz (Kullanıcı bu odada var mı?)
+                        (PlanRoomMembersTable.userId eq userId) and
+
+                                // Ve bu odadaki durumu 'ACCEPTED' (Kabul Edilmiş) mi?
+                                // (Çünkü kullanıcı daveti reddetmiş veya bekletiyor olabilir, sadece aktif katıldığı odaları istiyoruz)
+                                (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED)
+
+                    }.map { it[PlanRoomMembersTable.roomId] } // Bulunan sonuçlardan sadece "Oda Numaralarını (ID)" alıp bir liste yapıyoruz.
+
+                    // =========================================================================
+                    // ADIM 2: EĞER HİÇ ODA YOKSA İŞLEMİ BİTİR
+                    // =========================================================================
+                    // Eğer kullanıcının kabul ettiği hiçbir oda yoksa, veritabanını daha fazla yormaya gerek yok.
+                    // Hemen boş bir liste döndürüp işlemi bitiriyoruz.
+                    if (acceptedRoomIds.isEmpty()) {
+                        return@dbQuery emptyList<PlanRoomDto>()
+                    }
+
+                    // =========================================================================
+                    // ADIM 3: BULUNAN ODALARDAKİ "TÜM ÜYELERİ" TEK SEFERDE ÇEK
+                    // =========================================================================
+                    // Elimizde kullanıcının dahil olduğu odaların ID'leri var (Örn: Oda 1, Oda 3).
+                    // Şimdi bu odalarda bulunan HERKESİ (sadece bizi değil, odadaki diğer insanları da) tek bir sorguyla çekiyoruz.
+                    // Bunu yapmamızın sebebi: Her oda için ayrı ayrı sorgu atmak veritabanını çok yorar (Buna N+1 problemi denir).
+                    val allMembers = PlanRoomMembersTable.selectAll().where { // Tüm üyelerin durumlarını çekiyoruz
+                        PlanRoomMembersTable.roomId inList acceptedRoomIds // Sadece kullanıcının dahil olduğu odalara ait üyeleri çekiyoruz
+                    }.toList()
+
+                    // =========================================================================
+                    // ADIM 4: ODALARI VE ÜYELERİNİ BİRLEŞTİRİP SONUÇ LİSTESİ OLUŞTUR
+                    // =========================================================================
+                    // Elimizdeki her bir oda ID'si için sırayla şu işlemleri yapıyoruz:
+                    acceptedRoomIds.mapNotNull { roomId ->
+
+                        // 4.1: Odanın temel bilgilerini (adı, ne zaman kurulduğu vs.) veritabanından çekiyoruz.
+                        // Eğer oda silinmişse veya bulunamazsa 'null' dönerek bu odayı atlıyoruz (return@mapNotNull null).
                         val roomEntity = PlanRoomEntity.findById(roomId) ?: return@mapNotNull null
-                        
+
+                        // 4.2: Adım 3'te çektiğimiz torba halindeki "tüm üyeler" listesinden,
+                        // sadece "şu an işlem yaptığımız odaya (roomId) ait olanları" filtreleyip ayıklıyoruz.
+                        // Ayıkladığımız verileri (satırları), mobil uygulamanın anlayabileceği veri paketine (PlanRoomMemberDto) çeviriyoruz.
+                        val roomMembers = allMembers.filter { it[PlanRoomMembersTable.roomId] == roomId }.map { memberRow ->
+                            PlanRoomMemberDto(
+                                roomId = memberRow[PlanRoomMembersTable.roomId],
+                                userId = memberRow[PlanRoomMembersTable.userId],
+                                status = memberRow[PlanRoomMembersTable.status],
+                                role = memberRow[PlanRoomMembersTable.role],
+                                joinedAt = memberRow[PlanRoomMembersTable.joinedAt]
+                            )
+                        }
+
+                        // 4.3: Odanın temel bilgileri (roomEntity) ile o odanın ayıklanmış üyelerini (roomMembers)
+                        // tek bir ana pakette (PlanRoomDto) birleştiriyoruz. Frontend'e gidecek olan asıl liste bu paketlerden oluşuyor.
                         PlanRoomDto(
                             id = roomId,
                             name = roomEntity.name,
                             creatorId = roomEntity.creator.id.value,
                             createdAt = roomEntity.createdAt,
-                            members = emptyList() // Fetching all members might be heavy, skipping for now
+                            members = roomMembers
                         )
                     }
                 }
+
 
                 call.respond(HttpStatusCode.OK, rooms)
             }
@@ -208,7 +262,17 @@ fun Route.planRoomRoutes() {
                             name = roomEntity?.name ?: "Unknown Room",
                             creatorId = roomEntity?.creator?.id?.value ?: 0,
                             createdAt = roomEntity?.createdAt ?: 0L,
-                            members = emptyList() // Don't need to load all members just for invitation list
+                            members = PlanRoomMembersTable.selectAll().where {
+                                PlanRoomMembersTable.roomId eq roomId
+                            }.map { memberRow ->
+                                PlanRoomMemberDto(
+                                    roomId = memberRow[PlanRoomMembersTable.roomId],
+                                    userId = memberRow[PlanRoomMembersTable.userId],
+                                    status = memberRow[PlanRoomMembersTable.status],
+                                    role = memberRow[PlanRoomMembersTable.role],
+                                    joinedAt = memberRow[PlanRoomMembersTable.joinedAt]
+                                )
+                            }
                         )
                     }
                 }

@@ -27,22 +27,29 @@ class PlanRepositoryImpl(
         return try {
             val task = planApi.createTask(request)
             // Çevrimdışı çalışabilmesi için veritabanına kaydet
-            database.pulseDatabaseQueries.insertTask(
-                id = task.id,
-                creatorId = task.creatorId.toLong(),
-                title = task.title,
-                description = task.description,
-                startTime = task.startTime,
-                endTime = task.endTime,
-                type = task.type.name,
-                status = task.status.name,
-                visibility = task.visibility.name,
-                isRecurring = if (task.isRecurring) 1L else 0L,
-                recurrenceRule = task.recurrenceRule,
-                isFlexible = if (task.isFlexible) 1L else 0L,
-                isOptional = if (task.isOptional) 1L else 0L,
-                isPostponable = if (task.isPostponable) 1L else 0L
-            )
+            database.pulseDatabaseQueries.transaction {
+                database.pulseDatabaseQueries.insertTask(
+                    id = task.id,
+                    creatorId = task.creatorId.toLong(),
+                    title = task.title,
+                    description = task.description,
+                    startTime = task.startTime,
+                    endTime = task.endTime,
+                    type = task.type.name,
+                    status = task.status.name,
+                    visibility = task.visibility.name,
+                    isRecurring = if (task.isRecurring) 1L else 0L,
+                    recurrenceRule = task.recurrenceRule,
+                    isFlexible = if (task.isFlexible) 1L else 0L,
+                    isOptional = if (task.isOptional) 1L else 0L,
+                    isPostponable = if (task.isPostponable) 1L else 0L,
+                    isAllDay = if (task.isAllDay) 1L else 0L
+                )
+                
+                task.sharedRoomIds.forEach { roomId ->
+                    database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
+                }
+            }
             Result.success(task)
         } catch (e: Exception) {
             Result.failure(e)
@@ -70,8 +77,12 @@ class PlanRepositoryImpl(
                         recurrenceRule = task.recurrenceRule,
                         isFlexible = if (task.isFlexible) 1L else 0L,
                         isOptional = if (task.isOptional) 1L else 0L,
-                        isPostponable = if (task.isPostponable) 1L else 0L
+                        isPostponable = if (task.isPostponable) 1L else 0L,
+                        isAllDay = if (task.isAllDay) 1L else 0L
                     )
+                    task.sharedRoomIds.forEach { roomId ->
+                        database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
+                    }
                 }
             }
             Result.success(Unit)
@@ -99,8 +110,12 @@ class PlanRepositoryImpl(
                         recurrenceRule = task.recurrenceRule,
                         isFlexible = if (task.isFlexible) 1L else 0L,
                         isOptional = if (task.isOptional) 1L else 0L,
-                        isPostponable = if (task.isPostponable) 1L else 0L
+                        isPostponable = if (task.isPostponable) 1L else 0L,
+                        isAllDay = if (task.isAllDay) 1L else 0L
                     )
+                    task.sharedRoomIds.forEach { room ->
+                        database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = room)
+                    }
                 }
             }
             Result.success(Unit)
@@ -115,6 +130,7 @@ class PlanRepositoryImpl(
             .mapToList(Dispatchers.IO)
             .map { entities ->
                 entities.map { entity ->
+                    val sharedRooms = database.pulseDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
                     TaskDto(
                         id = entity.id,
                         creatorId = entity.creatorId.toInt(),
@@ -125,12 +141,13 @@ class PlanRepositoryImpl(
                         type = TaskType.valueOf(entity.type),
                         status = TaskStatus.valueOf(entity.status),
                         visibility = TaskVisibility.valueOf(entity.visibility),
-                        sharedRoomIds = emptyList(), // Not stored in local tasks table easily, need to join if required later
+                        sharedRoomIds = sharedRooms,
                         isRecurring = entity.isRecurring == 1L,
                         recurrenceRule = entity.recurrenceRule,
                         isFlexible = entity.isFlexible == 1L,
                         isOptional = entity.isOptional == 1L,
-                        isPostponable = entity.isPostponable == 1L
+                        isPostponable = entity.isPostponable == 1L,
+                        isAllDay = entity.isAllDay == 1L
                     )
                 }
             }
@@ -149,6 +166,16 @@ class PlanRepositoryImpl(
                         creatorId = room.creatorId.toLong(),
                         createdAt = room.createdAt
                     )
+                    
+                    room.members.forEach { member ->
+                        database.pulseDatabaseQueries.insertPlanRoomMember(
+                            roomId = member.roomId,
+                            userId = member.userId.toLong(),
+                            status = member.status.name,
+                            role = member.role.name,
+                            joinedAt = member.joinedAt
+                        )
+                    }
                 }
             }
             Result.success(Unit)
@@ -160,12 +187,23 @@ class PlanRepositoryImpl(
     override suspend fun createPlanRoom(request: CreatePlanRoomRequest): Result<PlanRoomDto> {
         return try {
             val room = planApi.createPlanRoom(request)
-            database.pulseDatabaseQueries.insertPlanRoom(
-                id = room.id,
-                name = room.name,
-                creatorId = room.creatorId.toLong(),
-                createdAt = room.createdAt
-            )
+            database.pulseDatabaseQueries.transaction {
+                database.pulseDatabaseQueries.insertPlanRoom(
+                    id = room.id,
+                    name = room.name,
+                    creatorId = room.creatorId.toLong(),
+                    createdAt = room.createdAt
+                )
+                room.members.forEach { member ->
+                    database.pulseDatabaseQueries.insertPlanRoomMember(
+                        roomId = member.roomId,
+                        userId = member.userId.toLong(),
+                        status = member.status.name,
+                        role = member.role.name,
+                        joinedAt = member.joinedAt
+                    )
+                }
+            }
             Result.success(room)
         } catch (e: Exception) {
             Result.failure(e)
@@ -204,12 +242,22 @@ class PlanRepositoryImpl(
             .mapToList(Dispatchers.IO)
             .map { entities ->
                 entities.map { entity ->
+                    val members = database.pulseDatabaseQueries.getMembersForRoom(entity.id).executeAsList().map { memberEntity ->
+                        com.yusufteker.pulse.shared.api.PlanRoomMemberDto(
+                            roomId = memberEntity.roomId,
+                            userId = memberEntity.userId.toInt(),
+                            status = com.yusufteker.pulse.shared.api.RoomMemberStatus.valueOf(memberEntity.status),
+                            role = com.yusufteker.pulse.shared.api.RoomMemberRole.valueOf(memberEntity.role),
+                            joinedAt = memberEntity.joinedAt
+                        )
+                    }
+                    
                     PlanRoomDto(
                         id = entity.id,
                         name = entity.name,
                         creatorId = entity.creatorId.toInt(),
                         createdAt = entity.createdAt,
-                        members = emptyList() // Members can be fetched separately if needed
+                        members = members
                     )
                 }
             }

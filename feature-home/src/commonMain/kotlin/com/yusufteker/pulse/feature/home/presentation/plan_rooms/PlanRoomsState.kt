@@ -17,7 +17,9 @@ data class PlanRoomsState(
     
     val selectedRoomIdForInvite: String? = null,
     val createRoomNameInput: String = "",
-    val inviteUserIdInput: String = "" // İleride arama ile çalışır, şimdilik basit ID girebilir
+    val inviteUserIdInput: String = "", // İleride arama ile çalışır, şimdilik basit ID girebilir
+    
+    val isFabExpanded: Boolean = false
 ) : UiState
 
 sealed interface PlanRoomsEvent : UiEvent {
@@ -36,9 +38,13 @@ sealed interface PlanRoomsEvent : UiEvent {
     data class RespondToInvite(val roomId: String, val accept: Boolean) : PlanRoomsEvent
     
     data class OnRoomClick(val roomId: String) : PlanRoomsEvent // Odanın detayına/takvimine gitmek için
+    
+    data object ToggleFab : PlanRoomsEvent
+    data object OnCreateTaskClick : PlanRoomsEvent
 }
 
 sealed interface PlanRoomsEffect : UiEffect {
     data class ShowToast(val message: String) : PlanRoomsEffect
     data class NavigateToRoomDetail(val roomId: String) : PlanRoomsEffect
+    data object NavigateToCreateTask : PlanRoomsEffect
 }

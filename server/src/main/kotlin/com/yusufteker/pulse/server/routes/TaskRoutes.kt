@@ -66,6 +66,7 @@ fun Route.taskRoutes() {
                         this.isFlexible = request.isFlexible
                         this.isOptional = request.isOptional
                         this.isPostponable = request.isPostponable
+                        this.isAllDay = request.isAllDay
                     }
 
                     // 2. If visibility is ROOM_SHARED and sharedRoomIds is provided, insert into bridge table
@@ -102,7 +103,8 @@ fun Route.taskRoutes() {
                         recurrenceRule = task.recurrenceRule,
                         isFlexible = task.isFlexible,
                         isOptional = task.isOptional,
-                        isPostponable = task.isPostponable
+                        isPostponable = task.isPostponable,
+                        isAllDay = task.isAllDay
                     )
                 }
 
@@ -169,7 +171,8 @@ fun Route.taskRoutes() {
                             recurrenceRule = entity.recurrenceRule,
                             isFlexible = entity.isFlexible,
                             isOptional = entity.isOptional,
-                            isPostponable = entity.isPostponable
+                            isPostponable = entity.isPostponable,
+                            isAllDay = entity.isAllDay
                         )
                     }
                 }
@@ -250,7 +253,8 @@ fun Route.taskRoutes() {
                         recurrenceRule = entity.recurrenceRule,
                         isFlexible = entity.isFlexible,
                         isOptional = entity.isOptional,
-                        isPostponable = entity.isPostponable
+                        isPostponable = entity.isPostponable,
+                        isAllDay = entity.isAllDay
                     )
                 }
             }

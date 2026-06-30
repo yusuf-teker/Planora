@@ -275,6 +275,9 @@ fun MainScreen() {
                             onNavigateToRoomDetail = { roomId -> 
                                 rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.PlanRoomDetail(roomId))
                             },
+                            onNavigateToCreateTask = {
+                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePlanTask)
+                            },
                             onShowSnackbar = { /* TODO */ }
                         )
                     }

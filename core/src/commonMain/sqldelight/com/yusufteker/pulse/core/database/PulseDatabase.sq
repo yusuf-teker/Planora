@@ -131,7 +131,14 @@ CREATE TABLE taskEntity (
     recurrenceRule TEXT,
     isFlexible INTEGER NOT NULL DEFAULT 0,
     isOptional INTEGER NOT NULL DEFAULT 0,
-    isPostponable INTEGER NOT NULL DEFAULT 1
+    isPostponable INTEGER NOT NULL DEFAULT 1,
+    isAllDay INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE taskSharedRoomEntity (
+    taskId TEXT NOT NULL,
+    roomId TEXT NOT NULL,
+    PRIMARY KEY (taskId, roomId)
 );
 
 -- PlanRoom Sorguları
@@ -159,8 +166,8 @@ DELETE FROM planRoomMemberEntity;
 -- Task Sorguları
 insertTask:
 INSERT OR REPLACE INTO taskEntity(
-    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable, isAllDay
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getAllTasks:
 SELECT * FROM taskEntity ORDER BY startTime ASC;
@@ -175,3 +182,14 @@ DELETE FROM taskEntity WHERE id = :id;
 
 deleteAllTasks:
 DELETE FROM taskEntity;
+
+-- TaskSharedRoom Sorguları
+insertTaskSharedRoom:
+INSERT OR REPLACE INTO taskSharedRoomEntity(taskId, roomId)
+VALUES (?, ?);
+
+getSharedRoomsForTask:
+SELECT roomId FROM taskSharedRoomEntity WHERE taskId = :taskId;
+
+deleteAllTaskSharedRooms:
+DELETE FROM taskSharedRoomEntity;

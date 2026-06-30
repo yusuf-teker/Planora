@@ -145,6 +145,14 @@ fun App() {
                             onNavigateBack = { navigator.pop() }
                         )
                     }
+                    
+                    entry<Screen.CreatePlanTask> {
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskViewModel>()
+                        com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
                 }
             )
             } // Close Scaffold

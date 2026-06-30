@@ -6,10 +6,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -23,6 +27,7 @@ fun PlanRoomsScreen(
     effectFlow: kotlinx.coroutines.flow.Flow<PlanRoomsEffect>,
     onEvent: (PlanRoomsEvent) -> Unit,
     onNavigateToRoomDetail: (String) -> Unit,
+    onNavigateToCreateTask: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
     LaunchedEffect(effectFlow) {
@@ -30,6 +35,7 @@ fun PlanRoomsScreen(
             when (effect) {
                 is PlanRoomsEffect.ShowToast -> onShowSnackbar(effect.message)
                 is PlanRoomsEffect.NavigateToRoomDetail -> onNavigateToRoomDetail(effect.roomId)
+                is PlanRoomsEffect.NavigateToCreateTask -> onNavigateToCreateTask()
             }
         }
     }
@@ -58,8 +64,52 @@ fun PlanRoomsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) }) {
-                Icon(Icons.Default.Add, contentDescription = "Yeni Oda")
+            Column(horizontalAlignment = Alignment.End) {
+                androidx.compose.animation.AnimatedVisibility(visible = state.isFabExpanded) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text(stringResource(Res.string.fab_new_task), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                            }
+                            SmallFloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateTaskClick) }) {
+                                Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.fab_new_task))
+                            }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text(stringResource(Res.string.fab_new_room), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                            }
+                            SmallFloatingActionButton(onClick = { 
+                                onEvent(PlanRoomsEvent.ToggleFab)
+                                onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) 
+                            }) {
+                                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.fab_new_room))
+                            }
+                        }
+                    }
+                }
+                FloatingActionButton(onClick = { onEvent(PlanRoomsEvent.ToggleFab) }) {
+                    Icon(
+                        imageVector = if (state.isFabExpanded) Icons.Default.Close else Icons.Default.Add,
+                        contentDescription = "Menü"
+                    )
+                }
             }
         }
     ) { padding ->

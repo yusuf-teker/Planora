@@ -8,6 +8,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import com.yusufteker.pulse.server.database.DatabaseFactory
 import com.yusufteker.pulse.server.plugins.configureSecurity
+import com.yusufteker.pulse.server.plugins.configureCallLogging
 import com.yusufteker.pulse.server.routes.authRoutes
 import com.yusufteker.pulse.server.routes.postRoutes
 import com.yusufteker.pulse.server.routes.commentRoutes
@@ -39,7 +40,10 @@ fun Application.module() {
     // 3. Gelen JWT tokenlarını doğrulamak için yazdığımız Security plugin'i kur.
     configureSecurity()
 
-    // 4. API rotalarını yönlendir.
+    // 4. Çağrı loglarını yapılandır (Renkli loglar)
+    configureCallLogging()
+
+    // 5. API rotalarını yönlendir.
     routing {
         authRoutes()
         postRoutes()

@@ -51,7 +51,8 @@ data class TaskDto(
     val recurrenceRule: String? = null,
     val isFlexible: Boolean = false,
     val isOptional: Boolean = false,
-    val isPostponable: Boolean = true
+    val isPostponable: Boolean = true,
+    val isAllDay: Boolean = false
 )
 
 @Serializable
@@ -101,5 +102,6 @@ data class CreateTaskRequest(
     val recurrenceRule: String? = null,
     val isFlexible: Boolean = false,
     val isOptional: Boolean = false,
-    val isPostponable: Boolean = true
+    val isPostponable: Boolean = true,
+    val isAllDay: Boolean = false
 )

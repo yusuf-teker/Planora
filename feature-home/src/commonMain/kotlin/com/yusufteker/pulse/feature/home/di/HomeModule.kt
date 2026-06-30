@@ -27,6 +27,8 @@ import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsViewMo
 
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel
 
+import com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskViewModel
+
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
  * Uygulamanın farklı parçalarının (ViewModel, Repository, API) birbirini nasıl 
@@ -59,4 +61,5 @@ val homeModule = module {
     viewModelOf(::SearchUsersViewModel)
     viewModelOf(::PlanRoomsViewModel)
     viewModelOf(::PlanRoomDetailViewModel)
+    viewModelOf(::CreateTaskViewModel)
 }

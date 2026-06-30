@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
+import kotlinx.datetime.minus
 
 class PlanRoomDetailViewModel(
     private val planRepository: PlanRepository,
@@ -34,16 +37,77 @@ class PlanRoomDetailViewModel(
             PlanRoomDetailEvent.OnDismissInviteDialog -> _state.update { it.copy(isInviteDialogOpen = false) }
             is PlanRoomDetailEvent.OnSearchQueryChange -> updateSearchQuery(event.query)
             is PlanRoomDetailEvent.OnUserSelectToInvite -> inviteUser(event.userId)
+            
+            // Calendar Events
+            is PlanRoomDetailEvent.OnDateSelected -> _state.update { it.copy(selectedDate = event.date) }
+            is PlanRoomDetailEvent.OnViewModeChange -> _state.update { it.copy(viewMode = event.mode) }
+            PlanRoomDetailEvent.OnNextMonth -> {
+                _state.update { it.copy(currentMonth = it.currentMonth.plus(1, DateTimeUnit.MONTH)) }
+            }
+            PlanRoomDetailEvent.OnPreviousMonth -> {
+                _state.update { it.copy(currentMonth = it.currentMonth.minus(1, DateTimeUnit.MONTH)) }
+            }
         }
     }
     
     private fun loadRoom(roomId: String) {
         _state.update { it.copy(roomId = roomId) }
+        
+        // 1. Fetch tasks for this room from backend
+        viewModelScope.launch {
+            planRepository.fetchRoomTasks(roomId)
+        }
+        
+        // 2. Observe all rooms to get this room's details (name, members)
         viewModelScope.launch {
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == roomId }
                 if (room != null) {
                     _state.update { it.copy(roomName = room.name) }
+                    
+                    // Fetch missing profiles for members
+                    val currentProfiles = _state.value.memberProfiles.toMutableMap()
+                    var profilesUpdated = false
+                    
+                    room.members.forEach { member ->
+                        if (!currentProfiles.containsKey(member.userId)) {
+                            // Fetch profile from backend
+                            val result = profileRepository.getProfile(member.userId.toString())
+                            result.onSuccess { profile ->
+                                currentProfiles[member.userId] = profile
+                                profilesUpdated = true
+                            }
+                        }
+                    }
+                    
+                    if (profilesUpdated) {
+                        _state.update { it.copy(memberProfiles = currentProfiles.toMap()) }
+                    }
+                }
+            }
+        }
+        
+        // 3. Observe all tasks from local DB and filter for this room
+        viewModelScope.launch {
+            planRepository.observeAllTasks().collect { allTasks ->
+                val roomTasks = allTasks.filter { it.sharedRoomIds.contains(roomId) }
+                _state.update { it.copy(tasks = roomTasks) }
+                
+                val currentProfiles = _state.value.memberProfiles.toMutableMap()
+                var profilesUpdated = false
+                
+                roomTasks.forEach { task ->
+                    if (!currentProfiles.containsKey(task.creatorId)) {
+                        val result = profileRepository.getProfile(task.creatorId.toString())
+                        result.onSuccess { profile ->
+                            currentProfiles[task.creatorId] = profile
+                            profilesUpdated = true
+                        }
+                    }
+                }
+                
+                if (profilesUpdated) {
+                    _state.update { it.copy(memberProfiles = currentProfiles.toMap()) }
                 }
             }
         }

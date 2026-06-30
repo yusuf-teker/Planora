@@ -56,6 +56,9 @@ object TasksTable : IdTable<String>("tasks") {
     
     // Süresi geçtiğinde ertelenebilir mi, yoksa kesin tarihli (deadline) mi?
     val isPostponable = bool("is_postponable").default(true)
+    
+    // Tüm gün etkinliği mi?
+    val isAllDay = bool("is_all_day").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -76,4 +79,5 @@ class TaskEntity(id: EntityID<String>) : org.jetbrains.exposed.dao.Entity<String
     var isFlexible by TasksTable.isFlexible
     var isOptional by TasksTable.isOptional
     var isPostponable by TasksTable.isPostponable
+    var isAllDay by TasksTable.isAllDay
 }

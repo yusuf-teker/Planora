@@ -20,7 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.CalendarComponent
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.TaskTimelineComponent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanRoomDetailScreen(
@@ -67,17 +69,56 @@ fun PlanRoomDetailScreen(
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                // Here we can show Tasks later
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(
-                        text = "Henüz bu odada görev yok.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // View Mode Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        SingleChoiceSegmentedButtonRow {
+                            SegmentedButton(
+                                selected = state.viewMode == PlanRoomViewMode.CALENDAR,
+                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnViewModeChange(PlanRoomViewMode.CALENDAR)) },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                            ) { Text("Takvim") }
+                            SegmentedButton(
+                                selected = state.viewMode == PlanRoomViewMode.FEED,
+                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnViewModeChange(PlanRoomViewMode.FEED)) },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                            ) { Text("Akış") }
+                        }
+                    }
+
+                    if (state.viewMode == PlanRoomViewMode.CALENDAR) {
+                        CalendarComponent(
+                            currentMonth = state.currentMonth,
+                            selectedDate = state.selectedDate,
+                            tasks = state.tasks,
+                            memberProfiles = state.memberProfiles,
+                            onDateSelected = { viewModel.onEvent(PlanRoomDetailEvent.OnDateSelected(it)) },
+                            onPreviousMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnPreviousMonth) },
+                            onNextMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnNextMonth) }
+                        )
+                        
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        
+                        Box(modifier = Modifier.weight(1f)) {
+                            TaskTimelineComponent(
+                                selectedDate = state.selectedDate,
+                                tasks = state.tasks,
+                                memberProfiles = state.memberProfiles
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.weight(1f)) {
+                            FeedTimelineComponent(
+                                tasks = state.tasks,
+                                memberProfiles = state.memberProfiles
+                            )
+                        }
+                    }
                 }
             }
         }
