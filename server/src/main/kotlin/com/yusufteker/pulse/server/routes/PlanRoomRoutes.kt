@@ -34,7 +34,38 @@ fun Route.planRoomRoutes() {
     authenticate("auth-jwt") {
         route("/rooms") {
 
-            // 1. Oda oluşturma
+            // 1. Kullanıcının dahil olduğu odaları listeleme
+            get {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@get
+                }
+
+                val rooms = dbQuery {
+                    PlanRoomMembersTable.selectAll().where {
+                        (PlanRoomMembersTable.userId eq userId) and 
+                        (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED)
+                    }.mapNotNull { row ->
+                        val roomId = row[PlanRoomMembersTable.roomId]
+                        val roomEntity = PlanRoomEntity.findById(roomId) ?: return@mapNotNull null
+                        
+                        PlanRoomDto(
+                            id = roomId,
+                            name = roomEntity.name,
+                            creatorId = roomEntity.creator.id.value,
+                            createdAt = roomEntity.createdAt,
+                            members = emptyList() // Fetching all members might be heavy, skipping for now
+                        )
+                    }
+                }
+
+                call.respond(HttpStatusCode.OK, rooms)
+            }
+
+            // 2. Oda oluşturma
             post {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
@@ -61,6 +92,9 @@ fun Route.planRoomRoutes() {
                         this.creator = user
                         this.createdAt = Instant.now().toEpochMilli()
                     }
+                    
+                    // Flush it so it's inserted into the DB before we insert related records in PlanRoomMembersTable
+                    room.flush()
 
                     // Add the creator as an ACCEPTED ADMIN member
                     PlanRoomMembersTable.insert {

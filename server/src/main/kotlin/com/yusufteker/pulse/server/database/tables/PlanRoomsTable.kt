@@ -16,7 +16,7 @@ object PlanRoomsTable : IdTable<String>("plan_rooms") {
     val name = varchar("name", 255)
     
     // Odayı ilk oluşturan kullanıcının ID'si. Bu kişi otomatik olarak odanın ADMIN'i olur.
-    val creatorId = integer("creator_id").references(UsersTable.id)
+    val creatorId = reference("creator_id", UsersTable)
     
     // Odanın oluşturulma tarihi (Unix timestamp formatında). Sıralama ve geçmiş verileri çekerken kullanılır.
     val createdAt = long("created_at")

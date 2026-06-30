@@ -57,6 +57,12 @@ sealed interface Screen {
      */
     @Serializable
     data object SearchUsers : Screen
+    
+    /**
+     * Plan Odası Detay ekranı.
+     */
+    @Serializable
+    data class PlanRoomDetail(val roomId: String) : Screen
 
     /** 
      * Destinations within the Main Graph (Bottom Navigation Tabs).
@@ -74,6 +80,9 @@ sealed interface Screen {
 
         @Serializable
         data object Settings : MainDestination
+        
+        @Serializable
+        data object PlanRooms : MainDestination
     }
 }
 

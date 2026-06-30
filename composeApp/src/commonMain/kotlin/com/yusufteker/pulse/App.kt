@@ -131,6 +131,20 @@ fun App() {
                             onNavigateBack = { navigator.pop() }
                         )
                     }
+                    
+                    entry<Screen.PlanRoomDetail> { screen ->
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel>()
+                        
+                        // Set the room ID using a side effect when this composition starts
+                        androidx.compose.runtime.LaunchedEffect(screen.roomId) {
+                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailEvent.LoadRoom(screen.roomId))
+                        }
+                        
+                        com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
                 }
             )
             } // Close Scaffold

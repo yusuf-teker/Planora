@@ -35,4 +35,8 @@ class ProfileRepositoryImpl(
     override suspend fun searchUsers(query: String): Result<List<com.yusufteker.pulse.shared.api.UserProfileResponse>> {
         return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).searchUsers(query)
     }
+
+    override suspend fun getFollowingUsers(): Result<List<com.yusufteker.pulse.shared.api.UserProfileResponse>> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).getFollowingUsers()
+    }
 }

@@ -42,6 +42,10 @@ class PlanApi(private val httpClient: HttpClient) {
 
     // --- PLAN ROOM ENDPOINTS ---
 
+    suspend fun getMyRooms(): List<PlanRoomDto> {
+        return httpClient.get("rooms").body()
+    }
+
     suspend fun createPlanRoom(request: CreatePlanRoomRequest): PlanRoomDto {
         return httpClient.post("rooms") {
             setBody(request)

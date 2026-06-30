@@ -164,7 +164,42 @@ fun Route.userRoutes() {
                 call.respond(HttpStatusCode.OK)
             }
 
-            // endpoints for GET followers/following could be added here later if needed
+            // GET /users/following
+            // Takip ettiğin kişilerin listesini döndürür.
+            get("/following") {
+                val principal = call.principal<JWTPrincipal>()
+                val currentUserId = principal?.payload?.getClaim("userId")?.asInt()
+
+                if (currentUserId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@get
+                }
+
+                val followingUsers = dbQuery {
+                    FollowerEntity.find { FollowersTable.followerId eq currentUserId }
+                        .map {
+                            val user = it.followed
+                            val followersCount = FollowerEntity.find { FollowersTable.followedId eq user.id.value }.count().toInt()
+                            val followingCount = FollowerEntity.find { FollowersTable.followerId eq user.id.value }.count().toInt()
+                            
+                            val postsCount = com.yusufteker.pulse.server.database.tables.PostEntity.find { com.yusufteker.pulse.server.database.tables.PostsTable.authorId eq user.id.value }.count().toInt()
+                            
+                            UserProfileResponse(
+                                id = user.id.value,
+                                name = user.name,
+                                username = user.username,
+                                email = user.email,
+                                followersCount = followersCount,
+                                followingCount = followingCount,
+                                isFollowedByMe = true, // We are already querying followings
+                                avatarId = user.avatarId,
+                                postsCount = postsCount
+                            )
+                        }
+                }
+
+                call.respond(HttpStatusCode.OK, followingUsers)
+            }
         }
     }
 }

@@ -19,8 +19,11 @@ interface PlanRepository {
     fun observeAllTasks(): Flow<List<TaskDto>>
 
     // --- PLAN ROOMS ---
+    suspend fun fetchMyRooms(): Result<Unit>
     suspend fun createPlanRoom(request: CreatePlanRoomRequest): Result<PlanRoomDto>
     suspend fun inviteUserToRoom(roomId: String, request: InviteUserRequest): Result<Unit>
     suspend fun getMyPendingInvitations(): Result<List<PlanRoomDto>>
     suspend fun respondToInvite(roomId: String, accept: Boolean): Result<Unit>
+    
+    fun observeAllPlanRooms(): Flow<List<PlanRoomDto>>
 }

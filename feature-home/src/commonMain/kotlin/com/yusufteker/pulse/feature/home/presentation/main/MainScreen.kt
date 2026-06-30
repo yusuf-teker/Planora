@@ -10,8 +10,11 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,6 +57,8 @@ import com.yusufteker.pulse.feature.home.presentation.profile.ProfileScreen
 import com.yusufteker.pulse.feature.home.presentation.profile.ProfileViewModel
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsScreen
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsViewModel
+import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsScreen
+import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 import com.yusufteker.pulse.core.theme.LocalIsDarkTheme
@@ -71,6 +76,7 @@ fun MainScreen() {
                     when (dest) {
                         MainDestination.Home -> "Home"
                         MainDestination.Social -> "Social"
+                        MainDestination.PlanRooms -> "PlanRooms"
                         MainDestination.Profile -> "Profile"
                         MainDestination.Settings -> "Settings"
                     }
@@ -82,6 +88,7 @@ fun MainScreen() {
                     when (name) {
                         "Home" -> list.add(MainDestination.Home)
                         "Social" -> list.add(MainDestination.Social)
+                        "PlanRooms" -> list.add(MainDestination.PlanRooms)
                         "Profile" -> list.add(MainDestination.Profile)
                         "Settings" -> list.add(MainDestination.Settings)
                     }
@@ -153,7 +160,7 @@ fun MainScreen() {
                         modifier = Modifier
                             .clip(CircleShape)
                             .clickable { navigateToTab(MainDestination.Social) }
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Icon(
                             imageVector = if (isSocialSelected) Icons.Filled.People else Icons.Outlined.People,
@@ -163,6 +170,29 @@ fun MainScreen() {
                         if (isSocialSelected) {
                             Text(
                                 text = stringResource(Res.string.tab_social),
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    // PlanRooms Tab
+                    val isPlanRoomsSelected = currentDestination is MainDestination.PlanRooms
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable { navigateToTab(MainDestination.PlanRooms) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isPlanRoomsSelected) Icons.Filled.DateRange else Icons.Outlined.DateRange,
+                            contentDescription = "Plans",
+                            tint = if (isPlanRoomsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (isPlanRoomsSelected) {
+                            Text(
+                                text = "Plans", // Temporary hardcoded string, can be moved to Res later
                                 fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -232,6 +262,21 @@ fun MainScreen() {
                     entry<MainDestination.Profile> {
                         val viewModel = koinViewModel<ProfileViewModel>()
                         ProfileScreen(viewModel = viewModel)
+                    }
+
+                    entry<MainDestination.PlanRooms> {
+                        val viewModel = koinViewModel<PlanRoomsViewModel>()
+                        val state = viewModel.state.collectAsStateWithLifecycle().value
+                        val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
+                        PlanRoomsScreen(
+                            state = state,
+                            effectFlow = viewModel.effect,
+                            onEvent = viewModel::onEvent,
+                            onNavigateToRoomDetail = { roomId -> 
+                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.PlanRoomDetail(roomId))
+                            },
+                            onShowSnackbar = { /* TODO */ }
+                        )
                     }
 
                     entry<MainDestination.Settings> {

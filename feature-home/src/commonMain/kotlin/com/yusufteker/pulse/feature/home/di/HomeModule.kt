@@ -23,6 +23,9 @@ import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewMode
 import com.yusufteker.pulse.feature.home.data.api.PlanApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.data.repository.PlanRepositoryImpl
+import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsViewModel
+
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -54,4 +57,6 @@ val homeModule = module {
     factory { params -> CreatePostViewModel(params.getOrNull(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)
+    viewModelOf(::PlanRoomsViewModel)
+    viewModelOf(::PlanRoomDetailViewModel)
 }

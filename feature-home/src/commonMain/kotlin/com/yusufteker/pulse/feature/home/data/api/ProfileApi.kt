@@ -37,4 +37,13 @@ class ProfileApi(private val httpClient: HttpClient) {
             Result.failure(e)
         }
     }
+
+    suspend fun getFollowingUsers(): Result<List<UserProfileResponse>> {
+        return try {
+            val response: List<UserProfileResponse> = httpClient.get("users/following").body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

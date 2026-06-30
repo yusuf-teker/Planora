@@ -136,6 +136,27 @@ class PlanRepositoryImpl(
             }
     }
 
+    override suspend fun fetchMyRooms(): Result<Unit> {
+        return try {
+            val rooms = planApi.getMyRooms()
+            database.pulseDatabaseQueries.transaction {
+                // Şimdilik sadece sunucudan gelenleri güncelliyoruz/ekliyoruz.
+                // Eğer ileride tam çevrimdışı silme desteği (isSync) eklersek, sadece senkronize olanları silip yenilerini yazacağız.
+                rooms.forEach { room ->
+                    database.pulseDatabaseQueries.insertPlanRoom(
+                        id = room.id,
+                        name = room.name,
+                        creatorId = room.creatorId.toLong(),
+                        createdAt = room.createdAt
+                    )
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun createPlanRoom(request: CreatePlanRoomRequest): Result<PlanRoomDto> {
         return try {
             val room = planApi.createPlanRoom(request)
@@ -175,5 +196,22 @@ class PlanRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override fun observeAllPlanRooms(): Flow<List<PlanRoomDto>> {
+        return database.pulseDatabaseQueries.getAllPlanRooms()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { entities ->
+                entities.map { entity ->
+                    PlanRoomDto(
+                        id = entity.id,
+                        name = entity.name,
+                        creatorId = entity.creatorId.toInt(),
+                        createdAt = entity.createdAt,
+                        members = emptyList() // Members can be fetched separately if needed
+                    )
+                }
+            }
     }
 }

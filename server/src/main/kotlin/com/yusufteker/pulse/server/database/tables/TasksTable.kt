@@ -17,7 +17,7 @@ object TasksTable : IdTable<String>("tasks") {
     override val id: Column<EntityID<String>> = varchar("id", 36).entityId()
     
     // Görevi veya notu oluşturan kullanıcının kimliği (Sahibi).
-    val creatorId = integer("creator_id").references(UsersTable.id)
+    val creatorId = reference("creator_id", UsersTable)
     
     // Planın başlığı (Örn: "Doktora gidilecek", "Market alışverişi")
     val title = varchar("title", 255)
