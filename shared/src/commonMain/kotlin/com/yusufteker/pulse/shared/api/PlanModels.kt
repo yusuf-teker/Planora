@@ -86,3 +86,20 @@ data class InviteUserRequest(
 data class RespondToInviteRequest(
     val accept: Boolean
 )
+
+@Serializable
+data class CreateTaskRequest(
+    val title: String,
+    val description: String? = null,
+    val startTime: Long,
+    val endTime: Long? = null,
+    val type: TaskType,
+    val status: TaskStatus = TaskStatus.PENDING,
+    val visibility: TaskVisibility = TaskVisibility.PRIVATE,
+    val sharedRoomIds: List<String> = emptyList(),
+    val isRecurring: Boolean = false,
+    val recurrenceRule: String? = null,
+    val isFlexible: Boolean = false,
+    val isOptional: Boolean = false,
+    val isPostponable: Boolean = true
+)

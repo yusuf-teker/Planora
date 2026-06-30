@@ -13,6 +13,7 @@ import com.yusufteker.pulse.server.routes.postRoutes
 import com.yusufteker.pulse.server.routes.commentRoutes
 import com.yusufteker.pulse.server.routes.userRoutes
 import com.yusufteker.pulse.server.routes.planRoomRoutes
+import com.yusufteker.pulse.server.routes.taskRoutes
 
 /**
  * Main entry point for the Ktor server.
@@ -45,5 +46,6 @@ fun Application.module() {
         commentRoutes()
         userRoutes()
         planRoomRoutes()
+        taskRoutes()
     }
 }
