@@ -71,3 +71,18 @@ data class PlanRoomMemberDto(
     val role: RoomMemberRole,
     val joinedAt: Long?
 )
+
+@Serializable
+data class CreatePlanRoomRequest(
+    val name: String
+)
+
+@Serializable
+data class InviteUserRequest(
+    val userId: Int
+)
+
+@Serializable
+data class RespondToInviteRequest(
+    val accept: Boolean
+)

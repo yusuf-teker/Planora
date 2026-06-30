@@ -1,5 +1,8 @@
 package com.yusufteker.pulse.server.database.tables
 
+import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Table
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskStatus
@@ -9,9 +12,9 @@ import com.yusufteker.pulse.shared.api.TaskVisibility
  * Kullanıcıların oluşturduğu Görev (Task), Not (Note) veya Etkinlikleri (Event) tutan tablo.
  * Bu tablo, takvime yerleşecek olan planların merkezidir.
  */
-object TasksTable : Table("tasks") {
+object TasksTable : IdTable<String>("tasks") {
     // Görevin benzersiz kimliği. Çevrimdışı (offline) yaratılabilmesi için UUID formatında tutulur.
-    val id = varchar("id", 36)
+    override val id: Column<EntityID<String>> = varchar("id", 36).entityId()
     
     // Görevi veya notu oluşturan kullanıcının kimliği (Sahibi).
     val creatorId = integer("creator_id").references(UsersTable.id)
@@ -55,4 +58,22 @@ object TasksTable : Table("tasks") {
     val isPostponable = bool("is_postponable").default(true)
 
     override val primaryKey = PrimaryKey(id)
+}
+
+class TaskEntity(id: EntityID<String>) : org.jetbrains.exposed.dao.Entity<String>(id) {
+    companion object : org.jetbrains.exposed.dao.EntityClass<String, TaskEntity>(TasksTable)
+
+    var creator by UserEntity referencedOn TasksTable.creatorId
+    var title by TasksTable.title
+    var description by TasksTable.description
+    var startTime by TasksTable.startTime
+    var endTime by TasksTable.endTime
+    var type by TasksTable.type
+    var status by TasksTable.status
+    var visibility by TasksTable.visibility
+    var isRecurring by TasksTable.isRecurring
+    var recurrenceRule by TasksTable.recurrenceRule
+    var isFlexible by TasksTable.isFlexible
+    var isOptional by TasksTable.isOptional
+    var isPostponable by TasksTable.isPostponable
 }
