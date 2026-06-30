@@ -2,6 +2,7 @@
 <resources>
     <!-- Common -->
     <string name="name">Name</string>
+    <string name="username">Username</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
     <string name="confirm_password">Confirm Password</string>
@@ -22,9 +23,10 @@
     <!-- Auth Errors -->
     <string name="error_login_failed">Login failed: %1$s</string>
     <string name="error_register_failed">Registration failed: %1$s</string>
-    <string name="error_email_required">Email is required</string>
+    <string name="error_email_required">Valid email is required</string>
     <string name="error_password_required">Password is required</string>
     <string name="error_name_required">Name is required</string>
+    <string name="error_username_required">Username is required</string>
     <string name="error_password_short">Password must be at least 6 characters</string>
     <string name="error_passwords_mismatch">Passwords do not match</string>
 
@@ -67,4 +69,9 @@
     <string name="action_reply">Reply</string>
     <string name="view_replies">──  %1$s replies</string>
     <string name="error_failed_to_send">Failed to send</string>
+    <!-- Search Users -->
+    <string name="search_users_placeholder">Search users...</string>
+    <string name="search_no_results">No results found.</string>
+    <string name="action_following">Following</string>
+    <string name="action_follow">Follow</string>
 </resources>

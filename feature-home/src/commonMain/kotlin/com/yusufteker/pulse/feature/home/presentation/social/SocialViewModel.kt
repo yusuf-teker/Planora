@@ -4,13 +4,15 @@ import androidx.lifecycle.viewModelScope
 import app.cash.paging.PagingData
 import app.cash.paging.cachedIn
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.domain.model.Post
 import com.yusufteker.pulse.feature.home.domain.repository.FeedRepository
 import kotlinx.coroutines.flow.Flow
-
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.yusufteker.pulse.core.base.UiState
 import com.yusufteker.pulse.core.base.UiEvent
@@ -25,6 +27,7 @@ import kotlinx.coroutines.launch
  */
 data class SocialState(
     val isLoading: Boolean = false, 
+    val isLoggedIn: Boolean = false, // Misafir modu kontrolü
     val selectedTopic: String? = null,
     val selectedPostForComments: Post? = null, // Yorumlar için tıklanan gönderi
     val comments: List<Comment> = emptyList(), // O gönderiye ait yorum listesi
@@ -47,10 +50,17 @@ sealed interface SocialEffect : UiEffect
 
 class SocialViewModel(
     private val feedRepository: FeedRepository,
-    private val commentRepository: CommentRepository
+    private val commentRepository: CommentRepository,
+    private val sessionPreferences: SessionPreferences
 ) : BaseViewModel<SocialState, SocialEvent, SocialEffect>(
     initialState = SocialState()
 ) {
+    init {
+        sessionPreferences.userIdFlow.onEach { userId ->
+            setState { copy(isLoggedIn = userId != null) }
+        }.launchIn(viewModelScope)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val feedPagingData: Flow<PagingData<Post>> = state
         .map { it.selectedTopic }

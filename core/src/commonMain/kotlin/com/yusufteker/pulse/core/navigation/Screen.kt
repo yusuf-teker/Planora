@@ -52,6 +52,12 @@ sealed interface Screen {
     @Serializable
     data class CreatePost(val postId: String? = null, val id: Int = kotlin.random.Random.nextInt()) : Screen
 
+    /**
+     * Kullanıcı arama ekranı.
+     */
+    @Serializable
+    data object SearchUsers : Screen
+
     /** 
      * Destinations within the Main Graph (Bottom Navigation Tabs).
      * These are not part of the root Screen hierarchy, but their own nested hierarchy.

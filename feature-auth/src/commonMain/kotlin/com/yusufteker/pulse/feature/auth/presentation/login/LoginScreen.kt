@@ -96,11 +96,11 @@ fun LoginScreen(
 
         // Email field
         OutlinedTextField(
-            value = state.email,
-            onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
-            label = { Text(stringResource(Res.string.email)) },
-            isError = state.emailError != null,
-            supportingText = state.emailError?.let { error ->
+            value = state.identifier,
+            onValueChange = { viewModel.onEvent(LoginEvent.IdentifierChanged(it)) },
+            label = { Text("E-posta veya Kullanıcı Adı") },
+            isError = state.identifierError != null,
+            supportingText = state.identifierError?.let { error ->
                 { Text(error.asString()) }
             },
             keyboardOptions = KeyboardOptions(

@@ -18,7 +18,7 @@ import org.koin.dsl.module
  */
 val authModule = module {
     // Data & Domain
-    single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
+    single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
     singleOf(::LoginUseCase)
     singleOf(::RegisterUseCase)
     singleOf(::AutoLoginUseCase)

@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class AuthRequest(
-    val email: String,
+    val identifier: String,
     val password: String
 )
 
@@ -17,6 +17,7 @@ data class AuthRequest(
 @Serializable
 data class RegisterRequest(
     val name: String,
+    val username: String,
     val email: String,
     val password: String
 )
@@ -60,9 +61,19 @@ data class RefreshTokenRequest(
 data class UserProfileResponse(
     val id: Int,
     val name: String,
+    val username: String,
     val email: String,
     val avatarId: String,
     val followersCount: Int = 0,
     val followingCount: Int = 0,
+    val postsCount: Int = 0,
     val isFollowedByMe: Boolean = false
+)
+
+/**
+ * The response sent back from the server when searching for users.
+ */
+@Serializable
+data class SearchUsersResponse(
+    val users: List<UserProfileResponse>
 )

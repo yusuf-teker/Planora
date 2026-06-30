@@ -2,6 +2,7 @@
 <resources>
     <!-- Common -->
     <string name="name">İsim</string>
+    <string name="username">Kullanıcı Adı</string>
     <string name="email">E-posta</string>
     <string name="password">Şifre</string>
     <string name="confirm_password">Şifre Tekrar</string>
@@ -22,9 +23,10 @@
     <!-- Auth Errors -->
     <string name="error_login_failed">Giriş başarısız: %1$s</string>
     <string name="error_register_failed">Kayıt başarısız: %1$s</string>
-    <string name="error_email_required">E-posta adresi gerekli</string>
     <string name="error_password_required">Şifre gerekli</string>
     <string name="error_name_required">İsim gerekli</string>
+    <string name="error_username_required">Kullanıcı adı gerekli</string>
+    <string name="error_email_required">Geçerli bir e-posta gerekli</string>
     <string name="error_password_short">Şifre en az 6 karakter olmalı</string>
     <string name="error_passwords_mismatch">Şifreler eşleşmiyor</string>
 
@@ -66,4 +68,9 @@
     <string name="action_reply">Yanıtla</string>
     <string name="view_replies">──  %1$s yanıtı görüntüle</string>
     <string name="error_failed_to_send">Gönderilemedi</string>
+    <!-- Search Users -->
+    <string name="search_users_placeholder">Kişi ara...</string>
+    <string name="search_no_results">Sonuç bulunamadı.</string>
+    <string name="action_following">Takiptesin</string>
+    <string name="action_follow">Takip Et</string>
 </resources>

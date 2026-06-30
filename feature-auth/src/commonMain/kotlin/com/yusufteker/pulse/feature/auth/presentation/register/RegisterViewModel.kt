@@ -7,6 +7,7 @@ import com.yusufteker.pulse.shared.api.RegisterRequest
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.error_email_required
 import pulse.core.generated.resources.error_name_required
+import pulse.core.generated.resources.error_username_required
 import pulse.core.generated.resources.error_password_short
 import pulse.core.generated.resources.error_passwords_mismatch
 import pulse.core.generated.resources.error_register_failed
@@ -24,6 +25,10 @@ class RegisterViewModel(
         when (event) {
             is RegisterEvent.NameChanged -> {
                 setState { copy(name = event.name, nameError = null) }
+            }
+
+            is RegisterEvent.UsernameChanged -> {
+                setState { copy(username = event.username, usernameError = null) }
             }
 
             is RegisterEvent.EmailChanged -> {
@@ -49,6 +54,7 @@ class RegisterViewModel(
                     launch {
                         val request = RegisterRequest(
                             name = currentState.name,
+                            username = currentState.username,
                             email = currentState.email,
                             password = currentState.password
                         )
@@ -71,6 +77,10 @@ class RegisterViewModel(
             is RegisterEvent.LoginClicked -> {
                 setEffect(RegisterEffect.NavigateBack)
             }
+            
+            is RegisterEvent.ClearForm -> {
+                setState { RegisterState() }
+            }
         }
     }
 
@@ -79,6 +89,11 @@ class RegisterViewModel(
 
         if (currentState.name.isBlank()) {
             setState { copy(nameError = UiText.StringResourceId(Res.string.error_name_required)) }
+            isValid = false
+        }
+
+        if (currentState.username.isBlank()) {
+            setState { copy(usernameError = UiText.StringResourceId(Res.string.error_username_required)) }
             isValid = false
         }
 

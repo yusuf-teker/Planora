@@ -4,4 +4,5 @@ import com.yusufteker.pulse.core.base.UiEffect
 
 sealed interface ProfileEffect : UiEffect {
     data object NavigateBack : ProfileEffect
+    data object NavigateToLogin : ProfileEffect
 }

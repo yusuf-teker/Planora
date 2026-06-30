@@ -14,4 +14,6 @@ interface ProfileRepository {
     suspend fun getProfile(userId: String): Result<UserProfileResponse>
 
     suspend fun toggleFollow(userId: Int): Result<Unit>
+
+    suspend fun searchUsers(query: String): Result<List<UserProfileResponse>>
 }

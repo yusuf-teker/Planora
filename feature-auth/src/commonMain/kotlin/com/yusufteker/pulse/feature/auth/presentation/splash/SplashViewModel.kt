@@ -22,8 +22,8 @@ class SplashViewModel(
 
     private fun checkSession() {
         launch {
-            val hasSession = autoLoginUseCase()
-            if (hasSession) {
+            val isLoggedIn = autoLoginUseCase()
+            if (isLoggedIn) {
                 setEffect(SplashEffect.NavigateToHome)
             } else {
                 setEffect(SplashEffect.NavigateToOnboarding)

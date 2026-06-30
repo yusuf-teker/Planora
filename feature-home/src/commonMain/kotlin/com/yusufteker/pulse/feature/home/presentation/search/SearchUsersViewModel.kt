@@ -1,0 +1,82 @@
+package com.yusufteker.pulse.feature.home.presentation.search
+
+import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+
+class SearchUsersViewModel(
+    private val profileRepository: ProfileRepository
+) : BaseViewModel<SearchUsersState, SearchUsersEvent, SearchUsersEffect>(
+    initialState = SearchUsersState()
+) {
+    private var searchJob: Job? = null
+
+    override fun onEvent(event: SearchUsersEvent) {
+        when (event) {
+            is SearchUsersEvent.OnQueryChanged -> {
+                setState { copy(query = event.query) }
+                performSearch(event.query)
+            }
+            is SearchUsersEvent.OnToggleFollow -> {
+                toggleFollow(event.userId)
+            }
+            SearchUsersEvent.OnBackClicked -> {
+                setEffect(SearchUsersEffect.NavigateBack)
+            }
+            is SearchUsersEvent.OnUserClicked -> {
+                setEffect(SearchUsersEffect.NavigateToProfile(event.userId))
+            }
+        }
+    }
+
+    private fun performSearch(query: String) {
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            setState { copy(results = emptyList(), isLoading = false, error = null) }
+            return
+        }
+
+        searchJob = launch {
+            delay(500) // Debounce
+            setState { copy(isLoading = true, error = null) }
+            
+            val result = profileRepository.searchUsers(query)
+            result.onSuccess { users ->
+                setState { copy(results = users, isLoading = false) }
+            }.onFailure { error ->
+                setState { copy(isLoading = false, error = error.message) }
+            }
+        }
+    }
+
+    private fun toggleFollow(userId: Int) {
+        val currentResults = state.value.results
+        val userIndex = currentResults.indexOfFirst { it.id == userId }
+        if (userIndex == -1) return
+
+        val user = currentResults[userIndex]
+        val wasFollowed = user.isFollowedByMe
+
+        // Optimistic UI update
+        val updatedUsers = currentResults.toMutableList()
+        updatedUsers[userIndex] = user.copy(
+            isFollowedByMe = !wasFollowed,
+            followersCount = if (wasFollowed) user.followersCount - 1 else user.followersCount + 1
+        )
+        setState { copy(results = updatedUsers) }
+
+        launch {
+            val result = profileRepository.toggleFollow(userId)
+            result.onFailure {
+                // Revert on failure
+                val revertedUsers = state.value.results.toMutableList()
+                val idx = revertedUsers.indexOfFirst { it.id == userId }
+                if (idx != -1) {
+                    revertedUsers[idx] = user // original state
+                    setState { copy(results = revertedUsers) }
+                }
+            }
+        }
+    }
+}

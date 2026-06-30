@@ -18,6 +18,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.sql.or
 import java.time.Instant
 
 /**
@@ -31,12 +32,18 @@ fun Route.authRoutes() {
             // Client'tan (Uygulamadan) gelen JSON verisini Kotlin objesine dönüştürüyoruz.
             val request = call.receive<RegisterRequest>()
             
-            // Veritabanında (Exposed ORM kullanarak) bu email daha önce alınmış mı kontrol ediyoruz.
+            // Veritabanında (Exposed ORM kullanarak) bu email veya username daha önce alınmış mı kontrol ediyoruz.
             val existingUser = dbQuery {
-                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+                UserEntity.find { 
+                    (UsersTable.email eq request.email) or (UsersTable.username eq request.username)
+                }.firstOrNull()
             }
             if (existingUser != null) {
-                call.respond(HttpStatusCode.Conflict, "Email already in use")
+                if (existingUser.email == request.email) {
+                    call.respond(HttpStatusCode.Conflict, "Email already in use")
+                } else {
+                    call.respond(HttpStatusCode.Conflict, "Username already in use")
+                }
                 return@post
             }
 
@@ -47,6 +54,7 @@ fun Route.authRoutes() {
             val newUser = dbQuery {
                 UserEntity.new {
                     name = request.name
+                    username = request.username
                     email = request.email
                     passwordHash = hashedPassword
                     createdAt = Instant.now()
@@ -74,11 +82,13 @@ fun Route.authRoutes() {
 
         // --- 2. LOGIN ENDPOINT ---
         post("/login") {
-            val request = call.receive<AuthRequest>() // Kullanıcı email ve şifre gönderir
+            val request = call.receive<AuthRequest>() // Kullanıcı identifier ve şifre gönderir
 
-            // Veritabanından emaile göre kullanıcıyı arıyoruz.
+            // Veritabanından identifier'a (email veya username) göre kullanıcıyı arıyoruz.
             val user = dbQuery {
-                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+                UserEntity.find { 
+                    (UsersTable.email eq request.identifier) or (UsersTable.username eq request.identifier)
+                }.firstOrNull()
             }
 
             // Kullanıcı yoksa veya uygulamanın gönderdiği şifrenin hash'i DB'deki hash ile eşleşmiyorsa hata dönüyoruz.
@@ -170,17 +180,27 @@ fun Route.authRoutes() {
                     return@get
                 }
 
-                val user = dbQuery {
-                    UserEntity.findById(userId)
-                }
+                val userStats = dbQuery {
+                    val user = UserEntity.findById(userId) ?: return@dbQuery null
+                    
+                    val followersCount = com.yusufteker.pulse.server.database.tables.FollowerEntity.find { com.yusufteker.pulse.server.database.tables.FollowersTable.followedId eq userId }.count().toInt()
+                    val followingCount = com.yusufteker.pulse.server.database.tables.FollowerEntity.find { com.yusufteker.pulse.server.database.tables.FollowersTable.followerId eq userId }.count().toInt()
+                    val postsCount = com.yusufteker.pulse.server.database.tables.PostEntity.find { com.yusufteker.pulse.server.database.tables.PostsTable.authorId eq userId }.count().toInt()
 
-                if (user != null) {
-                    call.respond(HttpStatusCode.OK, com.yusufteker.pulse.shared.api.UserProfileResponse(
+                    com.yusufteker.pulse.shared.api.UserProfileResponse(
                         id = user.id.value,
                         name = user.name,
+                        username = user.username,
                         email = user.email,
-                        avatarId = user.avatarId
-                    ))
+                        avatarId = user.avatarId,
+                        followersCount = followersCount,
+                        followingCount = followingCount,
+                        postsCount = postsCount
+                    )
+                }
+
+                if (userStats != null) {
+                    call.respond(HttpStatusCode.OK, userStats)
                 } else {
                     call.respond(HttpStatusCode.NotFound)
                 }

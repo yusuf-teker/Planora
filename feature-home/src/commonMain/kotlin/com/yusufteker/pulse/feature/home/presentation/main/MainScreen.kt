@@ -170,7 +170,7 @@ fun MainScreen() {
                     }
 
                     // Profile Tab
-                    val isProfileSelected = currentDestination is MainDestination.Profile
+                    val isProfileSelected = currentDestination is MainDestination.Profile || currentDestination is MainDestination.Settings
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
@@ -191,34 +191,29 @@ fun MainScreen() {
                             )
                         }
                     }
-
-                    // Settings Tab
-                    val isSettingsSelected = currentDestination is MainDestination.Settings
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { navigateToTab(MainDestination.Settings) }
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isSettingsSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
-                            contentDescription = "Settings",
-                            tint = if (isSettingsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (isSettingsSelected) {
-                            Text(
-                                text = stringResource(Res.string.tab_settings),
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
                 }
             }
         }
     ) { paddingValues ->
-        CompositionLocalProvider(LocalMainNavigator provides navigator) {
+        // Create a ViewModelStore for the MainScreen. 
+        // When MainScreen is removed from composition (logout), it will be cleared.
+        val viewModelStoreOwner = remember {
+            object : androidx.lifecycle.ViewModelStoreOwner {
+                override val viewModelStore = androidx.lifecycle.ViewModelStore()
+            }
+        }
+        
+        // Clear the ViewModelStore when MainScreen leaves the composition
+        androidx.compose.runtime.DisposableEffect(Unit) {
+            onDispose {
+                viewModelStoreOwner.viewModelStore.clear()
+            }
+        }
+
+        CompositionLocalProvider(
+            LocalMainNavigator provides navigator,
+            androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides viewModelStoreOwner
+        ) {
             NavDisplay(
                 backStack = navigator.backStack,
                 onBack = { navigator.pop() },

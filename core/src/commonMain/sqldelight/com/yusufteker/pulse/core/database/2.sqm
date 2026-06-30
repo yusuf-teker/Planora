@@ -1,0 +1,5 @@
+ALTER TABLE postEntity ADD COLUMN ownerId TEXT NOT NULL DEFAULT 'guest';
+
+ALTER TABLE remoteKeyEntity ADD COLUMN ownerId TEXT NOT NULL DEFAULT 'guest';
+
+ALTER TABLE pendingPostEntity ADD COLUMN ownerId TEXT NOT NULL DEFAULT 'guest';

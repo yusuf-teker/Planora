@@ -105,7 +105,7 @@ abstract class BaseViewModel<S : UiState, E : UiEvent, F : UiEffect>(
      * Launch a coroutine in the [viewModelScope].
      * Convenience wrapper for common async operations.
      */
-    protected fun launch(block: suspend () -> Unit) {
-        viewModelScope.launch { block() }
+    protected fun launch(block: suspend () -> Unit): kotlinx.coroutines.Job {
+        return viewModelScope.launch { block() }
     }
 }

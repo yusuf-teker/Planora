@@ -13,12 +13,15 @@ import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 
+import com.yusufteker.pulse.core.database.PulseDatabase
+
 /**
  * Implementation of [AuthRepository] that communicates with the Ktor Backend.
  */
 class AuthRepositoryImpl(
     private val httpClient: HttpClient,
-    private val sessionPreferences: SessionPreferences
+    private val sessionPreferences: SessionPreferences,
+    private val pulseDatabase: PulseDatabase
 ) : AuthRepository {
 
     override suspend fun login(request: AuthRequest): Result<AuthResponse> {
@@ -31,7 +34,7 @@ class AuthRepositoryImpl(
             // Giriş başarılıysa token'ları güvenli depoya kaydet.
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
-            sessionPreferences.saveUserProfile(response.name, response.avatarId)
+            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
             Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}'" })
             Result.success(response)
         } catch (e: Exception) {
@@ -45,8 +48,9 @@ class AuthRepositoryImpl(
             val response: AuthResponse = httpClient.post("auth/register") {
                 setBody(request)
             }.body()
+            
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
-            sessionPreferences.saveUserProfile(response.name, response.avatarId)
+            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
@@ -69,7 +73,8 @@ class AuthRepositoryImpl(
                 setBody(com.yusufteker.pulse.shared.api.UpdateProfileRequest(name, avatarId))
             }
             // Update local DataStore upon successful server update
-            sessionPreferences.saveUserProfile(name, avatarId)
+            val currentUserId = sessionPreferences.getUserId() ?: "guest"
+            sessionPreferences.saveUserProfile(currentUserId, name, avatarId)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -79,7 +84,7 @@ class AuthRepositoryImpl(
     override suspend fun fetchMyProfile(): Result<Unit> {
         return try {
             val profile = httpClient.get("auth/me").body<com.yusufteker.pulse.shared.api.UserProfileResponse>()
-            sessionPreferences.saveUserProfile(profile.name, profile.avatarId)
+            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

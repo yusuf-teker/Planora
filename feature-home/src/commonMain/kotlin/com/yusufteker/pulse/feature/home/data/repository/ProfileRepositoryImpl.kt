@@ -17,7 +17,7 @@ class ProfileRepositoryImpl(
                 setBody(com.yusufteker.pulse.shared.api.UpdateProfileRequest(name, avatarId))
             }
             // Update local DataStore upon successful server update
-            sessionPreferences.saveUserProfile(name, avatarId)
+            sessionPreferences.updateProfileData(name, avatarId)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -30,5 +30,9 @@ class ProfileRepositoryImpl(
 
     override suspend fun toggleFollow(userId: Int): Result<Unit> {
         return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).toggleFollow(userId)
+    }
+
+    override suspend fun searchUsers(query: String): Result<List<com.yusufteker.pulse.shared.api.UserProfileResponse>> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).searchUsers(query)
     }
 }

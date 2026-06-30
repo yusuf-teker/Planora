@@ -10,8 +10,8 @@ import com.yusufteker.pulse.shared.api.AuthResponse
 class LoginUseCase(private val authRepository: AuthRepository) {
     suspend operator fun invoke(request: AuthRequest): Result<AuthResponse> {
         // ViewModel'den gelen verilerin kurallara uygunluğunu Repository'ye gitmeden test ediyoruz.
-        if (request.email.isBlank() || request.password.isBlank()) {
-            return Result.failure(IllegalArgumentException("Email and password cannot be empty."))
+        if (request.identifier.isBlank() || request.password.isBlank()) {
+            return Result.failure(IllegalArgumentException("Identifier and password cannot be empty."))
         }
         
         return authRepository.login(request)

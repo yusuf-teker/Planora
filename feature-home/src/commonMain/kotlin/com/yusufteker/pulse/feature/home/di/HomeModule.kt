@@ -19,6 +19,7 @@ import com.yusufteker.pulse.feature.home.domain.repository.PostRepository
 import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostViewModel
 
 import com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel
+import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewModel
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -33,11 +34,11 @@ val homeModule = module {
     single { FeedApi(get()) }
     single { CommentApi(get()) }
     single { CommentRepository(get()) }
-    single { FeedRepository(get(), get()) }
+    single { FeedRepository(get(), get(), get()) }
     
     // Sync & Post
-    single<PostSyncManager> { DefaultPostSyncManager(get(), get()) }
-    single { PostRepository(get(), get()) }
+    single<PostSyncManager> { DefaultPostSyncManager(get(), get(), get()) }
+    single { PostRepository(get(), get(), get()) }
     
     viewModelOf(::HomeViewModel)
     viewModelOf(::SocialViewModel)
@@ -45,4 +46,5 @@ val homeModule = module {
     viewModelOf(::SettingsViewModel)
     factory { params -> CreatePostViewModel(params.getOrNull(), get()) }
     viewModelOf(::PendingPostsViewModel)
+    viewModelOf(::SearchUsersViewModel)
 }

@@ -20,8 +20,8 @@ class LoginViewModel(
 
     override fun onEvent(event: LoginEvent) {
         when (event) {
-            is LoginEvent.EmailChanged -> {
-                setState { copy(email = event.email, emailError = null) }
+            is LoginEvent.IdentifierChanged -> {
+                setState { copy(identifier = event.identifier, identifierError = null) }
             }
 
             is LoginEvent.PasswordChanged -> {
@@ -39,7 +39,7 @@ class LoginViewModel(
                     
                     // Arka planda sunucuya istek at (Coroutine Launch)
                     launch {
-                        val result = loginUseCase(AuthRequest(currentState.email, currentState.password))
+                        val result = loginUseCase(AuthRequest(currentState.identifier, currentState.password))
                         
                         // İşlem bittiğinde yükleme animasyonunu durdur
                         setState { copy(isLoading = false) }
@@ -51,7 +51,7 @@ class LoginViewModel(
                             },
                             onFailure = { error ->
                                 // Hata durumunda UI'da hatayı göster
-                                setState { copy(emailError = UiText.StringResourceId(Res.string.error_login_failed, error.message ?: "Unknown")) }
+                                setState { copy(identifierError = UiText.StringResourceId(Res.string.error_login_failed, error.message ?: "Unknown")) }
                             }
                         )
                     }
@@ -71,8 +71,8 @@ class LoginViewModel(
     private fun validateForm(): Boolean {
         var isValid = true
 
-        if (currentState.email.isBlank()) {
-            setState { copy(emailError = UiText.StringResourceId(Res.string.error_email_required)) }
+        if (currentState.identifier.isBlank()) {
+            setState { copy(identifierError = UiText.StringResourceId(Res.string.error_email_required)) }
             isValid = false
         }
 

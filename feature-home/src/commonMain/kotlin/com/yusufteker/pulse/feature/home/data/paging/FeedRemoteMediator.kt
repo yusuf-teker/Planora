@@ -15,7 +15,8 @@ import com.yusufteker.pulse.feature.home.data.api.FeedApi
 class FeedRemoteMediator(
     private val localDatabase: PulseDatabase,
     private val feedApi: FeedApi,
-    private val topic: String?
+    private val topic: String?,
+    private val ownerId: String
 ) : RemoteMediator<Int, PostEntity>() {
 
     override suspend fun load(
@@ -33,7 +34,7 @@ class FeedRemoteMediator(
                 LoadType.APPEND -> {
                     // Sayfa sonuna gelindiğinde sıradaki sayfanın ne olduğunu veritabanından (Remote Key tablosundan) okuruz.
                     val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
-                    val remoteKey = localDatabase.pulseDatabaseQueries.getRemoteKey(remoteKeyId).executeAsOneOrNull()
+                    val remoteKey = localDatabase.pulseDatabaseQueries.getRemoteKey(id = remoteKeyId, ownerId = ownerId).executeAsOneOrNull()
                     if (remoteKey?.nextPage == null) {
                         return MediatorResult.Success(endOfPaginationReached = true)
                     }
@@ -58,20 +59,22 @@ class FeedRemoteMediator(
             localDatabase.transaction {
                 if (loadType == LoadType.REFRESH) {
                     if (topic == null) {
-                        localDatabase.pulseDatabaseQueries.deleteAllPosts()
-                        localDatabase.pulseDatabaseQueries.deleteAllRemoteKeys()
+                        localDatabase.pulseDatabaseQueries.deleteAllPosts(ownerId = ownerId)
+                        localDatabase.pulseDatabaseQueries.deleteAllRemoteKeys(ownerId = ownerId)
                     }
                 }
 
                 val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
                 localDatabase.pulseDatabaseQueries.insertRemoteKey(
                     id = remoteKeyId,
+                    ownerId = ownerId,
                     nextPage = response.nextCursor
                 )
 
                 posts.forEach { post ->
                     localDatabase.pulseDatabaseQueries.insertPost(
                         id = post.id,
+                        ownerId = ownerId,
                         authorId = post.authorId,
                         authorName = post.authorName,
                         authorUsername = post.authorUsername,

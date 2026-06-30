@@ -5,6 +5,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.parameter
+import com.yusufteker.pulse.shared.api.SearchUsersResponse
 
 class ProfileApi(private val httpClient: HttpClient) {
     suspend fun getProfile(userId: String): Result<UserProfileResponse> {
@@ -20,6 +22,17 @@ class ProfileApi(private val httpClient: HttpClient) {
         return try {
             httpClient.post("users/$userId/follow")
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun searchUsers(query: String): Result<List<UserProfileResponse>> {
+        return try {
+            val response: SearchUsersResponse = httpClient.get("users/search") {
+                parameter("q", query)
+            }.body()
+            Result.success(response.users)
         } catch (e: Exception) {
             Result.failure(e)
         }

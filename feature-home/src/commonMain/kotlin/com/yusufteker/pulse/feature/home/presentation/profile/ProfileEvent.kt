@@ -10,4 +10,5 @@ sealed interface ProfileEvent : UiEvent {
     data object SaveClicked : ProfileEvent
     data class LoadProfile(val userId: Int? = null) : ProfileEvent
     data object ToggleFollowClicked : ProfileEvent
+    data object LogoutClicked : ProfileEvent
 }

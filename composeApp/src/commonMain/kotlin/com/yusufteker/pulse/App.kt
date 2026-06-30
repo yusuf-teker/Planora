@@ -27,6 +27,8 @@ import com.yusufteker.pulse.feature.auth.presentation.splash.SplashViewModel
 import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostScreen
 import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostViewModel
 import com.yusufteker.pulse.feature.home.presentation.main.MainScreen
+import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersScreen
+import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -112,6 +114,11 @@ fun App() {
                             onNavigateBack = { navigator.pop() },
                             onNavigateToEdit = { postId -> navigator.navigate(Screen.CreatePost(postId)) }
                         )
+                    }
+
+                    entry<Screen.SearchUsers> {
+                        val viewModel = koinViewModel<SearchUsersViewModel>()
+                        SearchUsersScreen(viewModel)
                     }
 
                     entry<Screen.CreatePost> { screen ->

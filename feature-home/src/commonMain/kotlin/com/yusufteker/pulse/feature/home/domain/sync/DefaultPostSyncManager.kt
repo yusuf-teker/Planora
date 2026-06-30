@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.feature.home.domain.sync
 
 import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 import com.yusufteker.pulse.shared.api.CreatePostRequest
 import kotlinx.coroutines.CoroutineScope
@@ -15,7 +16,8 @@ import kotlinx.coroutines.launch
  */
 class DefaultPostSyncManager(
     private val localDatabase: PulseDatabase,
-    private val api: FeedApi
+    private val api: FeedApi,
+    private val sessionPreferences: SessionPreferences
 ) : PostSyncManager {
 
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -24,8 +26,9 @@ class DefaultPostSyncManager(
         // Coroutine başlatarak işlemi arka plana atıyoruz (UI'ı dondurmamak için)
         scope.launch {
             try {
+                val ownerId = sessionPreferences.getOwnerId()
                 // 1. Veritabanından "Gönderilmeyi Bekleyen" (Taslak olmayan) postları çek.
-                val pendingPosts = localDatabase.pulseDatabaseQueries.getPendingPostsToSync().executeAsList()
+                val pendingPosts = localDatabase.pulseDatabaseQueries.getPendingPostsToSync(ownerId = ownerId).executeAsList()
 
                 // 2. Her bir post için API'ye istek at.
                 for (post in pendingPosts) {

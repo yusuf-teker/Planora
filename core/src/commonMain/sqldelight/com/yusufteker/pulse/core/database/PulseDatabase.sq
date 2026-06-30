@@ -8,6 +8,7 @@
 
 CREATE TABLE postEntity (
     id TEXT NOT NULL PRIMARY KEY,
+    ownerId TEXT NOT NULL,
     authorId TEXT NOT NULL,
     authorName TEXT NOT NULL,
     authorUsername TEXT NOT NULL,
@@ -25,46 +26,48 @@ CREATE TABLE postEntity (
 -- "nextPage", API'den dönen ve bir sonraki isteği atarken kullanılacak olan sayfalamanın anahtarıdır.
 CREATE TABLE remoteKeyEntity (
     id TEXT NOT NULL PRIMARY KEY,
+    ownerId TEXT NOT NULL,
     nextPage TEXT
 );
 
 insertPost:
 INSERT OR REPLACE INTO postEntity(
-    id, authorId, authorName, authorUsername, content, createdAt, likesCount, commentsCount, isLikedByMe, isBookmarkedByMe, topic
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, ownerId, authorId, authorName, authorUsername, content, createdAt, likesCount, commentsCount, isLikedByMe, isBookmarkedByMe, topic
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getAllPosts:
 SELECT * FROM postEntity
-WHERE :topic IS NULL OR :topic = 'Tümü' OR topic = :topic
+WHERE ownerId = :ownerId AND (:topic IS NULL OR :topic = 'Tümü' OR topic = :topic)
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
 
 countAllPosts:
 SELECT count(*) FROM postEntity
-WHERE :topic IS NULL OR :topic = 'Tümü' OR topic = :topic;
+WHERE ownerId = :ownerId AND (:topic IS NULL OR :topic = 'Tümü' OR topic = :topic);
 
 getBookmarkedPosts:
 SELECT * FROM postEntity
-WHERE isBookmarkedByMe = 1
+WHERE ownerId = :ownerId AND isBookmarkedByMe = 1
 ORDER BY createdAt DESC;
 
 deleteAllPosts:
-DELETE FROM postEntity;
+DELETE FROM postEntity WHERE ownerId = :ownerId;
 
 insertRemoteKey:
-INSERT OR REPLACE INTO remoteKeyEntity(id, nextPage)
-VALUES (?, ?);
+INSERT OR REPLACE INTO remoteKeyEntity(id, ownerId, nextPage)
+VALUES (?, ?, ?);
 
 getRemoteKey:
-SELECT * FROM remoteKeyEntity WHERE id = ?;
+SELECT * FROM remoteKeyEntity WHERE id = :id AND ownerId = :ownerId;
 
 deleteAllRemoteKeys:
-DELETE FROM remoteKeyEntity;
+DELETE FROM remoteKeyEntity WHERE ownerId = :ownerId;
 
 -- 3. OFFLINE-FIRST: TASLAK VE KUYRUK SİSTEMİ
 -- İnternet yokken oluşturulan postlar veya taslaklar burada tutulur.
 CREATE TABLE pendingPostEntity (
     id TEXT NOT NULL PRIMARY KEY,
+    ownerId TEXT NOT NULL,
     content TEXT NOT NULL,
     isDraft INTEGER NOT NULL, -- 1=Taslak, 0=Gönderilmeyi Bekliyor (Kuyruk)
     createdAt INTEGER NOT NULL,
@@ -72,16 +75,17 @@ CREATE TABLE pendingPostEntity (
 );
 
 insertPendingPost:
-INSERT OR REPLACE INTO pendingPostEntity(id, content, isDraft, createdAt, topic)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO pendingPostEntity(id, ownerId, content, isDraft, createdAt, topic)
+VALUES (?, ?, ?, ?, ?, ?);
 
 getAllPendingPosts:
 SELECT * FROM pendingPostEntity
+WHERE ownerId = :ownerId
 ORDER BY createdAt DESC;
 
 getPendingPostsToSync:
 SELECT * FROM pendingPostEntity
-WHERE isDraft = 0
+WHERE ownerId = :ownerId AND isDraft = 0
 ORDER BY createdAt ASC;
 
 deletePendingPost:
@@ -92,3 +96,6 @@ updatePendingPostToSync:
 UPDATE pendingPostEntity
 SET isDraft = 0
 WHERE id = ?;
+
+deleteAllPendingPosts:
+DELETE FROM pendingPostEntity WHERE ownerId = :ownerId;

@@ -11,6 +11,7 @@ import org.jetbrains.exposed.sql.javatime.timestamp
  */
 object UsersTable : IntIdTable("users") {
     val name = varchar("name", 255)
+    val username = varchar("username", 255).uniqueIndex()
     val email = varchar("email", 255).uniqueIndex()
     val passwordHash = varchar("password_hash", 255)
     val createdAt = timestamp("created_at")
@@ -24,6 +25,7 @@ class UserEntity(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<UserEntity>(UsersTable)
     
     var name by UsersTable.name
+    var username by UsersTable.username
     var email by UsersTable.email
     var passwordHash by UsersTable.passwordHash
     var createdAt by UsersTable.createdAt

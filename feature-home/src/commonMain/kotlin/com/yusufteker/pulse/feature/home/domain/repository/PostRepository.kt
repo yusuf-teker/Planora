@@ -1,12 +1,16 @@
 package com.yusufteker.pulse.feature.home.domain.repository
 
 import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.domain.sync.PostSyncManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Gönderi oluşturma işlemlerini yöneten Repository.
@@ -15,36 +19,29 @@ import app.cash.sqldelight.coroutines.mapToList
  */
 class PostRepository(
     private val localDatabase: PulseDatabase,
-    private val syncManager: PostSyncManager
+    private val syncManager: PostSyncManager,
+    private val sessionPreferences: SessionPreferences
 ) {
 
     /**
      * Kullanıcı yeni bir post yazdığında bu fonksiyon çağrılır.
-     * 
-     * Offline-First Mantığı:
-     * 1. API'ye göndermeden önce doğrudan yerel SQLite veritabanına kaydederiz.
-     * 2. Kaydedilen veriyi "Gönderilmeyi Bekliyor" (isDraft=0) veya "Taslak" (isDraft=1) olarak işaretleriz.
-     * 3. Eğer taslak değilse, SyncManager'a "Kuyruktaki işleri başlat" emri veririz.
      */
     suspend fun createPost(content: String, isDraft: Boolean, topic: String) {
         withContext(Dispatchers.IO) {
-            // Benzersiz bir ID oluşturuyoruz (Geçici olarak zaman damgası + rastgele sayı kullanıyoruz)
+            val ownerId = sessionPreferences.getOwnerId()
             val createdAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             val localId = "local_${createdAt}_${(0..10000).random()}"
-            
             val isDraftInt = if (isDraft) 1L else 0L
 
-            // 1. Yerel veritabanına kaydet
             localDatabase.pulseDatabaseQueries.insertPendingPost(
                 id = localId,
+                ownerId = ownerId,
                 content = content,
                 isDraft = isDraftInt,
                 createdAt = createdAt,
                 topic = topic
             )
 
-            // 2. Eğer taslak değilse (Yani kullanıcı Paylaş butonuna bastıysa), 
-            // senkronizasyon işlemini tetikle.
             if (!isDraft) {
                 syncManager.syncPendingPosts()
             }
@@ -54,9 +51,12 @@ class PostRepository(
     /**
      * Tüm bekleyen gönderileri (taslaklar ve gönderilmeyi bekleyenler) döndürür.
      */
-    fun getAllPendingPosts(): kotlinx.coroutines.flow.Flow<List<com.yusufteker.pulse.core.database.PendingPostEntity>> {
-        return localDatabase.pulseDatabaseQueries.getAllPendingPosts().asFlow()
-            .mapToList(Dispatchers.IO)
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun getAllPendingPosts(): Flow<List<com.yusufteker.pulse.core.database.PendingPostEntity>> {
+        return sessionPreferences.userIdFlow.flatMapLatest { userId ->
+            val ownerId = userId ?: "guest"
+            localDatabase.pulseDatabaseQueries.getAllPendingPosts(ownerId).asFlow().mapToList(Dispatchers.IO)
+        }
     }
 
     /**
@@ -64,7 +64,8 @@ class PostRepository(
      */
     suspend fun getPendingPostById(id: String): com.yusufteker.pulse.core.database.PendingPostEntity? {
         return withContext(Dispatchers.IO) {
-            localDatabase.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
+            val ownerId = sessionPreferences.getOwnerId()
+            localDatabase.pulseDatabaseQueries.getAllPendingPosts(ownerId).executeAsList().find { it.id == id }
         }
     }
 
@@ -73,12 +74,14 @@ class PostRepository(
      */
     suspend fun updatePendingPost(id: String, content: String, isDraft: Boolean, topic: String) {
         withContext(Dispatchers.IO) {
+            val ownerId = sessionPreferences.getOwnerId()
             val isDraftInt = if (isDraft) 1L else 0L
-            val existingPost = localDatabase.pulseDatabaseQueries.getAllPendingPosts().executeAsList().find { it.id == id }
+            val existingPost = localDatabase.pulseDatabaseQueries.getAllPendingPosts(ownerId).executeAsList().find { it.id == id }
             
             if (existingPost != null) {
                 localDatabase.pulseDatabaseQueries.insertPendingPost(
                     id = existingPost.id,
+                    ownerId = existingPost.ownerId,
                     content = content,
                     isDraft = isDraftInt,
                     createdAt = existingPost.createdAt, // Mevcut oluşturulma tarihini koru

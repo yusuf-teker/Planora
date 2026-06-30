@@ -78,15 +78,17 @@ fun SocialScreen(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            androidx.compose.material3.FloatingActionButton(
-                onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Add,
-                    contentDescription = "Yeni Post"
-                )
+            if (state.isLoggedIn) {
+                androidx.compose.material3.FloatingActionButton(
+                    onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Add,
+                        contentDescription = "Yeni Post"
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -97,115 +99,156 @@ fun SocialScreen(
                 .background(MaterialTheme.colorScheme.background)
         )
         
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { 
-                isRefreshing = true // Kullanıcı manuel olarak yenileme yaptığında spinner'ı göster
-                feedItems.refresh() 
-            },
-            state = pullToRefreshState,
-            indicator = {
-                // Varsayılan oklu indicator'ı tamamen gizliyoruz
-            },
-            modifier = Modifier.fillMaxSize().padding(paddingValues)
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        translationY = animatedOffset
-                    },
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp)
-            ) {
-                item {
-                    val allTopics = listOf(null) + com.yusufteker.pulse.feature.home.domain.model.Topic.entries
-                    androidx.compose.foundation.lazy.LazyRow(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(allTopics) { topic ->
-                            val chipColor = topic?.color ?: MaterialTheme.colorScheme.primary
-                            FilterChip(
-                                selected = state.selectedTopic == topic?.id,
-                                onClick = { viewModel.onEvent(SocialEvent.OnTopicSelected(topic?.id)) },
-                                label = { Text(topic?.displayName ?: "Tümü") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = chipColor.copy(alpha = 0.2f),
-                                    selectedLabelColor = chipColor,
-                                    selectedLeadingIconColor = chipColor
-                                )
-                            )
-                        }
-                    }
-                }
-
-                items(
-                    count = feedItems.itemCount,
-                    key = feedItems.itemKey { it.id },
-                    contentType = feedItems.itemContentType { "Post" }
-                ) { index ->
-                    val post = feedItems[index]
-                    if (post != null) {
-                        PostCard(
-                            post = post,
-                            onClick = { viewModel.onEvent(SocialEvent.OnPostClicked(post)) },
-                            onBookmarkClick = { viewModel.onEvent(SocialEvent.OnBookmarkClicked(post.id)) }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-
-                // 3. YÜKLEME DURUMLARININ KONTROLÜ (Loading States):
-                feedItems.loadState.apply {
-                    when {
-                        refresh is LoadStateLoading && feedItems.itemCount == 0 -> {
-                            // İlk açılışta veritabanı tamamen boşsa ekranın ortasında standart loading çıkar
-                            item {
-                                Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        }
-                        append is LoadStateLoading -> {
-                            // Sayfanın en altına inildiğinde yeni veriler gelirken altta çıkan loading
-                            item {
-                                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        }
+        if (!state.isLoggedIn) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Sosyal ağı görmek için giriş yapmalısınız.",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.Login) }) {
+                        Text("Giriş Yap")
                     }
                 }
             }
-            
-            // Bizim ozel dumduz, oklu olmayan Instagram tarzi yukleme ikonumuz
-            if (animatedOffset > 0f) {
-                Box(
+        } else {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { 
+                    isRefreshing = true // Kullanıcı manuel olarak yenileme yaptığında spinner'ı göster
+                    feedItems.refresh() 
+                },
+                state = pullToRefreshState,
+                indicator = {
+                    // Varsayılan oklu indicator'ı tamamen gizliyoruz
+                },
+                modifier = Modifier.fillMaxSize().padding(paddingValues)
+            ) {
+                LazyColumn(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
                         .graphicsLayer {
-                            translationY = animatedOffset - 90f // Listenin 90f ustunde, asagi dogru iner
-                            alpha = (animatedOffset / 140f).coerceIn(0f, 1f)
+                            translationY = animatedOffset
                         },
-                    contentAlignment = Alignment.Center
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp)
                 ) {
-                    if (isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            progress = { (pullToRefreshState.distanceFraction).coerceIn(0f, 1f) },
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 2.dp,
-                            trackColor = Color.Transparent
-                        )
+                    item {
+                        val allTopics = listOf(null) + com.yusufteker.pulse.feature.home.domain.model.Topic.entries
+                        androidx.compose.foundation.lazy.LazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(allTopics) { topic ->
+                                val chipColor = topic?.color ?: MaterialTheme.colorScheme.primary
+                                FilterChip(
+                                    selected = state.selectedTopic == topic?.id,
+                                    onClick = { viewModel.onEvent(SocialEvent.OnTopicSelected(topic?.id)) },
+                                    label = { Text(topic?.displayName ?: "Tümü") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = chipColor.copy(alpha = 0.2f),
+                                        selectedLabelColor = chipColor,
+                                        selectedLeadingIconColor = chipColor
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    items(
+                        count = feedItems.itemCount,
+                        key = feedItems.itemKey { it.id },
+                        contentType = feedItems.itemContentType { "Post" }
+                    ) { index ->
+                        val post = feedItems[index]
+                        if (post != null) {
+                            PostCard(
+                                post = post,
+                                onClick = { viewModel.onEvent(SocialEvent.OnPostClicked(post)) },
+                                onBookmarkClick = { viewModel.onEvent(SocialEvent.OnBookmarkClicked(post.id)) }
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    // 3. YÜKLEME DURUMLARININ KONTROLÜ (Loading States):
+                    feedItems.loadState.apply {
+                        when {
+                            refresh is LoadStateLoading && feedItems.itemCount == 0 -> {
+                                // İlk açılışta veritabanı tamamen boşsa ekranın ortasında standart loading çıkar
+                                item {
+                                    Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator()
+                                    }
+                                }
+                            }
+                            refresh is app.cash.paging.LoadStateError -> {
+                                item {
+                                    Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Bir hata oluştu: ${(refresh as app.cash.paging.LoadStateError).error.message}")
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(onClick = { feedItems.retry() }) {
+                                                Text("Tekrar Dene")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            append is LoadStateLoading -> {
+                                // Sayfanın en altına inildiğinde yeni veriler gelirken altta çıkan loading
+                                item {
+                                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator()
+                                    }
+                                }
+                            }
+                            append is app.cash.paging.LoadStateError -> {
+                                item {
+                                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Daha fazla yüklenemedi", color = MaterialTheme.colorScheme.error)
+                                            TextButton(onClick = { feedItems.retry() }) {
+                                                Text("Tekrar Dene")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Bizim ozel dumduz, oklu olmayan Instagram tarzi yukleme ikonumuz
+                if (animatedOffset > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                translationY = animatedOffset - 90f // Listenin 90f ustunde, asagi dogru iner
+                                alpha = (animatedOffset / 140f).coerceIn(0f, 1f)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                progress = { (pullToRefreshState.distanceFraction).coerceIn(0f, 1f) },
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp,
+                                trackColor = Color.Transparent
+                            )
+                        }
                     }
                 }
             }

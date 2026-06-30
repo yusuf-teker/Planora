@@ -53,6 +53,10 @@ fun RegisterScreen(
     val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.onEvent(RegisterEvent.ClearForm)
+    }
+
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
             is RegisterEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
@@ -101,6 +105,26 @@ fun RegisterScreen(
             label = { Text(stringResource(Res.string.name)) },
             isError = state.nameError != null,
             supportingText = state.nameError?.let { error ->
+                { Text(error.asString()) }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Username field
+        OutlinedTextField(
+            value = state.username,
+            onValueChange = { viewModel.onEvent(RegisterEvent.UsernameChanged(it)) },
+            label = { Text(stringResource(Res.string.username)) },
+            isError = state.usernameError != null,
+            supportingText = state.usernameError?.let { error ->
                 { Text(error.asString()) }
             },
             keyboardOptions = KeyboardOptions(

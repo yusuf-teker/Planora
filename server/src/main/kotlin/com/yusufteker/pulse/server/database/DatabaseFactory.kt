@@ -38,11 +38,10 @@ object DatabaseFactory {
         // Migration'lar, veritabanı şemasını güncel tutmamızı sağlar.
         val flyway = Flyway.configure()
             .dataSource(dataSource)
-            .cleanDisabled(false) // Allow clean
+            .cleanDisabled(true) // Disable clean to prevent accidental wipes
             .baselineOnMigrate(true) // Eğer veritabanı boşsa, mevcut şemayı baseline olarak kabul et.
             .load()
 
-        flyway.clean() // Veritabanını sıfırla
         flyway.migrate()
         println("Flyway OK")
 

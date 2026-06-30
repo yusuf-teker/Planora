@@ -18,6 +18,7 @@ object DatabaseSeeder {
             if (dummyUser == null) {
                 dummyUser = UserEntity.new {
                     name = "Dummy User"
+                    username = "dummy_user"
                     email = "dummy@pulse.com"
                     passwordHash = HashingService.hashPassword("password")
                     createdAt = Instant.now()
@@ -28,6 +29,7 @@ object DatabaseSeeder {
             if (secondaryUser == null) {
                 secondaryUser = UserEntity.new {
                     name = "Test User"
+                    username = "test_user"
                     email = "test@pulse.com"
                     passwordHash = HashingService.hashPassword("password")
                     createdAt = Instant.now()

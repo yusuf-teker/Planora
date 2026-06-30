@@ -10,12 +10,14 @@ import app.cash.paging.map
 import app.cash.sqldelight.Query
 import com.yusufteker.pulse.core.database.PostEntity
 import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 import com.yusufteker.pulse.feature.home.data.paging.FeedRemoteMediator
 import com.yusufteker.pulse.feature.home.domain.model.Post
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -24,10 +26,11 @@ import kotlin.math.max
 // Paging 3 kütüphanesi veritabanından veri okumak için bu sınıfı kullanır.
 class FeedPagingSource(
     private val localDatabase: PulseDatabase,
-    private val topic: String?
+    private val topic: String?,
+    private val ownerId: String
 ) : PagingSource<Int, PostEntity>(), Query.Listener {
 
-    private val query = localDatabase.pulseDatabaseQueries.getAllPosts(topic = topic, limit = 0, offset = 0)
+    private val query = localDatabase.pulseDatabaseQueries.getAllPosts(ownerId = ownerId, topic = topic, limit = 0, offset = 0)
 
     init {
         query.addListener(this)
@@ -47,8 +50,8 @@ class FeedPagingSource(
                 val limit = params.loadSize.toLong()
                 val offset = key.toLong()
 
-                val count = localDatabase.pulseDatabaseQueries.countAllPosts(topic).executeAsOne()
-                val data = localDatabase.pulseDatabaseQueries.getAllPosts(topic = topic, limit = limit, offset = offset).executeAsList()
+                val count = localDatabase.pulseDatabaseQueries.countAllPosts(ownerId = ownerId, topic = topic).executeAsOne()
+                val data = localDatabase.pulseDatabaseQueries.getAllPosts(ownerId = ownerId, topic = topic, limit = limit, offset = offset).executeAsList()
 
                 val nextKey = if (offset + data.size >= count) null else key + data.size
                 val prevKey = if (key <= 0) null else max(0, key - params.loadSize)
@@ -77,32 +80,31 @@ class FeedPagingSource(
 // Gelip bu sınıftan (Repository) ister. Repository, verinin nereden alınacağını koordine eder.
 class FeedRepository(
     private val localDatabase: PulseDatabase,
-    private val feedApi: FeedApi
+    private val feedApi: FeedApi,
+    private val sessionPreferences: SessionPreferences
 ) {
 
     @OptIn(ExperimentalPagingApi::class)
     fun getFeed(topic: String?): Flow<PagingData<Post>> {
-        // Pager nesnesi, Sayfalama (Paging) işleminin orkestra şefidir.
-        // Hem RemoteMediator'a (API) hem de PagingSource'a (Veritabanı) bağlanır.
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                initialLoadSize = 20 // Paging3 default olarak ilk açılışta 3 sayfa (60 item) çeker, bunu engellemek için 20'ye sabitledik.
-            ),
-            remoteMediator = FeedRemoteMediator(
-                localDatabase,
-                feedApi,
-                topic
-            ),
-            pagingSourceFactory = {
-                FeedPagingSource(localDatabase, topic)
-            }
-        )
+        return sessionPreferences.userIdFlow.flatMapLatest { userId ->
+            val ownerId = userId ?: "guest"
+            Pager(
+                config = PagingConfig(
+                    pageSize = 20,
+                    initialLoadSize = 20
+                ),
+                remoteMediator = FeedRemoteMediator(
+                    localDatabase,
+                    feedApi,
+                    topic,
+                    ownerId
+                ),
+                pagingSourceFactory = {
+                    FeedPagingSource(localDatabase, topic, ownerId)
+                }
+            )
             .flow
             .map { pagingData ->
-                // Veritabanından gelen saf SQL nesnelerini (PostEntity),
-                // Uygulamanın anladığı saf iş nesnelerine (Post) dönüştürür.
-                // Bu sayede UI (Arayüz) veritabanı detaylarıyla uğraşmaz.
                 pagingData.map { entity ->
                     Post(
                         id = entity.id,
@@ -119,10 +121,12 @@ class FeedRepository(
                     )
                 }
             }
+        }
     }
 
     suspend fun toggleBookmark(postId: String): Result<Unit> {
-        val currentPost = localDatabase.pulseDatabaseQueries.getAllPosts(null, 1, 0)
+        val ownerId = sessionPreferences.getOwnerId()
+        val currentPost = localDatabase.pulseDatabaseQueries.getAllPosts(ownerId = ownerId, topic = null, limit = 1, offset = 0)
             .executeAsList().find { it.id == postId }
             
         if (currentPost != null) {
@@ -130,6 +134,7 @@ class FeedRepository(
             // Optimistically update DB
             localDatabase.pulseDatabaseQueries.insertPost(
                 id = currentPost.id,
+                ownerId = currentPost.ownerId,
                 authorId = currentPost.authorId,
                 authorName = currentPost.authorName,
                 authorUsername = currentPost.authorUsername,
@@ -148,6 +153,7 @@ class FeedRepository(
             if (currentPost != null) {
                 localDatabase.pulseDatabaseQueries.insertPost(
                     id = currentPost.id,
+                    ownerId = currentPost.ownerId,
                     authorId = currentPost.authorId,
                     authorName = currentPost.authorName,
                     authorUsername = currentPost.authorUsername,
