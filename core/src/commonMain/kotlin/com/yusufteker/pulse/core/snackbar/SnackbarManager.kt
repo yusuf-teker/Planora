@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.core.snackbar
 
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.random.Random
 
 /**
  * Snackbar (Bilgi/Hata mesajı) türleri.
@@ -15,7 +16,7 @@ enum class SnackbarType {
  * Gösterilecek mesajın model sınıfı.
  */
 data class SnackbarMessage(
-    val id: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+    val id: Long = Random.nextLong(),
     val message: String,
     val type: SnackbarType
 )

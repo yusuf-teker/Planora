@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.flowOf
  * Temiz Mimari (Clean Architecture) kurallarına göre, UI katmanı doğrudan
  * veritabanına veya API'ye erişmez, bu repository ile iletişim kurar.
  */
+import kotlin.random.Random
+
 class PostRepository(
     private val localDatabase: PulseDatabase,
     private val syncManager: PostSyncManager,
@@ -29,7 +31,7 @@ class PostRepository(
     suspend fun createPost(content: String, isDraft: Boolean, topic: String) {
         withContext(Dispatchers.IO) {
             val ownerId = sessionPreferences.getOwnerId()
-            val createdAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+            val createdAt = Random.nextLong(1000000L, 9000000L)
             val localId = "local_${createdAt}_${(0..10000).random()}"
             val isDraftInt = if (isDraft) 1L else 0L
 

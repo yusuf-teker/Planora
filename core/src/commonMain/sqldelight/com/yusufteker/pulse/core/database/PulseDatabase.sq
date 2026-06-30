@@ -99,3 +99,79 @@ WHERE id = ?;
 
 deleteAllPendingPosts:
 DELETE FROM pendingPostEntity WHERE ownerId = :ownerId;
+
+-- 4. PLAN ROOM & TASK (Görev, Not) SİSTEMİ
+CREATE TABLE planRoomEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    creatorId INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+);
+
+CREATE TABLE planRoomMemberEntity (
+    roomId TEXT NOT NULL,
+    userId INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    role TEXT NOT NULL,
+    joinedAt INTEGER,
+    PRIMARY KEY (roomId, userId)
+);
+
+CREATE TABLE taskEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    creatorId INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    startTime INTEGER NOT NULL,
+    endTime INTEGER,
+    type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    visibility TEXT NOT NULL,
+    isRecurring INTEGER NOT NULL DEFAULT 0,
+    recurrenceRule TEXT,
+    isFlexible INTEGER NOT NULL DEFAULT 0,
+    isOptional INTEGER NOT NULL DEFAULT 0,
+    isPostponable INTEGER NOT NULL DEFAULT 1
+);
+
+-- PlanRoom Sorguları
+insertPlanRoom:
+INSERT OR REPLACE INTO planRoomEntity(id, name, creatorId, createdAt)
+VALUES (?, ?, ?, ?);
+
+getAllPlanRooms:
+SELECT * FROM planRoomEntity;
+
+deleteAllPlanRooms:
+DELETE FROM planRoomEntity;
+
+-- PlanRoomMember Sorguları
+insertPlanRoomMember:
+INSERT OR REPLACE INTO planRoomMemberEntity(roomId, userId, status, role, joinedAt)
+VALUES (?, ?, ?, ?, ?);
+
+getMembersForRoom:
+SELECT * FROM planRoomMemberEntity WHERE roomId = :roomId;
+
+deleteAllPlanRoomMembers:
+DELETE FROM planRoomMemberEntity;
+
+-- Task Sorguları
+insertTask:
+INSERT OR REPLACE INTO taskEntity(
+    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllTasks:
+SELECT * FROM taskEntity ORDER BY startTime ASC;
+
+getTasksByTimeRange:
+SELECT * FROM taskEntity 
+WHERE startTime >= :fromTime AND startTime <= :toTime 
+ORDER BY startTime ASC;
+
+deleteTaskById:
+DELETE FROM taskEntity WHERE id = :id;
+
+deleteAllTasks:
+DELETE FROM taskEntity;

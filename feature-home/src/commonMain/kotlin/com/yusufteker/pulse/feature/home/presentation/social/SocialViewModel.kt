@@ -21,6 +21,8 @@ import com.yusufteker.pulse.feature.home.domain.model.Comment
 import com.yusufteker.pulse.feature.home.domain.repository.CommentRepository
 import kotlinx.coroutines.launch
 
+import kotlin.random.Random
+
 /**
  * UI State (Arayüz Durumu): Ekrandaki tüm verileri temsil eden durum (State) sınıfı.
  * StateFlow ile dinlendiği için buradaki her değişiklik ekranda anında güncellenir (Recomposition).
@@ -100,7 +102,7 @@ class SocialViewModel(
                     authorAvatarId = null,
                     parentCommentId = parentId,
                     content = event.content,
-                    createdAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                    createdAt = Random.nextLong(1000000L, 9000000L),
                     likesCount = 0,
                     isSending = true // Şeffaf/soluk gözükmesini sağlayacak
                 )

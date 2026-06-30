@@ -20,6 +20,9 @@ import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostView
 
 import com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel
 import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewModel
+import com.yusufteker.pulse.feature.home.data.api.PlanApi
+import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
+import com.yusufteker.pulse.feature.home.data.repository.PlanRepositoryImpl
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -39,6 +42,10 @@ val homeModule = module {
     // Sync & Post
     single<PostSyncManager> { DefaultPostSyncManager(get(), get(), get()) }
     single { PostRepository(get(), get(), get()) }
+    
+    // Plan Room & Task
+    single { PlanApi(get()) }
+    single<PlanRepository> { PlanRepositoryImpl(get(), get()) }
     
     viewModelOf(::HomeViewModel)
     viewModelOf(::SocialViewModel)
