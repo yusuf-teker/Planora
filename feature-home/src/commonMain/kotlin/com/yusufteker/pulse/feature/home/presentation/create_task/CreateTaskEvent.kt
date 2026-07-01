@@ -22,4 +22,5 @@ sealed interface CreateTaskEvent : com.yusufteker.pulse.core.base.UiEvent {
     object LoadRooms : CreateTaskEvent
     object Submit : CreateTaskEvent
     object OnBackClick : CreateTaskEvent
+    object OnClearState : CreateTaskEvent
 }

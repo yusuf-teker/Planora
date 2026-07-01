@@ -25,7 +25,7 @@ fun FeedTimelineComponent(
 ) {
     var showPastTasks by remember { mutableStateOf(false) }
     
-    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.pulse.feature.home.presentation.create_task.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.pulse.core.utils.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
     
     val sortedTasks = remember(tasks, showPastTasks) {
         val filtered = if (showPastTasks) {

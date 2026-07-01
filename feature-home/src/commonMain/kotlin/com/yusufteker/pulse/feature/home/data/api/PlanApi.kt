@@ -10,6 +10,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.delete
 import io.ktor.client.request.setBody
 
 class PlanApi(private val httpClient: HttpClient) {
@@ -56,6 +58,16 @@ class PlanApi(private val httpClient: HttpClient) {
         httpClient.post("rooms/$roomId/invite") {
             setBody(request)
         }
+    }
+    
+    suspend fun renameRoom(roomId: String, request: com.yusufteker.pulse.shared.api.RenamePlanRoomRequest) {
+        httpClient.put("rooms/$roomId") {
+            setBody(request)
+        }
+    }
+    
+    suspend fun deleteRoom(roomId: String) {
+        httpClient.delete("rooms/$roomId")
     }
 
     suspend fun getMyPendingInvitations(): List<PlanRoomDto> {

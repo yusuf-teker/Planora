@@ -48,7 +48,6 @@ fun HomeScreen(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> HomeScreen açıldı" })
     }
 
     Column(

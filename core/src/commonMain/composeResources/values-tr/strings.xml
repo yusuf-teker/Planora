@@ -45,7 +45,16 @@
     <string name="tab_home">Ana Sayfa</string>
     <string name="tab_profile">Profil</string>
     <string name="tab_settings">Ayarlar</string>
-    <string name="home_feed_placeholder">Feed içeriği burada görüntülenecek</string>
+    <string name="home_feed_placeholder">Akış içeriği burada görüntülenecek</string>
+
+    <!-- Calendar -->
+    <string name="day_mon">Pzt</string>
+    <string name="day_tue">Sal</string>
+    <string name="day_wed">Çar</string>
+    <string name="day_thu">Per</string>
+    <string name="day_fri">Cum</string>
+    <string name="day_sat">Cmt</string>
+    <string name="day_sun">Paz</string>
 
     <!-- Profile -->
     <string name="profile_choose_avatar">Avatar Seç</string>
@@ -106,6 +115,7 @@
     <string name="task_one_time">Tek Seferlik</string>
     <string name="task_days">Günler</string>
     <string name="error_task_title_empty">Başlık boş olamaz</string>
+    <string name="error_task_time_empty">Lütfen görev için bir zaman seçin</string>
     <string name="error_task_room_required">Paylaşmak için en az bir oda seçmelisiniz</string>
     <string name="error_task_end_time_before_start">Bitiş tarihi başlangıç tarihinden önce olamaz</string>
     <string name="task_created_success">Görev başarıyla eklendi</string>

@@ -58,10 +58,6 @@ fun SettingsScreen(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> SettingsScreen açıldı" })
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()

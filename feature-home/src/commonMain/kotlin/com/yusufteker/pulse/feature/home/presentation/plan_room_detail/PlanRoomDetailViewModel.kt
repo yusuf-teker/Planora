@@ -18,7 +18,8 @@ import kotlinx.datetime.minus
 
 class PlanRoomDetailViewModel(
     private val planRepository: PlanRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PlanRoomDetailState())
@@ -47,6 +48,19 @@ class PlanRoomDetailViewModel(
             PlanRoomDetailEvent.OnPreviousMonth -> {
                 _state.update { it.copy(currentMonth = it.currentMonth.minus(1, DateTimeUnit.MONTH)) }
             }
+            
+            // Rename & Delete Events
+            PlanRoomDetailEvent.OnEditRoomClick -> {
+                _state.update { it.copy(isRenameDialogOpen = true, renameRoomName = it.roomName) }
+            }
+            PlanRoomDetailEvent.OnDismissRenameDialog -> {
+                _state.update { it.copy(isRenameDialogOpen = false) }
+            }
+            is PlanRoomDetailEvent.OnRenameRoomNameChange -> {
+                _state.update { it.copy(renameRoomName = event.name) }
+            }
+            PlanRoomDetailEvent.OnRenameRoomSubmit -> renameRoom()
+            PlanRoomDetailEvent.OnDeleteRoomClick -> deleteRoom()
         }
     }
     
@@ -63,7 +77,8 @@ class PlanRoomDetailViewModel(
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == roomId }
                 if (room != null) {
-                    _state.update { it.copy(roomName = room.name) }
+                    val isCreator = room.creatorId.toString() == sessionPreferences.getUserId()
+                    _state.update { it.copy(roomName = room.name, isRoomCreator = isCreator) }
                     
                     // Fetch missing profiles for members
                     val currentProfiles = _state.value.memberProfiles.toMutableMap()
@@ -166,6 +181,43 @@ class PlanRoomDetailViewModel(
                 setEffect(PlanRoomDetailEffect.ShowToast("Kullanıcı davet edildi."))
             }.onFailure { e ->
                 setEffect(PlanRoomDetailEffect.ShowToast(e.message ?: "Kullanıcı davet edilemedi."))
+            }
+        }
+    }
+
+    private fun renameRoom() {
+        val roomId = _state.value.roomId
+        val newName = _state.value.renameRoomName
+        if (roomId.isBlank() || newName.isBlank()) return
+        
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            val result = planRepository.renameRoom(roomId, newName)
+            _state.update { it.copy(isLoading = false, isRenameDialogOpen = false) }
+            
+            result.onSuccess {
+                setEffect(PlanRoomDetailEffect.ShowToast("Oda adı değiştirildi."))
+            }.onFailure { e ->
+                setEffect(PlanRoomDetailEffect.ShowToast(e.message ?: "Oda adı değiştirilemedi."))
+            }
+        }
+    }
+    
+    private fun deleteRoom() {
+        val roomId = _state.value.roomId
+        if (roomId.isBlank()) return
+        
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            val result = planRepository.deleteRoom(roomId)
+            _state.update { it.copy(isLoading = false) }
+            
+            result.onSuccess {
+                setEffect(PlanRoomDetailEffect.ShowToast("Oda silindi."))
+                kotlinx.coroutines.delay(100) // Small delay to ensure toast starts
+                setEffect(PlanRoomDetailEffect.NavigateBack)
+            }.onFailure { e ->
+                setEffect(PlanRoomDetailEffect.ShowToast(e.message ?: "Oda silinemedi."))
             }
         }
     }

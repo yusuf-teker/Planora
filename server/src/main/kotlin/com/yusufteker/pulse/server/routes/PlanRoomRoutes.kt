@@ -3,7 +3,10 @@ package com.yusufteker.pulse.server.routes
 import com.yusufteker.pulse.server.database.DatabaseFactory.dbQuery
 import com.yusufteker.pulse.server.database.tables.PlanRoomEntity
 import com.yusufteker.pulse.server.database.tables.PlanRoomMembersTable
+import com.yusufteker.pulse.server.database.tables.PlanRoomsTable
 import com.yusufteker.pulse.server.database.tables.UserEntity
+import com.yusufteker.pulse.server.database.tables.TaskSharedRoomsTable
+import com.yusufteker.pulse.server.database.tables.TaskEntity
 import com.yusufteker.pulse.shared.api.CreatePlanRoomRequest
 import com.yusufteker.pulse.shared.api.InviteUserRequest
 import com.yusufteker.pulse.shared.api.PlanRoomDto
@@ -20,6 +23,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.route
 import io.ktor.server.routing.route
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
@@ -182,6 +188,91 @@ fun Route.planRoomRoutes() {
                     call.respond(HttpStatusCode.InternalServerError, "Failed to create room")
                 }
             }
+
+            // 3. Oda adını değiştirme
+            put("/{roomId}") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@put
+                }
+                
+                val roomId = call.parameters["roomId"]
+                if (roomId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Missing roomId")
+                    return@put
+                }
+                
+                val request = call.receiveNullable<com.yusufteker.pulse.shared.api.RenamePlanRoomRequest>()
+                if (request == null || request.name.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, "Room name cannot be empty")
+                    return@put
+                }
+                
+                val updated = dbQuery {
+                    val room = PlanRoomEntity.findById(roomId) ?: return@dbQuery false
+                    
+                    // Sadece ADMIN (veya kurucu) yetkisi olanlar değiştirebilir
+                    val memberRecord = PlanRoomMembersTable.selectAll().where {
+                        (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq userId)
+                    }.singleOrNull()
+                    
+                    val role = memberRecord?.get(PlanRoomMembersTable.role)
+                    val status = memberRecord?.get(PlanRoomMembersTable.status)
+                    
+                    if ((status != RoomMemberStatus.ACCEPTED || role != RoomMemberRole.ADMIN) && room.creator.id.value != userId) {
+                        return@dbQuery false
+                    }
+                    
+                    room.name = request.name
+                    true
+                }
+                
+                if (updated) {
+                    call.respond(HttpStatusCode.OK)
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, "Room not found or you don't have permission to edit")
+                }
+            }
+
+            // 4. Odayı silme
+            delete("/{roomId}") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@delete
+                }
+                
+                val roomId = call.parameters["roomId"]
+                if (roomId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Missing roomId")
+                    return@delete
+                }
+                
+                val deleted = dbQuery {
+                    val room = PlanRoomEntity.findById(roomId) ?: return@dbQuery false
+                    
+                    // Sadece kurucu odayı silebilir
+                    if (room.creator.id.value != userId) {
+                        return@dbQuery false
+                    }
+                    
+                    // Artık odayı sil. Database'deki CASCADE kuralları sayesinde `plan_room_members` ve `task_shared_rooms` tablosundaki kayıtlar da silinir.
+                    room.delete()
+                    true
+                }
+                
+                if (deleted) {
+                    call.respond(HttpStatusCode.OK)
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, "Room not found or you don't have permission to delete")
+                }
+            }
+
 
             // 2. Odaya birini davet etme
             post("/{roomId}/invite") {

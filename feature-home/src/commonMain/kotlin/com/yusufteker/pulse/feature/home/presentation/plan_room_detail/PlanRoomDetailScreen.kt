@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.CalendarComponent
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.TaskTimelineComponent
@@ -33,11 +37,14 @@ fun PlanRoomDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     
     LaunchedEffect(Unit) {
+        val scope = this
         viewModel.effect.collect { effect ->
             when (effect) {
                 is PlanRoomDetailEffect.NavigateBack -> onNavigateBack()
                 is PlanRoomDetailEffect.ShowToast -> {
-                    snackbarHostState.showSnackbar(effect.message)
+                    scope.launch {
+                        snackbarHostState.showSnackbar(effect.message)
+                    }
                 }
             }
         }
@@ -55,6 +62,37 @@ fun PlanRoomDetailScreen(
                 actions = {
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnInviteUserClick) }) {
                         Icon(Icons.Default.PersonAdd, contentDescription = "Kişi Davet Et")
+                    }
+                    if (state.isRoomCreator) {
+                        var showMenu by remember { mutableStateOf(false) }
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "Daha Fazla")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Odayı Düzenle") },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick)
+                                },
+                                leadingIcon = {
+                                    Icon(androidx.compose.material.icons.Icons.Default.Edit, contentDescription = null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Odayı Sil", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(PlanRoomDetailEvent.OnDeleteRoomClick)
+                                },
+                                leadingIcon = {
+                                    Icon(androidx.compose.material.icons.Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                }
+                            )
+                        }
                     }
                 }
             )
@@ -214,6 +252,50 @@ fun PlanRoomDetailScreen(
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text("Kapat")
+                    }
+                }
+            }
+        }
+    }
+    
+    if (state.isRenameDialogOpen) {
+        Dialog(onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRenameDialog) }) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Oda Adını Değiştir",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    OutlinedTextField(
+                        value = state.renameRoomName,
+                        onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomNameChange(it)) },
+                        label = { Text("Oda Adı") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRenameDialog) }) {
+                            Text("İptal")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomSubmit) },
+                            enabled = state.renameRoomName.isNotBlank() && !state.isLoading
+                        ) {
+                            Text("Kaydet")
+                        }
                     }
                 }
             }

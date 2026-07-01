@@ -5,9 +5,12 @@ import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.preferences.ThemePreferences
 import kotlinx.coroutines.flow.first
 
+import com.yusufteker.pulse.core.database.PulseDatabase
+
 class SettingsViewModel(
     private val themePreferences: ThemePreferences,
-    private val sessionPreferences: SessionPreferences
+    private val sessionPreferences: SessionPreferences,
+    private val database: PulseDatabase
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {
@@ -42,6 +45,7 @@ class SettingsViewModel(
 
             is SettingsEvent.LogoutClicked -> {
                 launch {
+                    database.pulseDatabaseQueries.clearAll()
                     sessionPreferences.clearSession()
                     setEffect(SettingsEffect.NavigateToLogin)
                 }

@@ -25,5 +25,8 @@ interface PlanRepository {
     suspend fun getMyPendingInvitations(): Result<List<PlanRoomDto>>
     suspend fun respondToInvite(roomId: String, accept: Boolean): Result<Unit>
     
+    suspend fun renameRoom(roomId: String, name: String): Result<Unit>
+    suspend fun deleteRoom(roomId: String): Result<Unit>
+    
     fun observeAllPlanRooms(): Flow<List<PlanRoomDto>>
 }

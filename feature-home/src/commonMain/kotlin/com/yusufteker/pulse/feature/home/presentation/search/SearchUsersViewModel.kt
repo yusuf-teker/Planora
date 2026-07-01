@@ -5,7 +5,10 @@ import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 
+import com.yusufteker.pulse.core.preferences.SessionPreferences
+
 class SearchUsersViewModel(
+    private val sessionPreferences: SessionPreferences,
     private val profileRepository: ProfileRepository
 ) : BaseViewModel<SearchUsersState, SearchUsersEvent, SearchUsersEffect>(
     initialState = SearchUsersState()
@@ -67,15 +70,27 @@ class SearchUsersViewModel(
         setState { copy(results = updatedUsers) }
 
         launch {
+            // Optimistic global update
+            sessionPreferences.updateFollowCounts(
+                followersDelta = 0,
+                followingDelta = if (wasFollowed) -1 else 1
+            )
+            
             val result = profileRepository.toggleFollow(userId)
             result.onFailure {
-                // Revert on failure
+                // Revert on failure locally
                 val revertedUsers = state.value.results.toMutableList()
                 val idx = revertedUsers.indexOfFirst { it.id == userId }
                 if (idx != -1) {
                     revertedUsers[idx] = user // original state
                     setState { copy(results = revertedUsers) }
                 }
+                
+                // Revert globally
+                sessionPreferences.updateFollowCounts(
+                    followersDelta = 0,
+                    followingDelta = if (wasFollowed) 1 else -1
+                )
             }
         }
     }

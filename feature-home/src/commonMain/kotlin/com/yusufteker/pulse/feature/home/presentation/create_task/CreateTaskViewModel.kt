@@ -15,12 +15,14 @@ import pulse.core.generated.resources.error_task_create_failed
 import pulse.core.generated.resources.error_task_end_time_before_start
 import pulse.core.generated.resources.error_task_room_required
 import pulse.core.generated.resources.error_task_title_empty
+import pulse.core.generated.resources.error_task_time_empty
 import pulse.core.generated.resources.task_created_success
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import kotlinx.datetime.plus
 
 class CreateTaskViewModel(
@@ -92,7 +94,12 @@ class CreateTaskViewModel(
                 setEffect(CreateTaskEffect.NavigateBack)
             }
             CreateTaskEvent.Submit -> submitTask()
+            is CreateTaskEvent.OnClearState -> clearState()
         }
+    }
+
+    private fun clearState() {
+        setState { CreateTaskState(availableRooms = this.availableRooms) }
     }
 
     private fun submitTask() {
@@ -104,8 +111,11 @@ class CreateTaskViewModel(
                 return@launch
             }
             
-            val startTime = currentState.startTime ?: getCurrentTimeMs()
-            
+            if (currentState.startTime == null) {
+                snackbarManager.showMessage(getString(Res.string.error_task_time_empty), SnackbarType.ERROR)
+                return@launch
+            }
+            val startTime = currentState.startTime
             if (currentState.visibility == TaskVisibility.ROOM_SHARED && currentState.selectedRoomIds.isEmpty()) {
                 snackbarManager.showMessage(getString(Res.string.error_task_room_required), SnackbarType.ERROR)
                 return@launch

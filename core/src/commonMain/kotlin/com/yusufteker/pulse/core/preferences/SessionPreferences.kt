@@ -24,6 +24,9 @@ class SessionPreferences(
     private val userNameKey = stringPreferencesKey("user_name")
     private val userAvatarKey = stringPreferencesKey("user_avatar")
     private val userIdKey = stringPreferencesKey("user_id")
+    private val followersCountKey = androidx.datastore.preferences.core.intPreferencesKey("followers_count")
+    private val followingCountKey = androidx.datastore.preferences.core.intPreferencesKey("following_count")
+    private val appRunKey = androidx.datastore.preferences.core.booleanPreferencesKey("has_run_before")
 
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
@@ -42,6 +45,12 @@ class SessionPreferences(
         
     val userIdFlow: kotlinx.coroutines.flow.Flow<String?> =
         dataStore.data.map { it[userIdKey] }.distinctUntilChanged()
+        
+    val followersCountFlow: kotlinx.coroutines.flow.Flow<Int> =
+        dataStore.data.map { it[followersCountKey] ?: 0 }.distinctUntilChanged()
+        
+    val followingCountFlow: kotlinx.coroutines.flow.Flow<Int> =
+        dataStore.data.map { it[followingCountKey] ?: 0 }.distinctUntilChanged()
 
     suspend fun getUserName(): String? {
         return dataStore.data.map { it[userNameKey] }.first()
@@ -59,16 +68,29 @@ class SessionPreferences(
         return getUserId() ?: "guest"
     }
 
+    suspend fun isFirstRun(): Boolean {
+        val hasRun = dataStore.data.map { it[appRunKey] }.first()
+        return hasRun != true
+    }
+
+    suspend fun markAppAsRun() {
+        dataStore.edit { prefs ->
+            prefs[appRunKey] = true
+        }
+    }
+
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
         secureSettings.settings.putString(accessTokenKeyString, accessToken)
         secureSettings.settings.putString(refreshTokenKeyString, refreshToken)
     }
 
-    suspend fun saveUserProfile(userId: String, name: String, avatarId: String) {
+    suspend fun saveUserProfile(userId: String, name: String, avatarId: String, followersCount: Int = 0, followingCount: Int = 0) {
         dataStore.edit { prefs ->
             prefs[userIdKey] = userId
             prefs[userNameKey] = name
             prefs[userAvatarKey] = avatarId
+            prefs[followersCountKey] = followersCount
+            prefs[followingCountKey] = followingCount
         }
     }
 
@@ -89,6 +111,17 @@ class SessionPreferences(
             prefs.remove(userIdKey)
             prefs.remove(userNameKey)
             prefs.remove(userAvatarKey)
+            prefs.remove(followersCountKey)
+            prefs.remove(followingCountKey)
+        }
+    }
+    
+    suspend fun updateFollowCounts(followersDelta: Int, followingDelta: Int) {
+        dataStore.edit { prefs ->
+            val currentFollowers = prefs[followersCountKey] ?: 0
+            val currentFollowing = prefs[followingCountKey] ?: 0
+            prefs[followersCountKey] = currentFollowers + followersDelta
+            prefs[followingCountKey] = currentFollowing + followingDelta
         }
     }
 }

@@ -152,6 +152,12 @@ SELECT * FROM planRoomEntity;
 deleteAllPlanRooms:
 DELETE FROM planRoomEntity;
 
+updatePlanRoomName:
+UPDATE planRoomEntity SET name = :name WHERE id = :id;
+
+deletePlanRoom:
+DELETE FROM planRoomEntity WHERE id = :id;
+
 -- PlanRoomMember Sorguları
 insertPlanRoomMember:
 INSERT OR REPLACE INTO planRoomMemberEntity(roomId, userId, status, role, joinedAt)
@@ -160,8 +166,23 @@ VALUES (?, ?, ?, ?, ?);
 getMembersForRoom:
 SELECT * FROM planRoomMemberEntity WHERE roomId = :roomId;
 
+clearAll:
+DELETE FROM postEntity;
+DELETE FROM remoteKeyEntity;
+DELETE FROM pendingPostEntity;
+DELETE FROM planRoomEntity;
+DELETE FROM planRoomMemberEntity;
+DELETE FROM taskEntity;
+DELETE FROM taskSharedRoomEntity;
+
 deleteAllPlanRoomMembers:
 DELETE FROM planRoomMemberEntity;
+
+deleteMembersForRoom:
+DELETE FROM planRoomMemberEntity WHERE roomId = :roomId;
+
+deleteTaskSharedRoomsForRoom:
+DELETE FROM taskSharedRoomEntity WHERE roomId = :roomId;
 
 -- Task Sorguları
 insertTask:

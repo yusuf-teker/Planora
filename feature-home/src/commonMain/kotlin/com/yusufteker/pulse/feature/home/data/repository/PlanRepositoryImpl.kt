@@ -236,6 +236,30 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun renameRoom(roomId: String, name: String): Result<Unit> {
+        return try {
+            planApi.renameRoom(roomId, com.yusufteker.pulse.shared.api.RenamePlanRoomRequest(name))
+            database.pulseDatabaseQueries.updatePlanRoomName(name, roomId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteRoom(roomId: String): Result<Unit> {
+        return try {
+            planApi.deleteRoom(roomId)
+            database.pulseDatabaseQueries.transaction {
+                database.pulseDatabaseQueries.deleteTaskSharedRoomsForRoom(roomId)
+                database.pulseDatabaseQueries.deleteMembersForRoom(roomId)
+                database.pulseDatabaseQueries.deletePlanRoom(roomId)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun observeAllPlanRooms(): Flow<List<PlanRoomDto>> {
         return database.pulseDatabaseQueries.getAllPlanRooms()
             .asFlow()

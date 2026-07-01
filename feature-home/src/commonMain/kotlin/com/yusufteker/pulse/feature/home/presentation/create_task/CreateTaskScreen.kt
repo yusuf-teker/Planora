@@ -43,8 +43,10 @@ fun CreateTaskScreen(
     
     val startDatePickerState = rememberDatePickerState(initialSelectedDateMillis = state.startTime)
     val endDatePickerState = rememberDatePickerState(initialSelectedDateMillis = state.endTime)
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        viewModel.onEvent(CreateTaskEvent.OnClearState)
         viewModel.effect.collect { effect ->
             when (effect) {
                 is CreateTaskEffect.NavigateBack -> onNavigateBack()

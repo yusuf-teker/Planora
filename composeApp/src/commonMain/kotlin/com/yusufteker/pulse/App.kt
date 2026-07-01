@@ -59,8 +59,21 @@ fun App() {
             }
         }
 
+        val sessionPreferences = koinInject<com.yusufteker.pulse.core.preferences.SessionPreferences>()
+        val userId by sessionPreferences.userIdFlow.collectAsState(null)
+        val vmKey = userId ?: "guest"
+
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
         val navigator = remember { Navigator(backStack) }
+
+        androidx.compose.runtime.LaunchedEffect(navigator.backStack.lastOrNull()) {
+            val currentScreen = navigator.backStack.lastOrNull()
+            if (currentScreen != null) {
+                // Get the simple class name
+                var screenName = currentScreen::class.simpleName ?: "UnknownScreen"
+                println("SCREEN: $screenName açıldı")
+            }
+        }
 
         CompositionLocalProvider(LocalNavigator provides navigator) {
             androidx.compose.material3.Scaffold(
@@ -108,7 +121,7 @@ fun App() {
                     }
 
                     entry<Screen.PendingPosts> {
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel>()
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel>(key = vmKey)
                         com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
@@ -117,7 +130,7 @@ fun App() {
                     }
 
                     entry<Screen.SearchUsers> {
-                        val viewModel = koinViewModel<SearchUsersViewModel>()
+                        val viewModel = koinViewModel<SearchUsersViewModel>(key = vmKey)
                         SearchUsersScreen(viewModel)
                     }
 
@@ -133,7 +146,9 @@ fun App() {
                     }
                     
                     entry<Screen.PlanRoomDetail> { screen ->
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel>()
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel>(
+                            key = "${vmKey}_${screen.roomId}"
+                        )
                         
                         // Set the room ID using a side effect when this composition starts
                         androidx.compose.runtime.LaunchedEffect(screen.roomId) {
@@ -147,7 +162,7 @@ fun App() {
                     }
                     
                     entry<Screen.CreatePlanTask> {
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskViewModel>()
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskViewModel>(key = vmKey)
                         com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() }

@@ -31,7 +31,8 @@ class AuthRepositoryImpl(
                 setBody(request) // request objesini otomatik JSON'a çevirir (ContentNegotiation eklentisi sayesinde)
             }.body()
 
-            // Giriş başarılıysa token'ları güvenli depoya kaydet.
+            // Giriş başarılıysa önce eski veritabanını temizle, sonra token'ları güvenli depoya kaydet.
+            pulseDatabase.pulseDatabaseQueries.clearAll()
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
@@ -48,7 +49,7 @@ class AuthRepositoryImpl(
             val response: AuthResponse = httpClient.post("auth/register") {
                 setBody(request)
             }.body()
-            
+            pulseDatabase.pulseDatabaseQueries.clearAll()
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
             Result.success(response)
@@ -64,6 +65,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() {
+        pulseDatabase.pulseDatabaseQueries.clearAll()
         sessionPreferences.clearSession()
     }
 
@@ -84,7 +86,7 @@ class AuthRepositoryImpl(
     override suspend fun fetchMyProfile(): Result<Unit> {
         return try {
             val profile = httpClient.get("auth/me").body<com.yusufteker.pulse.shared.api.UserProfileResponse>()
-            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId)
+            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.followersCount, profile.followingCount)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

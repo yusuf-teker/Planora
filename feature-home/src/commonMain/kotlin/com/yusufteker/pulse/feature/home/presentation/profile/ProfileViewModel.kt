@@ -21,24 +21,38 @@ class ProfileViewModel(
             combine(
                 sessionPreferences.userIdFlow,
                 sessionPreferences.userNameFlow,
-                sessionPreferences.userAvatarFlow
-            ) { userId, name, avatarId -> Triple(userId, name, avatarId) }
-            .collect { (userId, name, avatarId) ->
-                val isLoggedIn = userId != null
+                sessionPreferences.userAvatarFlow,
+                sessionPreferences.followersCountFlow,
+                sessionPreferences.followingCountFlow
+            ) { userId, name, avatarId, followers, following -> 
+                ProfileData(userId, name, avatarId, followers, following) 
+            }
+            .collect { data ->
+                val isLoggedIn = data.userId != null
                 setState { copy(isLoggedIn = isLoggedIn) }
-                Napier.d(tag = "Screen", message = { "DataStore Flow geldi → isim='$name', avatar='$avatarId', isLoggedIn=$isLoggedIn" })
+                Napier.d(tag = "Screen", message = { "DataStore Flow geldi → isim='${data.name}', avatar='${data.avatarId}', isLoggedIn=$isLoggedIn" })
                 // Only update from datastore if it's my profile and hasn't been loaded from network yet
                 if (state.value.isMyProfile && state.value.profileId == null) {
                     setState {
                         copy(
-                            name = name ?: "Misafir",
-                            avatarId = avatarId ?: "avatar_1"
+                            name = data.name ?: "Misafir",
+                            avatarId = data.avatarId ?: "avatar_1",
+                            followersCount = data.followersCount,
+                            followingCount = data.followingCount
                         )
                     }
                 }
             }
         }
     }
+    
+    private data class ProfileData(
+        val userId: String?,
+        val name: String?,
+        val avatarId: String?,
+        val followersCount: Int,
+        val followingCount: Int
+    )
 
     override fun onEvent(event: ProfileEvent) {
         when (event) {
@@ -107,6 +121,17 @@ class ProfileViewModel(
                     
                     val result = profileRepository.getProfile(targetId)
                     result.onSuccess { profile ->
+                        if (isMyProfile) {
+                            launch {
+                                sessionPreferences.saveUserProfile(
+                                    userId = profile.id.toString(),
+                                    name = profile.name,
+                                    avatarId = profile.avatarId,
+                                    followersCount = profile.followersCount,
+                                    followingCount = profile.followingCount
+                                )
+                            }
+                        }
                         setState {
                             copy(
                                 name = profile.name,
@@ -154,6 +179,12 @@ class ProfileViewModel(
         }
 
         launch {
+            // Update the current user's following count in DataStore (global real-time)
+            sessionPreferences.updateFollowCounts(
+                followersDelta = 0,
+                followingDelta = if (wasFollowed) -1 else 1
+            )
+            
             val result = profileRepository.toggleFollow(currentProfileId)
             result.onFailure {
                 // Revert on failure
@@ -163,6 +194,10 @@ class ProfileViewModel(
                         followersCount = currentFollowers
                     ) 
                 }
+                sessionPreferences.updateFollowCounts(
+                    followersDelta = 0,
+                    followingDelta = if (wasFollowed) 1 else -1 // Revert global state
+                )
             }
         }
     }

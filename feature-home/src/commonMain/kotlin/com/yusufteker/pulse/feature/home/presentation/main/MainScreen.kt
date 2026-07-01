@@ -41,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
@@ -104,7 +106,16 @@ fun MainScreen() {
 
     val currentDestination = backStack.lastOrNull() ?: MainDestination.Home
 
+    androidx.compose.runtime.LaunchedEffect(currentDestination) {
+        val screenName = currentDestination::class.simpleName ?: "UnknownScreen"
+        println("SCREEN: $screenName açıldı")
+    }
+
     val isDark = LocalIsDarkTheme.current
+    
+    val sessionPreferences = org.koin.compose.koinInject<com.yusufteker.pulse.core.preferences.SessionPreferences>()
+    val userId by sessionPreferences.userIdFlow.collectAsState(null)
+    val vmKey = userId ?: "guest"
 
     val navigateToTab: (MainDestination) -> Unit = { destination ->
         if (currentDestination != destination) {
@@ -250,22 +261,22 @@ fun MainScreen() {
                 modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
                 entryProvider = entryProvider {
                     entry<MainDestination.Home> {
-                        val viewModel = koinViewModel<HomeViewModel>()
+                        val viewModel = koinViewModel<HomeViewModel>(key = vmKey)
                         HomeScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.Social> {
-                        val viewModel = koinViewModel<SocialViewModel>()
+                        val viewModel = koinViewModel<SocialViewModel>(key = vmKey)
                         SocialScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.Profile> {
-                        val viewModel = koinViewModel<ProfileViewModel>()
+                        val viewModel = koinViewModel<ProfileViewModel>(key = vmKey)
                         ProfileScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.PlanRooms> {
-                        val viewModel = koinViewModel<PlanRoomsViewModel>()
+                        val viewModel = koinViewModel<PlanRoomsViewModel>(key = vmKey)
                         val state = viewModel.state.collectAsStateWithLifecycle().value
                         val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
                         PlanRoomsScreen(
@@ -283,7 +294,7 @@ fun MainScreen() {
                     }
 
                     entry<MainDestination.Settings> {
-                        val viewModel = koinViewModel<SettingsViewModel>()
+                        val viewModel = koinViewModel<SettingsViewModel>(key = vmKey)
                         SettingsScreen(viewModel = viewModel)
                     }
                 }

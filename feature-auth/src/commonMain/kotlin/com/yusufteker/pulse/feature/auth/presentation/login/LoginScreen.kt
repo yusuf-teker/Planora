@@ -54,7 +54,6 @@ fun LoginScreen(
 
     // Ekran her açıldığında (logout sonrası dahil) formu temizle
     LaunchedEffect(Unit) {
-        io.github.aakira.napier.Napier.d(tag = "Screen", message = { ">>> LoginScreen açıldı" })
         viewModel.onEvent(LoginEvent.ClearForm)
     }
 

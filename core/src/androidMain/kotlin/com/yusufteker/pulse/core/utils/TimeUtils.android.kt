@@ -1,4 +1,4 @@
-package com.yusufteker.pulse.feature.home.presentation.create_task
+package com.yusufteker.pulse.core.utils
 
 actual fun getCurrentTimeMs(): Long {
     return System.currentTimeMillis()

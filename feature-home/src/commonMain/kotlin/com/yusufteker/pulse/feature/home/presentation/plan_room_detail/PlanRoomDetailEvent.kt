@@ -15,4 +15,11 @@ sealed interface PlanRoomDetailEvent {
     object OnPreviousMonth : PlanRoomDetailEvent
     object OnNextMonth : PlanRoomDetailEvent
     data class OnViewModeChange(val mode: PlanRoomViewMode) : PlanRoomDetailEvent
+    
+    // Rename & Delete Room Events
+    object OnEditRoomClick : PlanRoomDetailEvent
+    object OnDismissRenameDialog : PlanRoomDetailEvent
+    data class OnRenameRoomNameChange(val name: String) : PlanRoomDetailEvent
+    object OnRenameRoomSubmit : PlanRoomDetailEvent
+    object OnDeleteRoomClick : PlanRoomDetailEvent
 }

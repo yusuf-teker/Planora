@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.sp
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import kotlinx.datetime.*
+import org.jetbrains.compose.resources.stringResource
+import pulse.core.generated.resources.Res
+import pulse.core.generated.resources.*
 
 @Composable
 fun CalendarComponent(
@@ -67,7 +70,15 @@ fun CalendarComponent(
         Spacer(modifier = Modifier.height(16.dp))
         
         // Days of week
-        val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        val daysOfWeek = listOf(
+            stringResource(Res.string.day_mon),
+            stringResource(Res.string.day_tue),
+            stringResource(Res.string.day_wed),
+            stringResource(Res.string.day_thu),
+            stringResource(Res.string.day_fri),
+            stringResource(Res.string.day_sat),
+            stringResource(Res.string.day_sun)
+        )
         Row(modifier = Modifier.fillMaxWidth()) {
             daysOfWeek.forEach { day ->
                 Text(
@@ -94,7 +105,7 @@ fun CalendarComponent(
             items(days) { date ->
                 if (date != null) {
                     val isSelected = date == selectedDate
-                    val isToday = date == kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.pulse.feature.home.presentation.create_task.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val isToday = date == kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.pulse.core.utils.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
                     
                     // Find tasks for this day
                     val dayTasks = tasks.filter { task ->

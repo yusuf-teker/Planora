@@ -18,12 +18,16 @@ data class PlanRoomDetailState(
     val isLoading: Boolean = false,
     val error: String? = null,
     
-    // Invite Dialog State
     val isInviteDialogOpen: Boolean = false,
     val followingUsers: List<UserProfileResponse> = emptyList(),
     val isFollowingLoading: Boolean = false,
     val searchQuery: String = "",
     val inviteError: String? = null,
+    
+    // Rename Dialog State
+    val isRenameDialogOpen: Boolean = false,
+    val renameRoomName: String = "",
+    val isRoomCreator: Boolean = false,
     
     // Calendar & Tasks State
     val viewMode: PlanRoomViewMode = PlanRoomViewMode.CALENDAR,
@@ -34,7 +38,7 @@ data class PlanRoomDetailState(
 )
 
 private fun getTodayDate(): LocalDate {
-    val millis = com.yusufteker.pulse.feature.home.presentation.create_task.getCurrentTimeMs()
+    val millis = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
     return kotlinx.datetime.Instant.fromEpochMilliseconds(millis)
         .toLocalDateTime(TimeZone.currentSystemDefault()).date
 }
