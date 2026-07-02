@@ -28,9 +28,10 @@ class HomeViewModel(
             
         // Trigger a background fetch
         launch {
-            // we should fetch today's tasks
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-            planRepository.fetchMyTasks(fromTime = now, toTime = now + 86400000L * 7) // Next 7 days
+            // Fetch from 30 days ago to 30 days in the future to ensure we don't miss recent tasks
+            val thirtyDays = 86400000L * 30
+            planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
         }
     }
 
@@ -48,7 +49,8 @@ class HomeViewModel(
                 setState { copy(isLoading = true) }
                 launch {
                     val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-                    planRepository.fetchMyTasks(fromTime = now, toTime = now + 86400000L * 7)
+                    val thirtyDays = 86400000L * 30
+                    planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
                     setState { copy(isLoading = false) }
                 }
             }

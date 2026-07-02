@@ -147,12 +147,11 @@ fun PlanRoomsScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (state.rooms.isEmpty() && !state.isLoading) {
-                Text(
-                    text = "Henüz bir plan odasında değilsiniz.\nYeni bir oda kurun veya davetleri kontrol edin.",
-                    modifier = Modifier.align(Alignment.Center).padding(16.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent(
+                    icon = androidx.compose.material.icons.Icons.Default.DateRange,
+                    title = "Plan Odası Yok",
+                    description = "Henüz bir plan odasında değilsiniz.\nYeni bir oda kurun veya davetleri kontrol edin.",
+                    modifier = Modifier.align(Alignment.Center)
                 )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {

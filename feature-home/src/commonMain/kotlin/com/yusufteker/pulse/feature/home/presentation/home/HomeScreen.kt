@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent
 import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.utils.formatDayName
@@ -224,30 +225,12 @@ fun HomeScreen(
         }
 
         if (state.upcomingTasks.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Henüz görevin yok",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Text(
-                        text = "Aşağıdan AI'a bir şey söyle!",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                }
-            }
+            EmptyStateComponent(
+                icon = Icons.Default.CalendarToday,
+                title = "Henüz görevin yok",
+                description = "Aşağıdan AI'a bir şey söyle!",
+                modifier = Modifier.weight(1f)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),

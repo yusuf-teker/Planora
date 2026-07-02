@@ -223,25 +223,12 @@ fun PlanRoomDetailScreen(
                     )
                     
                     if (state.roomTasks.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Henüz bir görev veya etkinlik yok",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
+                        com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent(
+                            icon = androidx.compose.material.icons.Icons.Default.DateRange,
+                            title = "Henüz bir görev veya etkinlik yok",
+                            description = "Bu odada henüz paylaşılan bir plan bulunmuyor.",
+                            modifier = Modifier.weight(1f)
+                        )
                     } else {
                         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                             FeedTimelineComponent(
