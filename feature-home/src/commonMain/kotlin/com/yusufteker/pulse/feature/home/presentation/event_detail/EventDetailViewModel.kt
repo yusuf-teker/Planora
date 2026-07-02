@@ -186,7 +186,7 @@ class EventDetailViewModel(
                 endTime = currentState.endDateTimeMs,
                 type = TaskType.EVENT,
                 status = TaskStatus.PENDING,
-                visibility = TaskVisibility.PRIVATE,
+                visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
                 sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
                 isRecurring = currentState.isRecurring || currentState.selectedDaysOfWeek.isNotEmpty(),
                 recurrenceRule = recurrenceRule,

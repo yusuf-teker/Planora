@@ -179,7 +179,7 @@ class TaskEditorViewModel(
                 endTime = null,
                 type = TaskType.TASK,
                 status = TaskStatus.PENDING,
-                visibility = TaskVisibility.PRIVATE, // Offline-first initial private state
+                visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
                 sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
                 isRecurring = currentState.isRecurring || currentState.selectedRepeatDays.isNotEmpty(),
                 recurrenceRule = recurrenceStr,

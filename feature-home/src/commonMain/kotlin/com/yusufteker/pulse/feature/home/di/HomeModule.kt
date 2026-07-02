@@ -54,7 +54,7 @@ val homeModule = module {
     
     // Plan Room & Task
     single { PlanApi(get()) }
-    single<PlanRepository> { PlanRepositoryImpl(get(), get()) }
+    single<PlanRepository> { PlanRepositoryImpl(get(), get(), get()) }
     
     viewModelOf(::HomeViewModel)
     viewModelOf(::SocialViewModel)

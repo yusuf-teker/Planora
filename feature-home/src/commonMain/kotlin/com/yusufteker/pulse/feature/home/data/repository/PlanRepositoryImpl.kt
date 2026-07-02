@@ -3,6 +3,7 @@ package com.yusufteker.pulse.feature.home.data.repository
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.utils.generateUUID
 import com.yusufteker.pulse.feature.home.data.api.PlanApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.shared.api.CreatePlanRoomRequest
@@ -13,25 +14,24 @@ import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
-    private val database: PulseDatabase
+    private val database: PulseDatabase,
+    private val scope: CoroutineScope
 ) : PlanRepository {
 
-    @OptIn(DelicateCoroutinesApi::class)
     override suspend fun createTask(request: CreateTaskRequest): Result<TaskDto> {
         return try {
-            val localId = com.yusufteker.pulse.core.utils.generateUUID()
+            val localId = generateUUID()
             
             // Çevrimdışı çalışabilmesi için önce geçici ID ile yerel veritabanına kaydet
             val localDto = TaskDto(
@@ -93,7 +93,7 @@ class PlanRepositoryImpl(
             }
 
             // Arka planda sunucuya kaydetmeyi dene
-            GlobalScope.launch(Dispatchers.IO) {
+            scope.launch(Dispatchers.IO) {
                 try {
                     val remoteTask = planApi.createTask(request)
                     database.pulseDatabaseQueries.transaction {
@@ -178,7 +178,7 @@ class PlanRepositoryImpl(
             }
 
             // Arka planda sunucuya kaydetmeyi dene
-            kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+            scope.launch(Dispatchers.IO) {
                 try {
                     planApi.updateTask(taskId, request)
                     database.pulseDatabaseQueries.transaction {
@@ -226,7 +226,7 @@ class PlanRepositoryImpl(
                 database.pulseDatabaseQueries.deleteTaskById(taskId)
             }
 
-            kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+            scope.launch(Dispatchers.IO) {
                 try {
                     planApi.deleteTask(taskId)
                 } catch (e: Exception) {

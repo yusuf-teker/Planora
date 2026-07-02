@@ -9,6 +9,9 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 import com.yusufteker.pulse.core.analytics.AnalyticsManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * Koin module for core dependencies.
@@ -36,6 +39,9 @@ val coreModule = module {
     // FCM Api
     single { com.yusufteker.pulse.core.data.api.FcmApi(get()) }
     single { com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase(get()) }
+
+    // Global Application Scope
+    single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
     // Analytics
     singleOf(::AnalyticsManager)

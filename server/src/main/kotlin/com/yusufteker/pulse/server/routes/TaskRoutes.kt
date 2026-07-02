@@ -40,11 +40,95 @@ fun Route.taskRoutes() {
         route("/tasks") {
             // 1. Task/Not oluşturma
             post {
-                // TODO: Rewrite Create Flow
-                // The user requested deleting this logic so we can design a clean Offline-First
-                // architecture with proper Task, Note, and Event visibility handling.
-                call.respond(HttpStatusCode.NotImplemented, "Create flow is being rewritten")
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@post
+                }
+                val request = call.receiveNullable<CreateTaskRequest>()
+                if (request == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid request body")
+                    return@post
+                }
+
+                var newTaskDto: TaskDto? = null
+                dbQuery {
+                    val newTaskId = UUID.randomUUID().toString()
+                    TaskEntity.new(newTaskId) {
+                        this.creator = UserEntity[userId]
+                        this.title = request.title
+                        this.description = request.description
+                        this.startTime = request.startTime
+                        this.endTime = request.endTime
+                        this.type = request.type
+                        this.status = request.status
+                        this.visibility = request.visibility
+                        this.isRecurring = request.isRecurring
+                        this.recurrenceRule = request.recurrenceRule
+                        this.isFlexible = request.isFlexible
+                        this.isOptional = request.isOptional
+                        this.isPostponable = request.isPostponable
+                        this.isAllDay = request.isAllDay
+                        this.aiMetadata = request.aiMetadata?.let { Json.encodeToString(it) }
+                        this.reminders = if (request.reminders.isNotEmpty()) Json.encodeToString(request.reminders) else null
+                        this.specificDetails = request.specificDetails?.let { Json.encodeToString(it) }
+                        this.tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null
+                        this.color = request.color
+                        this.parentId = request.parentId
+                    }
+
+                    // Insert shared rooms
+                    request.sharedRoomIds.forEach { roomIdToInsert ->
+                        TaskSharedRoomsTable.insert {
+                            it[taskId] = newTaskId
+                            it[roomId] = roomIdToInsert
+                        }
+                    }
+
+                    // Insert participants
+                    request.participants.keys.forEach { pId ->
+                        TaskParticipantsTable.insert {
+                            it[taskId] = newTaskId
+                            it[TaskParticipantsTable.userId] = pId
+                            it[status] = "PENDING"
+                        }
+                    }
+
+                    newTaskDto = TaskDto(
+                        id = newTaskId,
+                        creatorId = userId,
+                        title = request.title,
+                        description = request.description,
+                        startTime = request.startTime,
+                        endTime = request.endTime,
+                        type = request.type,
+                        status = request.status,
+                        visibility = request.visibility,
+                        sharedRoomIds = request.sharedRoomIds,
+                        isRecurring = request.isRecurring,
+                        recurrenceRule = request.recurrenceRule,
+                        isFlexible = request.isFlexible,
+                        isOptional = request.isOptional,
+                        isPostponable = request.isPostponable,
+                        isAllDay = request.isAllDay,
+                        aiMetadata = request.aiMetadata,
+                        reminders = request.reminders,
+                        specificDetails = request.specificDetails,
+                        tags = request.tags,
+                        color = request.color,
+                        parentId = request.parentId,
+                        participants = request.participants
+                    )
+                }
+
+                if (newTaskDto != null) {
+                    call.respond(HttpStatusCode.Created, newTaskDto!!)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError)
+                }
             }
+
 
             // Update Task
             put("/{id}") {
