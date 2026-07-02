@@ -31,7 +31,9 @@ data class EventDetailState(
     // Dialog states
     val isStartPickerOpen: Boolean = false,
     val isEndPickerOpen: Boolean = false,
-    val isRepeatPickerOpen: Boolean = false
+    val isRepeatPickerOpen: Boolean = false,
+    val isParticipantPickerVisible: Boolean = false,
+    val roomMembers: List<com.yusufteker.pulse.shared.api.UserProfileResponse> = emptyList()
 )
 
 

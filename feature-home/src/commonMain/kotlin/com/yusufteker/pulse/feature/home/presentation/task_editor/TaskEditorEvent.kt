@@ -18,4 +18,6 @@ sealed interface TaskEditorEvent : UiEvent {
     data class OnIsOptionalChanged(val isOptional: Boolean) : TaskEditorEvent
     data class OnReminderPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data class OnReminderToggled(val minutes: Int) : TaskEditorEvent
+    data class OnParticipantPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
+    data class OnParticipantToggled(val userId: Int) : TaskEditorEvent
 }

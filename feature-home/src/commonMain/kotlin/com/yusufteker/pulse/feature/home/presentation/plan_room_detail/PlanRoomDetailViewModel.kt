@@ -2,6 +2,7 @@ package com.yusufteker.pulse.feature.home.presentation.plan_room_detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.pulse.shared.api.InviteUserRequest
@@ -20,36 +21,33 @@ class PlanRoomDetailViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
     private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
-) : ViewModel() {
+) : BaseViewModel<PlanRoomDetailState, PlanRoomDetailEvent, PlanRoomDetailEffect>(
+    initialState = PlanRoomDetailState()
+) {
 
-    private val _state = MutableStateFlow(PlanRoomDetailState())
-    val state = _state.asStateFlow()
-
-    private val _effect = MutableSharedFlow<PlanRoomDetailEffect>()
-    val effect = _effect.asSharedFlow()
-    
     private var allFollowingUsers = emptyList<UserProfileResponse>()
 
-    fun onEvent(event: PlanRoomDetailEvent) {
+    override fun onEvent(event: PlanRoomDetailEvent) {
         when (event) {
             is PlanRoomDetailEvent.LoadRoom -> loadRoom(event.roomId)
             PlanRoomDetailEvent.OnBackClick -> setEffect(PlanRoomDetailEffect.NavigateBack)
             PlanRoomDetailEvent.OnInviteUserClick -> openInviteDialog()
-            PlanRoomDetailEvent.OnDismissInviteDialog -> _state.update { it.copy(isInviteDialogOpen = false) }
+            PlanRoomDetailEvent.OnDismissInviteDialog -> setState { copy(isInviteDialogOpen = false) }
+            PlanRoomDetailEvent.OnCreateTaskClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateTask(currentState.roomId))
+            PlanRoomDetailEvent.OnCreateEventClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateEvent(currentState.roomId))
             is PlanRoomDetailEvent.OnSearchQueryChange -> updateSearchQuery(event.query)
             is PlanRoomDetailEvent.OnUserSelectToInvite -> inviteUser(event.userId)
             
-            PlanRoomDetailEvent.OnRefreshClick -> loadRoom(_state.value.roomId)
-            
+            // Refresh is automatic
             // Rename & Delete Events
             PlanRoomDetailEvent.OnEditRoomClick -> {
-                _state.update { it.copy(isRenameDialogOpen = true, renameRoomName = it.roomName) }
+                setState { copy(isRenameDialogOpen = true, renameRoomName = roomName) }
             }
             PlanRoomDetailEvent.OnDismissRenameDialog -> {
-                _state.update { it.copy(isRenameDialogOpen = false) }
+                setState { copy(isRenameDialogOpen = false) }
             }
             is PlanRoomDetailEvent.OnRenameRoomNameChange -> {
-                _state.update { it.copy(renameRoomName = event.name) }
+                setState { copy(renameRoomName = event.name) }
             }
             PlanRoomDetailEvent.OnRenameRoomSubmit -> renameRoom()
             PlanRoomDetailEvent.OnDeleteRoomClick -> deleteRoom()
@@ -57,7 +55,7 @@ class PlanRoomDetailViewModel(
     }
     
     private fun loadRoom(roomId: String) {
-        _state.update { it.copy(roomId = roomId, isLoading = true) }
+        setState { copy(roomId = roomId, isLoading = true) }
         
         // 1. Observe all rooms to get this room's details (name, members)
         viewModelScope.launch {
@@ -65,10 +63,10 @@ class PlanRoomDetailViewModel(
                 val room = rooms.find { it.id == roomId }
                 if (room != null) {
                     val isCreator = room.creatorId.toString() == sessionPreferences.getUserId()
-                    _state.update { it.copy(roomName = room.name, isRoomCreator = isCreator, isLoading = false) }
+                    setState { copy(roomName = room.name, isRoomCreator = isCreator, isLoading = false) }
                     
                     // Fetch missing profiles for members
-                    val currentProfiles = _state.value.memberProfiles.toMutableMap()
+                    val currentProfiles = currentState.memberProfiles.toMutableMap()
                     var profilesUpdated = false
                     
                     room.members.forEach { member ->
@@ -83,30 +81,40 @@ class PlanRoomDetailViewModel(
                     }
                     
                     if (profilesUpdated) {
-                        _state.update { it.copy(memberProfiles = currentProfiles.toMap()) }
+                        setState { copy(memberProfiles = currentProfiles.toMap()) }
                     }
                 } else {
-                    _state.update { it.copy(isLoading = false) }
+                    setState { copy(isLoading = false) }
                 }
             }
+        }
+        // 2. Observe tasks
+        viewModelScope.launch {
+            planRepository.observeAllTasks().collect { tasks ->
+                val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) }
+                setState { copy(roomTasks = roomTasks) }
+            }
+        }
+        
+        // 3. Fetch from network
+        viewModelScope.launch {
+            planRepository.fetchRoomTasks(roomId)
         }
     }
     
     private fun openInviteDialog() {
-        _state.update { it.copy(isInviteDialogOpen = true, isFollowingLoading = true, inviteError = null) }
+        setState { copy(isInviteDialogOpen = true, isFollowingLoading = true, inviteError = null) }
         viewModelScope.launch {
             val result = profileRepository.getFollowingUsers()
             result.onSuccess { users ->
                 allFollowingUsers = users
-                _state.update { 
-                    it.copy(
+                setState { copy(
                         isFollowingLoading = false,
-                        followingUsers = filterUsers(it.searchQuery)
+                        followingUsers = filterUsers(searchQuery)
                     ) 
                 }
             }.onFailure { e ->
-                _state.update { 
-                    it.copy(
+                setState { copy(
                         isFollowingLoading = false,
                         inviteError = e.message ?: "Takip edilenler yüklenemedi."
                     ) 
@@ -116,8 +124,7 @@ class PlanRoomDetailViewModel(
     }
     
     private fun updateSearchQuery(query: String) {
-        _state.update { 
-            it.copy(
+        setState { copy(
                 searchQuery = query,
                 followingUsers = filterUsers(query)
             ) 
@@ -131,15 +138,15 @@ class PlanRoomDetailViewModel(
         }
         
     private fun inviteUser(userId: Int) {
-        val roomId = _state.value.roomId
+        val roomId = currentState.roomId
         if (roomId.isBlank()) return
         
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            setState { copy(isLoading = true) }
             val request = InviteUserRequest(userId = userId)
             val result = planRepository.inviteUserToRoom(roomId, request)
             
-            _state.update { it.copy(isLoading = false, isInviteDialogOpen = false) }
+            setState { copy(isLoading = false, isInviteDialogOpen = false) }
             
             result.onSuccess {
                 setEffect(PlanRoomDetailEffect.ShowToast("Kullanıcı davet edildi."))
@@ -150,14 +157,14 @@ class PlanRoomDetailViewModel(
     }
 
     private fun renameRoom() {
-        val roomId = _state.value.roomId
-        val newName = _state.value.renameRoomName
+        val roomId = currentState.roomId
+        val newName = currentState.renameRoomName
         if (roomId.isBlank() || newName.isBlank()) return
         
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            setState { copy(isLoading = true) }
             val result = planRepository.renameRoom(roomId, newName)
-            _state.update { it.copy(isLoading = false, isRenameDialogOpen = false) }
+            setState { copy(isLoading = false, isRenameDialogOpen = false) }
             
             result.onSuccess {
                 setEffect(PlanRoomDetailEffect.ShowToast("Oda adı değiştirildi."))
@@ -168,13 +175,13 @@ class PlanRoomDetailViewModel(
     }
     
     private fun deleteRoom() {
-        val roomId = _state.value.roomId
+        val roomId = currentState.roomId
         if (roomId.isBlank()) return
         
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            setState { copy(isLoading = true) }
             val result = planRepository.deleteRoom(roomId)
-            _state.update { it.copy(isLoading = false) }
+            setState { copy(isLoading = false) }
             
             result.onSuccess {
                 setEffect(PlanRoomDetailEffect.ShowToast("Oda silindi."))
@@ -186,9 +193,4 @@ class PlanRoomDetailViewModel(
         }
     }
 
-    private fun setEffect(effect: PlanRoomDetailEffect) {
-        viewModelScope.launch {
-            _effect.emit(effect)
-        }
-    }
 }

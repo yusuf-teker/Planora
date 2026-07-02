@@ -3,6 +3,7 @@ package com.yusufteker.pulse.feature.home.presentation.event_detail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
+import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
@@ -22,6 +23,7 @@ import kotlinx.datetime.toLocalDateTime
 
 class EventDetailViewModel(
     private val planRepository: PlanRepository,
+    private val profileRepository: ProfileRepository,
     private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
 ) : ViewModel() {
 
@@ -73,6 +75,19 @@ class EventDetailViewModel(
                 }
             }
             
+            is EventDetailEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
+            is EventDetailEvent.OnParticipantToggled -> _state.update {
+                val currentMap = it.participants.toMutableMap()
+                if (currentMap.containsKey(event.userId)) {
+                    currentMap.remove(event.userId)
+                } else {
+                    val user = it.roomMembers.find { u -> u.id == event.userId }
+                    if (user != null) {
+                        currentMap[event.userId] = user.name
+                    }
+                }
+                it.copy(participants = currentMap)
+            }
             EventDetailEvent.OnSaveClick -> saveEvent()
             EventDetailEvent.OnDeleteClick -> deleteEvent()
             EventDetailEvent.OnBackClick -> setEffect(EventDetailEffect.NavigateBack)
@@ -80,13 +95,50 @@ class EventDetailViewModel(
     }
 
     private fun loadEvent(eventId: String?, planRoomId: String?) {
+
         if (eventId == null) {
             _state.value = EventDetailState(planRoomId = planRoomId)
+            if (planRoomId != null) {
+                viewModelScope.launch {
+                    planRepository.observeAllPlanRooms().collect { rooms ->
+                        val room = rooms.find { it.id == planRoomId }
+                        if (room != null) {
+                            val membersList = mutableListOf<com.yusufteker.pulse.shared.api.UserProfileResponse>()
+                            room.members.forEach { member ->
+                                profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
+                                    membersList.add(profile)
+                                }
+                            }
+                            _state.update { it.copy(roomMembers = membersList) }
+                        }
+                    }
+                }
+            }
             return
         }
 
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, id = eventId, planRoomId = planRoomId) }
+
+        // Fetch room members if planRoomId is present
+        if (planRoomId != null) {
+            viewModelScope.launch {
+                planRepository.observeAllPlanRooms().collect { rooms ->
+                    val room = rooms.find { it.id == planRoomId }
+                    if (room != null) {
+                        val membersList = mutableListOf<com.yusufteker.pulse.shared.api.UserProfileResponse>()
+                        room.members.forEach { member ->
+                            profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
+                                membersList.add(profile)
+                            }
+                        }
+                        _state.update { it.copy(roomMembers = membersList) }
+                    }
+                }
+            }
+        }
+
             planRepository.observeAllTasks().collect { tasks ->
                 val task = tasks.find { it.id == eventId && it.type == TaskType.EVENT }
                 if (task != null) {
@@ -101,6 +153,7 @@ class EventDetailViewModel(
                             startDateTimeMs = task.startTime,
                             endDateTimeMs = task.endTime ?: task.startTime,
                             isRecurring = task.isRecurring,
+                            participants = task.participants,
                             selectedDaysOfWeek = days,
                             isLoading = false
                         ) 

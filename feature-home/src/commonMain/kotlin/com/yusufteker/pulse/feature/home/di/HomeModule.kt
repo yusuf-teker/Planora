@@ -24,6 +24,7 @@ import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewMode
 import com.yusufteker.pulse.feature.home.data.api.PlanApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.data.repository.PlanRepositoryImpl
+import com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel
 import com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorViewModel
 import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsViewModel
 
@@ -68,6 +69,7 @@ val homeModule = module {
     viewModel { params -> 
         TaskEditorViewModel(
             planRepository = get(),
+            profileRepository = get(),
             sessionPreferences = get()
         )
     }
@@ -78,9 +80,10 @@ val homeModule = module {
             sessionPreferences = get()
         )
     }
-    viewModel { params -> 
-        com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel(
+    viewModel { params ->
+        EventDetailViewModel(
             planRepository = get(),
+            profileRepository = get(),
             sessionPreferences = get()
         )
     }

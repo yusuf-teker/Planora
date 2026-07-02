@@ -25,4 +25,6 @@ sealed interface EventDetailEvent {
     object OnSaveClick : EventDetailEvent
     object OnDeleteClick : EventDetailEvent
     object OnBackClick : EventDetailEvent
+    data class OnParticipantPickerVisibilityChanged(val isVisible: Boolean) : EventDetailEvent
+    data class OnParticipantToggled(val userId: Int) : EventDetailEvent
 }

@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,7 +36,9 @@ import com.yusufteker.pulse.shared.api.UserProfileResponse
 @Composable
 fun PlanRoomDetailScreen(
     viewModel: PlanRoomDetailViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToCreateTask: (String) -> Unit = {},
+    onNavigateToCreateEvent: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -44,6 +48,8 @@ fun PlanRoomDetailScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is PlanRoomDetailEffect.NavigateBack -> onNavigateBack()
+                is PlanRoomDetailEffect.NavigateToCreateTask -> onNavigateToCreateTask(effect.roomId)
+                is PlanRoomDetailEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.roomId)
                 is PlanRoomDetailEffect.ShowToast -> {
                     scope.launch {
                         snackbarHostState.showSnackbar(effect.message)
@@ -63,9 +69,6 @@ fun PlanRoomDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRefreshClick) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Yenile")
-                    }
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnInviteUserClick) }) {
                         Icon(Icons.Default.PersonAdd, contentDescription = "Kişi Davet Et")
                     }
@@ -103,7 +106,50 @@ fun PlanRoomDetailScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            var isFabExpanded by remember { mutableStateOf(false) }
+            Column(horizontalAlignment = Alignment.End) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isFabExpanded,
+                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 2 },
+                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 2 }
+                ) {
+                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(bottom = 16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+                            Text("Görev Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            androidx.compose.material3.SmallFloatingActionButton(
+                                onClick = { 
+                                    isFabExpanded = false
+                                    viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick) 
+                                },
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = "Add Task")
+                            }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Etkinlik Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            androidx.compose.material3.SmallFloatingActionButton(
+                                onClick = { 
+                                    isFabExpanded = false
+                                    viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick) 
+                                },
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Icon(Icons.Default.Event, contentDescription = "Add Event")
+                            }
+                        }
+                    }
+                }
+                androidx.compose.material3.FloatingActionButton(
+                    onClick = { isFabExpanded = !isFabExpanded },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = "Expand")
+                }
+            }
+        }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -114,58 +160,87 @@ fun PlanRoomDetailScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp)
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Text(
                         text = "Oda Üyeleri",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
                     )
                     
                     if (state.memberProfiles.isEmpty()) {
                         Text(
                             text = "Bu odada henüz üye bulunmuyor.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        androidx.compose.foundation.lazy.LazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             items(state.memberProfiles.values.toList()) { user ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(48.dp)
                                             .clip(CircleShape)
                                             .background(MaterialTheme.colorScheme.primaryContainer),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = user.name.take(1).uppercase(),
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    
-                                    Column {
-                                        Text(
-                                            text = user.name,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = "@${user.username}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = user.name.split(" ").first(),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1
+                                    )
                                 }
                             }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Text(
+                        text = "Görevler ve Etkinlikler",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                    )
+                    
+                    if (state.roomTasks.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Henüz bir görev veya etkinlik yok",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent(
+                                tasks = state.roomTasks,
+                                memberProfiles = state.memberProfiles
+                            )
                         }
                     }
                 }

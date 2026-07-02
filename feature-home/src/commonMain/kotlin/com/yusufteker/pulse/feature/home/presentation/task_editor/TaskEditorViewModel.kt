@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
+import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
@@ -20,6 +21,7 @@ import kotlinx.datetime.Clock
 
 class TaskEditorViewModel(
     private val planRepository: PlanRepository,
+    private val profileRepository: ProfileRepository,
     private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
 ) : ViewModel() {
 
@@ -60,6 +62,19 @@ class TaskEditorViewModel(
                 it.copy(reminders = newReminders)
             }
             
+            is TaskEditorEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
+            is TaskEditorEvent.OnParticipantToggled -> _state.update {
+                val currentMap = it.participants.toMutableMap()
+                if (currentMap.containsKey(event.userId)) {
+                    currentMap.remove(event.userId)
+                } else {
+                    val user = it.roomMembers.find { u -> u.id == event.userId }
+                    if (user != null) {
+                        currentMap[event.userId] = user.name
+                    }
+                }
+                it.copy(participants = currentMap)
+            }
             TaskEditorEvent.SaveClicked -> saveTask()
             TaskEditorEvent.DeleteClicked -> deleteTask()
             TaskEditorEvent.OnBackClick -> setEffect(TaskEditorEffect.NavigateBack)
@@ -67,12 +82,49 @@ class TaskEditorViewModel(
     }
 
     private fun loadTask(taskId: String?, planRoomId: String?) {
+
         if (taskId == null) {
             _state.value = TaskEditorState(planRoomId = planRoomId)
+            if (planRoomId != null) {
+                viewModelScope.launch {
+                    planRepository.observeAllPlanRooms().collect { rooms ->
+                        val room = rooms.find { it.id == planRoomId }
+                        if (room != null) {
+                            val membersList = mutableListOf<com.yusufteker.pulse.shared.api.UserProfileResponse>()
+                            room.members.forEach { member ->
+                                profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
+                                    membersList.add(profile)
+                                }
+                            }
+                            _state.update { it.copy(roomMembers = membersList) }
+                        }
+                    }
+                }
+            }
             return
         }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, id = taskId, planRoomId = planRoomId) }
+
+        // Fetch room members if planRoomId is present
+        if (planRoomId != null) {
+            viewModelScope.launch {
+                planRepository.observeAllPlanRooms().collect { rooms ->
+                    val room = rooms.find { it.id == planRoomId }
+                    if (room != null) {
+                        val membersList = mutableListOf<com.yusufteker.pulse.shared.api.UserProfileResponse>()
+                        room.members.forEach { member ->
+                            profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
+                                membersList.add(profile)
+                            }
+                        }
+                        _state.update { it.copy(roomMembers = membersList) }
+                    }
+                }
+            }
+        }
+
             planRepository.observeAllTasks().collect { tasks ->
                 val task = tasks.find { it.id == taskId && it.type == TaskType.TASK }
                 if (task != null) {
@@ -93,6 +145,7 @@ class TaskEditorViewModel(
                             selectedRepeatDays = selectedDays,
                             isOptional = task.isOptional,
                             reminders = task.reminders,
+                            participants = task.participants,
                             isLoading = false
                         ) 
                     }
@@ -135,6 +188,7 @@ class TaskEditorViewModel(
                 isPostponable = true,
                 isAllDay = false,
                 reminders = currentState.reminders,
+                participants = currentState.participants,
                 specificDetails = com.yusufteker.pulse.shared.api.ItemDetails.Task(
                     subtasks = emptyList(), 
                     priority = com.yusufteker.pulse.shared.api.TaskPriority.MEDIUM,

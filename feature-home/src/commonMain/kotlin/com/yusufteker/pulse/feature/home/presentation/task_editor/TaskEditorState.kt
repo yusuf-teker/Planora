@@ -18,6 +18,8 @@ data class TaskEditorState(
     val isDeadlinePickerVisible: Boolean = false,
     val isRepeatPickerVisible: Boolean = false,
     val isReminderPickerVisible: Boolean = false,
+    val isParticipantPickerVisible: Boolean = false,
+    val roomMembers: List<UserProfileResponse> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 ) : UiState

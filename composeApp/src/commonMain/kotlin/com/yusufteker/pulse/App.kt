@@ -8,14 +8,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase
 import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.Screen
+import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.preferences.ThemePreferences
+import com.yusufteker.pulse.core.snackbar.SnackbarManager
 import com.yusufteker.pulse.core.theme.PulseTheme
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginScreen
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginViewModel
@@ -27,7 +33,15 @@ import com.yusufteker.pulse.feature.auth.presentation.splash.SplashScreen
 import com.yusufteker.pulse.feature.auth.presentation.splash.SplashViewModel
 import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostScreen
 import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostViewModel
+import com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailEvent
+import com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailScreen
+import com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel
 import com.yusufteker.pulse.feature.home.presentation.main.MainScreen
+import com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsScreen
+import com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailEvent
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailScreen
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel
 import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersScreen
 import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewModel
 import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorEvent
@@ -35,6 +49,7 @@ import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorScre
 import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * Root composable for the Pulse application.
@@ -52,25 +67,25 @@ fun App() {
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
     PulseTheme(themeColor = themeColorPref, darkTheme = isDark) {
-        val snackbarManager = koinInject<com.yusufteker.pulse.core.snackbar.SnackbarManager>()
-        val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+        val snackbarManager = koinInject<SnackbarManager>()
+        val snackbarHostState = remember { SnackbarHostState() }
         val activeMessage by snackbarManager.messages.collectAsState()
 
-        androidx.compose.runtime.LaunchedEffect(activeMessage) {
+        LaunchedEffect(activeMessage) {
             activeMessage?.let { msg ->
                 snackbarHostState.showSnackbar(msg.message)
                 snackbarManager.clearMessage(msg.id)
             }
         }
 
-        val sessionPreferences = koinInject<com.yusufteker.pulse.core.preferences.SessionPreferences>()
+        val sessionPreferences = koinInject<SessionPreferences>()
         val userId by sessionPreferences.userIdFlow.collectAsState(null)
         val vmKey = userId ?: "guest"
 
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
         val navigator = remember { Navigator(backStack) }
 
-        androidx.compose.runtime.LaunchedEffect(navigator.backStack.lastOrNull()) {
+        LaunchedEffect(navigator.backStack.lastOrNull()) {
             val currentScreen = navigator.backStack.lastOrNull()
             if (currentScreen != null) {
                 var screenName = currentScreen::class.simpleName ?: "UnknownScreen"
@@ -78,20 +93,20 @@ fun App() {
             }
         }
 
-        val registerFcmTokenUseCase = koinInject<com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase>()
-        androidx.compose.runtime.LaunchedEffect(userId) {
+        val registerFcmTokenUseCase = koinInject<RegisterFcmTokenUseCase>()
+        LaunchedEffect(userId) {
             if (userId != null) {
                 registerFcmTokenUseCase()
             }
         }
 
         CompositionLocalProvider(LocalNavigator provides navigator) {
-            androidx.compose.material3.Scaffold(
-                snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
-                modifier = androidx.compose.ui.Modifier.fillMaxSize()
+            Scaffold(
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                modifier = Modifier.fillMaxSize()
             ) { _ -> // paddingValues kullanılmıyor, iç sayfalarda insets kendileri hesaplanıyor
                 NavDisplay(
-                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     backStack = navigator.backStack,
                     onBack = { navigator.pop() },
                     entryProvider = entryProvider {
@@ -131,8 +146,8 @@ fun App() {
                     }
 
                     entry<Screen.PendingPosts> {
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsViewModel>(key = vmKey)
-                        com.yusufteker.pulse.feature.home.presentation.pending_posts.PendingPostsScreen(
+                        val viewModel = koinViewModel<PendingPostsViewModel>(key = vmKey)
+                        PendingPostsScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
                             onNavigateToEdit = { postId -> navigator.navigate(Screen.CreatePost(postId)) }
@@ -156,18 +171,20 @@ fun App() {
                     }
                     
                     entry<Screen.PlanRoomDetail> { screen ->
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel>(
+                        val viewModel = koinViewModel<PlanRoomDetailViewModel>(
                             key = "${vmKey}_${screen.roomId}"
                         )
                         
                         // Set the room ID using a side effect when this composition starts
-                        androidx.compose.runtime.LaunchedEffect(screen.roomId) {
-                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailEvent.LoadRoom(screen.roomId))
+                        LaunchedEffect(screen.roomId) {
+                            viewModel.onEvent(PlanRoomDetailEvent.LoadRoom(screen.roomId))
                         }
                         
-                        com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailScreen(
+                        PlanRoomDetailScreen(
                             viewModel = viewModel,
-                            onNavigateBack = { navigator.pop() }
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToCreateTask = { roomId -> navigator.navigate(Screen.TaskEditor(planRoomId = roomId)) },
+                            onNavigateToCreateEvent = { roomId -> navigator.navigate(Screen.EventDetail(planRoomId = roomId)) }
                         )
                     }
 
@@ -200,14 +217,14 @@ fun App() {
                     }
 
                     entry<Screen.EventDetail> { screen ->
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel>(
+                        val viewModel = koinViewModel<EventDetailViewModel>(
                             key = screen.eventId ?: "new_event",
-                            parameters = { org.koin.core.parameter.parametersOf(screen.eventId) }
+                            parameters = { parametersOf(screen.eventId) }
                         )
-                        androidx.compose.runtime.LaunchedEffect(screen) {
-                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailEvent.OnLoadEvent(screen.eventId, screen.planRoomId))
+                        LaunchedEffect(screen) {
+                            viewModel.onEvent(EventDetailEvent.OnLoadEvent(screen.eventId, screen.planRoomId))
                         }
-                        com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailScreen(
+                        EventDetailScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() }
                         )

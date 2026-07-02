@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -49,7 +48,7 @@ fun DateTimePickerSheet(
     onDismissRequest: () -> Unit,
     onDateTimeSelected: (Long) -> Unit
 ) {
-    val initialMs = initialTimeMs ?: Clock.System.now().toEpochMilliseconds()
+    val initialMs = initialTimeMs ?: com.yusufteker.pulse.core.utils.getCurrentTimeMs()
     val tz = TimeZone.currentSystemDefault()
     val initialDateTime = Instant.fromEpochMilliseconds(initialMs).toLocalDateTime(tz)
 

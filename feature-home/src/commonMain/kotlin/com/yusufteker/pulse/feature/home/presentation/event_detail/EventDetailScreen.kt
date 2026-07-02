@@ -23,6 +23,7 @@ import com.yusufteker.pulse.feature.home.presentation.components.DateTimePickerS
 import com.yusufteker.pulse.feature.home.presentation.components.FormRow
 import com.yusufteker.pulse.feature.home.presentation.components.FormSection
 import com.yusufteker.pulse.feature.home.presentation.components.RepeatPickerSheet
+import com.yusufteker.pulse.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
 import kotlinx.coroutines.launch
@@ -40,6 +41,7 @@ fun EventDetailScreen(
     val startDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val endDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val participantSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
         val scope = this
@@ -178,9 +180,9 @@ fun EventDetailScreen(
                 if (state.planRoomId != null) {
                     FormSection {
                         FormRow(
-                            label = "Davetliler",
+                            label = "Katılımcılar",
                             value = "${state.participants.size} Kişi",
-                            onClick = { /* TODO: Open participants picker */ }
+                            onClick = { viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
                     }
                 }
@@ -217,6 +219,17 @@ fun EventDetailScreen(
                 viewModel.onEvent(EventDetailEvent.OnToggleRecurring(state.selectedDaysOfWeek.isNotEmpty()))
             },
             onDayToggled = { day -> viewModel.onEvent(EventDetailEvent.OnToggleDayOfWeek(day)) }
+        )
+    }
+
+    if (state.isParticipantPickerVisible) {
+        ParticipantPickerSheet(
+            title = "Katılımcılar",
+            roomMembers = state.roomMembers,
+            selectedParticipantIds = state.participants.keys,
+            sheetState = participantSheetState,
+            onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(false)) },
+            onParticipantToggled = { id -> viewModel.onEvent(EventDetailEvent.OnParticipantToggled(id)) }
         )
     }
 }

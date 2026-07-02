@@ -23,6 +23,7 @@ import com.yusufteker.pulse.feature.home.presentation.components.FormSection
 import com.yusufteker.pulse.feature.home.presentation.components.FormSwitchRow
 import com.yusufteker.pulse.feature.home.presentation.components.RepeatPickerSheet
 import com.yusufteker.pulse.feature.home.presentation.components.ReminderPickerSheet
+import com.yusufteker.pulse.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
 import kotlinx.coroutines.launch
@@ -39,6 +40,7 @@ fun TaskEditorScreen(
     val dateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val reminderSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val participantSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
         val scope = this
@@ -174,9 +176,9 @@ fun TaskEditorScreen(
                 if (state.planRoomId != null) {
                     FormSection {
                         FormRow(
-                            label = "Davetliler",
+                            label = "Sorumlular",
                             value = "${state.participants.size} Kişi",
-                            onClick = { /* TODO: Open participants picker */ }
+                            onClick = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
                     }
                 }
@@ -212,6 +214,17 @@ fun TaskEditorScreen(
             sheetState = reminderSheetState,
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnReminderPickerVisibilityChanged(false)) },
             onReminderToggled = { min -> viewModel.onEvent(TaskEditorEvent.OnReminderToggled(min)) }
+        )
+    }
+
+    if (state.isParticipantPickerVisible) {
+        ParticipantPickerSheet(
+            title = "Sorumlular",
+            roomMembers = state.roomMembers,
+            selectedParticipantIds = state.participants.keys,
+            sheetState = participantSheetState,
+            onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(false)) },
+            onParticipantToggled = { id -> viewModel.onEvent(TaskEditorEvent.OnParticipantToggled(id)) }
         )
     }
 }
