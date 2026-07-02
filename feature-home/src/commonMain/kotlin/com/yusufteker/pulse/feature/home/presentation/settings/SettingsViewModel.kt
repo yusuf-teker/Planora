@@ -6,6 +6,7 @@ import com.yusufteker.pulse.core.preferences.ThemePreferences
 import kotlinx.coroutines.flow.first
 
 import com.yusufteker.pulse.core.database.PulsyDatabase
+import com.yusufteker.pulse.core.database.clearAll
 
 class SettingsViewModel(
     private val themePreferences: ThemePreferences,

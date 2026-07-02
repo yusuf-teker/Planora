@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  */
 class SessionPreferences(
     private val dataStore: DataStore<Preferences>,
-    private val secureSettings: SecureSettings
+    private val secureSettings: SecureSettings,
 ) {
     // Keys for Settings (Tokens)
     private val accessTokenKeyString = "access_token"
@@ -28,6 +28,7 @@ class SessionPreferences(
     private val followersCountKey = androidx.datastore.preferences.core.intPreferencesKey("followers_count")
     private val followingCountKey = androidx.datastore.preferences.core.intPreferencesKey("following_count")
     private val appRunKey = androidx.datastore.preferences.core.booleanPreferencesKey("has_run_before")
+    private val lastLoggedUserIdKey = stringPreferencesKey("last_logged_user_id")
 
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
@@ -72,6 +73,22 @@ class SessionPreferences(
     suspend fun isFirstRun(): Boolean {
         val hasRun = dataStore.data.map { it[appRunKey] }.first()
         return hasRun != true
+    }
+
+    suspend fun setHasRunBefore(hasRun: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[appRunKey] = hasRun
+        }
+    }
+
+    suspend fun getLastLoggedUserId(): String? {
+        return dataStore.data.first()[lastLoggedUserIdKey]
+    }
+
+    suspend fun setLastLoggedUserId(userId: String) {
+        dataStore.edit { prefs ->
+            prefs[lastLoggedUserIdKey] = userId
+        }
     }
 
     suspend fun markAppAsRun() {

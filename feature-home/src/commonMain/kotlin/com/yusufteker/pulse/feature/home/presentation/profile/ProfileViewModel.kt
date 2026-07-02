@@ -4,12 +4,15 @@ import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.combine
+import com.yusufteker.pulse.core.database.PulsyDatabase
+import com.yusufteker.pulse.core.database.clearAll
 
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 
 class ProfileViewModel(
     private val sessionPreferences: SessionPreferences,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val database: com.yusufteker.pulse.core.database.PulsyDatabase
 ) : BaseViewModel<ProfileState, ProfileEvent, ProfileEffect>(
     initialState = ProfileState()
 ) {
@@ -157,6 +160,7 @@ class ProfileViewModel(
             
             is ProfileEvent.LogoutClicked -> {
                 launch {
+                    database.pulsyDatabaseQueries.clearAll()
                     sessionPreferences.clearSession()
                     setEffect(ProfileEffect.NavigateToLogin)
                 }

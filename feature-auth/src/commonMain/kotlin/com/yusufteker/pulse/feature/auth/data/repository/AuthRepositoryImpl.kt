@@ -12,6 +12,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import com.yusufteker.pulse.core.database.clearAll
 
 import com.yusufteker.pulse.core.database.PulsyDatabase
 
@@ -31,8 +32,12 @@ class AuthRepositoryImpl(
                 setBody(request) // request objesini otomatik JSON'a çevirir (ContentNegotiation eklentisi sayesinde)
             }.body()
 
-            // Giriş başarılıysa önce eski veritabanını temizle, sonra token'ları güvenli depoya kaydet.
-            pulsyDatabase.pulsyDatabaseQueries.clearAll()
+            // Sadece farklı bir kullanıcı giriş yaparsa eski veritabanını temizle
+            val lastLoggedUserId = sessionPreferences.getLastLoggedUserId()
+            if (lastLoggedUserId != null && lastLoggedUserId != response.userId.toString()) {
+                pulsyDatabase.pulsyDatabaseQueries.clearAll()
+            }
+            sessionPreferences.setLastLoggedUserId(response.userId.toString())
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
@@ -61,7 +66,11 @@ class AuthRepositoryImpl(
             val response: AuthResponse = httpClient.post("auth/register") {
                 setBody(request)
             }.body()
-            pulsyDatabase.pulsyDatabaseQueries.clearAll()
+            val lastLoggedUserId = sessionPreferences.getLastLoggedUserId()
+            if (lastLoggedUserId != null && lastLoggedUserId != response.userId.toString()) {
+                pulsyDatabase.pulsyDatabaseQueries.clearAll()
+            }
+            sessionPreferences.setLastLoggedUserId(response.userId.toString())
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
             
@@ -89,7 +98,6 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() {
-        pulsyDatabase.pulsyDatabaseQueries.clearAll()
         sessionPreferences.clearSession()
     }
 

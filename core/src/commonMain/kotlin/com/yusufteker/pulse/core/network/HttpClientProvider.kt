@@ -26,9 +26,8 @@ import kotlinx.serialization.json.Json
  * requests a new token, and retries the original request seamlessly.
  */
 fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
-    return HttpClient {
+    val client = HttpClient {
         // Sunucu adresini ve formatı varsayılan olarak ayarlıyoruz. (Android emülatörü için 10.0.2.2, iOS için localhost)
-        // Not: Gerçekte bunu bir build config üzerinden (Environment Variable) vermek gerekir.
         defaultRequest {
             url(getBaseUrl())
             contentType(ContentType.Application.Json)
@@ -52,24 +51,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
 
         install(Auth) {
             bearer {
-                // Sunucuya yapılacak her istekten önce DataStore'dan Access Token'ı çekip Authorization header'ına ekler.
-                loadTokens {
-                    val accessToken = sessionPreferences.getAccessToken()
-                    val refreshToken = sessionPreferences.getRefreshToken()
-                    if (accessToken != null && refreshToken != null) {
-                        BearerTokens(accessToken, refreshToken)
-                    } else {
-                        null
-                    }
-                }
-
-                // Login veya Register ise Authorization header ekleme, çünkü bu endpoint'ler token istemez.
-                sendWithoutRequest { request -> 
-                    val path = request.url.buildString()
-                    !path.contains("auth/login") && !path.contains("auth/register")
-                }
-
-                // Eğer sunucudan 401 Unauthorized dönerse (örneğin Access Token'ın süresi 15 dk dolduğunda),
+                // Gelen istek 401 Unauthorized dönerse (örneğin Access Token'ın süresi 15 dk dolduğunda),
                 // bu blok tetiklenir ve yeni token alır.
                 refreshTokens {
                     val refreshToken = sessionPreferences.getRefreshToken() ?: return@refreshTokens null
@@ -93,4 +75,20 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
             }
         }
     }
+
+    // Ktor'un Auth eklentisindeki cache sorununu çözmek için (hesap değiştirildiğinde eski tokenin gönderilmesi),
+    // tokeni Ktor'a önbellekletmek (loadTokens) yerine her istek öncesi güncel tokeni DataStore'dan anlık olarak çekiyoruz.
+    client.requestPipeline.intercept(io.ktor.client.request.HttpRequestPipeline.State) {
+        val requestBuilder = context
+        val path = requestBuilder.url.buildString()
+        if (!path.contains("auth/login") && !path.contains("auth/register")) {
+            val token = sessionPreferences.getAccessToken()
+            if (token != null) {
+                requestBuilder.headers.remove(io.ktor.http.HttpHeaders.Authorization)
+                requestBuilder.headers.append(io.ktor.http.HttpHeaders.Authorization, "Bearer $token")
+            }
+        }
+    }
+    
+    return client
 }

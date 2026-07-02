@@ -175,14 +175,14 @@ VALUES (?, ?, ?, ?, ?);
 getMembersForRoom:
 SELECT * FROM planRoomMemberEntity WHERE roomId = :roomId;
 
-clearAll:
+clearAllPosts:
 DELETE FROM postEntity;
+
+clearAllRemoteKeys:
 DELETE FROM remoteKeyEntity;
+
+clearAllPendingPosts:
 DELETE FROM pendingPostEntity;
-DELETE FROM planRoomEntity;
-DELETE FROM planRoomMemberEntity;
-DELETE FROM taskEntity;
-DELETE FROM taskSharedRoomEntity;
 
 deleteAllPlanRoomMembers:
 DELETE FROM planRoomMemberEntity;

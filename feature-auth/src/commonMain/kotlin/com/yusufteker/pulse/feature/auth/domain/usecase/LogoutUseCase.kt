@@ -2,6 +2,7 @@ package com.yusufteker.pulse.feature.auth.domain.usecase
 
 import com.yusufteker.pulse.feature.auth.domain.repository.AuthRepository
 import com.yusufteker.pulse.core.database.PulsyDatabase
+import com.yusufteker.pulse.core.database.clearAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext

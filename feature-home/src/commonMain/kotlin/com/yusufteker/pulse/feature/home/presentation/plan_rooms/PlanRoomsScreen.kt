@@ -81,67 +81,11 @@ fun PlanRoomsScreen(
             )
         },
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                AnimatedVisibility(visible = state.isFabExpanded) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        ) {
-                            Surface(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Text("Yeni Etkinlik", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                            }
-                            SmallFloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateEventClick) }) {
-                                Icon(Icons.Default.DateRange, contentDescription = "Yeni Etkinlik")
-                            }
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        ) {
-                            Surface(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Text(stringResource(Res.string.fab_new_task), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                            }
-                            SmallFloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateTaskClick) }) {
-                                Icon(Icons.Default.Edit, contentDescription = stringResource(Res.string.fab_new_task))
-                            }
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Text(stringResource(Res.string.fab_new_room), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                            }
-                            SmallFloatingActionButton(onClick = { 
-                                onEvent(PlanRoomsEvent.ToggleFab)
-                                onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) 
-                            }) {
-                                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.fab_new_room))
-                            }
-                        }
-                    }
-                }
-                FloatingActionButton(onClick = { onEvent(PlanRoomsEvent.ToggleFab) }) {
-                    Icon(
-                        imageVector = if (state.isFabExpanded) Icons.Default.Close else Icons.Default.Add,
-                        contentDescription = "Menü"
-                    )
-                }
+            FloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) }) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(Res.string.fab_new_room)
+                )
             }
         }
     ) { padding ->
@@ -199,32 +143,68 @@ fun PlanRoomsScreen(
         )
     }
 
-    // 3. Invitations Dialog
+    // 2. Invitations Dialog
     if (state.isInvitationsDialogVisible) {
         AlertDialog(
             onDismissRequest = { onEvent(PlanRoomsEvent.OnInvitationsClick(false)) },
-            title = { Text("Gelen Davetler") },
+            title = { 
+                Text(
+                    "Gelen Davetler",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                ) 
+            },
             text = {
                 if (state.pendingInvitations.isEmpty()) {
-                    Text("Bekleyen davetiniz bulunmuyor.")
+                    Text(
+                        "Bekleyen davetiniz bulunmuyor.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 } else {
-                    LazyColumn {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         items(state.pendingInvitations) { invite ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
                             ) {
-                                Text(invite.name, style = MaterialTheme.typography.bodyLarge)
-                                Row {
-                                    TextButton(onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, false)) }) {
-                                        Text("Reddet", color = MaterialTheme.colorScheme.error)
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Button(onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, true)) }) {
-                                        Text("Kabul Et")
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = invite.name, 
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, false)) },
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error
+                                            ),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                                        ) {
+                                            Text("Reddet")
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Button(
+                                            onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, true)) },
+                                        ) {
+                                            Text("Kabul Et")
+                                        }
                                     }
                                 }
                             }
@@ -236,7 +216,8 @@ fun PlanRoomsScreen(
                 TextButton(onClick = { onEvent(PlanRoomsEvent.OnInvitationsClick(false)) }) {
                     Text("Kapat")
                 }
-            }
+            },
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
         )
     }
 }
