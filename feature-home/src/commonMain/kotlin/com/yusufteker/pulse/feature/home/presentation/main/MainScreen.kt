@@ -12,6 +12,8 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -57,6 +60,8 @@ import com.yusufteker.pulse.feature.home.presentation.social.SocialScreen
 import com.yusufteker.pulse.feature.home.presentation.social.SocialViewModel
 import com.yusufteker.pulse.feature.home.presentation.profile.ProfileScreen
 import com.yusufteker.pulse.feature.home.presentation.profile.ProfileViewModel
+import com.yusufteker.pulse.feature.home.presentation.notes.NotesScreen
+import com.yusufteker.pulse.feature.home.presentation.notes.NotesViewModel
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsScreen
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsViewModel
 import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsScreen
@@ -79,6 +84,7 @@ fun MainScreen() {
                         MainDestination.Home -> "Home"
                         MainDestination.Social -> "Social"
                         MainDestination.PlanRooms -> "PlanRooms"
+                        MainDestination.Notes -> "Notes"
                         MainDestination.Profile -> "Profile"
                         MainDestination.Settings -> "Settings"
                     }
@@ -91,6 +97,7 @@ fun MainScreen() {
                         "Home" -> list.add(MainDestination.Home)
                         "Social" -> list.add(MainDestination.Social)
                         "PlanRooms" -> list.add(MainDestination.PlanRooms)
+                        "Notes" -> list.add(MainDestination.Notes)
                         "Profile" -> list.add(MainDestination.Profile)
                         "Settings" -> list.add(MainDestination.Settings)
                     }
@@ -130,108 +137,119 @@ fun MainScreen() {
         bottomBar = {
             Surface(
                 color = if (isDark) Color.Black else MaterialTheme.colorScheme.surface,
-                tonalElevation = if (isDark) 0.dp else 3.dp,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .height(60.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
+                Column {
+                    // Subtle top border
+                    androidx.compose.material3.Divider(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                        thickness = 1.dp
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.navigationBars)
+                            .height(56.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Home Tab
                     val isHomeSelected = currentDestination is MainDestination.Home
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Box(
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { navigateToTab(MainDestination.Home) }
-                            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp)
+                            .weight(1f)
+                            .height(56.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { navigateToTab(MainDestination.Home) },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isHomeSelected) Icons.Filled.Home else Icons.Outlined.Home,
                             contentDescription = "Home",
                             tint = if (isHomeSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (isHomeSelected) {
-                            Text(
-                                text = stringResource(Res.string.tab_home),
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
                     }
 
                     // Social Tab
                     val isSocialSelected = currentDestination is MainDestination.Social
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Box(
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { navigateToTab(MainDestination.Social) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .weight(1f)
+                            .height(56.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { navigateToTab(MainDestination.Social) },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isSocialSelected) Icons.Filled.People else Icons.Outlined.People,
                             contentDescription = "Social",
                             tint = if (isSocialSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (isSocialSelected) {
-                            Text(
-                                text = stringResource(Res.string.tab_social),
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
                     }
 
                     // PlanRooms Tab
                     val isPlanRoomsSelected = currentDestination is MainDestination.PlanRooms
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Box(
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { navigateToTab(MainDestination.PlanRooms) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .weight(1f)
+                            .height(56.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { navigateToTab(MainDestination.PlanRooms) },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isPlanRoomsSelected) Icons.Filled.DateRange else Icons.Outlined.DateRange,
                             contentDescription = "Plans",
                             tint = if (isPlanRoomsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (isPlanRoomsSelected) {
-                            Text(
-                                text = "Plans", // Temporary hardcoded string, can be moved to Res later
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                    }
+
+                    // Notes Tab
+                    val isNotesSelected = currentDestination is MainDestination.Notes
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { navigateToTab(MainDestination.Notes) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isNotesSelected) Icons.Filled.Edit else Icons.Outlined.Edit,
+                            contentDescription = "Notes",
+                            tint = if (isNotesSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     // Profile Tab
                     val isProfileSelected = currentDestination is MainDestination.Profile || currentDestination is MainDestination.Settings
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Box(
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { navigateToTab(MainDestination.Profile) }
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                            .weight(1f)
+                            .height(56.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { navigateToTab(MainDestination.Profile) },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isProfileSelected) Icons.Filled.Person else Icons.Outlined.Person,
                             contentDescription = "Profile",
                             tint = if (isProfileSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (isProfileSelected) {
-                            Text(
-                                text = stringResource(Res.string.tab_profile),
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
                     }
+                }
                 }
             }
         }
@@ -274,6 +292,11 @@ fun MainScreen() {
                         val viewModel = koinViewModel<ProfileViewModel>(key = vmKey)
                         ProfileScreen(viewModel = viewModel)
                     }
+                    
+                    entry<MainDestination.Notes> {
+                        val viewModel = koinViewModel<NotesViewModel>(key = vmKey)
+                        NotesScreen(viewModel = viewModel)
+                    }
 
                     entry<MainDestination.PlanRooms> {
                         val viewModel = koinViewModel<PlanRoomsViewModel>(key = vmKey)
@@ -287,7 +310,10 @@ fun MainScreen() {
                                 rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.PlanRoomDetail(roomId))
                             },
                             onNavigateToCreateTask = {
-                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePlanTask)
+                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.TaskEditor(taskId = null))
+                            },
+                            onNavigateToCreateEvent = {
+                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.EventDetail(eventId = null))
                             },
                             onShowSnackbar = { /* TODO */ }
                         )

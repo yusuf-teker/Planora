@@ -7,6 +7,7 @@ import com.yusufteker.pulse.core.base.UiEvent
 import com.yusufteker.pulse.core.base.UiState
 import com.yusufteker.pulse.feature.home.domain.repository.PostRepository
 import kotlinx.coroutines.launch
+import com.yusufteker.pulse.core.analytics.AnalyticsManager
 
 data class CreatePostState(
     val content: String = "",
@@ -29,7 +30,8 @@ sealed interface CreatePostEffect : UiEffect {
 
 class CreatePostViewModel(
     private val postId: String?,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val analyticsManager: AnalyticsManager
 ) : BaseViewModel<CreatePostState, CreatePostEvent, CreatePostEffect>(CreatePostState()) {
 
     init {
@@ -84,6 +86,10 @@ class CreatePostViewModel(
                 } else {
                     // Yeni oluşturuyoruz
                     postRepository.createPost(content = content, isDraft = isDraft, topic = topic)
+                    
+                    val eventName = if (isDraft) "draft_created" else "post_created"
+                    analyticsManager.logEvent(eventName, mapOf("topic" to topic))
+                    
                     val message = if (isDraft) "Taslak olarak kaydedildi" else "Gönderi oluşturuldu"
                     showSnackbar(message, com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
                 }
@@ -91,6 +97,7 @@ class CreatePostViewModel(
                 // Başarılı olursa önceki ekrana dön
                 setEffect(CreatePostEffect.NavigateBack)
             } catch (e: Throwable) {
+                analyticsManager.logException(e)
                 showSnackbar(e.message ?: "Beklenmeyen bir hata oluştu", com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
             } finally {
                 setState { copy(isSaving = false) }

@@ -64,11 +64,16 @@ sealed interface Screen {
     @Serializable
     data class PlanRoomDetail(val roomId: String) : Screen
     
-    /**
-     * Görev veya Not Oluşturma ekranı.
-     */
     @Serializable
-    data object CreatePlanTask : Screen
+    data class TaskEditor(val taskId: String? = null, val planRoomId: String? = null) : Screen
+
+    @Serializable
+    data class NoteEditor(val noteId: String? = null) : Screen
+
+    @Serializable
+    data class EventDetail(val eventId: String? = null, val planRoomId: String? = null) : Screen
+    
+
 
     /** 
      * Destinations within the Main Graph (Bottom Navigation Tabs).
@@ -89,6 +94,9 @@ sealed interface Screen {
         
         @Serializable
         data object PlanRooms : MainDestination
+        
+        @Serializable
+        data object Notes : MainDestination
     }
 }
 

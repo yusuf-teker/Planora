@@ -39,15 +39,7 @@ class PlanRoomDetailViewModel(
             is PlanRoomDetailEvent.OnSearchQueryChange -> updateSearchQuery(event.query)
             is PlanRoomDetailEvent.OnUserSelectToInvite -> inviteUser(event.userId)
             
-            // Calendar Events
-            is PlanRoomDetailEvent.OnDateSelected -> _state.update { it.copy(selectedDate = event.date) }
-            is PlanRoomDetailEvent.OnViewModeChange -> _state.update { it.copy(viewMode = event.mode) }
-            PlanRoomDetailEvent.OnNextMonth -> {
-                _state.update { it.copy(currentMonth = it.currentMonth.plus(1, DateTimeUnit.MONTH)) }
-            }
-            PlanRoomDetailEvent.OnPreviousMonth -> {
-                _state.update { it.copy(currentMonth = it.currentMonth.minus(1, DateTimeUnit.MONTH)) }
-            }
+            PlanRoomDetailEvent.OnRefreshClick -> loadRoom(_state.value.roomId)
             
             // Rename & Delete Events
             PlanRoomDetailEvent.OnEditRoomClick -> {
@@ -65,20 +57,15 @@ class PlanRoomDetailViewModel(
     }
     
     private fun loadRoom(roomId: String) {
-        _state.update { it.copy(roomId = roomId) }
+        _state.update { it.copy(roomId = roomId, isLoading = true) }
         
-        // 1. Fetch tasks for this room from backend
-        viewModelScope.launch {
-            planRepository.fetchRoomTasks(roomId)
-        }
-        
-        // 2. Observe all rooms to get this room's details (name, members)
+        // 1. Observe all rooms to get this room's details (name, members)
         viewModelScope.launch {
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == roomId }
                 if (room != null) {
                     val isCreator = room.creatorId.toString() == sessionPreferences.getUserId()
-                    _state.update { it.copy(roomName = room.name, isRoomCreator = isCreator) }
+                    _state.update { it.copy(roomName = room.name, isRoomCreator = isCreator, isLoading = false) }
                     
                     // Fetch missing profiles for members
                     val currentProfiles = _state.value.memberProfiles.toMutableMap()
@@ -98,31 +85,8 @@ class PlanRoomDetailViewModel(
                     if (profilesUpdated) {
                         _state.update { it.copy(memberProfiles = currentProfiles.toMap()) }
                     }
-                }
-            }
-        }
-        
-        // 3. Observe all tasks from local DB and filter for this room
-        viewModelScope.launch {
-            planRepository.observeAllTasks().collect { allTasks ->
-                val roomTasks = allTasks.filter { it.sharedRoomIds.contains(roomId) }
-                _state.update { it.copy(tasks = roomTasks) }
-                
-                val currentProfiles = _state.value.memberProfiles.toMutableMap()
-                var profilesUpdated = false
-                
-                roomTasks.forEach { task ->
-                    if (!currentProfiles.containsKey(task.creatorId)) {
-                        val result = profileRepository.getProfile(task.creatorId.toString())
-                        result.onSuccess { profile ->
-                            currentProfiles[task.creatorId] = profile
-                            profilesUpdated = true
-                        }
-                    }
-                }
-                
-                if (profilesUpdated) {
-                    _state.update { it.copy(memberProfiles = currentProfiles.toMap()) }
+                } else {
+                    _state.update { it.copy(isLoading = false) }
                 }
             }
         }

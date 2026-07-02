@@ -85,6 +85,10 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
             implementation(libs.sqldelight.android.driver)
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.2"))
+            implementation(libs.firebase.analytics)
+            implementation(libs.firebase.messaging)
+            implementation(libs.firebase.crashlytics)
         }
 
         iosMain.dependencies {

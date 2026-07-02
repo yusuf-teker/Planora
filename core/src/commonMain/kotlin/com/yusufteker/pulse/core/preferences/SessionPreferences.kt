@@ -19,6 +19,7 @@ class SessionPreferences(
     // Keys for Settings (Tokens)
     private val accessTokenKeyString = "access_token"
     private val refreshTokenKeyString = "refresh_token"
+    private val fcmTokenKeyString = "fcm_token"
 
     // Keys for DataStore (Profile info)
     private val userNameKey = stringPreferencesKey("user_name")
@@ -82,6 +83,14 @@ class SessionPreferences(
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
         secureSettings.settings.putString(accessTokenKeyString, accessToken)
         secureSettings.settings.putString(refreshTokenKeyString, refreshToken)
+    }
+
+    suspend fun saveFcmToken(token: String) {
+        secureSettings.settings.putString(fcmTokenKeyString, token)
+    }
+
+    suspend fun getFcmToken(): String? {
+        return secureSettings.settings.getStringOrNull(fcmTokenKeyString)
     }
 
     suspend fun saveUserProfile(userId: String, name: String, avatarId: String, followersCount: Int = 0, followingCount: Int = 0) {

@@ -51,7 +51,7 @@ fun Route.postRoutes() {
                         val author = entity.author
                         val isBookmarkedByMe = if (userId != null) {
                             BookmarkEntity.find { 
-                                (BookmarksTable.postId eq entity.id) and (BookmarksTable.userId eq userId) 
+                                (BookmarksTable.postId eq entity.id) and (BookmarksTable.userId eq org.jetbrains.exposed.dao.id.EntityID(userId, com.yusufteker.pulse.server.database.tables.UsersTable)) 
                             }.count() > 0
                         } else false
 
@@ -142,7 +142,7 @@ fun Route.postRoutes() {
                     }
 
                     val existingBookmark = BookmarkEntity.find { 
-                        (BookmarksTable.userId eq userId) and (BookmarksTable.postId eq postId) 
+                        (BookmarksTable.userId eq org.jetbrains.exposed.dao.id.EntityID(userId, com.yusufteker.pulse.server.database.tables.UsersTable)) and (BookmarksTable.postId eq org.jetbrains.exposed.dao.id.EntityID(postId, com.yusufteker.pulse.server.database.tables.PostsTable)) 
                     }.firstOrNull()
 
                     if (existingBookmark != null) {
@@ -171,7 +171,7 @@ fun Route.postRoutes() {
                 }
 
                 val posts = dbQuery {
-                    val bookmarks = BookmarkEntity.find { BookmarksTable.userId eq userId }
+                    val bookmarks = BookmarkEntity.find { BookmarksTable.userId eq org.jetbrains.exposed.dao.id.EntityID(userId, com.yusufteker.pulse.server.database.tables.UsersTable) }
                         .orderBy(BookmarksTable.createdAt to SortOrder.DESC)
                         .toList()
 

@@ -10,6 +10,7 @@ import com.yusufteker.pulse.feature.home.domain.repository.CommentRepository
 import com.yusufteker.pulse.feature.home.data.repository.ProfileRepositoryImpl
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 import com.yusufteker.pulse.feature.home.domain.repository.FeedRepository
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -23,11 +24,13 @@ import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewMode
 import com.yusufteker.pulse.feature.home.data.api.PlanApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.data.repository.PlanRepositoryImpl
+import com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorViewModel
 import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsViewModel
 
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel
 
-import com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskViewModel
+import com.yusufteker.pulse.feature.home.presentation.notes.NotesViewModel
+import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorViewModel
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -56,10 +59,29 @@ val homeModule = module {
     viewModelOf(::SocialViewModel)
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
-    factory { params -> CreatePostViewModel(params.getOrNull(), get()) }
+    factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)
     viewModelOf(::PlanRoomsViewModel)
     viewModelOf(::PlanRoomDetailViewModel)
-    viewModelOf(::CreateTaskViewModel)
+    viewModelOf(::NotesViewModel)
+    viewModel { params -> 
+        TaskEditorViewModel(
+            planRepository = get(),
+            sessionPreferences = get()
+        )
+    }
+    viewModel { params ->
+        NoteEditorViewModel(
+            noteId = params.getOrNull(),
+            planRepository = get(),
+            sessionPreferences = get()
+        )
+    }
+    viewModel { params -> 
+        com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel(
+            planRepository = get(),
+            sessionPreferences = get()
+        )
+    }
 }

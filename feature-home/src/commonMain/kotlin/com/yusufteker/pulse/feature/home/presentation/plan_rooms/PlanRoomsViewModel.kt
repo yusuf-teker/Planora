@@ -143,6 +143,10 @@ class PlanRoomsViewModel(
                         onEvent(PlanRoomsEvent.LoadPendingInvitations)
                         if (event.accept) {
                             onEvent(PlanRoomsEvent.LoadRooms)
+                            // Odaya katıldıktan sonra paylaşılan görevleri de çek
+                            viewModelScope.launch {
+                                planRepository.fetchMyTasks()
+                            }
                         }
                     }.onFailure {
                         setState { copy(isLoading = false) }
@@ -162,6 +166,11 @@ class PlanRoomsViewModel(
             PlanRoomsEvent.OnCreateTaskClick -> {
                 setState { copy(isFabExpanded = false) }
                 setEffect(PlanRoomsEffect.NavigateToCreateTask)
+            }
+            
+            PlanRoomsEvent.OnCreateEventClick -> {
+                setState { copy(isFabExpanded = false) }
+                setEffect(PlanRoomsEffect.NavigateToCreateEvent)
             }
         }
     }

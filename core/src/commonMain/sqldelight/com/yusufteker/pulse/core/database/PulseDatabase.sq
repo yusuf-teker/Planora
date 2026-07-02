@@ -105,7 +105,8 @@ CREATE TABLE planRoomEntity (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
     creatorId INTEGER NOT NULL,
-    createdAt INTEGER NOT NULL
+    createdAt INTEGER NOT NULL,
+    isSynced INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE planRoomMemberEntity (
@@ -132,7 +133,15 @@ CREATE TABLE taskEntity (
     isFlexible INTEGER NOT NULL DEFAULT 0,
     isOptional INTEGER NOT NULL DEFAULT 0,
     isPostponable INTEGER NOT NULL DEFAULT 1,
-    isAllDay INTEGER NOT NULL DEFAULT 0
+    isAllDay INTEGER NOT NULL DEFAULT 0,
+    aiMetadata TEXT,
+    reminders TEXT,
+    specificDetails TEXT,
+    tags TEXT,
+    color TEXT,
+    parentId TEXT,
+    participants TEXT,
+    isSynced INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE taskSharedRoomEntity (
@@ -143,8 +152,8 @@ CREATE TABLE taskSharedRoomEntity (
 
 -- PlanRoom Sorguları
 insertPlanRoom:
-INSERT OR REPLACE INTO planRoomEntity(id, name, creatorId, createdAt)
-VALUES (?, ?, ?, ?);
+INSERT OR REPLACE INTO planRoomEntity(id, name, creatorId, createdAt, isSynced)
+VALUES (?, ?, ?, ?, ?);
 
 getAllPlanRooms:
 SELECT * FROM planRoomEntity;
@@ -187,8 +196,8 @@ DELETE FROM taskSharedRoomEntity WHERE roomId = :roomId;
 -- Task Sorguları
 insertTask:
 INSERT OR REPLACE INTO taskEntity(
-    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable, isAllDay
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable, isAllDay, aiMetadata, reminders, specificDetails, tags, color, parentId, participants, isSynced
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getAllTasks:
 SELECT * FROM taskEntity ORDER BY startTime ASC;
@@ -212,5 +221,11 @@ VALUES (?, ?);
 getSharedRoomsForTask:
 SELECT roomId FROM taskSharedRoomEntity WHERE taskId = :taskId;
 
+getTaskIdsForRoom:
+SELECT taskId FROM taskSharedRoomEntity WHERE roomId = :roomId;
+
 deleteAllTaskSharedRooms:
 DELETE FROM taskSharedRoomEntity;
+
+deleteTasksById:
+DELETE FROM taskEntity WHERE id IN ?;

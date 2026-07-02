@@ -16,6 +16,8 @@ import com.yusufteker.pulse.server.routes.userRoutes
 import com.yusufteker.pulse.server.routes.planRoomRoutes
 import com.yusufteker.pulse.server.routes.taskRoutes
 
+import com.yusufteker.pulse.server.routes.fcmTokenRoutes
+
 /**
  * Main entry point for the Ktor server.
  */
@@ -43,6 +45,9 @@ fun Application.module() {
     // 4. Çağrı loglarını yapılandır (Renkli loglar)
     configureCallLogging()
 
+    // Firebase Init
+    com.yusufteker.pulse.server.service.FcmService.init()
+
     // 5. API rotalarını yönlendir.
     routing {
         authRoutes()
@@ -51,5 +56,6 @@ fun Application.module() {
         userRoutes()
         planRoomRoutes()
         taskRoutes()
+        fcmTokenRoutes()
     }
 }

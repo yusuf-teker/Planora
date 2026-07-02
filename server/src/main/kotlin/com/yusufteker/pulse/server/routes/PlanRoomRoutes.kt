@@ -261,7 +261,19 @@ fun Route.planRoomRoutes() {
                         return@dbQuery false
                     }
                     
-                    // Artık odayı sil. Database'deki CASCADE kuralları sayesinde `plan_room_members` ve `task_shared_rooms` tablosundaki kayıtlar da silinir.
+                    // Odaya bağlı görev ID'lerini bul
+                    val taskIdsInRoom = TaskSharedRoomsTable.selectAll()
+                        .where { TaskSharedRoomsTable.roomId eq roomId }
+                        .map { it[TaskSharedRoomsTable.taskId] }
+                    
+                    // Bu görevleri sil (CASCADE task_shared_rooms ve task_participants'ı da temizler)
+                    if (taskIdsInRoom.isNotEmpty()) {
+                        taskIdsInRoom.forEach { taskId ->
+                            TaskEntity.findById(taskId)?.delete()
+                        }
+                    }
+                    
+                    // Artık odayı sil. CASCADE sayesinde plan_room_members temizlenir.
                     room.delete()
                     true
                 }

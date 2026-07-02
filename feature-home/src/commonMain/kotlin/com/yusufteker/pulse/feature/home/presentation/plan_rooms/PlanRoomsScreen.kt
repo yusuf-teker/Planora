@@ -8,7 +8,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +30,7 @@ fun PlanRoomsScreen(
     onEvent: (PlanRoomsEvent) -> Unit,
     onNavigateToRoomDetail: (String) -> Unit,
     onNavigateToCreateTask: () -> Unit,
+    onNavigateToCreateEvent: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
     LaunchedEffect(effectFlow) {
@@ -36,6 +39,7 @@ fun PlanRoomsScreen(
                 is PlanRoomsEffect.ShowToast -> onShowSnackbar(effect.message)
                 is PlanRoomsEffect.NavigateToRoomDetail -> onNavigateToRoomDetail(effect.roomId)
                 is PlanRoomsEffect.NavigateToCreateTask -> onNavigateToCreateTask()
+                is PlanRoomsEffect.NavigateToCreateEvent -> onNavigateToCreateEvent()
             }
         }
     }
@@ -43,7 +47,14 @@ fun PlanRoomsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Plan Odaları") },
+                title = { 
+                    Text(
+                        text = "Plan Odaları", 
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                    ) 
+                },
                 actions = {
                     BadgedBox(
                         badge = {
@@ -60,7 +71,11 @@ fun PlanRoomsScreen(
                             contentDescription = "Davetler"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         },
         floatingActionButton = {
@@ -70,6 +85,21 @@ fun PlanRoomsScreen(
                         horizontalAlignment = Alignment.End,
                         modifier = Modifier.padding(bottom = 16.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text("Yeni Etkinlik", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                            }
+                            SmallFloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateEventClick) }) {
+                                Icon(Icons.Default.DateRange, contentDescription = "Yeni Etkinlik")
+                            }
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(bottom = 16.dp)
@@ -215,29 +245,44 @@ fun RoomItem(
     room: PlanRoomDto,
     onClick: () -> Unit
 ) {
-    Card(
+    OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = room.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = room.name, 
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${room.members.size} üye",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Detay",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }

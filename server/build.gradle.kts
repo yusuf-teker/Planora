@@ -36,4 +36,9 @@ dependencies {
 
     // Shared module (API Models)
     implementation(project(":shared"))
+
+    // Firebase Admin
+    implementation("com.google.firebase:firebase-admin:9.2.0") {
+        exclude(group = "com.google.guava", module = "listenablefuture")
+    }
 }

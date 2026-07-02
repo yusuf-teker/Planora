@@ -38,4 +38,9 @@ interface AuthRepository {
      * Fetches the user's profile from the server and updates local session.
      */
     suspend fun fetchMyProfile(): Result<Unit>
+
+    /**
+     * Registers the FCM token with the backend.
+     */
+    suspend fun registerFcmToken(token: String): Result<Unit>
 }

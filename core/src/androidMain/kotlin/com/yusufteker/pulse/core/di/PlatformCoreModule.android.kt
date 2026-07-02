@@ -38,5 +38,5 @@ actual val platformCoreModule = module {
         SecureSettings(SharedPreferencesSettings(sharedPreferences))
     }
 
-    single<SqlDriver> { AndroidSqliteDriver(PulseDatabase.Schema, androidContext(), "pulse.db") }
+    single<SqlDriver> { AndroidSqliteDriver(PulseDatabase.Schema, androidContext(), "pulse_v3.db") }
 }

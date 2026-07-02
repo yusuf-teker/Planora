@@ -59,6 +59,24 @@ object TasksTable : IdTable<String>("tasks") {
     
     // Tüm gün etkinliği mi?
     val isAllDay = bool("is_all_day").default(false)
+    
+    // AI tarafından üretilen meta veriler (JSON string)
+    val aiMetadata = text("ai_metadata").nullable()
+    
+    // Bildirim süreleri (JSON list of ints)
+    val reminders = text("reminders").nullable()
+    
+    // Tipe özel veriler (Note, Event, Task) (JSON string for ItemDetails)
+    val specificDetails = text("specific_details").nullable()
+    
+    // Ortak etiketler (JSON list of strings)
+    val tags = text("tags").nullable()
+    
+    // Renk (Örn: #FF0000)
+    val color = varchar("color", 50).nullable()
+    
+    // Üst öğe ID'si (Örn: Bu bir alt görevse, bağlı olduğu Event'in veya Task'ın ID'si)
+    val parentId = varchar("parent_id", 36).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -80,4 +98,11 @@ class TaskEntity(id: EntityID<String>) : org.jetbrains.exposed.dao.Entity<String
     var isOptional by TasksTable.isOptional
     var isPostponable by TasksTable.isPostponable
     var isAllDay by TasksTable.isAllDay
+    
+    var aiMetadata by TasksTable.aiMetadata
+    var reminders by TasksTable.reminders
+    var specificDetails by TasksTable.specificDetails
+    var tags by TasksTable.tags
+    var color by TasksTable.color
+    var parentId by TasksTable.parentId
 }

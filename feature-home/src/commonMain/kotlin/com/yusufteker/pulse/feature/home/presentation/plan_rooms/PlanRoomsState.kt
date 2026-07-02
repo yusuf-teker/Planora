@@ -41,10 +41,12 @@ sealed interface PlanRoomsEvent : UiEvent {
     
     data object ToggleFab : PlanRoomsEvent
     data object OnCreateTaskClick : PlanRoomsEvent
+    data object OnCreateEventClick : PlanRoomsEvent
 }
 
 sealed interface PlanRoomsEffect : UiEffect {
     data class ShowToast(val message: String) : PlanRoomsEffect
     data class NavigateToRoomDetail(val roomId: String) : PlanRoomsEffect
     data object NavigateToCreateTask : PlanRoomsEffect
+    data object NavigateToCreateEvent : PlanRoomsEffect
 }

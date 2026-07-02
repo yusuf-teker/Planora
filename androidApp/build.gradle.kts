@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 kotlin {
@@ -14,6 +16,8 @@ kotlin {
 
 dependencies {
     implementation(projects.composeApp)
+    implementation(projects.core)
+    implementation(projects.featureAuth)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.uiToolingPreview)
@@ -23,6 +27,7 @@ dependencies {
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.napier)
+    implementation("com.google.firebase:firebase-messaging-ktx:24.0.0")
 }
 
 android {

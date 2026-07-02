@@ -36,6 +36,62 @@ enum class RoomMemberRole {
 }
 
 @Serializable
+enum class TaskPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+    URGENT
+}
+
+@Serializable
+enum class RsvpState {
+    ATTENDING,
+    MAYBE,
+    DECLINED,
+    PENDING
+}
+
+@Serializable
+data class SubTask(
+    val id: String,
+    val title: String,
+    val isDone: Boolean
+)
+
+@Serializable
+data class AiMetadata(
+    val summary: String? = null,
+    val extractedActionItems: List<String> = emptyList(),
+    val semanticEmbedding: List<Float> = emptyList(),
+    val autoScheduledConfidence: Float? = null,
+    val sentiment: String? = null
+)
+
+@Serializable
+sealed class ItemDetails {
+    @Serializable
+    data class Note(
+        val content: String = "",
+        val attachments: List<String> = emptyList()
+    ) : ItemDetails()
+
+    @Serializable
+    data class Task(
+        val priority: TaskPriority = TaskPriority.MEDIUM,
+        val subtasks: List<SubTask> = emptyList(),
+        val deadline: Long? = null,
+        val estimatedMinutes: Int? = null
+    ) : ItemDetails()
+
+    @Serializable
+    data class Event(
+        val location: String? = null,
+        val meetingUrl: String? = null,
+        val rsvpStatus: Map<Int, RsvpState> = emptyMap()
+    ) : ItemDetails()
+}
+
+@Serializable
 data class TaskDto(
     val id: String,
     val creatorId: Int,
@@ -52,7 +108,16 @@ data class TaskDto(
     val isFlexible: Boolean = false,
     val isOptional: Boolean = false,
     val isPostponable: Boolean = true,
-    val isAllDay: Boolean = false
+    val isAllDay: Boolean = false,
+    
+    // YENİ EKLENEN ESNEK ALANLAR
+    val parentId: String? = null,
+    val aiMetadata: AiMetadata? = null,
+    val reminders: List<Int> = emptyList(),
+    val specificDetails: ItemDetails? = null,
+    val tags: List<String> = emptyList(),
+    val color: String? = null,
+    val participants: Map<Int, String> = emptyMap()
 )
 
 @Serializable
@@ -108,5 +173,14 @@ data class CreateTaskRequest(
     val isFlexible: Boolean = false,
     val isOptional: Boolean = false,
     val isPostponable: Boolean = true,
-    val isAllDay: Boolean = false
+    val isAllDay: Boolean = false,
+    
+    // YENİ EKLENEN ESNEK ALANLAR
+    val parentId: String? = null,
+    val aiMetadata: AiMetadata? = null,
+    val reminders: List<Int> = emptyList(),
+    val specificDetails: ItemDetails? = null,
+    val tags: List<String> = emptyList(),
+    val color: String? = null,
+    val participants: Map<Int, String> = emptyMap()
 )

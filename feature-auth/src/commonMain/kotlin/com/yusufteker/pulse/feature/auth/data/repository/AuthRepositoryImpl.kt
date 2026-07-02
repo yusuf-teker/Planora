@@ -37,6 +37,18 @@ class AuthRepositoryImpl(
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
             Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}'" })
+            
+            val fcmToken = sessionPreferences.getFcmToken()
+            if (fcmToken != null) {
+                try {
+                    httpClient.post("fcm/register") {
+                        setBody(com.yusufteker.pulse.shared.api.RegisterFcmTokenRequest(fcmToken, "android"))
+                    }
+                } catch (e: Exception) {
+                    Napier.e("Failed to register FCM token after login", e)
+                }
+            }
+            
             Result.success(response)
         } catch (e: Exception) {
             // Ağ hatası, yanlış şifre (401) veya sunucu kapalıysa (500) hata olarak döner.
@@ -52,6 +64,18 @@ class AuthRepositoryImpl(
             pulseDatabase.pulseDatabaseQueries.clearAll()
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
+            
+            val fcmToken = sessionPreferences.getFcmToken()
+            if (fcmToken != null) {
+                try {
+                    httpClient.post("fcm/register") {
+                        setBody(com.yusufteker.pulse.shared.api.RegisterFcmTokenRequest(fcmToken, "android"))
+                    }
+                } catch (e: Exception) {
+                    Napier.e("Failed to register FCM token after register", e)
+                }
+            }
+            
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
@@ -87,6 +111,17 @@ class AuthRepositoryImpl(
         return try {
             val profile = httpClient.get("auth/me").body<com.yusufteker.pulse.shared.api.UserProfileResponse>()
             sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.followersCount, profile.followingCount)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun registerFcmToken(token: String): Result<Unit> {
+        return try {
+            httpClient.post("fcm/register") {
+                setBody(com.yusufteker.pulse.shared.api.RegisterFcmTokenRequest(token, "android"))
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

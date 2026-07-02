@@ -13,8 +13,8 @@ class LogoutUseCase(
     suspend operator fun invoke() {
         withContext(Dispatchers.IO) {
             authRepository.logout()
-            // We NO LONGER clear local data on logout.
-            // Data is scoped to ownerId, allowing for offline access and multi-tenant support.
+            // Güvenlik: Başka hesaba geçildiğinde verilerin karışmaması için yerel DB'yi temizliyoruz
+            pulseDatabase.pulseDatabaseQueries.clearAll()
         }
     }
 }

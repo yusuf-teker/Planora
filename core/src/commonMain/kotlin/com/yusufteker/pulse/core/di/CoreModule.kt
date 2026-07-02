@@ -8,6 +8,8 @@ import app.cash.sqldelight.db.SqlDriver
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
+import com.yusufteker.pulse.core.analytics.AnalyticsManager
+
 /**
  * Koin module for core dependencies.
  *
@@ -30,4 +32,11 @@ val coreModule = module {
     single<com.yusufteker.pulse.core.snackbar.SnackbarManager> { 
         com.yusufteker.pulse.core.snackbar.DefaultSnackbarManager() 
     }
+
+    // FCM Api
+    single { com.yusufteker.pulse.core.data.api.FcmApi(get()) }
+    single { com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase(get()) }
+
+    // Analytics
+    singleOf(::AnalyticsManager)
 }

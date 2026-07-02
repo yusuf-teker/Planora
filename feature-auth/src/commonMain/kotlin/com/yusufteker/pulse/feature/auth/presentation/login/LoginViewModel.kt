@@ -9,11 +9,14 @@ import pulse.core.generated.resources.error_email_required
 import pulse.core.generated.resources.error_login_failed
 import pulse.core.generated.resources.error_password_required
 
+import com.yusufteker.pulse.core.analytics.AnalyticsManager
+
 /**
  * ViewModel for the Login screen.
  */
 class LoginViewModel(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    private val analyticsManager: AnalyticsManager
 ) : BaseViewModel<LoginState, LoginEvent, LoginEffect>(
     initialState = LoginState()
 ) {
@@ -47,10 +50,13 @@ class LoginViewModel(
                         result.fold(
                             onSuccess = {
                                 // Başarılıysa doğrudan ana sayfaya yönlendir
+                                analyticsManager.logEvent("login_success", mapOf("method" to "email"))
                                 setEffect(LoginEffect.NavigateToHome)
                             },
                             onFailure = { error ->
                                 // Hata durumunda UI'da hatayı göster
+                                analyticsManager.logEvent("login_failure", mapOf("reason" to (error.message ?: "Unknown")))
+                                analyticsManager.logException(error)
                                 setState { copy(identifierError = UiText.StringResourceId(Res.string.error_login_failed, error.message ?: "Unknown")) }
                             }
                         )

@@ -126,3 +126,11 @@ temp/
 composeApp/build/
 shared/build/
 iosApp/build/
+
+###############################################
+# FIREBASE
+###############################################
+google-services.json
+# Firebase
+firebase-service-account.json
+GoogleService-Info.plist

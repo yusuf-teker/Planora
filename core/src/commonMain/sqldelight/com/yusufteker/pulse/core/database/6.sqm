@@ -1,0 +1,5 @@
+ALTER TABLE taskEntity ADD COLUMN aiMetadata TEXT;
+ALTER TABLE taskEntity ADD COLUMN reminders TEXT;
+ALTER TABLE taskEntity ADD COLUMN specificDetails TEXT;
+ALTER TABLE taskEntity ADD COLUMN tags TEXT;
+ALTER TABLE taskEntity ADD COLUMN color TEXT;

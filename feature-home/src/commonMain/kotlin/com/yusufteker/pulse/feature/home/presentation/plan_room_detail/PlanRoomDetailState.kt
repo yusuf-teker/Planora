@@ -1,16 +1,6 @@
 package com.yusufteker.pulse.feature.home.presentation.plan_room_detail
 
-import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.UserProfileResponse
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-
-enum class PlanRoomViewMode {
-    CALENDAR,
-    FEED
-}
 
 data class PlanRoomDetailState(
     val roomId: String = "",
@@ -29,16 +19,6 @@ data class PlanRoomDetailState(
     val renameRoomName: String = "",
     val isRoomCreator: Boolean = false,
     
-    // Calendar & Tasks State
-    val viewMode: PlanRoomViewMode = PlanRoomViewMode.CALENDAR,
-    val tasks: List<TaskDto> = emptyList(),
-    val memberProfiles: Map<Int, UserProfileResponse> = emptyMap(),
-    val currentMonth: LocalDate = getTodayDate(),
-    val selectedDate: LocalDate? = null
+    // Room Members State
+    val memberProfiles: Map<Int, UserProfileResponse> = emptyMap()
 )
-
-private fun getTodayDate(): LocalDate {
-    val millis = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-    return kotlinx.datetime.Instant.fromEpochMilliseconds(millis)
-        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-}

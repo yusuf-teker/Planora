@@ -1,0 +1,5 @@
+ALTER TABLE tasks ADD COLUMN ai_metadata TEXT;
+ALTER TABLE tasks ADD COLUMN reminders TEXT;
+ALTER TABLE tasks ADD COLUMN specific_details TEXT;
+ALTER TABLE tasks ADD COLUMN tags TEXT;
+ALTER TABLE tasks ADD COLUMN color TEXT;

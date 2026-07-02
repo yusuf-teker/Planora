@@ -24,6 +24,16 @@ class PlanApi(private val httpClient: HttpClient) {
         }.body()
     }
 
+    suspend fun updateTask(taskId: String, request: CreateTaskRequest) {
+        httpClient.put("tasks/$taskId") {
+            setBody(request)
+        }
+    }
+
+    suspend fun deleteTask(taskId: String) {
+        httpClient.delete("tasks/$taskId")
+    }
+
     suspend fun getMyTasks(fromTime: Long? = null, toTime: Long? = null): List<TaskDto> {
         return httpClient.get("tasks") {
             url {

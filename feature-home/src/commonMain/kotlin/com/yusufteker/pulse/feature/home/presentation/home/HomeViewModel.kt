@@ -2,15 +2,37 @@ package com.yusufteker.pulse.feature.home.presentation.home
 
 import com.yusufteker.pulse.core.base.BaseViewModel
 
+import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+
 /**
- * ViewModel for the Home screen.
+ * ViewModel for the Home (Dashboard) screen.
  *
  * Manages home feed state and navigation.
- * Feed loading will be added in future phases.
  */
-class HomeViewModel : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
+class HomeViewModel(
+    private val planRepository: PlanRepository,
+    private val profileRepository: com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     initialState = HomeState()
 ) {
+
+    init {
+        launch {
+            planRepository.observeAllTasks().collect { tasks ->
+                val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
+                setState { copy(upcomingTasks = filteredTasks) }
+            }
+        }
+            
+        // Trigger a background fetch
+        launch {
+            // we should fetch today's tasks
+            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+            planRepository.fetchMyTasks(fromTime = now, toTime = now + 86400000L * 7) // Next 7 days
+        }
+    }
 
     override fun onEvent(event: HomeEvent) {
         when (event) {
@@ -23,12 +45,59 @@ class HomeViewModel : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
             }
 
             is HomeEvent.RefreshRequested -> {
-                // TODO: Refresh feed from repository
                 setState { copy(isLoading = true) }
                 launch {
-                    // Simulate loading
-                    kotlinx.coroutines.delay(1000)
+                    val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                    planRepository.fetchMyTasks(fromTime = now, toTime = now + 86400000L * 7)
                     setState { copy(isLoading = false) }
+                }
+            }
+            
+            is HomeEvent.SmartInputChanged -> {
+                setState { copy(smartInputText = event.text) }
+            }
+            
+            is HomeEvent.SubmitSmartInput -> {
+                val text = state.value.smartInputText
+                if (text.isNotBlank()) {
+                    setState { copy(isLoading = true, smartInputText = "") }
+                    launch {
+                        // AI Simulation: Check if any follower's name is in the text
+                        val followers = profileRepository.getFollowingUsers().getOrNull() ?: emptyList()
+                        val mentionedUser = followers.find { text.contains(it.username, ignoreCase = true) }
+                        
+                        val participantsMap = if (mentionedUser != null) {
+                            mapOf(mentionedUser.id to "PENDING")
+                        } else {
+                            emptyMap()
+                        }
+                        
+                        val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+                            title = if (mentionedUser != null) "AI Gen: Event with ${mentionedUser.username}" else "AI Gen: ${text.take(15)}...",
+                            description = text,
+                            startTime = com.yusufteker.pulse.core.utils.getCurrentTimeMs(),
+                            type = if (mentionedUser != null) com.yusufteker.pulse.shared.api.TaskType.EVENT else com.yusufteker.pulse.shared.api.TaskType.NOTE,
+                            specificDetails = com.yusufteker.pulse.shared.api.ItemDetails.Event(),
+                            participants = participantsMap
+                        )
+                        planRepository.createTask(request)
+                        setState { copy(isLoading = false) }
+                    }
+                }
+            }
+            is HomeEvent.CreateTaskClicked -> {
+                setEffect(HomeEffect.NavigateToCreateTask)
+            }
+            
+            is HomeEvent.CreateEventClicked -> {
+                setEffect(HomeEffect.NavigateToCreateEvent)
+            }
+            
+            is HomeEvent.TimelineItemClicked -> {
+                when (event.task.type) {
+                    com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(HomeEffect.NavigateToTaskEditor(event.task.id))
+                    com.yusufteker.pulse.shared.api.TaskType.EVENT -> setEffect(HomeEffect.NavigateToEventDetail(event.task.id))
+                    com.yusufteker.pulse.shared.api.TaskType.NOTE -> setEffect(HomeEffect.NavigateToNoteEditor(event.task.id))
                 }
             }
         }

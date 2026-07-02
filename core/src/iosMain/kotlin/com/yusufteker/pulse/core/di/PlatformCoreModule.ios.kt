@@ -36,5 +36,5 @@ actual val platformCoreModule = module {
         SecureSettings(KeychainSettings(service = "PulseSecureStore"))
     }
 
-    single<SqlDriver> { NativeSqliteDriver(PulseDatabase.Schema, "pulse.db") }
+    single<SqlDriver> { NativeSqliteDriver(PulseDatabase.Schema, "pulse_v3.db") }
 }

@@ -13,6 +13,10 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,9 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.CalendarComponent
-import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
-import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.TaskTimelineComponent
+import com.yusufteker.pulse.shared.api.UserProfileResponse
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanRoomDetailScreen(
@@ -60,13 +63,16 @@ fun PlanRoomDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRefreshClick) }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Yenile")
+                    }
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnInviteUserClick) }) {
                         Icon(Icons.Default.PersonAdd, contentDescription = "Kişi Davet Et")
                     }
                     if (state.isRoomCreator) {
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "Daha Fazla")
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
                         }
                         DropdownMenu(
                             expanded = showMenu,
@@ -108,53 +114,58 @@ fun PlanRoomDetailScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().padding(16.dp)
                 ) {
-                    // View Mode Toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        SingleChoiceSegmentedButtonRow {
-                            SegmentedButton(
-                                selected = state.viewMode == PlanRoomViewMode.CALENDAR,
-                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnViewModeChange(PlanRoomViewMode.CALENDAR)) },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                            ) { Text("Takvim") }
-                            SegmentedButton(
-                                selected = state.viewMode == PlanRoomViewMode.FEED,
-                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnViewModeChange(PlanRoomViewMode.FEED)) },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                            ) { Text("Akış") }
-                        }
-                    }
-
-                    if (state.viewMode == PlanRoomViewMode.CALENDAR) {
-                        CalendarComponent(
-                            currentMonth = state.currentMonth,
-                            selectedDate = state.selectedDate,
-                            tasks = state.tasks,
-                            memberProfiles = state.memberProfiles,
-                            onDateSelected = { viewModel.onEvent(PlanRoomDetailEvent.OnDateSelected(it)) },
-                            onPreviousMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnPreviousMonth) },
-                            onNextMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnNextMonth) }
+                    Text(
+                        text = "Oda Üyeleri",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    if (state.memberProfiles.isEmpty()) {
+                        Text(
+                            text = "Bu odada henüz üye bulunmuyor.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        
-                        Box(modifier = Modifier.weight(1f)) {
-                            TaskTimelineComponent(
-                                selectedDate = state.selectedDate,
-                                tasks = state.tasks,
-                                memberProfiles = state.memberProfiles
-                            )
-                        }
                     } else {
-                        Box(modifier = Modifier.weight(1f)) {
-                            FeedTimelineComponent(
-                                tasks = state.tasks,
-                                memberProfiles = state.memberProfiles
-                            )
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(state.memberProfiles.values.toList()) { user ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = user.name.take(1).uppercase(),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    
+                                    Column {
+                                        Text(
+                                            text = user.name,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = "@${user.username}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

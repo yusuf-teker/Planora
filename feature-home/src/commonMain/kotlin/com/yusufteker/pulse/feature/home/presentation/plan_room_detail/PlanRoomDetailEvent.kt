@@ -10,12 +10,8 @@ sealed interface PlanRoomDetailEvent {
     data class OnSearchQueryChange(val query: String) : PlanRoomDetailEvent
     data class OnUserSelectToInvite(val userId: Int) : PlanRoomDetailEvent
     
-    // Calendar Events
-    data class OnDateSelected(val date: LocalDate) : PlanRoomDetailEvent
-    object OnPreviousMonth : PlanRoomDetailEvent
-    object OnNextMonth : PlanRoomDetailEvent
-    data class OnViewModeChange(val mode: PlanRoomViewMode) : PlanRoomDetailEvent
-    
+    object OnRefreshClick : PlanRoomDetailEvent
+
     // Rename & Delete Room Events
     object OnEditRoomClick : PlanRoomDetailEvent
     object OnDismissRenameDialog : PlanRoomDetailEvent

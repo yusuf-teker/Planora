@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface PlanRepository {
     // --- TASKS ---
     suspend fun createTask(request: CreateTaskRequest): Result<TaskDto>
+    suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit>
+    suspend fun deleteTask(taskId: String): Result<Unit>
+    
     suspend fun fetchMyTasks(fromTime: Long? = null, toTime: Long? = null): Result<Unit>
     suspend fun fetchRoomTasks(roomId: String, fromTime: Long? = null, toTime: Long? = null): Result<Unit>
     

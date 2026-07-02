@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.yusufteker.pulse.core.navigation.LocalNavigator
@@ -29,6 +30,9 @@ import com.yusufteker.pulse.feature.home.presentation.create_post.CreatePostView
 import com.yusufteker.pulse.feature.home.presentation.main.MainScreen
 import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersScreen
 import com.yusufteker.pulse.feature.home.presentation.search.SearchUsersViewModel
+import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorEvent
+import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorScreen
+import com.yusufteker.pulse.feature.home.presentation.task_editor.TaskEditorViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -69,9 +73,15 @@ fun App() {
         androidx.compose.runtime.LaunchedEffect(navigator.backStack.lastOrNull()) {
             val currentScreen = navigator.backStack.lastOrNull()
             if (currentScreen != null) {
-                // Get the simple class name
                 var screenName = currentScreen::class.simpleName ?: "UnknownScreen"
                 println("SCREEN: $screenName açıldı")
+            }
+        }
+
+        val registerFcmTokenUseCase = koinInject<com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase>()
+        androidx.compose.runtime.LaunchedEffect(userId) {
+            if (userId != null) {
+                registerFcmTokenUseCase()
             }
         }
 
@@ -160,15 +170,49 @@ fun App() {
                             onNavigateBack = { navigator.pop() }
                         )
                     }
-                    
-                    entry<Screen.CreatePlanTask> {
-                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskViewModel>(key = vmKey)
-                        com.yusufteker.pulse.feature.home.presentation.create_task.CreateTaskScreen(
+
+
+                    entry<Screen.TaskEditor> { screen ->
+                        val viewModel = koinViewModel<TaskEditorViewModel>(
+                            key = "task_editor_${screen.taskId}_${screen.planRoomId}"
+                        )
+                        LaunchedEffect(screen.taskId, screen.planRoomId) {
+                            viewModel.onEvent(TaskEditorEvent.OnLoadTask(screen.taskId, screen.planRoomId))
+                        }
+                        TaskEditorScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() }
                         )
                     }
-                }
+
+                    entry<Screen.NoteEditor> { screen ->
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorViewModel>(
+                            key = screen.noteId ?: "new_note",
+                            parameters = { org.koin.core.parameter.parametersOf(screen.noteId) }
+                        )
+                        androidx.compose.runtime.LaunchedEffect(screen) {
+                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorEvent.OnLoadNote(screen.noteId))
+                        }
+                        com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
+
+                    entry<Screen.EventDetail> { screen ->
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel>(
+                            key = screen.eventId ?: "new_event",
+                            parameters = { org.koin.core.parameter.parametersOf(screen.eventId) }
+                        )
+                        androidx.compose.runtime.LaunchedEffect(screen) {
+                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailEvent.OnLoadEvent(screen.eventId, screen.planRoomId))
+                        }
+                        com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
+                } // closes entryProvider
             )
             } // Close Scaffold
         }
