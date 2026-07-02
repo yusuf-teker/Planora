@@ -1,0 +1,7 @@
+CREATE TABLE fcm_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(512) NOT NULL UNIQUE,
+    platform VARCHAR(50) NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
