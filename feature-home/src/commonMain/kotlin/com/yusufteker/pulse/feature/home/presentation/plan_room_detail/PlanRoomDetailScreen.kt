@@ -36,7 +36,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-
+import androidx.compose.foundation.lazy.LazyRow
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -182,7 +183,7 @@ fun PlanRoomDetailScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     } else {
-                        androidx.compose.foundation.lazy.LazyRow(
+                        LazyRow(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
@@ -243,7 +244,7 @@ fun PlanRoomDetailScreen(
                         }
                     } else {
                         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                            com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent(
+                            FeedTimelineComponent(
                                 tasks = state.roomTasks,
                                 memberProfiles = state.memberProfiles
                             )

@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
@@ -62,6 +65,7 @@ import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
 import com.yusufteker.pulse.core.utils.isToday
 import com.yusufteker.pulse.core.utils.isTomorrow
+import com.yusufteker.pulse.core.utils.rotateVertically
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskType
 import androidx.compose.animation.AnimatedVisibility
@@ -74,7 +78,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-
 
 /**
  * Home screen composable.
@@ -370,14 +373,24 @@ private fun TimelineTaskCard(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Vertical line indicator
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(40.dp)
-                .clip(RoundedCornerShape(percent = 50))
-                .background(typeColor.copy(alpha = 0.8f))
-        )
+        Row (verticalAlignment = Alignment.CenterVertically){
+            Text(
+                modifier = Modifier.rotateVertically(),
+                text = task.type.name,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = typeColor
+            )
+            // Vertical line indicator
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(typeColor.copy(alpha = 0.8f))
+            )
+        }
+
 
         Spacer(modifier = Modifier.width(16.dp))
 
@@ -406,14 +419,49 @@ private fun TimelineTaskCard(
             }
 
             // Footer (Participant count if any)
-            if (task.participants.isNotEmpty()) {
+            val participantsList = task.participants.values.toList()
+            if (participantsList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "\uD83D\uDC65 ${task.participants.size} katılımcı",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
+                Box(modifier = Modifier.height(24.dp).padding(top = 4.dp)) {
+                    participantsList.take(4).forEachIndexed { index, name ->
+                        val initialName = name.take(1).uppercase()
+                        Box(
+                            modifier = Modifier
+                                .offset(x = (index * 16).dp)
+                                .zIndex((4 - index).toFloat())
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = initialName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    if (participantsList.size > 4) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = (4 * 16).dp)
+                                .zIndex(0f)
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.secondary)
+                                .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "+${participantsList.size - 4}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
