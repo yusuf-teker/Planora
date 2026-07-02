@@ -4,10 +4,10 @@ import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.core.ui.text.UiText
 import com.yusufteker.pulse.feature.auth.domain.usecase.LoginUseCase
 import com.yusufteker.pulse.shared.api.AuthRequest
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.error_email_required
-import pulse.core.generated.resources.error_login_failed
-import pulse.core.generated.resources.error_password_required
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.error_email_required
+import pulsy.core.generated.resources.error_login_failed
+import pulsy.core.generated.resources.error_password_required
 
 import com.yusufteker.pulse.core.analytics.AnalyticsManager
 

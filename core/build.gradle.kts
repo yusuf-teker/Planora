@@ -108,7 +108,7 @@ compose.resources {
 
 sqldelight {
     databases {
-        create("PulseDatabase") {
+        create("PulsyDatabase") {
             packageName.set("com.yusufteker.pulse.core.database")
         }
     }

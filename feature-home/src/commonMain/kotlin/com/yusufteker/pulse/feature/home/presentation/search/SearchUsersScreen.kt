@@ -24,8 +24,8 @@ import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.ui.components.AvatarImage
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.*
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchUsersScreen(

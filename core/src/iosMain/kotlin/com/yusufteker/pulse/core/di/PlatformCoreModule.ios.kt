@@ -5,7 +5,7 @@ import com.yusufteker.pulse.core.preferences.SecureSettings
 import com.yusufteker.pulse.core.preferences.createDataStore
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
@@ -33,8 +33,8 @@ actual val platformCoreModule = module {
 
     single {
         // KeychainSettings uses iOS Keychain for secure storage
-        SecureSettings(KeychainSettings(service = "PulseSecureStore"))
+        SecureSettings(KeychainSettings(service = "PulsySecureStore"))
     }
 
-    single<SqlDriver> { NativeSqliteDriver(PulseDatabase.Schema, "pulse_v3.db") }
+    single<SqlDriver> { NativeSqliteDriver(PulsyDatabase.Schema, "pulsy_v3.db") }
 }

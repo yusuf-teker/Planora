@@ -1,4 +1,4 @@
-rootProject.name = "Pulse"
+rootProject.name = "Pulsy"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

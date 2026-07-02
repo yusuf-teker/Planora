@@ -9,16 +9,16 @@ import com.yusufteker.pulse.shared.api.CreatePlanRoomRequest
 import com.yusufteker.pulse.shared.api.InviteUserRequest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.error_create_room_failed
-import pulse.core.generated.resources.error_invalid_user_id
-import pulse.core.generated.resources.error_operation_failed
-import pulse.core.generated.resources.error_room_name_empty
-import pulse.core.generated.resources.error_send_invitation_failed
-import pulse.core.generated.resources.invitation_declined
-import pulse.core.generated.resources.invitation_sent_success
-import pulse.core.generated.resources.room_created_success
-import pulse.core.generated.resources.room_joined_success
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.error_create_room_failed
+import pulsy.core.generated.resources.error_invalid_user_id
+import pulsy.core.generated.resources.error_operation_failed
+import pulsy.core.generated.resources.error_room_name_empty
+import pulsy.core.generated.resources.error_send_invitation_failed
+import pulsy.core.generated.resources.invitation_declined
+import pulsy.core.generated.resources.invitation_sent_success
+import pulsy.core.generated.resources.room_created_success
+import pulsy.core.generated.resources.room_joined_success
 
 class PlanRoomsViewModel(
     private val planRepository: PlanRepository,

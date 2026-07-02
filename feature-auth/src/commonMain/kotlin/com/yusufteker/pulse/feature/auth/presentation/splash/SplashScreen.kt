@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * Splash screen composable.
  *
- * Displays the Pulse brand with a scale + fade animation,
+ * Displays the Pulsy brand with a scale + fade animation,
  * then navigates to the next screen.
  */
 

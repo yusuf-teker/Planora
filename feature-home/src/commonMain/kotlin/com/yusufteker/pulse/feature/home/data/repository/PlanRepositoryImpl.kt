@@ -2,7 +2,7 @@ package com.yusufteker.pulse.feature.home.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.utils.generateUUID
 import com.yusufteker.pulse.feature.home.data.api.PlanApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
-    private val database: PulseDatabase,
+    private val database: PulsyDatabase,
     private val scope: CoroutineScope
 ) : PlanRepository {
 
@@ -60,8 +60,8 @@ class PlanRepositoryImpl(
                 participants = request.participants
             )
 
-            database.pulseDatabaseQueries.transaction {
-                database.pulseDatabaseQueries.insertTask(
+            database.pulsyDatabaseQueries.transaction {
+                database.pulsyDatabaseQueries.insertTask(
                     id = localDto.id,
                     creatorId = localDto.creatorId.toLong(),
                     title = localDto.title,
@@ -88,7 +88,7 @@ class PlanRepositoryImpl(
                 )
                 
                 localDto.sharedRoomIds.forEach { roomId ->
-                    database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = localDto.id, roomId = roomId)
+                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = localDto.id, roomId = roomId)
                 }
             }
 
@@ -96,11 +96,11 @@ class PlanRepositoryImpl(
             scope.launch(Dispatchers.IO) {
                 try {
                     val remoteTask = planApi.createTask(request)
-                    database.pulseDatabaseQueries.transaction {
+                    database.pulsyDatabaseQueries.transaction {
                         // Geçici görevi sil
-                        database.pulseDatabaseQueries.deleteTaskById(localId)
+                        database.pulsyDatabaseQueries.deleteTaskById(localId)
                         // Gerçek görevi kaydet
-                        database.pulseDatabaseQueries.insertTask(
+                        database.pulsyDatabaseQueries.insertTask(
                             id = remoteTask.id,
                             creatorId = remoteTask.creatorId.toLong(),
                             title = remoteTask.title,
@@ -126,7 +126,7 @@ class PlanRepositoryImpl(
                             isSynced = 1L
                         )
                         remoteTask.sharedRoomIds.forEach { roomId ->
-                            database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
+                            database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
                         }
                     }
                 } catch (e: Exception) {
@@ -143,8 +143,8 @@ class PlanRepositoryImpl(
 
     override suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit> {
         return try {
-            database.pulseDatabaseQueries.transaction {
-                database.pulseDatabaseQueries.insertTask(
+            database.pulsyDatabaseQueries.transaction {
+                database.pulsyDatabaseQueries.insertTask(
                     id = taskId,
                     creatorId = 0, // Geçici, sunucudan gelince güncellenir
                     title = request.title,
@@ -171,9 +171,9 @@ class PlanRepositoryImpl(
                 )
                 
                 // Odaları güncelle: Önce eskileri sil, sonra yenileri ekle
-                // database.pulseDatabaseQueries.deleteTaskSharedRoomsForTask(taskId) // This query doesn't exist, ignoring for now as it's an edge case
+                // database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(taskId) // This query doesn't exist, ignoring for now as it's an edge case
                 request.sharedRoomIds.forEach { roomId ->
-                    database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = taskId, roomId = roomId)
+                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = taskId, roomId = roomId)
                 }
             }
 
@@ -181,10 +181,10 @@ class PlanRepositoryImpl(
             scope.launch(Dispatchers.IO) {
                 try {
                     planApi.updateTask(taskId, request)
-                    database.pulseDatabaseQueries.transaction {
+                    database.pulsyDatabaseQueries.transaction {
                         // isSynced = 1 yapmak için bir query eklemek gerek,
                         // Şimdilik yeniden insertTask yapıyoruz.
-                        database.pulseDatabaseQueries.insertTask(
+                        database.pulsyDatabaseQueries.insertTask(
                             id = taskId,
                             creatorId = 0,
                             title = request.title,
@@ -223,8 +223,8 @@ class PlanRepositoryImpl(
     override suspend fun deleteTask(taskId: String): Result<Unit> {
         return try {
             // Veritabanından sil
-            database.pulseDatabaseQueries.transaction {
-                database.pulseDatabaseQueries.deleteTaskById(taskId)
+            database.pulsyDatabaseQueries.transaction {
+                database.pulsyDatabaseQueries.deleteTaskById(taskId)
             }
 
             // Arka planda sunucudan sil
@@ -246,9 +246,9 @@ class PlanRepositoryImpl(
             val tasks = planApi.getMyTasks(fromTime, toTime)
             
             // Veritabanını güncelle
-            database.pulseDatabaseQueries.transaction {
+            database.pulsyDatabaseQueries.transaction {
                 tasks.forEach { task ->
-                    database.pulseDatabaseQueries.insertTask(
+                    database.pulsyDatabaseQueries.insertTask(
                         id = task.id,
                         creatorId = task.creatorId.toLong(),
                         title = task.title,
@@ -273,7 +273,7 @@ class PlanRepositoryImpl(
                         isSynced = 1L
                     )
                     task.sharedRoomIds.forEach { roomId ->
-                        database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
+                        database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
                     }
                 }
             }
@@ -286,9 +286,9 @@ class PlanRepositoryImpl(
     override suspend fun fetchRoomTasks(roomId: String, fromTime: Long?, toTime: Long?): Result<Unit> {
         return try {
             val tasks = planApi.getRoomTasks(roomId, fromTime, toTime)
-            database.pulseDatabaseQueries.transaction {
+            database.pulsyDatabaseQueries.transaction {
                 tasks.forEach { task ->
-                    database.pulseDatabaseQueries.insertTask(
+                    database.pulsyDatabaseQueries.insertTask(
                         id = task.id,
                         creatorId = task.creatorId.toLong(),
                         title = task.title,
@@ -313,10 +313,10 @@ class PlanRepositoryImpl(
                         isSynced = 1L
                     )
                     task.sharedRoomIds.forEach { room ->
-                        database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = room)
+                        database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = room)
                     }
                     // Explicitly add the room we fetched it from, in case the API omits sharedRoomIds
-                    database.pulseDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
+                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
                 }
             }
             Result.success(Unit)
@@ -326,13 +326,13 @@ class PlanRepositoryImpl(
     }
 
     override fun observeAllTasks(): Flow<List<TaskDto>> {
-        return database.pulseDatabaseQueries.getAllTasks()
+        return database.pulsyDatabaseQueries.getAllTasks()
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { entities ->
                 entities.mapNotNull { entity ->
                     try {
-                        val sharedRooms = database.pulseDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
+                        val sharedRooms = database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
                         TaskDto(
                             id = entity.id,
                             creatorId = entity.creatorId.toInt(),
@@ -370,27 +370,27 @@ class PlanRepositoryImpl(
     override suspend fun fetchMyRooms(): Result<Unit> {
         return try {
             val rooms = planApi.getMyRooms()
-            database.pulseDatabaseQueries.transaction {
+            database.pulsyDatabaseQueries.transaction {
                 val remoteRoomIds = rooms.map { it.id }.toSet()
-                val localRooms = database.pulseDatabaseQueries.getAllPlanRooms().executeAsList()
+                val localRooms = database.pulsyDatabaseQueries.getAllPlanRooms().executeAsList()
                 
                 localRooms.forEach { localRoom ->
                     if (!remoteRoomIds.contains(localRoom.id) && localRoom.isSynced == 1L) {
                         // Eğer lokaldeki oda sunucudan gelenler listesinde yoksa silinmiştir.
                         // Sadece sunucu ile senkronize olmuş (isSynced == 1L) odaları sileriz.
-                        val taskIds = database.pulseDatabaseQueries.getTaskIdsForRoom(localRoom.id).executeAsList()
-                        database.pulseDatabaseQueries.deleteTaskSharedRoomsForRoom(localRoom.id)
+                        val taskIds = database.pulsyDatabaseQueries.getTaskIdsForRoom(localRoom.id).executeAsList()
+                        database.pulsyDatabaseQueries.deleteTaskSharedRoomsForRoom(localRoom.id)
                         if (taskIds.isNotEmpty()) {
-                            database.pulseDatabaseQueries.deleteTasksById(taskIds)
+                            database.pulsyDatabaseQueries.deleteTasksById(taskIds)
                         }
-                        database.pulseDatabaseQueries.deleteMembersForRoom(localRoom.id)
-                        database.pulseDatabaseQueries.deletePlanRoom(localRoom.id)
+                        database.pulsyDatabaseQueries.deleteMembersForRoom(localRoom.id)
+                        database.pulsyDatabaseQueries.deletePlanRoom(localRoom.id)
                     }
                 }
 
                 // Sunucudan gelen odaları (ve üyeleri) ekle/güncelle
                 rooms.forEach { room ->
-                    database.pulseDatabaseQueries.insertPlanRoom(
+                    database.pulsyDatabaseQueries.insertPlanRoom(
                         id = room.id,
                         name = room.name,
                         creatorId = room.creatorId.toLong(),
@@ -399,7 +399,7 @@ class PlanRepositoryImpl(
                     )
                     
                     room.members.forEach { member ->
-                        database.pulseDatabaseQueries.insertPlanRoomMember(
+                        database.pulsyDatabaseQueries.insertPlanRoomMember(
                             roomId = member.roomId,
                             userId = member.userId.toLong(),
                             status = member.status.name,
@@ -418,8 +418,8 @@ class PlanRepositoryImpl(
     override suspend fun createPlanRoom(request: CreatePlanRoomRequest): Result<PlanRoomDto> {
         return try {
             val room = planApi.createPlanRoom(request)
-            database.pulseDatabaseQueries.transaction {
-                database.pulseDatabaseQueries.insertPlanRoom(
+            database.pulsyDatabaseQueries.transaction {
+                database.pulsyDatabaseQueries.insertPlanRoom(
                     id = room.id,
                     name = room.name,
                     creatorId = room.creatorId.toLong(),
@@ -427,7 +427,7 @@ class PlanRepositoryImpl(
                     isSynced = 1L // API başarılı döndü
                 )
                 room.members.forEach { member ->
-                    database.pulseDatabaseQueries.insertPlanRoomMember(
+                    database.pulsyDatabaseQueries.insertPlanRoomMember(
                         roomId = member.roomId,
                         userId = member.userId.toLong(),
                         status = member.status.name,
@@ -471,7 +471,7 @@ class PlanRepositoryImpl(
     override suspend fun renameRoom(roomId: String, name: String): Result<Unit> {
         return try {
             planApi.renameRoom(roomId, com.yusufteker.pulse.shared.api.RenamePlanRoomRequest(name))
-            database.pulseDatabaseQueries.updatePlanRoomName(name, roomId)
+            database.pulsyDatabaseQueries.updatePlanRoomName(name, roomId)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -481,17 +481,17 @@ class PlanRepositoryImpl(
     override suspend fun deleteRoom(roomId: String): Result<Unit> {
         return try {
             planApi.deleteRoom(roomId)
-            database.pulseDatabaseQueries.transaction {
+            database.pulsyDatabaseQueries.transaction {
                 // Önce odaya ait görev ID'lerini bul
-                val taskIds = database.pulseDatabaseQueries.getTaskIdsForRoom(roomId).executeAsList()
+                val taskIds = database.pulsyDatabaseQueries.getTaskIdsForRoom(roomId).executeAsList()
                 // Odadaki task-room bağlantılarını sil
-                database.pulseDatabaseQueries.deleteTaskSharedRoomsForRoom(roomId)
+                database.pulsyDatabaseQueries.deleteTaskSharedRoomsForRoom(roomId)
                 // Odaya ait olan görevleri sil (sadece o odaya bağlı olanlar)
                 if (taskIds.isNotEmpty()) {
-                    database.pulseDatabaseQueries.deleteTasksById(taskIds)
+                    database.pulsyDatabaseQueries.deleteTasksById(taskIds)
                 }
-                database.pulseDatabaseQueries.deleteMembersForRoom(roomId)
-                database.pulseDatabaseQueries.deletePlanRoom(roomId)
+                database.pulsyDatabaseQueries.deleteMembersForRoom(roomId)
+                database.pulsyDatabaseQueries.deletePlanRoom(roomId)
             }
             Result.success(Unit)
         } catch (e: Exception) {
@@ -500,12 +500,12 @@ class PlanRepositoryImpl(
     }
 
     override fun observeAllPlanRooms(): Flow<List<PlanRoomDto>> {
-        return database.pulseDatabaseQueries.getAllPlanRooms()
+        return database.pulsyDatabaseQueries.getAllPlanRooms()
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { entities ->
                 entities.map { entity ->
-                    val members = database.pulseDatabaseQueries.getMembersForRoom(entity.id).executeAsList().map { memberEntity ->
+                    val members = database.pulsyDatabaseQueries.getMembersForRoom(entity.id).executeAsList().map { memberEntity ->
                         com.yusufteker.pulse.shared.api.PlanRoomMemberDto(
                             roomId = memberEntity.roomId,
                             userId = memberEntity.userId.toInt(),

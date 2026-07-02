@@ -3,7 +3,7 @@ package com.yusufteker.pulse.core.di
 import com.yusufteker.pulse.core.preferences.ThemePreferences
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.network.createHttpClient
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import app.cash.sqldelight.db.SqlDriver
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
@@ -29,7 +29,7 @@ val coreModule = module {
     single { createHttpClient(get()) }
     
     // Database
-    single { PulseDatabase(get<SqlDriver>()) }
+    single { PulsyDatabase(get<SqlDriver>()) }
 
     // Snackbar Manager
     single<com.yusufteker.pulse.core.snackbar.SnackbarManager> { 

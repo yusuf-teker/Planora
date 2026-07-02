@@ -9,7 +9,7 @@ import app.cash.paging.PagingState
 import app.cash.paging.map
 import app.cash.sqldelight.Query
 import com.yusufteker.pulse.core.database.PostEntity
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 import com.yusufteker.pulse.feature.home.data.paging.FeedRemoteMediator
@@ -25,12 +25,12 @@ import kotlin.math.max
 // 1. YEREL VERİTABANI SAYFALAMA KAYNAĞI (PagingSource):
 // Paging 3 kütüphanesi veritabanından veri okumak için bu sınıfı kullanır.
 class FeedPagingSource(
-    private val localDatabase: PulseDatabase,
+    private val localDatabase: PulsyDatabase,
     private val topic: String?,
     private val ownerId: String
 ) : PagingSource<Int, PostEntity>(), Query.Listener {
 
-    private val query = localDatabase.pulseDatabaseQueries.getAllPosts(ownerId = ownerId, topic = topic, limit = 0, offset = 0)
+    private val query = localDatabase.pulsyDatabaseQueries.getAllPosts(ownerId = ownerId, topic = topic, limit = 0, offset = 0)
 
     init {
         query.addListener(this)
@@ -50,8 +50,8 @@ class FeedPagingSource(
                 val limit = params.loadSize.toLong()
                 val offset = key.toLong()
 
-                val count = localDatabase.pulseDatabaseQueries.countAllPosts(ownerId = ownerId, topic = topic).executeAsOne()
-                val data = localDatabase.pulseDatabaseQueries.getAllPosts(ownerId = ownerId, topic = topic, limit = limit, offset = offset).executeAsList()
+                val count = localDatabase.pulsyDatabaseQueries.countAllPosts(ownerId = ownerId, topic = topic).executeAsOne()
+                val data = localDatabase.pulsyDatabaseQueries.getAllPosts(ownerId = ownerId, topic = topic, limit = limit, offset = offset).executeAsList()
 
                 val nextKey = if (offset + data.size >= count) null else key + data.size
                 val prevKey = if (key <= 0) null else max(0, key - params.loadSize)
@@ -79,7 +79,7 @@ class FeedPagingSource(
 // Temiz Mimari'nin kalbidir. SocialViewModel veriyi doğrudan API veya Veritabanından istemez,
 // Gelip bu sınıftan (Repository) ister. Repository, verinin nereden alınacağını koordine eder.
 class FeedRepository(
-    private val localDatabase: PulseDatabase,
+    private val localDatabase: PulsyDatabase,
     private val feedApi: FeedApi,
     private val sessionPreferences: SessionPreferences
 ) {
@@ -126,13 +126,13 @@ class FeedRepository(
 
     suspend fun toggleBookmark(postId: String): Result<Unit> {
         val ownerId = sessionPreferences.getOwnerId()
-        val currentPost = localDatabase.pulseDatabaseQueries.getAllPosts(ownerId = ownerId, topic = null, limit = 1, offset = 0)
+        val currentPost = localDatabase.pulsyDatabaseQueries.getAllPosts(ownerId = ownerId, topic = null, limit = 1, offset = 0)
             .executeAsList().find { it.id == postId }
             
         if (currentPost != null) {
             val newStatus = if (currentPost.isBookmarkedByMe == 1L) 0L else 1L
             // Optimistically update DB
-            localDatabase.pulseDatabaseQueries.insertPost(
+            localDatabase.pulsyDatabaseQueries.insertPost(
                 id = currentPost.id,
                 ownerId = currentPost.ownerId,
                 authorId = currentPost.authorId,
@@ -151,7 +151,7 @@ class FeedRepository(
         return feedApi.toggleBookmark(postId).onFailure {
             // Revert DB on failure
             if (currentPost != null) {
-                localDatabase.pulseDatabaseQueries.insertPost(
+                localDatabase.pulsyDatabaseQueries.insertPost(
                     id = currentPost.id,
                     ownerId = currentPost.ownerId,
                     authorId = currentPost.authorId,

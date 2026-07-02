@@ -30,8 +30,8 @@ import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.*
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 /**
  * Onboarding screen composable.

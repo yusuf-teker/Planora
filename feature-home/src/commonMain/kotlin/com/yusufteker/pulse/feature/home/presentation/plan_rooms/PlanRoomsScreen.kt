@@ -15,7 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.*
+import pulsy.core.generated.resources.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp

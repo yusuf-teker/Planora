@@ -4,13 +4,13 @@ import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.core.ui.text.UiText
 import com.yusufteker.pulse.feature.auth.domain.usecase.RegisterUseCase
 import com.yusufteker.pulse.shared.api.RegisterRequest
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.error_email_required
-import pulse.core.generated.resources.error_name_required
-import pulse.core.generated.resources.error_username_required
-import pulse.core.generated.resources.error_password_short
-import pulse.core.generated.resources.error_passwords_mismatch
-import pulse.core.generated.resources.error_register_failed
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.error_email_required
+import pulsy.core.generated.resources.error_name_required
+import pulsy.core.generated.resources.error_username_required
+import pulsy.core.generated.resources.error_password_short
+import pulsy.core.generated.resources.error_passwords_mismatch
+import pulsy.core.generated.resources.error_register_failed
 
 /**
  * ViewModel for the Register screen.

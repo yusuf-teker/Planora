@@ -16,7 +16,7 @@ fun Application.configureSecurity() {
 
     install(Authentication) {
         jwt("auth-jwt") { // Use "auth-jwt" as the name for this authentication provider
-            realm = "Pulse Server"
+            realm = "Pulsy Server"
             verifier( // Configure the JWT verifier with the secret, issuer, and audience
                 JWT
 

@@ -36,8 +36,8 @@ import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.*
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 import androidx.compose.foundation.Image
 import kotlin.collections.getOrNull
 import com.yusufteker.pulse.core.ui.components.AvatarImage

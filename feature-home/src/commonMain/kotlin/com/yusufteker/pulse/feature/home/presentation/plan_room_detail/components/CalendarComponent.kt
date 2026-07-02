@@ -26,8 +26,8 @@ import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.*
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @Composable
 fun CalendarComponent(

@@ -1,6 +1,6 @@
 package com.yusufteker.pulse.feature.home.domain.repository
 
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.domain.sync.PostSyncManager
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlin.random.Random
 
 class PostRepository(
-    private val localDatabase: PulseDatabase,
+    private val localDatabase: PulsyDatabase,
     private val syncManager: PostSyncManager,
     private val sessionPreferences: SessionPreferences
 ) {
@@ -35,7 +35,7 @@ class PostRepository(
             val localId = "local_${createdAt}_${(0..10000).random()}"
             val isDraftInt = if (isDraft) 1L else 0L
 
-            localDatabase.pulseDatabaseQueries.insertPendingPost(
+            localDatabase.pulsyDatabaseQueries.insertPendingPost(
                 id = localId,
                 ownerId = ownerId,
                 content = content,
@@ -57,7 +57,7 @@ class PostRepository(
     fun getAllPendingPosts(): Flow<List<com.yusufteker.pulse.core.database.PendingPostEntity>> {
         return sessionPreferences.userIdFlow.flatMapLatest { userId ->
             val ownerId = userId ?: "guest"
-            localDatabase.pulseDatabaseQueries.getAllPendingPosts(ownerId).asFlow().mapToList(Dispatchers.IO)
+            localDatabase.pulsyDatabaseQueries.getAllPendingPosts(ownerId).asFlow().mapToList(Dispatchers.IO)
         }
     }
 
@@ -67,7 +67,7 @@ class PostRepository(
     suspend fun getPendingPostById(id: String): com.yusufteker.pulse.core.database.PendingPostEntity? {
         return withContext(Dispatchers.IO) {
             val ownerId = sessionPreferences.getOwnerId()
-            localDatabase.pulseDatabaseQueries.getAllPendingPosts(ownerId).executeAsList().find { it.id == id }
+            localDatabase.pulsyDatabaseQueries.getAllPendingPosts(ownerId).executeAsList().find { it.id == id }
         }
     }
 
@@ -78,10 +78,10 @@ class PostRepository(
         withContext(Dispatchers.IO) {
             val ownerId = sessionPreferences.getOwnerId()
             val isDraftInt = if (isDraft) 1L else 0L
-            val existingPost = localDatabase.pulseDatabaseQueries.getAllPendingPosts(ownerId).executeAsList().find { it.id == id }
+            val existingPost = localDatabase.pulsyDatabaseQueries.getAllPendingPosts(ownerId).executeAsList().find { it.id == id }
             
             if (existingPost != null) {
-                localDatabase.pulseDatabaseQueries.insertPendingPost(
+                localDatabase.pulsyDatabaseQueries.insertPendingPost(
                     id = existingPost.id,
                     ownerId = existingPost.ownerId,
                     content = content,
@@ -102,7 +102,7 @@ class PostRepository(
      */
     suspend fun deletePendingPost(id: String) {
         withContext(Dispatchers.IO) {
-            localDatabase.pulseDatabaseQueries.deletePendingPost(id)
+            localDatabase.pulsyDatabaseQueries.deletePendingPost(id)
         }
     }
 }

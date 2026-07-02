@@ -1,6 +1,6 @@
 package com.yusufteker.pulse.feature.home.domain.sync
 
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 import com.yusufteker.pulse.shared.api.CreatePostRequest
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
  * İleride Android WorkManager bağlandığında bu mantık WorkWorker içine taşınabilir.
  */
 class DefaultPostSyncManager(
-    private val localDatabase: PulseDatabase,
+    private val localDatabase: PulsyDatabase,
     private val api: FeedApi,
     private val sessionPreferences: SessionPreferences
 ) : PostSyncManager {
@@ -28,7 +28,7 @@ class DefaultPostSyncManager(
             try {
                 val ownerId = sessionPreferences.getOwnerId()
                 // 1. Veritabanından "Gönderilmeyi Bekleyen" (Taslak olmayan) postları çek.
-                val pendingPosts = localDatabase.pulseDatabaseQueries.getPendingPostsToSync(ownerId = ownerId).executeAsList()
+                val pendingPosts = localDatabase.pulsyDatabaseQueries.getPendingPostsToSync(ownerId = ownerId).executeAsList()
 
                 // 2. Her bir post için API'ye istek at.
                 for (post in pendingPosts) {
@@ -37,7 +37,7 @@ class DefaultPostSyncManager(
 
                     if (result.isSuccess) {
                         // 3. Başarılı olursa, yerel veritabanındaki kuyruktan sil.
-                        localDatabase.pulseDatabaseQueries.deletePendingPost(post.id)
+                        localDatabase.pulsyDatabaseQueries.deletePendingPost(post.id)
                         
                         // İsteğe bağlı olarak: postEntity tablosuna eklenebilir veya 
                         // feed sayfası pull-to-refresh yapıldığında yeni veri otomatik gelir.

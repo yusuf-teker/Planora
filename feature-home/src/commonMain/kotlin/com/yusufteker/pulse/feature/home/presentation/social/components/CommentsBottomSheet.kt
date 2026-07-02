@@ -22,7 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.CircularProgressIndicator
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.*
+import pulsy.core.generated.resources.*
 
 /**
  * Bu bileşen Jetpack Compose kullanarak gönderiye ait yorumları ekranın altından 

@@ -22,7 +22,7 @@ import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.preferences.ThemePreferences
 import com.yusufteker.pulse.core.snackbar.SnackbarManager
-import com.yusufteker.pulse.core.theme.PulseTheme
+import com.yusufteker.pulse.core.theme.PulsyTheme
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginScreen
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginViewModel
 import com.yusufteker.pulse.feature.auth.presentation.onboarding.OnboardingScreen
@@ -52,10 +52,10 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Root composable for the Pulse application.
+ * Root composable for the Pulsy application.
  *
  * Sets up:
- * - PulseTheme (with automatic dark mode)
+ * - PulsyTheme (with automatic dark mode)
  * - Navigation 3 (NavDisplay with user-owned back stack)
  * - Screen routing to feature composables
  */
@@ -66,7 +66,7 @@ fun App() {
     val themeColorPref by themePreferences.themeColor.collectAsState(initial = com.yusufteker.pulse.core.preferences.ThemeColor.DEFAULT)
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
-    PulseTheme(themeColor = themeColorPref, darkTheme = isDark) {
+    PulsyTheme(themeColor = themeColorPref, darkTheme = isDark) {
         val snackbarManager = koinInject<SnackbarManager>()
         val snackbarHostState = remember { SnackbarHostState() }
         val activeMessage by snackbarManager.messages.collectAsState()

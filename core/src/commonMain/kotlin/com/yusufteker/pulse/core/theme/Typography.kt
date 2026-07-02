@@ -7,13 +7,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Pulse typography scale.
+ * Pulsy typography scale.
  *
  * Uses the system default font family for cross-platform compatibility.
  * Custom fonts can be added later via Compose Resources.
  */
 
-val PulseTypography = Typography(
+val PulsyTypography = Typography(
     // ── Display ──────────────────────────────────────────────
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,

@@ -23,7 +23,7 @@ dependencies {
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 
-    // Koin Android (for androidContext in PulseApplication)
+    // Koin Android (for androidContext in PulsyApplication)
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.napier)

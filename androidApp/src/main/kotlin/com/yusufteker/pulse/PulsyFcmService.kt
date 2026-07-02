@@ -18,11 +18,11 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
 
-class PulseFcmService : FirebaseMessagingService(), KoinComponent {
+class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Napier.d("New FCM Token: $token", tag = "PulseFcmService")
+        Napier.d("New FCM Token: $token", tag = "PulsyFcmService")
         
         val scope = CoroutineScope(Dispatchers.IO)
         scope.launch {
@@ -37,16 +37,16 @@ class PulseFcmService : FirebaseMessagingService(), KoinComponent {
                     authRepository.registerFcmToken(token)
                 }
             } catch (e: Exception) {
-                Napier.e("Failed to handle new FCM token", e, tag = "PulseFcmService")
+                Napier.e("Failed to handle new FCM token", e, tag = "PulsyFcmService")
             }
         }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        Napier.d("FCM Message Received: ${message.data}", tag = "PulseFcmService")
+        Napier.d("FCM Message Received: ${message.data}", tag = "PulsyFcmService")
 
-        val title = message.notification?.title ?: message.data["title"] ?: "Pulse"
+        val title = message.notification?.title ?: message.data["title"] ?: "Pulsy"
         val body = message.notification?.body ?: message.data["body"] ?: ""
 
         showNotification(title, body)
@@ -58,7 +58,7 @@ class PulseFcmService : FirebaseMessagingService(), KoinComponent {
                 //val planRepository: PlanRepository by inject()
                 //planRepository.fetchMyTasks()
             } catch (e: Exception) {
-                Napier.e("Failed to sync tasks on FCM message", e, tag = "PulseFcmService")
+                Napier.e("Failed to sync tasks on FCM message", e, tag = "PulsyFcmService")
             }
         }
     }
@@ -87,7 +87,7 @@ class PulseFcmService : FirebaseMessagingService(), KoinComponent {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Pulse Notifications",
+                "Pulsy Notifications",
                 NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)

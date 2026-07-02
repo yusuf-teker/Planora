@@ -13,63 +13,63 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 
 /**
- * Light color scheme for Pulse.
+ * Light color scheme for Pulsy.
  */
 private val LightColorScheme = lightColorScheme(
-    primary = PulseColors.Primary,
-    onPrimary = PulseColors.OnPrimary,
-    primaryContainer = PulseColors.PrimaryContainer,
-    onPrimaryContainer = PulseColors.OnPrimaryContainer,
-    secondary = PulseColors.Secondary,
-    onSecondary = PulseColors.OnSecondary,
-    secondaryContainer = PulseColors.SecondaryContainer,
-    onSecondaryContainer = PulseColors.OnSecondaryContainer,
-    tertiary = PulseColors.Tertiary,
-    onTertiary = PulseColors.OnTertiary,
-    tertiaryContainer = PulseColors.TertiaryContainer,
-    onTertiaryContainer = PulseColors.OnTertiaryContainer,
-    background = PulseColors.BackgroundLight,
-    onBackground = PulseColors.OnBackgroundLight,
-    surface = PulseColors.SurfaceLight,
-    onSurface = PulseColors.OnSurfaceLight,
-    surfaceVariant = PulseColors.SurfaceVariantLight,
-    onSurfaceVariant = PulseColors.OnSurfaceVariantLight,
-    outline = PulseColors.OutlineLight,
-    outlineVariant = PulseColors.OutlineVariantLight,
-    error = PulseColors.Error,
-    onError = PulseColors.OnError,
-    errorContainer = PulseColors.ErrorContainer,
-    onErrorContainer = PulseColors.OnErrorContainer
+    primary = PulsyColors.Primary,
+    onPrimary = PulsyColors.OnPrimary,
+    primaryContainer = PulsyColors.PrimaryContainer,
+    onPrimaryContainer = PulsyColors.OnPrimaryContainer,
+    secondary = PulsyColors.Secondary,
+    onSecondary = PulsyColors.OnSecondary,
+    secondaryContainer = PulsyColors.SecondaryContainer,
+    onSecondaryContainer = PulsyColors.OnSecondaryContainer,
+    tertiary = PulsyColors.Tertiary,
+    onTertiary = PulsyColors.OnTertiary,
+    tertiaryContainer = PulsyColors.TertiaryContainer,
+    onTertiaryContainer = PulsyColors.OnTertiaryContainer,
+    background = PulsyColors.BackgroundLight,
+    onBackground = PulsyColors.OnBackgroundLight,
+    surface = PulsyColors.SurfaceLight,
+    onSurface = PulsyColors.OnSurfaceLight,
+    surfaceVariant = PulsyColors.SurfaceVariantLight,
+    onSurfaceVariant = PulsyColors.OnSurfaceVariantLight,
+    outline = PulsyColors.OutlineLight,
+    outlineVariant = PulsyColors.OutlineVariantLight,
+    error = PulsyColors.Error,
+    onError = PulsyColors.OnError,
+    errorContainer = PulsyColors.ErrorContainer,
+    onErrorContainer = PulsyColors.OnErrorContainer
 )
 
 /**
- * Dark color scheme for Pulse.
+ * Dark color scheme for Pulsy.
  */
 private val DarkColorScheme = darkColorScheme(
-    primary = PulseColors.Primary,
-    onPrimary = PulseColors.OnPrimary,
-    primaryContainer = PulseColors.PrimaryVariant,
-    onPrimaryContainer = PulseColors.PrimaryContainer,
-    secondary = PulseColors.Secondary,
-    onSecondary = PulseColors.OnSecondary,
-    secondaryContainer = PulseColors.SecondaryVariant,
-    onSecondaryContainer = PulseColors.SecondaryContainer,
-    tertiary = PulseColors.Tertiary,
-    onTertiary = PulseColors.OnTertiary,
-    tertiaryContainer = PulseColors.TertiaryContainer,
-    onTertiaryContainer = PulseColors.OnTertiaryContainer,
-    background = PulseColors.BackgroundDark,
-    onBackground = PulseColors.OnBackgroundDark,
-    surface = PulseColors.SurfaceDark,
-    onSurface = PulseColors.OnSurfaceDark,
-    surfaceVariant = PulseColors.SurfaceVariantDark,
-    onSurfaceVariant = PulseColors.OnSurfaceVariantDark,
-    outline = PulseColors.OutlineDark,
-    outlineVariant = PulseColors.OutlineVariantDark,
-    error = PulseColors.ErrorDark,
-    onError = PulseColors.OnError,
-    errorContainer = PulseColors.ErrorContainerDark,
-    onErrorContainer = PulseColors.OnErrorContainerDark
+    primary = PulsyColors.Primary,
+    onPrimary = PulsyColors.OnPrimary,
+    primaryContainer = PulsyColors.PrimaryVariant,
+    onPrimaryContainer = PulsyColors.PrimaryContainer,
+    secondary = PulsyColors.Secondary,
+    onSecondary = PulsyColors.OnSecondary,
+    secondaryContainer = PulsyColors.SecondaryVariant,
+    onSecondaryContainer = PulsyColors.SecondaryContainer,
+    tertiary = PulsyColors.Tertiary,
+    onTertiary = PulsyColors.OnTertiary,
+    tertiaryContainer = PulsyColors.TertiaryContainer,
+    onTertiaryContainer = PulsyColors.OnTertiaryContainer,
+    background = PulsyColors.BackgroundDark,
+    onBackground = PulsyColors.OnBackgroundDark,
+    surface = PulsyColors.SurfaceDark,
+    onSurface = PulsyColors.OnSurfaceDark,
+    surfaceVariant = PulsyColors.SurfaceVariantDark,
+    onSurfaceVariant = PulsyColors.OnSurfaceVariantDark,
+    outline = PulsyColors.OutlineDark,
+    outlineVariant = PulsyColors.OutlineVariantDark,
+    error = PulsyColors.ErrorDark,
+    onError = PulsyColors.OnError,
+    errorContainer = PulsyColors.ErrorContainerDark,
+    onErrorContainer = PulsyColors.OnErrorContainerDark
 )
 
 
@@ -114,14 +114,14 @@ fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
 val LocalIsDarkTheme = compositionLocalOf { false }
 
 /**
- * Pulse application theme.
+ * Pulsy application theme.
  *
  * @param themeColor The selected ThemeColor.
  * @param darkTheme Whether to use the dark color scheme.
  * @param content The composable content to theme.
  */
 @Composable
-fun PulseTheme(
+fun PulsyTheme(
     themeColor: ThemeColor = ThemeColor.BLUE,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
@@ -131,8 +131,8 @@ fun PulseTheme(
     CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = PulseTypography,
-            shapes = PulseShapes,
+            typography = PulsyTypography,
+            shapes = PulsyShapes,
             content = content
         )
     }

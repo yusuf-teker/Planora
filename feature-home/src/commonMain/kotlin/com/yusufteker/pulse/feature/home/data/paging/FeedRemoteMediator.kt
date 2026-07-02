@@ -5,7 +5,7 @@ import app.cash.paging.LoadType
 import app.cash.paging.PagingState
 import app.cash.paging.RemoteMediator
 import com.yusufteker.pulse.core.database.PostEntity
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.feature.home.data.api.FeedApi
 
 // 1. REMOTE MEDIATOR NEDİR?
@@ -13,7 +13,7 @@ import com.yusufteker.pulse.feature.home.data.api.FeedApi
 // Kullanıcı listeyi kaydırıp sonuna geldiğinde Paging sistemi API isteğini buraya yönlendirir.
 @OptIn(ExperimentalPagingApi::class)
 class FeedRemoteMediator(
-    private val localDatabase: PulseDatabase,
+    private val localDatabase: PulsyDatabase,
     private val feedApi: FeedApi,
     private val topic: String?,
     private val ownerId: String
@@ -34,7 +34,7 @@ class FeedRemoteMediator(
                 LoadType.APPEND -> {
                     // Sayfa sonuna gelindiğinde sıradaki sayfanın ne olduğunu veritabanından (Remote Key tablosundan) okuruz.
                     val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
-                    val remoteKey = localDatabase.pulseDatabaseQueries.getRemoteKey(id = remoteKeyId, ownerId = ownerId).executeAsOneOrNull()
+                    val remoteKey = localDatabase.pulsyDatabaseQueries.getRemoteKey(id = remoteKeyId, ownerId = ownerId).executeAsOneOrNull()
                     if (remoteKey?.nextPage == null) {
                         return MediatorResult.Success(endOfPaginationReached = true)
                     }
@@ -59,20 +59,20 @@ class FeedRemoteMediator(
             localDatabase.transaction {
                 if (loadType == LoadType.REFRESH) {
                     if (topic == null) {
-                        localDatabase.pulseDatabaseQueries.deleteAllPosts(ownerId = ownerId)
-                        localDatabase.pulseDatabaseQueries.deleteAllRemoteKeys(ownerId = ownerId)
+                        localDatabase.pulsyDatabaseQueries.deleteAllPosts(ownerId = ownerId)
+                        localDatabase.pulsyDatabaseQueries.deleteAllRemoteKeys(ownerId = ownerId)
                     }
                 }
 
                 val remoteKeyId = if (topic != null) "feed_$topic" else "feed_all"
-                localDatabase.pulseDatabaseQueries.insertRemoteKey(
+                localDatabase.pulsyDatabaseQueries.insertRemoteKey(
                     id = remoteKeyId,
                     ownerId = ownerId,
                     nextPage = response.nextCursor
                 )
 
                 posts.forEach { post ->
-                    localDatabase.pulseDatabaseQueries.insertPost(
+                    localDatabase.pulsyDatabaseQueries.insertPost(
                         id = post.id,
                         ownerId = ownerId,
                         authorId = post.authorId,

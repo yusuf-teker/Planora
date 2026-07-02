@@ -10,7 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import com.yusufteker.pulse.feature.home.presentation.util.PulseIcons
+import com.yusufteker.pulse.feature.home.presentation.util.PulsyIcons
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -135,7 +135,7 @@ fun PostCard(
                         modifier = Modifier.clickable { onClick() }.padding(4.dp)
                     ) {
                         Icon(
-                            imageVector = PulseIcons.MessageCircle,
+                            imageVector = PulsyIcons.MessageCircle,
                             contentDescription = "Comment",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
@@ -190,7 +190,7 @@ fun PostCard(
                         modifier = Modifier.clickable { onBookmarkClick() }.padding(4.dp)
                     ) {
                         Icon(
-                            imageVector = if (post.isBookmarkedByMe) PulseIcons.BookmarkFilled else PulseIcons.Bookmark,
+                            imageVector = if (post.isBookmarkedByMe) PulsyIcons.BookmarkFilled else PulsyIcons.Bookmark,
                             contentDescription = "Bookmark",
                             tint = if (post.isBookmarkedByMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)

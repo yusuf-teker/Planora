@@ -196,14 +196,14 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Header (Pulse Top Bar)
+            // Header (Pulsy Top Bar)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
             Text(
-                text = "Pulse",
+                text = "Pulsy",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary,

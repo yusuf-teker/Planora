@@ -3,12 +3,12 @@ package com.yusufteker.pulse.core.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Pulse color palette.
+ * Pulsy color palette.
  *
  * Colors are organized by semantic meaning rather than raw values.
  * This enables consistent theming across the entire application.
  */
-object PulseColors {
+object PulsyColors {
 
     // ── Primary ──────────────────────────────────────────────
     val Primary = Color(0xFF1D9BF0) // Sleek Vibrant Blue

@@ -10,7 +10,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		15346AA37086A34DCFB1938C /* Pulse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		15346AA37086A34DCFB1938C /* Pulsy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulsy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -60,7 +60,7 @@
 		2FD84D828EAF0673041F6EAE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				15346AA37086A34DCFB1938C /* Pulse.app */,
+				15346AA37086A34DCFB1938C /* Pulsy.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,7 +98,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = 15346AA37086A34DCFB1938C /* Pulse.app */;
+			productReference = 15346AA37086A34DCFB1938C /* Pulsy.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

@@ -3,7 +3,7 @@ package com.yusufteker.pulse.core.navigation
 import kotlinx.serialization.Serializable
 
 /**
- * Navigation destinations for the Pulse application.
+ * Navigation destinations for the Pulsy application.
  *
  * Each screen is represented as a [Serializable] object or data class.
  * These serve as type-safe keys for Navigation 3's back stack.

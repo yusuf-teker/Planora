@@ -13,7 +13,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 
-import com.yusufteker.pulse.core.database.PulseDatabase
+import com.yusufteker.pulse.core.database.PulsyDatabase
 
 /**
  * Implementation of [AuthRepository] that communicates with the Ktor Backend.
@@ -21,7 +21,7 @@ import com.yusufteker.pulse.core.database.PulseDatabase
 class AuthRepositoryImpl(
     private val httpClient: HttpClient,
     private val sessionPreferences: SessionPreferences,
-    private val pulseDatabase: PulseDatabase
+    private val pulsyDatabase: PulsyDatabase
 ) : AuthRepository {
 
     override suspend fun login(request: AuthRequest): Result<AuthResponse> {
@@ -32,7 +32,7 @@ class AuthRepositoryImpl(
             }.body()
 
             // Giriş başarılıysa önce eski veritabanını temizle, sonra token'ları güvenli depoya kaydet.
-            pulseDatabase.pulseDatabaseQueries.clearAll()
+            pulsyDatabase.pulsyDatabaseQueries.clearAll()
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
@@ -61,7 +61,7 @@ class AuthRepositoryImpl(
             val response: AuthResponse = httpClient.post("auth/register") {
                 setBody(request)
             }.body()
-            pulseDatabase.pulseDatabaseQueries.clearAll()
+            pulsyDatabase.pulsyDatabaseQueries.clearAll()
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
             
@@ -89,7 +89,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() {
-        pulseDatabase.pulseDatabaseQueries.clearAll()
+        pulsyDatabase.pulsyDatabaseQueries.clearAll()
         sessionPreferences.clearSession()
     }
 

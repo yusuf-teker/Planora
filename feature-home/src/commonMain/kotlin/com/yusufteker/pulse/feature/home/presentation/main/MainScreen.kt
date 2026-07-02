@@ -51,10 +51,10 @@ import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
-import pulse.core.generated.resources.Res
-import pulse.core.generated.resources.*
-import pulse.core.generated.resources.tab_settings
-import pulse.core.generated.resources.tab_social
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
+import pulsy.core.generated.resources.tab_settings
+import pulsy.core.generated.resources.tab_social
 import com.yusufteker.pulse.feature.home.presentation.home.HomeScreen
 import com.yusufteker.pulse.feature.home.presentation.home.HomeViewModel
 import com.yusufteker.pulse.feature.home.presentation.social.SocialScreen

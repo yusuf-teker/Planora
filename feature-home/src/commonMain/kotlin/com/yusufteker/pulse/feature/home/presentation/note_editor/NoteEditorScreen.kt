@@ -172,7 +172,7 @@ fun NoteEditorScreen(
                     OutlinedTextField(
                         value = aiQuery,
                         onValueChange = { aiQuery = it },
-                        placeholder = { Text("Pulse AI ile notunuzu sihirli bir şekilde düzenleyin...") },
+                        placeholder = { Text("Pulsy AI ile notunuzu sihirli bir şekilde düzenleyin...") },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                         trailingIcon = {
                             IconButton(
