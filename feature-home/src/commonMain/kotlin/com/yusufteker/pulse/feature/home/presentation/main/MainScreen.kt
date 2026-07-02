@@ -49,6 +49,7 @@ import androidx.compose.runtime.getValue
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
@@ -72,6 +73,8 @@ import com.yusufteker.pulse.core.theme.LocalIsDarkTheme
 
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.LaunchedEffect
+
 
 @Composable
 fun MainScreen() {
@@ -113,7 +116,7 @@ fun MainScreen() {
 
     val currentDestination = backStack.lastOrNull() ?: MainDestination.Home
 
-    androidx.compose.runtime.LaunchedEffect(currentDestination) {
+    LaunchedEffect(currentDestination) {
         val screenName = currentDestination::class.simpleName ?: "UnknownScreen"
         println("SCREEN: $screenName açıldı")
     }
@@ -307,13 +310,13 @@ fun MainScreen() {
                             effectFlow = viewModel.effect,
                             onEvent = viewModel::onEvent,
                             onNavigateToRoomDetail = { roomId -> 
-                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.PlanRoomDetail(roomId))
+                                rootNavigator.navigate(Screen.PlanRoomDetail(roomId))
                             },
                             onNavigateToCreateTask = {
-                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.TaskEditor(taskId = null))
+                                rootNavigator.navigate(Screen.TaskEditor(taskId = null))
                             },
                             onNavigateToCreateEvent = {
-                                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.EventDetail(eventId = null))
+                                rootNavigator.navigate(Screen.EventDetail(eventId = null))
                             },
                             onShowSnackbar = { /* TODO */ }
                         )

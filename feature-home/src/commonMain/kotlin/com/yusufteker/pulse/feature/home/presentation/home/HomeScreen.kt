@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.utils.formatDayName
 import com.yusufteker.pulse.core.utils.formatShortDate
@@ -63,6 +64,17 @@ import com.yusufteker.pulse.core.utils.isToday
 import com.yusufteker.pulse.core.utils.isTomorrow
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskType
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+
 
 /**
  * Home screen composable.
@@ -89,32 +101,32 @@ fun HomeScreen(
                 mainNavigator.navigate(MainDestination.Settings)
             }
             is HomeEffect.NavigateToCreateTask -> {
-                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.TaskEditor(taskId = null))
+                rootNavigator.navigate(Screen.TaskEditor(taskId = null))
             }
             is HomeEffect.NavigateToCreateEvent -> {
-                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.EventDetail(eventId = null))
+                rootNavigator.navigate(Screen.EventDetail(eventId = null))
             }
             is HomeEffect.NavigateToTaskEditor -> {
-                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.TaskEditor(taskId = effect.taskId))
+                rootNavigator.navigate(Screen.TaskEditor(taskId = effect.taskId))
             }
             is HomeEffect.NavigateToEventDetail -> {
-                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.EventDetail(eventId = effect.eventId))
+                rootNavigator.navigate(Screen.EventDetail(eventId = effect.eventId))
             }
             is HomeEffect.NavigateToNoteEditor -> {
-                rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.NoteEditor(noteId = effect.noteId))
+                rootNavigator.navigate(Screen.NoteEditor(noteId = effect.noteId))
             }
         }
     }
 
-    var isFabExpanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var isFabExpanded by remember { mutableStateOf(false) }
 
-    androidx.compose.material3.Scaffold(
+    Scaffold(
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
-                androidx.compose.animation.AnimatedVisibility(
+                AnimatedVisibility(
                     visible = isFabExpanded,
-                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically(initialOffsetY = { it }),
-                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically(targetOffsetY = { it })
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
                 ) {
                     Column(
                         horizontalAlignment = Alignment.End,
@@ -128,7 +140,7 @@ fun HomeScreen(
                             ) {
                                 Text("Task Ekle", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium)
                             }
-                            androidx.compose.material3.SmallFloatingActionButton(
+                            SmallFloatingActionButton(
                                 onClick = { 
                                     isFabExpanded = false
                                     viewModel.onEvent(HomeEvent.CreateTaskClicked) 
@@ -147,7 +159,7 @@ fun HomeScreen(
                             ) {
                                 Text("Etkinlik Ekle", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium)
                             }
-                            androidx.compose.material3.SmallFloatingActionButton(
+                            SmallFloatingActionButton(
                                 onClick = { 
                                     isFabExpanded = false
                                     viewModel.onEvent(HomeEvent.CreateEventClicked) 
@@ -159,7 +171,7 @@ fun HomeScreen(
                         }
                     }
                 }
-                androidx.compose.material3.FloatingActionButton(
+                FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {

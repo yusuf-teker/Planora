@@ -35,6 +35,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import com.yusufteker.pulse.core.navigation.Screen
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,13 +81,13 @@ fun SocialScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             if (state.isLoggedIn) {
-                androidx.compose.material3.FloatingActionButton(
-                    onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.CreatePost()) },
+                FloatingActionButton(
+                    onClick = { rootNavigator.navigate(Screen.CreatePost()) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     androidx.compose.material3.Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Add,
+                        imageVector = Icons.Default.Add,
                         contentDescription = "Yeni Post"
                     )
                 }
@@ -108,7 +110,7 @@ fun SocialScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.Login) }) {
+                    Button(onClick = { rootNavigator.navigate(Screen.Login) }) {
                         Text("Giriş Yap")
                     }
                 }

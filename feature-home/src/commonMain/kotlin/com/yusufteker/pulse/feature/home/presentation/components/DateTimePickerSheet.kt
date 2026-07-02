@@ -38,6 +38,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import androidx.compose.foundation.layout.Arrangement
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +110,7 @@ fun DateTimePickerSheet(
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+                    horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismissRequest) {
                         Text("İptal")
@@ -134,7 +136,7 @@ fun DateTimePickerSheet(
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 32.dp),
-                    horizontalArrangement = if (timeOnly) androidx.compose.foundation.layout.Arrangement.End else androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                    horizontalArrangement = if (timeOnly) Arrangement.End else Arrangement.SpaceBetween
                 ) {
                     if (!timeOnly) {
                         TextButton(onClick = { showTimePicker = false }) {

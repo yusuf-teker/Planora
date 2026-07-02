@@ -38,6 +38,8 @@ import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
+import androidx.compose.foundation.layout.Arrangement
+
 
 /**
  * Settings screen composable.
@@ -124,8 +126,8 @@ fun SettingsScreen(
             // Grid of colors
             LazyVerticalGrid(
                 columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(5),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(com.yusufteker.pulse.core.preferences.ThemeColor.values().size) { index ->

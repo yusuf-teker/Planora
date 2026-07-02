@@ -31,6 +31,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.yusufteker.pulse.shared.api.UserProfileResponse
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +94,7 @@ fun PlanRoomDetailScreen(
                                     viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick)
                                 },
                                 leadingIcon = {
-                                    Icon(androidx.compose.material.icons.Icons.Default.Edit, contentDescription = null)
+                                    Icon(Icons.Default.Edit, contentDescription = null)
                                 }
                             )
                             DropdownMenuItem(
@@ -98,7 +104,7 @@ fun PlanRoomDetailScreen(
                                     viewModel.onEvent(PlanRoomDetailEvent.OnDeleteRoomClick)
                                 },
                                 leadingIcon = {
-                                    Icon(androidx.compose.material.icons.Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                 }
                             )
                         }
@@ -110,15 +116,15 @@ fun PlanRoomDetailScreen(
         floatingActionButton = {
             var isFabExpanded by remember { mutableStateOf(false) }
             Column(horizontalAlignment = Alignment.End) {
-                androidx.compose.animation.AnimatedVisibility(
+                AnimatedVisibility(
                     visible = isFabExpanded,
-                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 2 },
-                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it / 2 }
+                    enter = fadeIn() + slideInVertically { it / 2 },
+                    exit = fadeOut() + slideOutVertically { it / 2 }
                 ) {
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(bottom = 16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
                             Text("Görev Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                            androidx.compose.material3.SmallFloatingActionButton(
+                            SmallFloatingActionButton(
                                 onClick = { 
                                     isFabExpanded = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick) 
@@ -130,7 +136,7 @@ fun PlanRoomDetailScreen(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Etkinlik Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                            androidx.compose.material3.SmallFloatingActionButton(
+                            SmallFloatingActionButton(
                                 onClick = { 
                                     isFabExpanded = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick) 
@@ -142,7 +148,7 @@ fun PlanRoomDetailScreen(
                         }
                     }
                 }
-                androidx.compose.material3.FloatingActionButton(
+                FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {

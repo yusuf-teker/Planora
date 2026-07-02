@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulse.core.generated.resources.Res
 import pulse.core.generated.resources.*
@@ -63,7 +64,7 @@ fun ProfileScreen(
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
             is ProfileEffect.NavigateBack -> mainNavigator.pop()
-            is ProfileEffect.NavigateToLogin -> rootNavigator.setRoot(com.yusufteker.pulse.core.navigation.Screen.Login)
+            is ProfileEffect.NavigateToLogin -> rootNavigator.setRoot(Screen.Login)
         }
     }
 
@@ -247,7 +248,7 @@ fun ProfileScreen(
                                         .size(50.dp)
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(androidx.compose.ui.graphics.Color.Green.copy(alpha = 0.2f))
-                                        .clickable { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.SearchUsers) },
+                                        .clickable { rootNavigator.navigate(Screen.SearchUsers) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -299,7 +300,7 @@ fun ProfileScreen(
                     } else {
                         // Not logged in
                         Spacer(modifier = Modifier.height(16.dp))
-                        androidx.compose.material3.Button(onClick = { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.Login) }) {
+                        androidx.compose.material3.Button(onClick = { rootNavigator.navigate(Screen.Login) }) {
                             Text("Giriş Yap")
                         }
                     }

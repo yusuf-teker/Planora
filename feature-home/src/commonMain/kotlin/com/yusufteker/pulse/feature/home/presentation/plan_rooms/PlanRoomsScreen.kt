@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.shared.api.PlanRoomDto
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.animation.AnimatedVisibility
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +82,7 @@ fun PlanRoomsScreen(
         },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
-                androidx.compose.animation.AnimatedVisibility(visible = state.isFabExpanded) {
+                AnimatedVisibility(visible = state.isFabExpanded) {
                     Column(
                         horizontalAlignment = Alignment.End,
                         modifier = Modifier.padding(bottom = 16.dp)
