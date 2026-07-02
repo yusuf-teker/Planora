@@ -210,7 +210,7 @@ class EventDetailViewModel(
         val eventId = _state.value.id ?: return
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            // planRepository.deleteTask(eventId)
+            planRepository.deleteTask(eventId)
             _state.update { it.copy(isLoading = false) }
             setEffect(EventDetailEffect.NavigateBack)
         }

@@ -222,10 +222,12 @@ class PlanRepositoryImpl(
 
     override suspend fun deleteTask(taskId: String): Result<Unit> {
         return try {
+            // Veritabanından sil
             database.pulseDatabaseQueries.transaction {
                 database.pulseDatabaseQueries.deleteTaskById(taskId)
             }
 
+            // Arka planda sunucudan sil
             scope.launch(Dispatchers.IO) {
                 try {
                     planApi.deleteTask(taskId)
@@ -354,7 +356,8 @@ class PlanRepositoryImpl(
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
-                            participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap()
+                            participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap(),
+                            isSynced = entity.isSynced == 1L
                         )
                     } catch (e: Exception) {
                         println("Failed to map task ${entity.id}: ${e.message}")

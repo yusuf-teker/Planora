@@ -117,7 +117,8 @@ data class TaskDto(
     val specificDetails: ItemDetails? = null,
     val tags: List<String> = emptyList(),
     val color: String? = null,
-    val participants: Map<Int, String> = emptyMap()
+    val participants: Map<Int, String> = emptyMap(),
+    val isSynced: Boolean = true
 )
 
 @Serializable
@@ -182,5 +183,6 @@ data class CreateTaskRequest(
     val specificDetails: ItemDetails? = null,
     val tags: List<String> = emptyList(),
     val color: String? = null,
-    val participants: Map<Int, String> = emptyMap()
+    val participants: Map<Int, String> = emptyMap(),
+    val isSynced: Boolean = true
 )
