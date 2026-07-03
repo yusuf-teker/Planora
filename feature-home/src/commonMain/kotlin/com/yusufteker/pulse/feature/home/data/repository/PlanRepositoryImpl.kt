@@ -19,9 +19,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
+import com.yusufteker.pulse.core.utils.RecurringTaskEvaluator
+import com.yusufteker.pulse.shared.api.RecurrenceRule
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
@@ -325,46 +328,152 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit> {
+        return try {
+            database.pulsyDatabaseQueries.insertTaskException(
+                taskId = taskId,
+                dateMs = dateMs,
+                isCompleted = if (isCompleted) 1L else 0L,
+                isSynced = 0L // Not synced yet
+            )
+            // TODO: In a real app, you would sync this to the backend here as well
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun observeTasksForRange(fromTimeMs: Long, toTimeMs: Long): Flow<List<TaskDto>> {
+        val tasksFlow = database.pulsyDatabaseQueries.getAllTasks().asFlow().mapToList(Dispatchers.IO)
+        val exceptionsFlow = database.pulsyDatabaseQueries.getAllTaskExceptions().asFlow().mapToList(Dispatchers.IO)
+
+        return combine(tasksFlow, exceptionsFlow) { taskEntities, exceptionEntities ->
+            val result = mutableListOf<TaskDto>()
+
+            taskEntities.forEach { entity ->
+                val baseTaskDto = mapTaskEntityToDto(entity) ?: return@forEach
+
+                val ruleStr = baseTaskDto.recurrenceRule
+                if (baseTaskDto.isRecurring && ruleStr != null) {
+                    // Try to parse the rule
+                    val rule = try {
+                        Json.decodeFromString<RecurrenceRule>(ruleStr)
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    if (rule != null) {
+                        val occurrences = RecurringTaskEvaluator.generateOccurrences(
+                            startTimeMs = baseTaskDto.startTime,
+                            rule = rule,
+                            rangeStartMs = fromTimeMs,
+                            rangeEndMs = toTimeMs
+                        )
+
+                        occurrences.forEach { occurrenceMs ->
+                            // Check if there is an exception for this instance
+                            val exception = exceptionEntities.find { it.taskId == baseTaskDto.id && it.dateMs == occurrenceMs }
+                            
+                            val status = if (exception != null && exception.isCompleted == 1L) {
+                                TaskStatus.COMPLETED
+                            } else {
+                                baseTaskDto.status
+                            }
+
+                            val virtualId = "${baseTaskDto.id}_$occurrenceMs"
+                            
+                            // Calculate new end time based on the duration of the original task
+                            val endTime = baseTaskDto.endTime
+                            val durationMs = if (endTime != null) endTime - baseTaskDto.startTime else 0L
+                            val newEndTime = if (durationMs > 0) occurrenceMs + durationMs else null
+
+                            // Calculate new specificDetails deadline
+                            val newSpecificDetails = when (val details = baseTaskDto.specificDetails) {
+                                is com.yusufteker.pulse.shared.api.ItemDetails.Task -> {
+                                    val oldDeadline = details.deadline
+                                    val newDeadline = if (oldDeadline != null) {
+                                        val deadlineDiff = oldDeadline - baseTaskDto.startTime
+                                        occurrenceMs + deadlineDiff
+                                    } else {
+                                        null
+                                    }
+                                    details.copy(deadline = newDeadline)
+                                }
+                                else -> details
+                            }
+
+                            result.add(
+                                baseTaskDto.copy(
+                                    id = virtualId,
+                                    startTime = occurrenceMs,
+                                    endTime = newEndTime,
+                                    status = status,
+                                    specificDetails = newSpecificDetails
+                                )
+                            )
+                        }
+                    } else {
+                        // Fallback if rule parsing fails
+                        if (baseTaskDto.startTime in fromTimeMs..toTimeMs) {
+                            result.add(baseTaskDto)
+                        }
+                    }
+                } else {
+                    // Non-recurring task
+                    if (baseTaskDto.startTime in fromTimeMs..toTimeMs) {
+                        result.add(baseTaskDto)
+                    }
+                }
+            }
+
+            result.sortedBy { it.startTime }
+        }
+    }
+
     override fun observeAllTasks(): Flow<List<TaskDto>> {
         return database.pulsyDatabaseQueries.getAllTasks()
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { entities ->
                 entities.mapNotNull { entity ->
-                    try {
-                        val sharedRooms = database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
-                        TaskDto(
-                            id = entity.id,
-                            creatorId = entity.creatorId.toInt(),
-                            title = entity.title,
-                            description = entity.description,
-                            startTime = entity.startTime,
-                            endTime = entity.endTime,
-                            type = TaskType.valueOf(entity.type),
-                            status = TaskStatus.valueOf(entity.status),
-                            visibility = TaskVisibility.valueOf(entity.visibility),
-                            sharedRoomIds = sharedRooms,
-                            isRecurring = entity.isRecurring == 1L,
-                            recurrenceRule = entity.recurrenceRule,
-                            isFlexible = entity.isFlexible == 1L,
-                            isOptional = entity.isOptional == 1L,
-                            isPostponable = entity.isPostponable == 1L,
-                            isAllDay = entity.isAllDay == 1L,
-                            aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                            reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                            tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                            color = entity.color,
-                            parentId = entity.parentId,
-                            participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap(),
-                            isSynced = entity.isSynced == 1L
-                        )
-                    } catch (e: Exception) {
-                        println("Failed to map task ${entity.id}: ${e.message}")
-                        null
-                    }
+                    mapTaskEntityToDto(entity)
                 }
             }
+    }
+
+    private fun mapTaskEntityToDto(entity: com.yusufteker.pulse.core.database.TaskEntity): TaskDto? {
+        return try {
+            val sharedRooms = database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
+            TaskDto(
+                id = entity.id,
+                creatorId = entity.creatorId.toInt(),
+                title = entity.title,
+                description = entity.description,
+                startTime = entity.startTime,
+                endTime = entity.endTime,
+                type = TaskType.valueOf(entity.type),
+                status = TaskStatus.valueOf(entity.status),
+                visibility = TaskVisibility.valueOf(entity.visibility),
+                sharedRoomIds = sharedRooms,
+                isRecurring = entity.isRecurring == 1L,
+                recurrenceRule = entity.recurrenceRule,
+                isFlexible = entity.isFlexible == 1L,
+                isOptional = entity.isOptional == 1L,
+                isPostponable = entity.isPostponable == 1L,
+                isAllDay = entity.isAllDay == 1L,
+                aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                color = entity.color,
+                parentId = entity.parentId,
+                participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap(),
+                isSynced = entity.isSynced == 1L
+            )
+        } catch (e: Exception) {
+            println("Failed to map task ${entity.id}: ${e.message}")
+            null
+        }
     }
 
     override suspend fun fetchMyRooms(): Result<Unit> {

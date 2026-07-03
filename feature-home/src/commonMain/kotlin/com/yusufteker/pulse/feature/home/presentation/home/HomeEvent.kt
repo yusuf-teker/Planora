@@ -14,4 +14,7 @@ sealed interface HomeEvent : UiEvent {
     data object CreateTaskClicked : HomeEvent
     data object CreateEventClicked : HomeEvent
     data class TimelineItemClicked(val task: com.yusufteker.pulse.shared.api.TaskDto) : HomeEvent
+    data class ViewOptionChanged(val option: TimelineViewOption) : HomeEvent
+    data class FilterOptionChanged(val filterOptions: TimelineFilterOptions) : HomeEvent
+    data class ToggleFilterSheet(val isVisible: Boolean) : HomeEvent
 }

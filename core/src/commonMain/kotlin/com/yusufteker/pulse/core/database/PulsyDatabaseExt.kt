@@ -9,5 +9,6 @@ fun PulsyDatabaseQueries.clearAll() {
         deleteAllPlanRoomMembers()
         deleteAllTasks()
         deleteAllTaskSharedRooms()
+        deleteAllTaskExceptions()
     }
 }

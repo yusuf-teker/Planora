@@ -20,10 +20,21 @@ class HomeViewModel(
 
     init {
         launch {
-            planRepository.observeAllTasks().collect { tasks ->
-                val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
-                setState { copy(upcomingTasks = filteredTasks) }
-            }
+            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+            val thirtyDays = 86400000L * 30
+            planRepository.observeTasksForRange(fromTimeMs = now - thirtyDays, toTimeMs = now + thirtyDays)
+                .collect { tasks ->
+                    val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
+                        .sortedBy { task ->
+                            (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+                        }
+                    setState { 
+                        copy(
+                            allFetchedTasks = filteredTasks,
+                            upcomingTasks = applyFilters(filteredTasks, state.value.filterOptions)
+                        ) 
+                    }
+                }
         }
             
         // Trigger a background fetch
@@ -95,6 +106,23 @@ class HomeViewModel(
                 setEffect(HomeEffect.NavigateToCreateEvent)
             }
             
+            is HomeEvent.ViewOptionChanged -> {
+                setState { copy(viewOption = event.option) }
+            }
+            
+            is HomeEvent.FilterOptionChanged -> {
+                setState { 
+                    copy(
+                        filterOptions = event.filterOptions,
+                        upcomingTasks = applyFilters(allFetchedTasks, event.filterOptions)
+                    ) 
+                }
+            }
+            
+            is HomeEvent.ToggleFilterSheet -> {
+                setState { copy(isFilterSheetVisible = event.isVisible) }
+            }
+            
             is HomeEvent.TimelineItemClicked -> {
                 when (event.task.type) {
                     com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(HomeEffect.NavigateToTaskEditor(event.task.id))
@@ -103,5 +131,35 @@ class HomeViewModel(
                 }
             }
         }
+    }
+    
+    private fun applyFilters(tasks: List<com.yusufteker.pulse.shared.api.TaskDto>, options: TimelineFilterOptions): List<com.yusufteker.pulse.shared.api.TaskDto> {
+        var filtered = tasks
+        
+        // 1. Completed filter (if implemented, for now assuming we just hide if not showCompleted)
+        if (!options.showCompleted) {
+            filtered = filtered.filter { it.status != com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED }
+        }
+        
+        // 2. Recurring next-only filter
+        if (options.showOnlyNextRecurring) {
+            val uniqueTasks = mutableListOf<com.yusufteker.pulse.shared.api.TaskDto>()
+            val seenRecurringBaseIds = mutableSetOf<String>()
+            
+            for (task in filtered) {
+                if (task.isRecurring) {
+                    val baseId = task.id.substringBeforeLast("_")
+                    if (baseId !in seenRecurringBaseIds) {
+                        seenRecurringBaseIds.add(baseId)
+                        uniqueTasks.add(task)
+                    }
+                } else {
+                    uniqueTasks.add(task)
+                }
+            }
+            filtered = uniqueTasks
+        }
+        
+        return filtered
     }
 }

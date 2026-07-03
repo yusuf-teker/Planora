@@ -18,6 +18,13 @@ sealed class RecurrenceRule {
 }
 
 @Serializable
+data class TaskException(
+    val taskId: String,
+    val dateMs: Long,
+    val isCompleted: Boolean
+)
+
+@Serializable
 enum class TaskStatus {
     PENDING,
     IN_PROGRESS,

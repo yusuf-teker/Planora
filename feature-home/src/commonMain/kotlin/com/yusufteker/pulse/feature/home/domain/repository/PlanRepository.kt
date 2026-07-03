@@ -12,6 +12,7 @@ interface PlanRepository {
     suspend fun createTask(request: CreateTaskRequest): Result<TaskDto>
     suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit>
     suspend fun deleteTask(taskId: String): Result<Unit>
+    suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit>
     
     suspend fun fetchMyTasks(fromTime: Long? = null, toTime: Long? = null): Result<Unit>
     suspend fun fetchRoomTasks(roomId: String, fromTime: Long? = null, toTime: Long? = null): Result<Unit>
@@ -20,6 +21,13 @@ interface PlanRepository {
      * Local database'den tüm görevleri Flow olarak dinler (Offline-first)
      */
     fun observeAllTasks(): Flow<List<TaskDto>>
+
+    /**
+     * Verilen tarih aralığındaki sanal (virtual) tekrarlı görevleri ve normal görevleri
+     * hesaplayıp Flow olarak döndürür.
+     */
+    fun observeTasksForRange(fromTimeMs: Long, toTimeMs: Long): Flow<List<TaskDto>>
+
 
     // --- PLAN ROOMS ---
     suspend fun fetchMyRooms(): Result<Unit>

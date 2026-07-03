@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.SyncProblem
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +61,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent
+import com.yusufteker.pulse.feature.home.presentation.home.components.DayHeader
+import com.yusufteker.pulse.feature.home.presentation.home.components.TimelineTaskCard
+import com.yusufteker.pulse.feature.home.presentation.home.components.FilterBottomSheetComponent
 import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.utils.formatDayName
@@ -191,11 +196,10 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .windowInsetsPadding(WindowInsets.statusBars)
                 .imePadding(),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            // Header (Pulsy Top Bar)
             
             // Header (Pulsy Top Bar)
             Row(
@@ -203,24 +207,87 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-            Text(
-                text = "Pulsy",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            // Optional: Profile or notification icon could go here
-        }
+                Text(
+                    text = "Pulsy",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // View Option Toggle
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val isDate = state.viewOption == TimelineViewOption.DATE
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDate) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.DATE)) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Tarih",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isDate) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (!isDate) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.RELATIVE)) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Periyot",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (!isDate) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Filter Button
+                IconButton(
+                    onClick = { viewModel.onEvent(HomeEvent.ToggleFilterSheet(true)) },
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (state.filterOptions.showOnlyNextRecurring || !state.filterOptions.showCompleted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                        .size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filtreler",
+                        tint = if (state.filterOptions.showOnlyNextRecurring || !state.filterOptions.showCompleted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
 
         Spacer(modifier = Modifier.height(16.dp))
+        
+
 
         // Timeline
         val grouped = state.upcomingTasks.groupBy { task ->
             val time = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
-            when {
-                isToday(time) -> "Bugün"
-                isTomorrow(time) -> "Yarın"
-                else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+            
+            if (state.viewOption == TimelineViewOption.DATE) {
+                when {
+                    isToday(time) -> "Bugün"
+                    isTomorrow(time) -> "Yarın"
+                    else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+                }
+            } else {
+                com.yusufteker.pulse.core.utils.getRelativeTimeBucket(time)
             }
         }
 
@@ -245,6 +312,7 @@ fun HomeScreen(
                     items(tasks, key = { it.id }) { task ->
                         TimelineTaskCard(
                             task = task,
+                            showDate = state.viewOption == TimelineViewOption.RELATIVE,
                             onClick = { viewModel.onEvent(HomeEvent.TimelineItemClicked(task)) }
                         )
                     }
@@ -273,180 +341,14 @@ fun HomeScreen(
             singleLine = true
         )
     }
-}
-}
-
-// ── Day Header ─────────────────────────────────
-@Composable
-private fun DayHeader(dayLabel: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = dayLabel,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant)
+    }
+    
+    if (state.isFilterSheetVisible) {
+        FilterBottomSheetComponent(
+            filterOptions = state.filterOptions,
+            onDismiss = { viewModel.onEvent(HomeEvent.ToggleFilterSheet(false)) },
+            onFilterOptionsChanged = { viewModel.onEvent(HomeEvent.FilterOptionChanged(it)) }
         )
     }
 }
 
-// ── Timeline Task Card ─────────────────────────
-@Composable
-private fun TimelineTaskCard(
-    task: TaskDto,
-    onClick: () -> Unit = {}
-) {
-    val typeColor = when (task.type) {
-        TaskType.EVENT -> Color(0xFF6366F1)  // Indigo
-        TaskType.TASK -> Color(0xFF10B981)   // Emerald
-        TaskType.NOTE -> Color(0xFFF59E0B)   // Amber
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        // Time column (left)
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.width(56.dp)
-        ) {
-            val primaryTime = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
-            Text(
-                text = formatTime(primaryTime),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            // Show endTime only if it's not a Task (since tasks use deadline and their endTime is null or irrelevant here),
-            // or if we have an endTime explicitly defined for non-tasks.
-            task.endTime?.let {
-                if (task.type != TaskType.TASK || it != task.startTime) {
-                    Text(
-                        text = formatTime(it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            }
-            if (!task.isSynced) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Icon(
-                    imageVector = Icons.Default.SyncProblem,
-                    contentDescription = "Not Synced",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Row (verticalAlignment = Alignment.CenterVertically){
-            Text(
-                modifier = Modifier.rotateVertically(),
-                text = task.type.name,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = typeColor
-            )
-            // Vertical line indicator
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(typeColor.copy(alpha = 0.8f))
-            )
-        }
-
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Content column (right)
-        Column(modifier = Modifier.weight(1f)) {
-            // Title
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            // Description
-            if (!task.description.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = task.description ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Footer (Participant count if any)
-            val participantsList = task.participants.values.toList()
-            if (participantsList.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Box(modifier = Modifier.height(24.dp).padding(top = 4.dp)) {
-                    participantsList.take(4).forEachIndexed { index, name ->
-                        val initialName = name.take(1).uppercase()
-                        Box(
-                            modifier = Modifier
-                                .offset(x = (index * 16).dp)
-                                .zIndex((4 - index).toFloat())
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                                .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = initialName,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    if (participantsList.size > 4) {
-                        Box(
-                            modifier = Modifier
-                                .offset(x = (4 * 16).dp)
-                                .zIndex(0f)
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary)
-                                .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "+${participantsList.size - 4}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
