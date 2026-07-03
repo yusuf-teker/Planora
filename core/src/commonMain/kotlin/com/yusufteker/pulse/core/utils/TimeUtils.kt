@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.core.utils
 
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
 
 expect fun getCurrentTimeMs(): Long
@@ -54,7 +55,7 @@ fun getRelativeTimeBucket(epochMs: Long): String {
         val daysDiff = targetDate.toEpochDays() - today.toEpochDays()
         
         // This week (until Sunday)
-        val daysUntilSunday = 7 - today.dayOfWeek.value
+        val daysUntilSunday = 7 - today.dayOfWeek.isoDayNumber
         if (daysDiff <= daysUntilSunday) return "Bu Hafta"
         
         // This month

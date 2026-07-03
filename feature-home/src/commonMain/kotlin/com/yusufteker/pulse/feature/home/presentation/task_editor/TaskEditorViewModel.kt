@@ -58,6 +58,9 @@ class TaskEditorViewModel(
                 }
                 it.copy(reminders = newReminders)
             }
+            is TaskEditorEvent.StatusChanged -> _state.update { 
+                it.copy(status = if (event.isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING) 
+            }
             
             is TaskEditorEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
             is TaskEditorEvent.OnParticipantToggled -> _state.update {
@@ -102,7 +105,8 @@ class TaskEditorViewModel(
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, id = taskId, planRoomId = planRoomId) }
+            val baseId = taskId.substringBeforeLast("_")
+            _state.update { it.copy(isLoading = true, id = baseId, planRoomId = planRoomId) }
 
         // Fetch room members if planRoomId is present
         if (planRoomId != null) {
@@ -123,7 +127,7 @@ class TaskEditorViewModel(
         }
 
             planRepository.observeAllTasks().collect { tasks ->
-                val task = tasks.find { it.id == taskId && it.type == TaskType.TASK }
+                val task = tasks.find { it.id == baseId && it.type == TaskType.TASK }
                 if (task != null) {
                     val ruleObj = try {
                         task.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.pulse.shared.api.RecurrenceRule>(it) }
@@ -138,7 +142,9 @@ class TaskEditorViewModel(
                         it.copy(
                             title = task.title,
                             description = task.description ?: "",
+                            originalStartTime = task.startTime,
                             deadlineDateMs = deadline,
+                            status = task.status,
                             isRecurring = task.isRecurring,
                             recurrenceRule = ruleObj,
                             isOptional = task.isOptional,
@@ -164,7 +170,7 @@ class TaskEditorViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            val now = getCurrentTimeMs()
+            val now = currentState.originalStartTime ?: getCurrentTimeMs()
             
             val recurrenceStr = currentState.recurrenceRule?.let { Json.encodeToString(it) }
 
@@ -174,7 +180,7 @@ class TaskEditorViewModel(
                 startTime = now,
                 endTime = null,
                 type = TaskType.TASK,
-                status = TaskStatus.PENDING,
+                status = currentState.status,
                 visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
                 sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
                 isRecurring = currentState.isRecurring || currentState.recurrenceRule != null,

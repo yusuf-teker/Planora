@@ -251,6 +251,10 @@ class PlanRepositoryImpl(
             // Veritabanını güncelle
             database.pulsyDatabaseQueries.transaction {
                 tasks.forEach { task ->
+                    val existingTask = database.pulsyDatabaseQueries.getTaskById(task.id).executeAsOneOrNull()
+                    if (existingTask != null && existingTask.isSynced == 0L) {
+                        return@forEach // Skip overwriting un-synced local changes
+                    }
                     database.pulsyDatabaseQueries.insertTask(
                         id = task.id,
                         creatorId = task.creatorId.toLong(),
@@ -291,6 +295,10 @@ class PlanRepositoryImpl(
             val tasks = planApi.getRoomTasks(roomId, fromTime, toTime)
             database.pulsyDatabaseQueries.transaction {
                 tasks.forEach { task ->
+                    val existingTask = database.pulsyDatabaseQueries.getTaskById(task.id).executeAsOneOrNull()
+                    if (existingTask != null && existingTask.isSynced == 0L) {
+                        return@forEach // Skip overwriting un-synced local changes
+                    }
                     database.pulsyDatabaseQueries.insertTask(
                         id = task.id,
                         creatorId = task.creatorId.toLong(),
@@ -330,12 +338,21 @@ class PlanRepositoryImpl(
 
     override suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit> {
         return try {
-            database.pulsyDatabaseQueries.insertTaskException(
-                taskId = taskId,
-                dateMs = dateMs,
-                isCompleted = if (isCompleted) 1L else 0L,
-                isSynced = 0L // Not synced yet
-            )
+            val task = database.pulsyDatabaseQueries.getTaskById(taskId).executeAsOneOrNull()
+            
+            if (task != null && task.isRecurring == 0L) {
+                // Non-recurring task: update status directly
+                val newStatus = if (isCompleted) TaskStatus.COMPLETED.name else TaskStatus.PENDING.name
+                database.pulsyDatabaseQueries.updateTaskStatus(newStatus, taskId)
+            } else {
+                // Recurring task: insert exception
+                database.pulsyDatabaseQueries.insertTaskException(
+                    taskId = taskId,
+                    dateMs = dateMs,
+                    isCompleted = if (isCompleted) 1L else 0L,
+                    isSynced = 0L // Not synced yet
+                )
+            }
             // TODO: In a real app, you would sync this to the backend here as well
             Result.success(Unit)
         } catch (e: Exception) {

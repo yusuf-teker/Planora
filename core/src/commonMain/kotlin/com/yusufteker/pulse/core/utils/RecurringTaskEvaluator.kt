@@ -11,6 +11,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.DateTimePeriod
+import kotlinx.datetime.isoDayNumber
 
 object RecurringTaskEvaluator {
 
@@ -53,7 +54,7 @@ object RecurringTaskEvaluator {
                 }
                 is RecurrenceRule.Weekly -> {
                     // Monday is 1, Sunday is 7 (kotlinx.datetime ISO)
-                    val dayOfWeekIso = currentDate.dayOfWeek.value
+                    val dayOfWeekIso = currentDate.dayOfWeek.isoDayNumber
                     startDate <= currentDate && rule.daysOfWeek.contains(dayOfWeekIso)
                 }
                 is RecurrenceRule.Monthly -> {

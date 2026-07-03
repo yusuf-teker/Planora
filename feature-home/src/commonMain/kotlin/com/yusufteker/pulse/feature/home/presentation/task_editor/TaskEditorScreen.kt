@@ -169,6 +169,15 @@ fun TaskEditorScreen(
 
                 // Options Section
                 FormSection {
+                    if (state.id != null) {
+                        FormSwitchRow(
+                            label = "Tamamlandı",
+                            checked = state.status == com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED,
+                            onCheckedChange = { viewModel.onEvent(TaskEditorEvent.StatusChanged(it)) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+
                     FormSwitchRow(
                         label = "Opsiyonel",
                         checked = state.isOptional,

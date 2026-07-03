@@ -9,6 +9,7 @@ sealed interface TaskEditorEvent : UiEvent {
     data class DescriptionChanged(val description: String) : TaskEditorEvent
     data class OnDeadlinePickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data class OnDeadlineSelected(val dateMs: Long?) : TaskEditorEvent
+    data class StatusChanged(val isCompleted: Boolean) : TaskEditorEvent
     data object SaveClicked : TaskEditorEvent
     data object DeleteClicked : TaskEditorEvent
     data object OnBackClick : TaskEditorEvent

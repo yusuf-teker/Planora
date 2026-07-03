@@ -123,6 +123,26 @@ class HomeViewModel(
                 setState { copy(isFilterSheetVisible = event.isVisible) }
             }
             
+            is HomeEvent.ToggleTaskCompletion -> {
+                launch {
+                    val task = event.task
+                    val dateMs = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+                    val isCurrentlyCompleted = task.status == com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED
+                    
+                    val baseId = task.id.substringBeforeLast("_")
+                    
+                    val result = planRepository.completeTaskInstance(
+                        taskId = baseId,
+                        dateMs = dateMs,
+                        isCompleted = !isCurrentlyCompleted
+                    )
+                    
+                    if (result.isFailure) {
+                        setState { copy(error = result.exceptionOrNull()?.message ?: "Task durumu güncellenemedi") }
+                    }
+                }
+            }
+            
             is HomeEvent.TimelineItemClicked -> {
                 when (event.task.type) {
                     com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(HomeEffect.NavigateToTaskEditor(event.task.id))

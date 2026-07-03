@@ -17,4 +17,5 @@ sealed interface HomeEvent : UiEvent {
     data class ViewOptionChanged(val option: TimelineViewOption) : HomeEvent
     data class FilterOptionChanged(val filterOptions: TimelineFilterOptions) : HomeEvent
     data class ToggleFilterSheet(val isVisible: Boolean) : HomeEvent
+    data class ToggleTaskCompletion(val task: com.yusufteker.pulse.shared.api.TaskDto) : HomeEvent
 }

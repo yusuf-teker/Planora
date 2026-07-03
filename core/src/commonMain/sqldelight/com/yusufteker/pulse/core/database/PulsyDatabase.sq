@@ -213,6 +213,12 @@ DELETE FROM taskEntity WHERE id = :id;
 deleteAllTasks:
 DELETE FROM taskEntity;
 
+getTaskById:
+SELECT * FROM taskEntity WHERE id = :id;
+
+updateTaskStatus:
+UPDATE taskEntity SET status = :status WHERE id = :id;
+
 -- TaskSharedRoom Sorguları
 insertTaskSharedRoom:
 INSERT OR REPLACE INTO taskSharedRoomEntity(taskId, roomId)
