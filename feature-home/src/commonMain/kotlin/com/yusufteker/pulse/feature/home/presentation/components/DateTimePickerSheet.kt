@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -18,10 +17,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,16 +49,9 @@ fun DateTimePickerSheet(
     val tz = TimeZone.currentSystemDefault()
     val initialDateTime = Instant.fromEpochMilliseconds(initialMs).toLocalDateTime(tz)
 
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialMs,
-        initialDisplayMode = DisplayMode.Picker
-    )
-    
-    val timePickerState = rememberTimePickerState(
-        initialHour = initialDateTime.hour,
-        initialMinute = initialDateTime.minute,
-        is24Hour = true
-    )
+    var selectedDateMillis by remember { mutableStateOf(initialMs) }
+    var selectedHour by remember { mutableStateOf(initialDateTime.hour) }
+    var selectedMinute by remember { mutableStateOf(initialDateTime.minute) }
 
     var showTimePicker by remember { mutableStateOf(timeOnly) }
 
@@ -100,12 +88,10 @@ fun DateTimePickerSheet(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
-                DatePicker(
-                    state = datePickerState,
-                    modifier = Modifier.fillMaxWidth(),
-                    showModeToggle = false,
-                    title = null,
-                    headline = null
+                WheelDatePicker(
+                    initialDateMillis = initialMs,
+                    onDateSelected = { selectedDateMillis = it },
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Row(
@@ -130,9 +116,14 @@ fun DateTimePickerSheet(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
-                
-                // Using TimeInput for a cleaner, dial-free look which is more modern/universal
-                TimeInput(state = timePickerState)
+                WheelTimePicker(
+                    initialHour = selectedHour,
+                    initialMinute = selectedMinute,
+                    onTimeSelected = { h, m -> 
+                        selectedHour = h
+                        selectedMinute = m
+                    }
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 32.dp),
@@ -149,15 +140,15 @@ fun DateTimePickerSheet(
                         }
                         Button(
                             onClick = {
-                                val selectedDateMs = datePickerState.selectedDateMillis ?: initialMs
+                                val selectedDateMs = selectedDateMillis
                                 // Combine date and time
                                 val date = Instant.fromEpochMilliseconds(selectedDateMs).toLocalDateTime(TimeZone.UTC)
                                 val resultDateTime = LocalDateTime(
                                     year = date.year,
                                     monthNumber = date.monthNumber,
                                     dayOfMonth = date.dayOfMonth,
-                                    hour = timePickerState.hour,
-                                    minute = timePickerState.minute,
+                                    hour = selectedHour,
+                                    minute = selectedMinute,
                                     second = 0,
                                     nanosecond = 0
                                 )
