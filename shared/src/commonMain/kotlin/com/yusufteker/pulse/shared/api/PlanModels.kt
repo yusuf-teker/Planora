@@ -10,6 +10,14 @@ enum class TaskType {
 }
 
 @Serializable
+sealed class RecurrenceRule {
+    @Serializable data class Daily(val interval: Int = 1) : RecurrenceRule()
+    @Serializable data class Weekly(val daysOfWeek: Set<Int>) : RecurrenceRule()
+    @Serializable data class Monthly(val dayOfMonth: Int? = null, val isLastDay: Boolean = false) : RecurrenceRule()
+    @Serializable data class Yearly(val month: Int, val dayOfMonth: Int) : RecurrenceRule()
+}
+
+@Serializable
 enum class TaskStatus {
     PENDING,
     IN_PROGRESS,

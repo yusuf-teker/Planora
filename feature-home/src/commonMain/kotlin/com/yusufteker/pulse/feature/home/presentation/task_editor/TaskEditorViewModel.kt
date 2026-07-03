@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class TaskEditorViewModel(
     private val planRepository: PlanRepository,
@@ -42,13 +44,8 @@ class TaskEditorViewModel(
             
             is TaskEditorEvent.OnIsRecurringChanged -> _state.update { it.copy(isRecurring = event.isRecurring) }
             is TaskEditorEvent.OnRepeatPickerVisibilityChanged -> _state.update { it.copy(isRepeatPickerVisible = event.isVisible) }
-            is TaskEditorEvent.OnRepeatDayToggled -> _state.update {
-                val newDays = if (it.selectedRepeatDays.contains(event.day)) {
-                    it.selectedRepeatDays - event.day
-                } else {
-                    it.selectedRepeatDays + event.day
-                }
-                it.copy(selectedRepeatDays = newDays, isRecurring = newDays.isNotEmpty())
+            is TaskEditorEvent.OnRecurrenceRuleChanged -> _state.update {
+                it.copy(recurrenceRule = event.rule, isRecurring = event.rule != null)
             }
             
             is TaskEditorEvent.OnIsOptionalChanged -> _state.update { it.copy(isOptional = event.isOptional) }
@@ -128,10 +125,11 @@ class TaskEditorViewModel(
             planRepository.observeAllTasks().collect { tasks ->
                 val task = tasks.find { it.id == taskId && it.type == TaskType.TASK }
                 if (task != null) {
-                    val rule = task.recurrenceRule ?: ""
-                    val selectedDays = if (task.isRecurring && rule.startsWith("WEEKLY:")) {
-                        rule.removePrefix("WEEKLY:").split(",").mapNotNull { it.toIntOrNull() }.toSet()
-                    } else emptySet()
+                    val ruleObj = try {
+                        task.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.pulse.shared.api.RecurrenceRule>(it) }
+                    } catch (e: Exception) {
+                        null
+                    }
 
                     val details = task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task
                     val deadline = details?.deadline ?: task.endTime
@@ -142,7 +140,7 @@ class TaskEditorViewModel(
                             description = task.description ?: "",
                             deadlineDateMs = deadline,
                             isRecurring = task.isRecurring,
-                            selectedRepeatDays = selectedDays,
+                            recurrenceRule = ruleObj,
                             isOptional = task.isOptional,
                             reminders = task.reminders,
                             participants = task.participants,
@@ -168,9 +166,7 @@ class TaskEditorViewModel(
 
             val now = getCurrentTimeMs()
             
-            val recurrenceStr = if (currentState.selectedRepeatDays.isNotEmpty()) {
-                "WEEKLY:" + currentState.selectedRepeatDays.sorted().joinToString(",")
-            } else null
+            val recurrenceStr = currentState.recurrenceRule?.let { Json.encodeToString(it) }
 
             val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
                 title = currentState.title,
@@ -181,7 +177,7 @@ class TaskEditorViewModel(
                 status = TaskStatus.PENDING,
                 visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
                 sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
-                isRecurring = currentState.isRecurring || currentState.selectedRepeatDays.isNotEmpty(),
+                isRecurring = currentState.isRecurring || currentState.recurrenceRule != null,
                 recurrenceRule = recurrenceStr,
                 isFlexible = true,
                 isOptional = currentState.isOptional,

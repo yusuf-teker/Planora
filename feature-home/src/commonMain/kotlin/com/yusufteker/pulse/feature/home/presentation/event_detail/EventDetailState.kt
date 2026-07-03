@@ -1,5 +1,7 @@
 package com.yusufteker.pulse.feature.home.presentation.event_detail
 
+import com.yusufteker.pulse.shared.api.RecurrenceRule
+
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -23,7 +25,7 @@ data class EventDetailState(
     
     // Recurrence
     val isRecurring: Boolean = false,
-    val selectedDaysOfWeek: Set<Int> = emptySet(), // 1=Monday...7=Sunday
+    val recurrenceRule: RecurrenceRule? = null,
     
     val isLoading: Boolean = false,
     val error: String? = null,

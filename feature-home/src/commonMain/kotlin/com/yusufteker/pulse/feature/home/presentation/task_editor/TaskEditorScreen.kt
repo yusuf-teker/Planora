@@ -56,6 +56,11 @@ fun TaskEditorScreen(
         }
     }
 
+    val isTimeOnly = state.isRecurring && state.recurrenceRule != null && 
+        (state.recurrenceRule is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily || 
+         state.recurrenceRule is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly || 
+         (state.recurrenceRule as? com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly)?.isLastDay == true)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -126,31 +131,38 @@ fun TaskEditorScreen(
                     )
                 }
 
-                // Date and Time Section
                 FormSection {
                     val deadlineText = state.deadlineDateMs?.let { ms ->
-                        if (state.isRecurring && state.selectedRepeatDays.isNotEmpty()) {
-                            formatTime(ms)
+                        if (state.isRecurring && state.recurrenceRule != null) {
+                            when (val rule = state.recurrenceRule) {
+                                is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> "${formatShortDate(ms)} ${formatTime(ms)}"
+                                is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) formatTime(ms) else "${formatShortDate(ms)} ${formatTime(ms)}"
+                                else -> formatTime(ms)
+                            }
                         } else {
                             "${formatShortDate(ms)} ${formatTime(ms)}"
                         }
                     } ?: "Seçilmedi"
 
                     FormRow(
-                        label = "Bitiş (Deadline)",
+                        label = if (isTimeOnly) "Saat" else "Bitiş (Deadline)",
                         value = deadlineText,
                         onClick = { viewModel.onEvent(TaskEditorEvent.OnDeadlinePickerVisibilityChanged(true)) }
                     )
                     
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
                     
+                    val repeatText = when (val rule = state.recurrenceRule) {
+                        null -> "Yok"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily -> "Her Gün"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly -> "Haftada ${rule.daysOfWeek.size} Gün"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) "Her Ay (Son Gün)" else "Her Ay"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> "Her Yıl"
+                    }
+
                     FormRow(
                         label = "Tekrar",
-                        value = if (state.isRecurring && state.selectedRepeatDays.isNotEmpty()) {
-                            state.selectedRepeatDays.size.toString() + " Gün"
-                        } else {
-                            "Yok"
-                        },
+                        value = repeatText,
                         onClick = { viewModel.onEvent(TaskEditorEvent.OnRepeatPickerVisibilityChanged(true)) }
                     )
                 }
@@ -189,7 +201,7 @@ fun TaskEditorScreen(
     if (state.isDeadlinePickerVisible) {
         DateTimePickerSheet(
             initialTimeMs = state.deadlineDateMs,
-            timeOnly = state.isRecurring && state.selectedRepeatDays.isNotEmpty(),
+            timeOnly = isTimeOnly,
             sheetState = dateSheetState,
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnDeadlinePickerVisibilityChanged(false)) },
             onDateTimeSelected = { ms -> viewModel.onEvent(TaskEditorEvent.OnDeadlineSelected(ms)) }
@@ -198,13 +210,15 @@ fun TaskEditorScreen(
 
     if (state.isRepeatPickerVisible) {
         RepeatPickerSheet(
-            selectedDays = state.selectedRepeatDays,
+            initialRule = state.recurrenceRule,
+            startDateMs = state.deadlineDateMs ?: com.yusufteker.pulse.core.utils.getCurrentTimeMs(),
             sheetState = repeatSheetState,
             onDismissRequest = { 
                 viewModel.onEvent(TaskEditorEvent.OnRepeatPickerVisibilityChanged(false))
-                viewModel.onEvent(TaskEditorEvent.OnIsRecurringChanged(state.selectedRepeatDays.isNotEmpty()))
             },
-            onDayToggled = { day -> viewModel.onEvent(TaskEditorEvent.OnRepeatDayToggled(day)) }
+            onRuleSelected = { rule -> 
+                viewModel.onEvent(TaskEditorEvent.OnRecurrenceRuleChanged(rule))
+            }
         )
     }
 

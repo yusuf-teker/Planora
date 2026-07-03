@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.feature.home.presentation.task_editor
 
 import com.yusufteker.pulse.core.base.UiEvent
+import com.yusufteker.pulse.shared.api.RecurrenceRule
 import com.yusufteker.pulse.shared.api.TaskType
 
 sealed interface TaskEditorEvent : UiEvent {
@@ -12,7 +13,7 @@ sealed interface TaskEditorEvent : UiEvent {
     data object DeleteClicked : TaskEditorEvent
     data object OnBackClick : TaskEditorEvent
     data class OnIsRecurringChanged(val isRecurring: Boolean) : TaskEditorEvent
-    data class OnRepeatDayToggled(val day: Int) : TaskEditorEvent
+    data class OnRecurrenceRuleChanged(val rule: RecurrenceRule?) : TaskEditorEvent
     data class OnRepeatPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data class OnLoadTask(val taskId: String?, val planRoomId: String? = null) : TaskEditorEvent
     data class OnIsOptionalChanged(val isOptional: Boolean) : TaskEditorEvent

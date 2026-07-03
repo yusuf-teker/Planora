@@ -1,5 +1,6 @@
 package com.yusufteker.pulse.feature.home.presentation.event_detail
 
+import com.yusufteker.pulse.shared.api.RecurrenceRule
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -19,7 +20,7 @@ sealed interface EventDetailEvent {
     
     // Recurrence
     data class OnToggleRecurring(val isRecurring: Boolean) : EventDetailEvent
-    data class OnToggleDayOfWeek(val dayOfWeek: Int) : EventDetailEvent
+    data class OnRecurrenceRuleChanged(val rule: RecurrenceRule?) : EventDetailEvent
     data class OnRepeatPickerVisibilityChanged(val isVisible: Boolean) : EventDetailEvent
     
     object OnSaveClick : EventDetailEvent

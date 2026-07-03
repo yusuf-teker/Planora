@@ -20,6 +20,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class EventDetailViewModel(
     private val planRepository: PlanRepository,
@@ -63,15 +65,9 @@ class EventDetailViewModel(
             is EventDetailEvent.OnRepeatPickerVisibilityChanged -> _state.update { it.copy(isRepeatPickerOpen = event.isVisible) }
             
             is EventDetailEvent.OnToggleRecurring -> _state.update { it.copy(isRecurring = event.isRecurring) }
-            is EventDetailEvent.OnToggleDayOfWeek -> {
+            is EventDetailEvent.OnRecurrenceRuleChanged -> {
                 _state.update { currentState ->
-                    val newDays = currentState.selectedDaysOfWeek.toMutableSet()
-                    if (newDays.contains(event.dayOfWeek)) {
-                        newDays.remove(event.dayOfWeek)
-                    } else {
-                        newDays.add(event.dayOfWeek)
-                    }
-                    currentState.copy(selectedDaysOfWeek = newDays, isRecurring = newDays.isNotEmpty())
+                    currentState.copy(recurrenceRule = event.rule, isRecurring = event.rule != null)
                 }
             }
             
@@ -143,7 +139,11 @@ class EventDetailViewModel(
                 val task = tasks.find { it.id == eventId && it.type == TaskType.EVENT }
                 if (task != null) {
                     val location = (task.specificDetails as? ItemDetails.Event)?.location ?: ""
-                    val days = parseRecurrenceDays(task.recurrenceRule)
+                    val ruleObj = try {
+                        task.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.pulse.shared.api.RecurrenceRule>(it) }
+                    } catch (e: Exception) {
+                        null
+                    }
                     
                     _state.update { 
                         it.copy(
@@ -154,7 +154,7 @@ class EventDetailViewModel(
                             endDateTimeMs = task.endTime ?: task.startTime,
                             isRecurring = task.isRecurring,
                             participants = task.participants,
-                            selectedDaysOfWeek = days,
+                            recurrenceRule = ruleObj,
                             isLoading = false
                         ) 
                     }
@@ -175,9 +175,7 @@ class EventDetailViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            val recurrenceRule = if (currentState.selectedDaysOfWeek.isNotEmpty()) {
-                buildRecurrenceRule(currentState.selectedDaysOfWeek)
-            } else null
+            val recurrenceStr = currentState.recurrenceRule?.let { Json.encodeToString(it) }
 
             val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
                 title = currentState.title,
@@ -188,8 +186,8 @@ class EventDetailViewModel(
                 status = TaskStatus.PENDING,
                 visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
                 sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
-                isRecurring = currentState.isRecurring || currentState.selectedDaysOfWeek.isNotEmpty(),
-                recurrenceRule = recurrenceRule,
+                isRecurring = currentState.isRecurring || currentState.recurrenceRule != null,
+                recurrenceRule = recurrenceStr,
                 isFlexible = false,
                 isOptional = false,
                 isPostponable = false,
@@ -222,16 +220,4 @@ class EventDetailViewModel(
         }
     }
     
-    private fun buildRecurrenceRule(days: Set<Int>): String {
-        val dayMap = mapOf(1 to "MO", 2 to "TU", 3 to "WE", 4 to "TH", 5 to "FR", 6 to "SA", 7 to "SU")
-        val dayString = days.mapNotNull { dayMap[it] }.joinToString(",")
-        return "FREQ=WEEKLY;BYDAY=$dayString"
-    }
-    
-    private fun parseRecurrenceDays(rule: String?): Set<Int> {
-        if (rule == null || !rule.contains("BYDAY=")) return emptySet()
-        val byDayPart = rule.substringAfter("BYDAY=").substringBefore(";")
-        val dayMap = mapOf("MO" to 1, "TU" to 2, "WE" to 3, "TH" to 4, "FR" to 5, "SA" to 6, "SU" to 7)
-        return byDayPart.split(",").mapNotNull { dayMap[it] }.toSet()
-    }
 }

@@ -57,6 +57,11 @@ fun EventDetailScreen(
         }
     }
 
+    val isTimeOnly = state.isRecurring && state.recurrenceRule != null && 
+        (state.recurrenceRule is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily || 
+         state.recurrenceRule is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly || 
+         (state.recurrenceRule as? com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly)?.isLastDay == true)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -145,12 +150,14 @@ fun EventDetailScreen(
                 }
 
                 // Date, Time, and Repetition Section
+
+
                 FormSection {
-                    val startText = "${formatShortDate(state.startDateTimeMs)} ${formatTime(state.startDateTimeMs)}"
-                    val endText = "${formatShortDate(state.endDateTimeMs)} ${formatTime(state.endDateTimeMs)}"
+                    val startText = if (isTimeOnly) formatTime(state.startDateTimeMs) else "${formatShortDate(state.startDateTimeMs)} ${formatTime(state.startDateTimeMs)}"
+                    val endText = if (isTimeOnly) formatTime(state.endDateTimeMs) else "${formatShortDate(state.endDateTimeMs)} ${formatTime(state.endDateTimeMs)}"
 
                     FormRow(
-                        label = "Başlangıç",
+                        label = if (isTimeOnly) "Başlangıç Saati" else "Başlangıç",
                         value = startText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnStartPickerVisibilityChanged(true)) }
                     )
@@ -158,20 +165,24 @@ fun EventDetailScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
                     
                     FormRow(
-                        label = "Bitiş",
+                        label = if (isTimeOnly) "Bitiş Saati" else "Bitiş",
                         value = endText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnEndPickerVisibilityChanged(true)) }
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
                     
+                    val repeatText = when (val rule = state.recurrenceRule) {
+                        null -> "Yok"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily -> "Her Gün"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly -> "Haftada ${rule.daysOfWeek.size} Gün"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) "Her Ay (Son Gün)" else "Her Ay"
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> "Her Yıl"
+                    }
+
                     FormRow(
                         label = "Tekrar",
-                        value = if (state.isRecurring && state.selectedDaysOfWeek.isNotEmpty()) {
-                            state.selectedDaysOfWeek.size.toString() + " Gün"
-                        } else {
-                            "Yok"
-                        },
+                        value = repeatText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnRepeatPickerVisibilityChanged(true)) }
                     )
                 }
@@ -195,6 +206,7 @@ fun EventDetailScreen(
     if (state.isStartPickerOpen) {
         DateTimePickerSheet(
             initialTimeMs = state.startDateTimeMs,
+            timeOnly = isTimeOnly,
             sheetState = startDateSheetState,
             onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnStartPickerVisibilityChanged(false)) },
             onDateTimeSelected = { ms -> viewModel.onEvent(EventDetailEvent.OnStartDateTimeSelected(ms)) }
@@ -204,6 +216,7 @@ fun EventDetailScreen(
     if (state.isEndPickerOpen) {
         DateTimePickerSheet(
             initialTimeMs = state.endDateTimeMs,
+            timeOnly = isTimeOnly,
             sheetState = endDateSheetState,
             onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnEndPickerVisibilityChanged(false)) },
             onDateTimeSelected = { ms -> viewModel.onEvent(EventDetailEvent.OnEndDateTimeSelected(ms)) }
@@ -212,13 +225,15 @@ fun EventDetailScreen(
 
     if (state.isRepeatPickerOpen) {
         RepeatPickerSheet(
-            selectedDays = state.selectedDaysOfWeek,
+            initialRule = state.recurrenceRule,
+            startDateMs = state.startDateTimeMs,
             sheetState = repeatSheetState,
             onDismissRequest = { 
                 viewModel.onEvent(EventDetailEvent.OnRepeatPickerVisibilityChanged(false))
-                viewModel.onEvent(EventDetailEvent.OnToggleRecurring(state.selectedDaysOfWeek.isNotEmpty()))
             },
-            onDayToggled = { day -> viewModel.onEvent(EventDetailEvent.OnToggleDayOfWeek(day)) }
+            onRuleSelected = { rule -> 
+                viewModel.onEvent(EventDetailEvent.OnRecurrenceRuleChanged(rule))
+            }
         )
     }
 
