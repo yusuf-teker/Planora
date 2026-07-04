@@ -5,6 +5,7 @@ import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * ViewModel for the Home (Dashboard) screen.
@@ -19,6 +20,10 @@ class HomeViewModel(
 ) {
 
     init {
+        val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+        val currentMonthStart = kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
+        setState { copy(visibleCalendarMonth = currentMonthStart) }
+
         launch {
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
             val thirtyDays = 86400000L * 30
@@ -40,6 +45,8 @@ class HomeViewModel(
         // Trigger a background fetch
         launch {
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+            // Sync any offline edits to server first
+            planRepository.syncPendingChanges()
             // Fetch from 30 days ago to 30 days in the future to ensure we don't miss recent tasks
             val thirtyDays = 86400000L * 30
             planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
@@ -61,6 +68,7 @@ class HomeViewModel(
                 launch {
                     val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
                     val thirtyDays = 86400000L * 30
+                    planRepository.syncPendingChanges()
                     planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
                     setState { copy(isLoading = false) }
                 }
@@ -107,7 +115,31 @@ class HomeViewModel(
             }
             
             is HomeEvent.ViewOptionChanged -> {
-                setState { copy(viewOption = event.option) }
+                setState { 
+                    copy(
+                        viewOption = event.option,
+                        upcomingTasks = applyFilters(allFetchedTasks, filterOptions, viewOption = event.option)
+                    ) 
+                }
+            }
+            
+            is HomeEvent.CalendarDateSelected -> {
+                setState {
+                    val newDate = if (selectedCalendarDate == event.date) null else event.date
+                    copy(
+                        selectedCalendarDate = newDate,
+                        upcomingTasks = applyFilters(allFetchedTasks, filterOptions, selectedCalendarDate = newDate)
+                    )
+                }
+            }
+            
+            is HomeEvent.CalendarMonthChanged -> {
+                setState {
+                    copy(
+                        visibleCalendarMonth = event.monthStart,
+                        upcomingTasks = applyFilters(allFetchedTasks, filterOptions, visibleCalendarMonth = event.monthStart)
+                    )
+                }
             }
             
             is HomeEvent.FilterOptionChanged -> {
@@ -153,7 +185,13 @@ class HomeViewModel(
         }
     }
     
-    private fun applyFilters(tasks: List<com.yusufteker.pulse.shared.api.TaskDto>, options: TimelineFilterOptions): List<com.yusufteker.pulse.shared.api.TaskDto> {
+    private fun applyFilters(
+        tasks: List<com.yusufteker.pulse.shared.api.TaskDto>, 
+        options: TimelineFilterOptions,
+        viewOption: TimelineViewOption = state.value.viewOption,
+        selectedCalendarDate: kotlinx.datetime.LocalDate? = state.value.selectedCalendarDate,
+        visibleCalendarMonth: kotlinx.datetime.LocalDate? = state.value.visibleCalendarMonth
+    ): List<com.yusufteker.pulse.shared.api.TaskDto> {
         var filtered = tasks
         
         // 1. Completed filter (if implemented, for now assuming we just hide if not showCompleted)
@@ -178,6 +216,22 @@ class HomeViewModel(
                 }
             }
             filtered = uniqueTasks
+        }
+        
+        // 3. Calendar filtering
+        if (viewOption == TimelineViewOption.CALENDAR) {
+            filtered = filtered.filter { task ->
+                val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime)
+                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                
+                if (selectedCalendarDate != null) {
+                    taskDate == selectedCalendarDate
+                } else if (visibleCalendarMonth != null) {
+                    taskDate.year == visibleCalendarMonth.year && taskDate.monthNumber == visibleCalendarMonth.monthNumber
+                } else {
+                    true
+                }
+            }
         }
         
         return filtered

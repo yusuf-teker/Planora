@@ -16,6 +16,7 @@ interface PlanRepository {
     
     suspend fun fetchMyTasks(fromTime: Long? = null, toTime: Long? = null): Result<Unit>
     suspend fun fetchRoomTasks(roomId: String, fromTime: Long? = null, toTime: Long? = null): Result<Unit>
+    suspend fun syncPendingChanges(): Result<Unit>
     
     /**
      * Local database'den tüm görevleri Flow olarak dinler (Offline-first)

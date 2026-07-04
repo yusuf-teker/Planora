@@ -44,6 +44,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -224,6 +225,8 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val isDate = state.viewOption == TimelineViewOption.DATE
+                    val isRelative = state.viewOption == TimelineViewOption.RELATIVE
+                    val isCalendar = state.viewOption == TimelineViewOption.CALENDAR
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -240,14 +243,27 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (!isDate) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .background(if (isRelative) MaterialTheme.colorScheme.primary else Color.Transparent)
                             .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.RELATIVE)) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = "Periyot",
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (!isDate) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isRelative) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isCalendar) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.CALENDAR)) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Takvim",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isCalendar) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     }
@@ -273,11 +289,61 @@ fun HomeScreen(
             }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Calendar View
+        if (state.viewOption == TimelineViewOption.CALENDAR) {
+            val tasksByDate = remember(state.allFetchedTasks, state.filterOptions) {
+                var filteredForCalendar = state.allFetchedTasks
+                if (!state.filterOptions.showCompleted) {
+                    filteredForCalendar = filteredForCalendar.filter { it.status != com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED }
+                }
+                if (state.filterOptions.showOnlyNextRecurring) {
+                    val uniqueTasks = mutableListOf<com.yusufteker.pulse.shared.api.TaskDto>()
+                    val seenRecurringBaseIds = mutableSetOf<String>()
+                    for (task in filteredForCalendar) {
+                        if (task.isRecurring) {
+                            val baseId = task.id.substringBeforeLast("_")
+                            if (baseId !in seenRecurringBaseIds) {
+                                seenRecurringBaseIds.add(baseId)
+                                uniqueTasks.add(task)
+                            }
+                        } else {
+                            uniqueTasks.add(task)
+                        }
+                    }
+                    filteredForCalendar = uniqueTasks
+                }
+                
+                filteredForCalendar.groupBy { task ->
+                    kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime)
+                        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                }
+            }
+            
+            com.yusufteker.pulse.feature.home.presentation.home.components.CalendarView(
+                tasksByDate = tasksByDate,
+                selectedDate = state.selectedCalendarDate,
+                visibleMonth = state.visibleCalendarMonth,
+                onDateSelected = { viewModel.onEvent(HomeEvent.CalendarDateSelected(it)) },
+                onMonthChanged = { viewModel.onEvent(HomeEvent.CalendarMonthChanged(it)) }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            if (state.selectedCalendarDate != null && state.upcomingTasks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("Bugün etkinlik yok.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else if (state.selectedCalendarDate == null && state.upcomingTasks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("Bu ay etkinlik yok.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
         
 
 
         // Timeline
-        val grouped = state.upcomingTasks.groupBy { task ->
+        val grouped = state.upcomingTasks.groupBy<com.yusufteker.pulse.shared.api.TaskDto, String> { task ->
             val time = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
             
             if (state.viewOption == TimelineViewOption.DATE) {
@@ -320,26 +386,6 @@ fun HomeScreen(
             }
         }
 
-        // Smart Input (bottom)
-        OutlinedTextField(
-            value = state.smartInputText,
-            onValueChange = { viewModel.onEvent(HomeEvent.SmartInputChanged(it)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 8.dp),
-            placeholder = { Text("AI'a söyle: Yarın 15:00'te toplantım var...") },
-            trailingIcon = {
-                IconButton(onClick = { viewModel.onEvent(HomeEvent.SubmitSmartInput) }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send to AI",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            singleLine = true
-        )
     }
     }
     

@@ -25,6 +25,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
 import com.yusufteker.pulse.core.utils.RecurringTaskEvaluator
 import com.yusufteker.pulse.shared.api.RecurrenceRule
+import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromDto
+import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromRequest
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
@@ -64,31 +66,7 @@ class PlanRepositoryImpl(
             )
 
             database.pulsyDatabaseQueries.transaction {
-                database.pulsyDatabaseQueries.insertTask(
-                    id = localDto.id,
-                    creatorId = localDto.creatorId.toLong(),
-                    title = localDto.title,
-                    description = localDto.description,
-                    startTime = localDto.startTime,
-                    endTime = localDto.endTime,
-                    type = localDto.type.name,
-                    status = localDto.status.name,
-                    visibility = localDto.visibility.name,
-                    isRecurring = if (localDto.isRecurring) 1L else 0L,
-                    recurrenceRule = localDto.recurrenceRule,
-                    isFlexible = if (localDto.isFlexible) 1L else 0L,
-                    isOptional = if (localDto.isOptional) 1L else 0L,
-                    isPostponable = if (localDto.isPostponable) 1L else 0L,
-                    isAllDay = if (localDto.isAllDay) 1L else 0L,
-                    aiMetadata = localDto.aiMetadata?.let { Json.encodeToString(it) },
-                    reminders = if (localDto.reminders.isNotEmpty()) Json.encodeToString(localDto.reminders) else null,
-                    specificDetails = localDto.specificDetails?.let { Json.encodeToString(it) },
-                    tags = if (localDto.tags.isNotEmpty()) Json.encodeToString(localDto.tags) else null,
-                    color = localDto.color,
-                    parentId = localDto.parentId,
-                    participants = localDto.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
-                    isSynced = 0L // Henüz sunucuya gitmedi
-                )
+                database.pulsyDatabaseQueries.insertTaskFromDto(localDto, isSynced = 0L)
                 
                 localDto.sharedRoomIds.forEach { roomId ->
                     database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = localDto.id, roomId = roomId)
@@ -147,31 +125,7 @@ class PlanRepositoryImpl(
     override suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit> {
         return try {
             database.pulsyDatabaseQueries.transaction {
-                database.pulsyDatabaseQueries.insertTask(
-                    id = taskId,
-                    creatorId = 0, // Geçici, sunucudan gelince güncellenir
-                    title = request.title,
-                    description = request.description,
-                    startTime = request.startTime,
-                    endTime = request.endTime,
-                    type = request.type.name,
-                    status = request.status.name,
-                    visibility = request.visibility.name,
-                    isRecurring = if (request.isRecurring) 1L else 0L,
-                    recurrenceRule = request.recurrenceRule,
-                    isFlexible = if (request.isFlexible) 1L else 0L,
-                    isOptional = if (request.isOptional) 1L else 0L,
-                    isPostponable = if (request.isPostponable) 1L else 0L,
-                    isAllDay = if (request.isAllDay) 1L else 0L,
-                    aiMetadata = request.aiMetadata?.let { Json.encodeToString(it) },
-                    reminders = if (request.reminders.isNotEmpty()) Json.encodeToString(request.reminders) else null,
-                    specificDetails = request.specificDetails?.let { Json.encodeToString(it) },
-                    tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null,
-                    color = request.color,
-                    parentId = request.parentId,
-                    participants = request.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
-                    isSynced = 0L // Henüz sunucuya gitmedi
-                )
+                database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, 0L, request, isSynced = 0L)
                 
                 // Odaları güncelle: Önce eskileri sil, sonra yenileri ekle
                 // database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(taskId) // This query doesn't exist, ignoring for now as it's an edge case
@@ -187,31 +141,7 @@ class PlanRepositoryImpl(
                     database.pulsyDatabaseQueries.transaction {
                         // isSynced = 1 yapmak için bir query eklemek gerek,
                         // Şimdilik yeniden insertTask yapıyoruz.
-                        database.pulsyDatabaseQueries.insertTask(
-                            id = taskId,
-                            creatorId = 0,
-                            title = request.title,
-                            description = request.description,
-                            startTime = request.startTime,
-                            endTime = request.endTime,
-                            type = request.type.name,
-                            status = request.status.name,
-                            visibility = request.visibility.name,
-                            isRecurring = if (request.isRecurring) 1L else 0L,
-                            recurrenceRule = request.recurrenceRule,
-                            isFlexible = if (request.isFlexible) 1L else 0L,
-                            isOptional = if (request.isOptional) 1L else 0L,
-                            isPostponable = if (request.isPostponable) 1L else 0L,
-                            isAllDay = if (request.isAllDay) 1L else 0L,
-                            aiMetadata = request.aiMetadata?.let { Json.encodeToString(it) },
-                            reminders = if (request.reminders.isNotEmpty()) Json.encodeToString(request.reminders) else null,
-                            specificDetails = request.specificDetails?.let { Json.encodeToString(it) },
-                            tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null,
-                            color = request.color,
-                            parentId = request.parentId,
-                            participants = request.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
-                            isSynced = 1L
-                        )
+                        database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, 0L, request, isSynced = 1L)
                     }
                 } catch (e: Exception) {
                     println("Task update sync failed: ${e.message}")
@@ -244,6 +174,55 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun syncPendingChanges(): Result<Unit> {
+        return try {
+            val pendingTasks = database.pulsyDatabaseQueries.getUnsyncedTasks().executeAsList()
+            pendingTasks.forEach { entity ->
+                val request = CreateTaskRequest(
+                    title = entity.title,
+                    description = entity.description,
+                    startTime = entity.startTime,
+                    endTime = entity.endTime,
+                    type = com.yusufteker.pulse.shared.api.TaskType.valueOf(entity.type),
+                    status = com.yusufteker.pulse.shared.api.TaskStatus.valueOf(entity.status),
+                    visibility = com.yusufteker.pulse.shared.api.TaskVisibility.valueOf(entity.visibility),
+                    sharedRoomIds = database.pulsyDatabaseQueries.getSharedRoomsForTask(entity.id).executeAsList(),
+                    isRecurring = entity.isRecurring == 1L,
+                    recurrenceRule = entity.recurrenceRule,
+                    isFlexible = entity.isFlexible == 1L,
+                    isOptional = entity.isOptional == 1L,
+                    isPostponable = entity.isPostponable == 1L,
+                    isAllDay = entity.isAllDay == 1L,
+                    parentId = entity.parentId,
+                    aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                    reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                    specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                    tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                    color = entity.color,
+                    participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap()
+                )
+
+                if (entity.id.startsWith("local_")) {
+                    val remoteTask = planApi.createTask(request)
+                    database.pulsyDatabaseQueries.transaction {
+                        database.pulsyDatabaseQueries.deleteTaskById(entity.id)
+                        database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                        remoteTask.sharedRoomIds.forEach { roomId ->
+                            database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
+                        }
+                    }
+                } else {
+                    planApi.updateTask(entity.id, request)
+                    database.pulsyDatabaseQueries.updateTaskSyncStatus(1L, entity.id)
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("Sync pending changes failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     override suspend fun fetchMyTasks(fromTime: Long?, toTime: Long?): Result<Unit> {
         return try {
             val tasks = planApi.getMyTasks(fromTime, toTime)
@@ -255,30 +234,7 @@ class PlanRepositoryImpl(
                     if (existingTask != null && existingTask.isSynced == 0L) {
                         return@forEach // Skip overwriting un-synced local changes
                     }
-                    database.pulsyDatabaseQueries.insertTask(
-                        id = task.id,
-                        creatorId = task.creatorId.toLong(),
-                        title = task.title,
-                        description = task.description,
-                        startTime = task.startTime,
-                        endTime = task.endTime,
-                        type = task.type.name,
-                        status = task.status.name,
-                        visibility = task.visibility.name,
-                        isRecurring = if (task.isRecurring) 1L else 0L,
-                        recurrenceRule = task.recurrenceRule,
-                        isFlexible = if (task.isFlexible) 1L else 0L,
-                        isOptional = if (task.isOptional) 1L else 0L,
-                        isPostponable = if (task.isPostponable) 1L else 0L,
-                        isAllDay = if (task.isAllDay) 1L else 0L,
-                        aiMetadata = task.aiMetadata?.let { Json.encodeToString(it) },
-                        reminders = if (task.reminders.isNotEmpty()) Json.encodeToString(task.reminders) else null,
-                        specificDetails = task.specificDetails?.let { Json.encodeToString(it) },
-                        tags = if (task.tags.isNotEmpty()) Json.encodeToString(task.tags) else null,
-                        color = task.color,
-                        parentId = task.parentId, participants = task.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
-                        isSynced = 1L
-                    )
+                    database.pulsyDatabaseQueries.insertTaskFromDto(task, isSynced = 1L)
                     task.sharedRoomIds.forEach { roomId ->
                         database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
                     }
@@ -299,30 +255,7 @@ class PlanRepositoryImpl(
                     if (existingTask != null && existingTask.isSynced == 0L) {
                         return@forEach // Skip overwriting un-synced local changes
                     }
-                    database.pulsyDatabaseQueries.insertTask(
-                        id = task.id,
-                        creatorId = task.creatorId.toLong(),
-                        title = task.title,
-                        description = task.description,
-                        startTime = task.startTime,
-                        endTime = task.endTime,
-                        type = task.type.name,
-                        status = task.status.name,
-                        visibility = task.visibility.name,
-                        isRecurring = if (task.isRecurring) 1L else 0L,
-                        recurrenceRule = task.recurrenceRule,
-                        isFlexible = if (task.isFlexible) 1L else 0L,
-                        isOptional = if (task.isOptional) 1L else 0L,
-                        isPostponable = if (task.isPostponable) 1L else 0L,
-                        isAllDay = if (task.isAllDay) 1L else 0L,
-                        aiMetadata = task.aiMetadata?.let { Json.encodeToString(it) },
-                        reminders = if (task.reminders.isNotEmpty()) Json.encodeToString(task.reminders) else null,
-                        specificDetails = task.specificDetails?.let { Json.encodeToString(it) },
-                        tags = if (task.tags.isNotEmpty()) Json.encodeToString(task.tags) else null,
-                        color = task.color,
-                        parentId = task.parentId, participants = task.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
-                        isSynced = 1L
-                    )
+                    database.pulsyDatabaseQueries.insertTaskFromDto(task, isSynced = 1L)
                     task.sharedRoomIds.forEach { room ->
                         database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = room)
                     }

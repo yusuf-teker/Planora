@@ -4,6 +4,7 @@ import com.yusufteker.pulse.feature.home.presentation.home.HomeViewModel
 import com.yusufteker.pulse.feature.home.presentation.profile.ProfileViewModel
 import com.yusufteker.pulse.feature.home.presentation.settings.SettingsViewModel
 import com.yusufteker.pulse.feature.home.presentation.social.SocialViewModel
+import com.yusufteker.pulse.feature.home.presentation.aichat.AiChatViewModel
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.pulse.feature.home.data.api.CommentApi
 import com.yusufteker.pulse.feature.home.domain.repository.CommentRepository
@@ -60,6 +61,7 @@ val homeModule = module {
     viewModelOf(::SocialViewModel)
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::AiChatViewModel)
     factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)

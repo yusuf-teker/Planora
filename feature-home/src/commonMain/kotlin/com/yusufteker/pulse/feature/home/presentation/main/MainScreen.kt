@@ -1,5 +1,6 @@
 package com.yusufteker.pulse.feature.home.presentation.main
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,6 +29,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +54,7 @@ import androidx.compose.runtime.getValue
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
+import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
@@ -78,6 +84,7 @@ import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun MainScreen() {
+    val rootNavigator = LocalNavigator.current
     // Nested back stack for the bottom navigation, saved across compositions
     val backStack = rememberSaveable(
         saver = listSaver(
@@ -177,25 +184,6 @@ fun MainScreen() {
                         )
                     }
 
-                    // Social Tab
-                    val isSocialSelected = currentDestination is MainDestination.Social
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { navigateToTab(MainDestination.Social) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isSocialSelected) Icons.Filled.People else Icons.Outlined.People,
-                            contentDescription = "Social",
-                            tint = if (isSocialSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
                     // PlanRooms Tab
                     val isPlanRoomsSelected = currentDestination is MainDestination.PlanRooms
                     Box(
@@ -213,6 +201,35 @@ fun MainScreen() {
                             contentDescription = "Plans",
                             tint = if (isPlanRoomsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+
+                    // Central AI Button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.AiChat) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp) // Larger than normal icons but fits in the bar
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = "AI Asistan",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
 
                     // Notes Tab

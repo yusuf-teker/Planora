@@ -33,47 +33,61 @@ class TaskEditorViewModel(
     private val _effect = MutableSharedFlow<TaskEditorEffect>()
     val effect = _effect.asSharedFlow()
 
+    private var autoSaveJob: kotlinx.coroutines.Job? = null
+
     fun onEvent(event: TaskEditorEvent) {
         when (event) {
             is TaskEditorEvent.OnLoadTask -> loadTask(event.taskId, event.planRoomId)
-            is TaskEditorEvent.TitleChanged -> _state.update { it.copy(title = event.title) }
-            is TaskEditorEvent.DescriptionChanged -> _state.update { it.copy(description = event.description) }
+            is TaskEditorEvent.TitleChanged -> { _state.update { it.copy(title = event.title) }; autoSave() }
+            is TaskEditorEvent.DescriptionChanged -> { _state.update { it.copy(description = event.description) }; autoSave() }
             
             is TaskEditorEvent.OnDeadlinePickerVisibilityChanged -> _state.update { it.copy(isDeadlinePickerVisible = event.isVisible) }
-            is TaskEditorEvent.OnDeadlineSelected -> _state.update { it.copy(deadlineDateMs = event.dateMs, isDeadlinePickerVisible = false) }
+            is TaskEditorEvent.OnDeadlineSelected -> { _state.update { it.copy(deadlineDateMs = event.dateMs, isDeadlinePickerVisible = false) }; autoSave() }
             
-            is TaskEditorEvent.OnIsRecurringChanged -> _state.update { it.copy(isRecurring = event.isRecurring) }
+            is TaskEditorEvent.OnIsRecurringChanged -> { _state.update { it.copy(isRecurring = event.isRecurring) }; autoSave() }
             is TaskEditorEvent.OnRepeatPickerVisibilityChanged -> _state.update { it.copy(isRepeatPickerVisible = event.isVisible) }
-            is TaskEditorEvent.OnRecurrenceRuleChanged -> _state.update {
-                it.copy(recurrenceRule = event.rule, isRecurring = event.rule != null)
+            is TaskEditorEvent.OnRecurrenceRuleChanged -> {
+                _state.update {
+                    it.copy(recurrenceRule = event.rule, isRecurring = event.rule != null)
+                }
+                autoSave()
             }
             
-            is TaskEditorEvent.OnIsOptionalChanged -> _state.update { it.copy(isOptional = event.isOptional) }
+            is TaskEditorEvent.OnIsOptionalChanged -> { _state.update { it.copy(isOptional = event.isOptional) }; autoSave() }
             is TaskEditorEvent.OnReminderPickerVisibilityChanged -> _state.update { it.copy(isReminderPickerVisible = event.isVisible) }
-            is TaskEditorEvent.OnReminderToggled -> _state.update {
-                val newReminders = if (it.reminders.contains(event.minutes)) {
-                    it.reminders - event.minutes
-                } else {
-                    it.reminders + event.minutes
+            is TaskEditorEvent.OnReminderToggled -> {
+                _state.update {
+                    val newReminders = if (it.reminders.contains(event.minutes)) {
+                        it.reminders - event.minutes
+                    } else {
+                        it.reminders + event.minutes
+                    }
+                    it.copy(reminders = newReminders)
                 }
-                it.copy(reminders = newReminders)
+                autoSave()
             }
-            is TaskEditorEvent.StatusChanged -> _state.update { 
-                it.copy(status = if (event.isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING) 
+            is TaskEditorEvent.StatusChanged -> {
+                _state.update { 
+                    it.copy(status = if (event.isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING) 
+                }
+                autoSave()
             }
             
             is TaskEditorEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
-            is TaskEditorEvent.OnParticipantToggled -> _state.update {
-                val currentMap = it.participants.toMutableMap()
-                if (currentMap.containsKey(event.userId)) {
-                    currentMap.remove(event.userId)
-                } else {
-                    val user = it.roomMembers.find { u -> u.id == event.userId }
-                    if (user != null) {
-                        currentMap[event.userId] = user.name
+            is TaskEditorEvent.OnParticipantToggled -> {
+                _state.update {
+                    val currentMap = it.participants.toMutableMap()
+                    if (currentMap.containsKey(event.userId)) {
+                        currentMap.remove(event.userId)
+                    } else {
+                        val user = it.roomMembers.find { u -> u.id == event.userId }
+                        if (user != null) {
+                            currentMap[event.userId] = user.name
+                        }
                     }
+                    it.copy(participants = currentMap)
                 }
-                it.copy(participants = currentMap)
+                autoSave()
             }
             TaskEditorEvent.SaveClicked -> saveTask()
             TaskEditorEvent.DeleteClicked -> deleteTask()
@@ -208,6 +222,48 @@ class TaskEditorViewModel(
             
             _state.update { it.copy(isLoading = false) }
             setEffect(TaskEditorEffect.NavigateBack)
+        }
+    }
+
+    private fun autoSave() {
+        val currentState = _state.value
+        // Sadece var olan bir görevse ve başlığı boş değilse otomatik kaydet
+        if (currentState.id == null || currentState.title.isBlank()) return
+
+        autoSaveJob?.cancel()
+        autoSaveJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(500) // 500ms debounce
+            
+            val now = currentState.originalStartTime ?: getCurrentTimeMs()
+            val recurrenceStr = currentState.recurrenceRule?.let { Json.encodeToString(it) }
+
+            val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+                title = currentState.title,
+                description = currentState.description.ifBlank { null },
+                startTime = now,
+                endTime = null,
+                type = TaskType.TASK,
+                status = currentState.status,
+                visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
+                isRecurring = currentState.isRecurring || currentState.recurrenceRule != null,
+                recurrenceRule = recurrenceStr,
+                isFlexible = true,
+                isOptional = currentState.isOptional,
+                isPostponable = true,
+                isAllDay = false,
+                reminders = currentState.reminders,
+                participants = currentState.participants,
+                specificDetails = com.yusufteker.pulse.shared.api.ItemDetails.Task(
+                    subtasks = emptyList(), 
+                    priority = com.yusufteker.pulse.shared.api.TaskPriority.MEDIUM,
+                    deadline = currentState.deadlineDateMs
+                ),
+                tags = emptyList(),
+                color = null
+            )
+
+            planRepository.updateTask(currentState.id, request)
         }
     }
 

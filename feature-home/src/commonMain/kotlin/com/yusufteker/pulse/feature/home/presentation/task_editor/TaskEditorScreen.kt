@@ -76,8 +76,10 @@ fun TaskEditorScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
                         }
                     }
-                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.SaveClicked) }) {
-                        Text("Kaydet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    if (state.id == null) {
+                        TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.SaveClicked) }) {
+                            Text("Kaydet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)

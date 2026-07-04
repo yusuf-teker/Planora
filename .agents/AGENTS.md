@@ -16,3 +16,7 @@ When working on this workspace, please follow these guidelines carefully:
 
 4. **Further Reading**:
    - Please refer to `DEVELOPMENT_GUIDE.md` in the project root for more context and rules regarding empty states and navigations.
+
+5. **Task Mapper Updates**:
+   - Whenever you add a new field to `TaskEntity`, `TaskDto`, or `CreateTaskRequest`, you MUST update the mapping functions inside `feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/data/mapper/TaskMapper.kt`.
+   - Failing to do so will result in data loss during local database saves or remote syncs.

@@ -260,3 +260,9 @@ DELETE FROM taskExceptionEntity;
 
 deleteExceptionsForTask:
 DELETE FROM taskExceptionEntity WHERE taskId = :taskId;
+
+getUnsyncedTasks:
+SELECT * FROM taskEntity WHERE isSynced = 0;
+
+updateTaskSyncStatus:
+UPDATE taskEntity SET isSynced = :isSynced WHERE id = :id;

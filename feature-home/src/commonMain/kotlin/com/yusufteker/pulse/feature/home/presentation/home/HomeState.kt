@@ -15,7 +15,9 @@ data class HomeState(
     val error: String? = null,
     val viewOption: TimelineViewOption = TimelineViewOption.RELATIVE,
     val filterOptions: TimelineFilterOptions = TimelineFilterOptions(),
-    val isFilterSheetVisible: Boolean = false
+    val isFilterSheetVisible: Boolean = false,
+    val selectedCalendarDate: kotlinx.datetime.LocalDate? = null,
+    val visibleCalendarMonth: kotlinx.datetime.LocalDate? = null
 ) : UiState
 
 data class TimelineFilterOptions(
@@ -24,5 +26,5 @@ data class TimelineFilterOptions(
 )
 
 enum class TimelineViewOption {
-    DATE, RELATIVE
+    DATE, RELATIVE, CALENDAR
 }

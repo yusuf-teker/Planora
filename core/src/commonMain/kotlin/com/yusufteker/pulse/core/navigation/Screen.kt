@@ -73,9 +73,11 @@ sealed interface Screen {
     @Serializable
     data class EventDetail(val eventId: String? = null, val planRoomId: String? = null) : Screen
     
+    @Serializable
+    data object AiChat : Screen
 
 
-    /** 
+    /**  
      * Destinations within the Main Graph (Bottom Navigation Tabs).
      * These are not part of the root Screen hierarchy, but their own nested hierarchy.
      */

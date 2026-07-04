@@ -18,4 +18,6 @@ sealed interface HomeEvent : UiEvent {
     data class FilterOptionChanged(val filterOptions: TimelineFilterOptions) : HomeEvent
     data class ToggleFilterSheet(val isVisible: Boolean) : HomeEvent
     data class ToggleTaskCompletion(val task: com.yusufteker.pulse.shared.api.TaskDto) : HomeEvent
+    data class CalendarDateSelected(val date: kotlinx.datetime.LocalDate) : HomeEvent
+    data class CalendarMonthChanged(val monthStart: kotlinx.datetime.LocalDate) : HomeEvent
 }

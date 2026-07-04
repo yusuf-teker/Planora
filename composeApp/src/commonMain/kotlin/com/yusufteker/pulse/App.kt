@@ -145,6 +145,14 @@ fun App() {
                         MainScreen()
                     }
 
+                    entry<Screen.AiChat> {
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.aichat.AiChatViewModel>(key = vmKey)
+                        com.yusufteker.pulse.feature.home.presentation.aichat.AiChatScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
+
                     entry<Screen.PendingPosts> {
                         val viewModel = koinViewModel<PendingPostsViewModel>(key = vmKey)
                         PendingPostsScreen(
