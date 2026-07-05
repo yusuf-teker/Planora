@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.feature.home.presentation.home
 
 import com.yusufteker.pulse.core.base.UiState
+import com.yusufteker.pulse.core.utils.TimelineViewOption
 
 import com.yusufteker.pulse.shared.api.TaskDto
 
@@ -17,7 +18,8 @@ data class HomeState(
     val filterOptions: TimelineFilterOptions = TimelineFilterOptions(),
     val isFilterSheetVisible: Boolean = false,
     val selectedCalendarDate: kotlinx.datetime.LocalDate? = null,
-    val visibleCalendarMonth: kotlinx.datetime.LocalDate? = null
+    val visibleCalendarMonth: kotlinx.datetime.LocalDate? = null,
+    val isPreferencesLoading: Boolean = true
 ) : UiState
 
 data class TimelineFilterOptions(
@@ -25,6 +27,3 @@ data class TimelineFilterOptions(
     val showCompleted: Boolean = true
 )
 
-enum class TimelineViewOption {
-    DATE, RELATIVE, CALENDAR
-}

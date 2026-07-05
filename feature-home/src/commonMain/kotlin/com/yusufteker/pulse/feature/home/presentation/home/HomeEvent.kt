@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.feature.home.presentation.home
 
 import com.yusufteker.pulse.core.base.UiEvent
+import com.yusufteker.pulse.core.utils.TimelineViewOption
 
 /**
  * UI events for the Home screen.

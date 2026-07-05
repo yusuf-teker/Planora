@@ -1,9 +1,14 @@
 package com.yusufteker.pulse.core.preferences
 
 import androidx.datastore.core.DataStore
+
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.yusufteker.pulse.core.utils.TimelineViewOption
+
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -25,12 +30,15 @@ class SessionPreferences(
     private val userNameKey = stringPreferencesKey("user_name")
     private val userAvatarKey = stringPreferencesKey("user_avatar")
     private val userIdKey = stringPreferencesKey("user_id")
-    private val followersCountKey = androidx.datastore.preferences.core.intPreferencesKey("followers_count")
-    private val followingCountKey = androidx.datastore.preferences.core.intPreferencesKey("following_count")
+    private val followersCountKey = intPreferencesKey("followers_count")
+    private val followingCountKey = intPreferencesKey("following_count")
     private val appRunKey = androidx.datastore.preferences.core.booleanPreferencesKey("has_run_before")
     private val lastLoggedUserIdKey = stringPreferencesKey("last_logged_user_id")
     private val filterShowOnlyNextRecurringKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_only_next_recurring")
     private val filterShowCompletedKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_completed")
+    private val viewOptionKey = stringPreferencesKey("view_option")
+
+
 
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
@@ -167,4 +175,16 @@ class SessionPreferences(
             prefs[filterShowCompletedKey] = showCompleted
         }
     }
+
+     suspend fun getViewOption(): TimelineViewOption {
+         return TimelineViewOption.valueOf( dataStore.data.map { it[viewOptionKey] }.first() ?: TimelineViewOption.RELATIVE.name)
+    }
+    suspend fun saveViewOption(timelineViewOption: TimelineViewOption) {
+        dataStore.edit { prefs ->
+            prefs[viewOptionKey] = timelineViewOption.name
+        }
+    }
+
+
+   
 }

@@ -85,8 +85,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.yusufteker.pulse.core.utils.TimelineViewOption
 import com.yusufteker.pulse.core.utils.getRelativeTimeBucket
-import com.yusufteker.pulse.feature.home.presentation.home.components.CalendarView
+import com.yusufteker.pulse.feature.home.presentation.home.components.CalendarSection
+import com.yusufteker.pulse.feature.home.presentation.home.components.HomeFabMenu
+import com.yusufteker.pulse.feature.home.presentation.home.components.HomeTopBar
+import com.yusufteker.pulse.feature.home.presentation.home.components.TimelineSection
 
 /**
  * Home screen composable.
@@ -132,64 +136,26 @@ fun HomeScreen(
 
     var isFabExpanded by remember { mutableStateOf(false) }
 
-    Scaffold(
+    if (state.isPreferencesLoading) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+    return
+}
+Scaffold(
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                AnimatedVisibility(
-                    visible = isFabExpanded,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Text("Task Ekle", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium)
-                            }
-                            SmallFloatingActionButton(
-                                onClick = { 
-                                    isFabExpanded = false
-                                    viewModel.onEvent(HomeEvent.CreateTaskClicked) 
-                                },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = "Add Task")
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Text("Etkinlik Ekle", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium)
-                            }
-                            SmallFloatingActionButton(
-                                onClick = { 
-                                    isFabExpanded = false
-                                    viewModel.onEvent(HomeEvent.CreateEventClicked) 
-                                },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            ) {
-                                Icon(Icons.Default.Event, contentDescription = "Add Event")
-                            }
-                        }
-                    }
+            HomeFabMenu(
+                isExpanded = isFabExpanded,
+                onExpandedChange = {
+                    isFabExpanded = it
+                },
+                onCreateTask = {
+                    viewModel.onEvent(HomeEvent.CreateTaskClicked)
+                },
+                onCreateEvent = {
+                    viewModel.onEvent(HomeEvent.CreateEventClicked)
                 }
-                FloatingActionButton(
-                    onClick = { isFabExpanded = !isFabExpanded },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = "Expand")
-                }
-            }
+            )
         },
         containerColor = Color.Transparent
     ) { paddingValues ->
@@ -202,198 +168,32 @@ fun HomeScreen(
                 .imePadding(),
             horizontalAlignment = Alignment.Start
         ) {
-            // Header (Pulsy Top Bar)
             
             // Header (Pulsy Top Bar)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Pulsy",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // View Option Toggle
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val isDate = state.viewOption == TimelineViewOption.DATE
-                    val isRelative = state.viewOption == TimelineViewOption.RELATIVE
-                    val isCalendar = state.viewOption == TimelineViewOption.CALENDAR
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isDate) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.DATE)) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Tarih",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isDate) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isRelative) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.RELATIVE)) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Periyot",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isRelative) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isCalendar) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { viewModel.onEvent(HomeEvent.ViewOptionChanged(TimelineViewOption.CALENDAR)) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Takvim",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isCalendar) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Filter Button
-                IconButton(
-                    onClick = { viewModel.onEvent(HomeEvent.ToggleFilterSheet(true)) },
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(if (state.filterOptions.showOnlyNextRecurring || state.filterOptions.showCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
-                        .size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = "Filtreler",
-                        tint = if (state.filterOptions.showOnlyNextRecurring || !state.filterOptions.showCompleted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            HomeTopBar(
+                state = state,
+                onEvent = viewModel::onEvent
+            )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Calendar View
         if (state.viewOption == TimelineViewOption.CALENDAR) {
-            val tasksByDate = remember(state.allFetchedTasks, state.filterOptions) {
-                var filteredForCalendar = state.allFetchedTasks
-                if (!state.filterOptions.showCompleted) {
-                    filteredForCalendar = filteredForCalendar.filter { it.status != com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED }
-                }
-                if (state.filterOptions.showOnlyNextRecurring) {
-                    val uniqueTasks = mutableListOf<com.yusufteker.pulse.shared.api.TaskDto>()
-                    val seenRecurringBaseIds = mutableSetOf<String>()
-                    for (task in filteredForCalendar) {
-                        if (task.isRecurring) {
-                            val baseId = task.id.substringBeforeLast("_")
-                            if (baseId !in seenRecurringBaseIds) {
-                                seenRecurringBaseIds.add(baseId)
-                                uniqueTasks.add(task)
-                            }
-                        } else {
-                            uniqueTasks.add(task)
-                        }
-                    }
-                    filteredForCalendar = uniqueTasks
-                }
-                
-                filteredForCalendar.groupBy { task ->
-                    kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime)
-                        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-                }
-            }
-            
-            CalendarView(
-                tasksByDate = tasksByDate,
-                selectedDate = state.selectedCalendarDate,
-                visibleMonth = state.visibleCalendarMonth,
-                onDateSelected = { viewModel.onEvent(HomeEvent.CalendarDateSelected(it)) },
-                onMonthChanged = { viewModel.onEvent(HomeEvent.CalendarMonthChanged(it)) }
+            CalendarSection(
+                state = state,
+                onEvent = viewModel::onEvent
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            if (state.selectedCalendarDate != null && state.upcomingTasks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Bugün etkinlik yok.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else if (state.selectedCalendarDate == null && state.upcomingTasks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Bu ay etkinlik yok.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
         }
         
 
 
         // Timeline
-        val grouped = state.upcomingTasks.groupBy<com.yusufteker.pulse.shared.api.TaskDto, String> { task ->
-            val time = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
-            
-            if (state.viewOption == TimelineViewOption.DATE) {
-                when {
-                    isToday(time) -> "Bugün"
-                    isTomorrow(time) -> "Yarın"
-                    else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+            TimelineSection(
+                state = state,
+                onTaskClick = {
+                    viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
                 }
-            } else if (state.viewOption == TimelineViewOption.CALENDAR) {
-                if (state.selectedCalendarDate != null) {
-                    formatShortDate(time)
-                } else {
-                    "${formatDayName(time)}, ${formatShortDate(time)}"
-                }
-            }
-            else {
-                getRelativeTimeBucket(time)
-            }
-        }
-
-        if (state.upcomingTasks.isEmpty()) {
-            EmptyStateComponent(
-                icon = Icons.Default.CalendarToday,
-                title = "Henüz görevin yok",
-                description = "Aşağıdan AI'a bir şey söyle!",
-                modifier = Modifier.weight(1f)
             )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                grouped.forEach { (dayLabel, tasks) ->
-                    // Day header
-                    item(key = "header_$dayLabel") {
-                        DayHeader(dayLabel = dayLabel)
-                    }
-                    // Task cards for that day
-                    items(tasks, key = { it.id }) { task ->
-                        TimelineTaskCard(
-                            task = task,
-                            showDate = state.viewOption == TimelineViewOption.RELATIVE,
-                            onClick = { viewModel.onEvent(HomeEvent.TimelineItemClicked(task)) }
-                        )
-                    }
-                }
-            }
-        }
 
     }
     }

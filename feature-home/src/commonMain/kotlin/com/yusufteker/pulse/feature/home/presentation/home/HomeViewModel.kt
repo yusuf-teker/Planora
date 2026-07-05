@@ -1,11 +1,18 @@
 package com.yusufteker.pulse.feature.home.presentation.home
 
 import com.yusufteker.pulse.core.base.BaseViewModel
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
+import com.yusufteker.pulse.shared.api.CreateTaskRequest
+import com.yusufteker.pulse.shared.api.ItemDetails
+import com.yusufteker.pulse.shared.api.TaskType
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.datetime.toLocalDateTime
+
+import com.yusufteker.pulse.core.utils.TimelineViewOption
+
 
 /**
  * ViewModel for the Home (Dashboard) screen.
@@ -24,19 +31,26 @@ class HomeViewModel(
         val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
         val currentMonthStart = kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
+        // Indicate preferences are loading
+        setState { copy(isPreferencesLoading = true) }
 
+        // Load stored filter options and view option
         launch {
             val showOnlyNextRecurring = sessionPreferences.getShowOnlyNextRecurring()
             val showCompleted = sessionPreferences.getShowCompleted()
-            setState { 
-                val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted)
+            val savedViewOption = sessionPreferences.getViewOption()
+            val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted)
+            setState {
                 copy(
                     filterOptions = newFilterOptions,
-                    upcomingTasks = applyFilters(allFetchedTasks, newFilterOptions)
+                    viewOption = savedViewOption,
+                    upcomingTasks = applyFilters(allFetchedTasks, newFilterOptions, viewOption = savedViewOption),
+                    isPreferencesLoading = false
                 )
             }
         }
 
+        // Observe tasks range
         launch {
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
             val thirtyDays = 86400000L * 30
@@ -46,21 +60,19 @@ class HomeViewModel(
                         .sortedBy { task ->
                             (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
                         }
-                    setState { 
+                    setState {
                         copy(
                             allFetchedTasks = filteredTasks,
-                            upcomingTasks = applyFilters(filteredTasks, state.value.filterOptions)
-                        ) 
+                            upcomingTasks = applyFilters(filteredTasks, state.value.filterOptions, viewOption = state.value.viewOption)
+                        )
                     }
                 }
         }
-            
+
         // Trigger a background fetch
         launch {
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-            // Sync any offline edits to server first
             planRepository.syncPendingChanges()
-            // Fetch from 30 days ago to 30 days in the future to ensure we don't miss recent tasks
             val thirtyDays = 86400000L * 30
             planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
         }
@@ -106,12 +118,16 @@ class HomeViewModel(
                             emptyMap()
                         }
                         
-                        val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
-                            title = if (mentionedUser != null) "AI Gen: Event with ${mentionedUser.username}" else "AI Gen: ${text.take(15)}...",
+                        val request = CreateTaskRequest(
+                            title = if (mentionedUser != null) "AI Gen: Event with ${mentionedUser.username}" else "AI Gen: ${
+                                text.take(
+                                    15
+                                )
+                            }...",
                             description = text,
-                            startTime = com.yusufteker.pulse.core.utils.getCurrentTimeMs(),
-                            type = if (mentionedUser != null) com.yusufteker.pulse.shared.api.TaskType.EVENT else com.yusufteker.pulse.shared.api.TaskType.NOTE,
-                            specificDetails = com.yusufteker.pulse.shared.api.ItemDetails.Event(),
+                            startTime = getCurrentTimeMs(),
+                            type = if (mentionedUser != null) TaskType.EVENT else TaskType.NOTE,
+                            specificDetails = ItemDetails.Event(),
                             participants = participantsMap
                         )
                         planRepository.createTask(request)
@@ -128,11 +144,15 @@ class HomeViewModel(
             }
             
             is HomeEvent.ViewOptionChanged -> {
-                setState { 
+                setState {
                     copy(
                         viewOption = event.option,
                         upcomingTasks = applyFilters(allFetchedTasks, filterOptions, viewOption = event.option)
-                    ) 
+                    )
+                }
+                // Persist selected view option
+                launch {
+                    sessionPreferences.saveViewOption(event.option)
                 }
             }
             
