@@ -29,6 +29,8 @@ class SessionPreferences(
     private val followingCountKey = androidx.datastore.preferences.core.intPreferencesKey("following_count")
     private val appRunKey = androidx.datastore.preferences.core.booleanPreferencesKey("has_run_before")
     private val lastLoggedUserIdKey = stringPreferencesKey("last_logged_user_id")
+    private val filterShowOnlyNextRecurringKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_only_next_recurring")
+    private val filterShowCompletedKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_completed")
 
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
@@ -148,6 +150,21 @@ class SessionPreferences(
             val currentFollowing = prefs[followingCountKey] ?: 0
             prefs[followersCountKey] = currentFollowers + followersDelta
             prefs[followingCountKey] = currentFollowing + followingDelta
+        }
+    }
+
+    suspend fun getShowOnlyNextRecurring(): Boolean {
+        return dataStore.data.map { it[filterShowOnlyNextRecurringKey] ?: true }.first()
+    }
+
+    suspend fun getShowCompleted(): Boolean {
+        return dataStore.data.map { it[filterShowCompletedKey] ?: true }.first()
+    }
+
+    suspend fun saveFilterOptions(showOnlyNextRecurring: Boolean, showCompleted: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[filterShowOnlyNextRecurringKey] = showOnlyNextRecurring
+            prefs[filterShowCompletedKey] = showCompleted
         }
     }
 }

@@ -26,6 +26,7 @@ import com.yusufteker.pulse.feature.home.presentation.components.ReminderPickerS
 import com.yusufteker.pulse.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
+import com.yusufteker.pulse.shared.api.TaskStatus
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -174,7 +175,7 @@ fun TaskEditorScreen(
                     if (state.id != null) {
                         FormSwitchRow(
                             label = "Tamamlandı",
-                            checked = state.status == com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED,
+                            checked = state.status == TaskStatus.COMPLETED,
                             onCheckedChange = { viewModel.onEvent(TaskEditorEvent.StatusChanged(it)) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))

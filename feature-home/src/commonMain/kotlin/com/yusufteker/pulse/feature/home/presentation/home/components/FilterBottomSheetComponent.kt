@@ -57,7 +57,13 @@ fun FilterBottomSheetComponent(
                     checked = filterOptions.showOnlyNextRecurring,
                     onCheckedChange = {
                         onFilterOptionsChanged(filterOptions.copy(showOnlyNextRecurring = it))
-                    }
+                    },
+                    colors = SwitchDefaults.colors(
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                        uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 )
             }
 
@@ -88,7 +94,13 @@ fun FilterBottomSheetComponent(
                     checked = filterOptions.showCompleted,
                     onCheckedChange = {
                         onFilterOptionsChanged(filterOptions.copy(showCompleted = it))
-                    }
+                    },
+                    colors = SwitchDefaults.colors(
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                        uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 )
             }
 

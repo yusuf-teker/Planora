@@ -6,11 +6,14 @@ import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+import com.yusufteker.pulse.shared.api.CreateTaskRequest
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskDto
+import com.yusufteker.pulse.shared.api.TaskPriority
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -232,12 +235,12 @@ class TaskEditorViewModel(
 
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(500) // 500ms debounce
+            delay(500) // 500ms debounce
             
             val now = currentState.originalStartTime ?: getCurrentTimeMs()
             val recurrenceStr = currentState.recurrenceRule?.let { Json.encodeToString(it) }
 
-            val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+            val request = CreateTaskRequest(
                 title = currentState.title,
                 description = currentState.description.ifBlank { null },
                 startTime = now,
@@ -254,9 +257,9 @@ class TaskEditorViewModel(
                 isAllDay = false,
                 reminders = currentState.reminders,
                 participants = currentState.participants,
-                specificDetails = com.yusufteker.pulse.shared.api.ItemDetails.Task(
-                    subtasks = emptyList(), 
-                    priority = com.yusufteker.pulse.shared.api.TaskPriority.MEDIUM,
+                specificDetails = ItemDetails.Task(
+                    subtasks = emptyList(),
+                    priority = TaskPriority.MEDIUM,
                     deadline = currentState.deadlineDateMs
                 ),
                 tags = emptyList(),

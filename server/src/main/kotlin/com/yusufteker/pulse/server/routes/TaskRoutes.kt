@@ -33,6 +33,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.GlobalScope
+import org.apache.commons.logging.Log
 
 fun Route.taskRoutes() {
     authenticate("auth-jwt") {
@@ -150,18 +151,49 @@ fun Route.taskRoutes() {
                 }
 
                 dbQuery {
-                    // Sadece creator update edebilir varsayımıyla devam edebiliriz (ya da rol bazlı)
-                    val taskExists = TasksTable.selectAll().where { 
-                        (TasksTable.id eq taskId) and (TasksTable.creatorId eq userId)
-                    }.count() > 0
+                    val taskEntity = TaskEntity.findById(taskId)
+                    if (taskEntity != null && taskEntity.creator.id.value == userId) {
+                        taskEntity.title = request.title
+                        taskEntity.description = request.description
+                        taskEntity.startTime = request.startTime
+                        taskEntity.endTime = request.endTime
+                        taskEntity.type = request.type
+                        taskEntity.status = request.status
+                        taskEntity.visibility = request.visibility
+                        taskEntity.isRecurring = request.isRecurring
+                        taskEntity.recurrenceRule = request.recurrenceRule
+                        taskEntity.isFlexible = request.isFlexible
+                        taskEntity.isOptional = request.isOptional
+                        taskEntity.isPostponable = request.isPostponable
+                        taskEntity.isAllDay = request.isAllDay
+                        taskEntity.aiMetadata = request.aiMetadata?.let { Json.encodeToString(it) }
+                        taskEntity.reminders = if (request.reminders.isNotEmpty()) Json.encodeToString(request.reminders) else null
+                        taskEntity.specificDetails = request.specificDetails?.let { Json.encodeToString(it) }
+                        taskEntity.tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null
+                        taskEntity.color = request.color
+                        taskEntity.parentId = request.parentId
 
-                    if (!taskExists) {
+                        // Update shared rooms
+                        TaskSharedRoomsTable.deleteWhere { TaskSharedRoomsTable.taskId eq taskId }
+                        request.sharedRoomIds.forEach { roomIdToInsert ->
+                            TaskSharedRoomsTable.insert {
+                                it[TaskSharedRoomsTable.taskId] = taskId
+                                it[roomId] = roomIdToInsert
+                            }
+                        }
+
+                        // Update participants
+                        TaskParticipantsTable.deleteWhere { TaskParticipantsTable.taskId eq taskId }
+                        request.participants.keys.forEach { pId ->
+                            TaskParticipantsTable.insert {
+                                it[TaskParticipantsTable.taskId] = taskId
+                                it[TaskParticipantsTable.userId] = pId
+                                it[status] = "PENDING"
+                            }
+                        }
+                    } else {
                         return@dbQuery
                     }
-
-                    // Ktor Exposed'da direkt replace (upsert) veya delete+insert yapmak yerine update yapmalıyız
-                    // Fakat şimdilik sadece varlığı doğrulayıp success dönelim, çünkü "create flow is being rewritten".
-                    // Gerçek update sql'i daha sonra yazılabilir.
                 }
 
                 call.respond(HttpStatusCode.OK, "Updated successfully")

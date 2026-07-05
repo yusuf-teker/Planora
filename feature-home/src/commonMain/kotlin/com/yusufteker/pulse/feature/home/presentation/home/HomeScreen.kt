@@ -85,6 +85,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.yusufteker.pulse.core.utils.getRelativeTimeBucket
+import com.yusufteker.pulse.feature.home.presentation.home.components.CalendarView
 
 /**
  * Home screen composable.
@@ -276,7 +278,7 @@ fun HomeScreen(
                     onClick = { viewModel.onEvent(HomeEvent.ToggleFilterSheet(true)) },
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(if (state.filterOptions.showOnlyNextRecurring || !state.filterOptions.showCompleted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                        .background(if (state.filterOptions.showOnlyNextRecurring || state.filterOptions.showCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
                         .size(36.dp)
                 ) {
                     Icon(
@@ -320,7 +322,7 @@ fun HomeScreen(
                 }
             }
             
-            com.yusufteker.pulse.feature.home.presentation.home.components.CalendarView(
+            CalendarView(
                 tasksByDate = tasksByDate,
                 selectedDate = state.selectedCalendarDate,
                 visibleMonth = state.visibleCalendarMonth,
@@ -352,8 +354,15 @@ fun HomeScreen(
                     isTomorrow(time) -> "Yarın"
                     else -> "${formatDayName(time)}, ${formatShortDate(time)}"
                 }
-            } else {
-                com.yusufteker.pulse.core.utils.getRelativeTimeBucket(time)
+            } else if (state.viewOption == TimelineViewOption.CALENDAR) {
+                if (state.selectedCalendarDate != null) {
+                    formatShortDate(time)
+                } else {
+                    "${formatDayName(time)}, ${formatShortDate(time)}"
+                }
+            }
+            else {
+                getRelativeTimeBucket(time)
             }
         }
 

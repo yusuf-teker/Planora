@@ -39,7 +39,7 @@ import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.*
 import androidx.compose.foundation.layout.Arrangement
-
+import androidx.compose.material3.SwitchDefaults
 
 /**
  * Settings screen composable.
@@ -101,7 +101,13 @@ fun SettingsScreen(
                 checked = state.isDarkMode,
                 onCheckedChange = {
                     viewModel.onEvent(SettingsEvent.DarkModeToggled(it))
-                }
+                },
+                colors = SwitchDefaults.colors(
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                    uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
         }
 

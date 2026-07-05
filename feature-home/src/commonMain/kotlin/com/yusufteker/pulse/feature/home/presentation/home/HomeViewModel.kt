@@ -14,7 +14,8 @@ import kotlinx.datetime.toLocalDateTime
  */
 class HomeViewModel(
     private val planRepository: PlanRepository,
-    private val profileRepository: com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+    private val profileRepository: com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository,
+    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     initialState = HomeState()
 ) {
@@ -23,6 +24,18 @@ class HomeViewModel(
         val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
         val currentMonthStart = kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
+
+        launch {
+            val showOnlyNextRecurring = sessionPreferences.getShowOnlyNextRecurring()
+            val showCompleted = sessionPreferences.getShowCompleted()
+            setState { 
+                val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted)
+                copy(
+                    filterOptions = newFilterOptions,
+                    upcomingTasks = applyFilters(allFetchedTasks, newFilterOptions)
+                )
+            }
+        }
 
         launch {
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
@@ -148,6 +161,12 @@ class HomeViewModel(
                         filterOptions = event.filterOptions,
                         upcomingTasks = applyFilters(allFetchedTasks, event.filterOptions)
                     ) 
+                }
+                launch {
+                    sessionPreferences.saveFilterOptions(
+                        showOnlyNextRecurring = event.filterOptions.showOnlyNextRecurring,
+                        showCompleted = event.filterOptions.showCompleted
+                    )
                 }
             }
             

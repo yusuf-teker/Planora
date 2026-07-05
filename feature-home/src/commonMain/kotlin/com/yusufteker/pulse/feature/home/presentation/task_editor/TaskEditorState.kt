@@ -3,6 +3,7 @@ package com.yusufteker.pulse.feature.home.presentation.task_editor
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import com.yusufteker.pulse.core.base.UiState
 import com.yusufteker.pulse.shared.api.RecurrenceRule
+import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 
 data class TaskEditorState(
@@ -12,7 +13,7 @@ data class TaskEditorState(
     val originalStartTime: Long? = null,
     val deadlineDateMs: Long? = null,
     val planRoomId: String? = null,
-    val status: com.yusufteker.pulse.shared.api.TaskStatus = com.yusufteker.pulse.shared.api.TaskStatus.PENDING,
+    val status: TaskStatus = TaskStatus.PENDING,
     val isRecurring: Boolean = false,
     val recurrenceRule: RecurrenceRule? = null,
     val participants: Map<Int, String> = emptyMap(),

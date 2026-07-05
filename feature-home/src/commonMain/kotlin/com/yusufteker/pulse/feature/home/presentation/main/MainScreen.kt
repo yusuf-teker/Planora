@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,7 +24,22 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.graphics.vector.group
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Box
+
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -36,7 +52,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -80,7 +95,8 @@ import com.yusufteker.pulse.core.theme.LocalIsDarkTheme
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.LaunchedEffect
-
+import com.yusufteker.pulse.feature.home.presentation.components.PulseBottomBar
+import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun MainScreen() {
@@ -145,133 +161,16 @@ fun MainScreen() {
 
     Scaffold(
         bottomBar = {
-            Surface(
-                color = if (isDark) Color.Black else MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    // Subtle top border
-                    androidx.compose.material3.Divider(
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        thickness = 1.dp
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .windowInsetsPadding(WindowInsets.navigationBars)
-                            .height(56.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Home Tab
-                    val isHomeSelected = currentDestination is MainDestination.Home
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { navigateToTab(MainDestination.Home) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isHomeSelected) Icons.Filled.Home else Icons.Outlined.Home,
-                            contentDescription = "Home",
-                            tint = if (isHomeSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // PlanRooms Tab
-                    val isPlanRoomsSelected = currentDestination is MainDestination.PlanRooms
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { navigateToTab(MainDestination.PlanRooms) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isPlanRoomsSelected) Icons.Filled.DateRange else Icons.Outlined.DateRange,
-                            contentDescription = "Plans",
-                            tint = if (isPlanRoomsSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Central AI Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.AiChat) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp) // Larger than normal icons but fits in the bar
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Star,
-                                contentDescription = "AI Asistan",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    // Notes Tab
-                    val isNotesSelected = currentDestination is MainDestination.Notes
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { navigateToTab(MainDestination.Notes) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isNotesSelected) Icons.Filled.Edit else Icons.Outlined.Edit,
-                            contentDescription = "Notes",
-                            tint = if (isNotesSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Profile Tab
-                    val isProfileSelected = currentDestination is MainDestination.Profile || currentDestination is MainDestination.Settings
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) { navigateToTab(MainDestination.Profile) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isProfileSelected) Icons.Filled.Person else Icons.Outlined.Person,
-                            contentDescription = "Profile",
-                            tint = if (isProfileSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            PulseBottomBar(
+                currentDestination = currentDestination,
+                isDark = isDark,
+                onNavigate = { destination ->
+                    navigateToTab(destination)
+                },
+                onAiButtonClick = {
+                    rootNavigator.navigate(com.yusufteker.pulse.core.navigation.Screen.AiChat)
                 }
-                }
-            }
+            )
         }
     ) { paddingValues ->
         // Create a ViewModelStore for the MainScreen. 
@@ -348,3 +247,106 @@ fun MainScreen() {
         }
     }
 }
+
+val PulseIcon: ImageVector
+    get() {
+        if (_pulseIcon != null) {
+            return _pulseIcon!!
+        }
+        _pulseIcon = ImageVector.Builder(
+            name = "PulseIcon",
+            defaultWidth = 100.dp,
+            defaultHeight = 100.dp,
+            viewportWidth = 100f,
+            viewportHeight = 100f
+        ).apply {
+            group {
+                // 1. Dark Filled Background
+                path(
+                    fill = SolidColor(Color(0xFF05050A))
+                ) {
+                    moveTo(50f, 5f)
+                    curveTo(74.85f, 5f, 95f, 25.15f, 95f, 50f)
+                    curveTo(95f, 74.85f, 74.85f, 95f, 50f, 95f)
+                    curveTo(25.15f, 95f, 5f, 74.85f, 5f, 50f)
+                    curveTo(5f, 25.15f, 25.15f, 5f, 50f, 5f)
+                    close()
+                }
+
+                // 2. Glow for Circle
+                path(
+                    stroke = SolidColor(Color(0x8063CFF1)),
+                    strokeLineWidth = 6f
+                ) {
+                    moveTo(50f, 5f)
+                    curveTo(74.85f, 5f, 95f, 25.15f, 95f, 50f)
+                    curveTo(95f, 74.85f, 74.85f, 95f, 50f, 95f)
+                    curveTo(25.15f, 95f, 5f, 74.85f, 5f, 50f)
+                    curveTo(5f, 25.15f, 25.15f, 5f, 50f, 5f)
+                    close()
+                }
+
+                // 3. Core of Circle
+                path(
+                    stroke = Brush.linearGradient(
+                        colorStops = arrayOf(
+                            0.0f to Color(0xFF63CFF1),
+                            1.0f to Color(0xFF268DDF)
+                        ),
+                        start = Offset(50f, 5f),
+                        end = Offset(50f, 95f)
+                    ),
+                    strokeLineWidth = 2f
+                ) {
+                    moveTo(50f, 5f)
+                    curveTo(74.85f, 5f, 95f, 25.15f, 95f, 50f)
+                    curveTo(95f, 74.85f, 74.85f, 95f, 50f, 95f)
+                    curveTo(25.15f, 95f, 5f, 74.85f, 5f, 50f)
+                    curveTo(5f, 25.15f, 25.15f, 5f, 50f, 5f)
+                    close()
+                }
+
+                // 4. Glow for Pulse (Taller)
+                path(
+                    stroke = SolidColor(Color(0x8063CFF1)),
+                    strokeLineWidth = 8f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round
+                ) {
+                    moveTo(25f, 50f)
+                    lineTo(38f, 50f)
+                    lineTo(47f, 22f)
+                    lineTo(58f, 78f)
+                    lineTo(66f, 40f)
+                    lineTo(70f, 50f)
+                    lineTo(83f, 50f)
+                }
+
+                // 5. Core of Pulse (Taller)
+                path(
+                    stroke = Brush.linearGradient(
+                        colorStops = arrayOf(
+                            0.0f to Color(0xFF63CFF1),
+                            1.0f to Color(0xFF268DDF)
+                        ),
+                        start = Offset(50f, 22f),
+                        end = Offset(50f, 78f)
+                    ),
+                    strokeLineWidth = 3f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round
+                ) {
+                    moveTo(25f, 50f)
+                    lineTo(38f, 50f)
+                    lineTo(47f, 22f)
+                    lineTo(58f, 78f)
+                    lineTo(66f, 40f)
+                    lineTo(70f, 50f)
+                    lineTo(83f, 50f)
+                }
+            }
+        }.build()
+        return _pulseIcon!!
+    }
+
+private var _pulseIcon: ImageVector? = null

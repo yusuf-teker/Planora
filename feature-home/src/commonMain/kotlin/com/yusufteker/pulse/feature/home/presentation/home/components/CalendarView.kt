@@ -202,33 +202,53 @@ private fun CalendarDayCell(
         
         // Avatars / Markers for tasks
         if (tasks.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.Center) {
-                // Determine how many unique participants or tasks we have
-                val maxAvatarsToShow = 2
-                val avatarsCount = minOf(tasks.size, maxAvatarsToShow) // Simplification for now
-                
-                for (i in 0 until avatarsCount) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .padding(1.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Tiny placeholder
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Her güne denk gelen task sayısı *
+                Row(horizontalArrangement = Arrangement.Center) {
+                    // Determine how many unique participants or tasks we have
+                    val maxAvatarsToShow = 2
+                    val avatarsCount = minOf(tasks.size, maxAvatarsToShow) // Simplification for now
+
+                    for (i in 0 until avatarsCount) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .padding(1.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Tiny placeholder
+                        }
+                    }
+
+                    if (tasks.size > maxAvatarsToShow) {
+                        Text(
+                            text = "+",
+                            fontSize = 8.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 1.dp)
+                        )
                     }
                 }
-                
-                if (tasks.size > maxAvatarsToShow) {
+
+                for (task in tasks.take(2)) {
                     Text(
-                        text = "+",
-                        fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 1.dp)
+                        text = task.title,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(top = 1.dp)
                     )
                 }
+
+
             }
+
+
+
+
         }
     }
 }
