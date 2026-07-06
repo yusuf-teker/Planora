@@ -23,6 +23,26 @@ class MainActivity : ComponentActivity() {
             Napier.base(DebugAntilog())
         }
 
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val requestPermissionLauncher = registerForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                if (isGranted) {
+                    Napier.d("Notification permission granted", tag = "MainActivity")
+                } else {
+                    Napier.w("Notification permission denied", tag = "MainActivity")
+                }
+            }
+            
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         setContent {
             App()
         }

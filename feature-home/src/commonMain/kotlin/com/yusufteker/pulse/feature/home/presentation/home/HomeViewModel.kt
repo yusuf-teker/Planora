@@ -58,7 +58,7 @@ class HomeViewModel(
                 .collect { tasks ->
                     val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
                         .sortedBy { task ->
-                            (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+                            (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
                         }
                     setState {
                         copy(

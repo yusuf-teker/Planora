@@ -18,6 +18,8 @@ dependencies {
     implementation(projects.composeApp)
     implementation(projects.core)
     implementation(projects.featureAuth)
+    implementation(projects.featureHome)
+    implementation(projects.shared)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.uiToolingPreview)

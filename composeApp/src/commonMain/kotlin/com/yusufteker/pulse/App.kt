@@ -94,9 +94,24 @@ fun App() {
         }
 
         val registerFcmTokenUseCase = koinInject<RegisterFcmTokenUseCase>()
+        val reminderManager = koinInject<com.yusufteker.pulse.core.reminder.ReminderManager>()
+        val planRepository = koinInject<com.yusufteker.pulse.feature.home.domain.repository.PlanRepository>()
+
         LaunchedEffect(userId) {
             if (userId != null) {
                 registerFcmTokenUseCase()
+            }
+        }
+
+        // Observe all tasks and reschedule alarms whenever the task list changes
+        LaunchedEffect(userId) {
+            if (userId != null) {
+                planRepository.observeAllTasks().collect { tasks ->
+                    reminderManager.scheduleAllReminders(tasks)
+                }
+            } else {
+                // Logged out — cancel all reminders
+                reminderManager.cancelAllReminders()
             }
         }
 

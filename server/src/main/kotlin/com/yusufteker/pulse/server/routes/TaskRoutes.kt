@@ -124,6 +124,14 @@ fun Route.taskRoutes() {
                 }
 
                 if (newTaskDto != null) {
+                    // Trigger FCM sync for room members if shared
+                    if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
+                        request.sharedRoomIds.forEach { roomId ->
+                            GlobalScope.launch {
+                                com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                            }
+                        }
+                    }
                     call.respond(HttpStatusCode.Created, newTaskDto!!)
                 } else {
                     call.respond(HttpStatusCode.InternalServerError)
@@ -150,9 +158,11 @@ fun Route.taskRoutes() {
                     return@put
                 }
 
+                var isOwner = false
                 dbQuery {
                     val taskEntity = TaskEntity.findById(taskId)
                     if (taskEntity != null && taskEntity.creator.id.value == userId) {
+                        isOwner = true
                         taskEntity.title = request.title
                         taskEntity.description = request.description
                         taskEntity.startTime = request.startTime
@@ -191,11 +201,21 @@ fun Route.taskRoutes() {
                                 it[status] = "PENDING"
                             }
                         }
-                    } else {
-                        return@dbQuery
                     }
                 }
 
+                if (!isOwner) {
+                    call.respond(HttpStatusCode.Forbidden, "Not owner")
+                    return@put
+                }
+
+                if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
+                    request.sharedRoomIds.forEach { roomId ->
+                        GlobalScope.launch {
+                            com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                        }
+                    }
+                }
                 call.respond(HttpStatusCode.OK, "Updated successfully")
             }
 
@@ -210,6 +230,8 @@ fun Route.taskRoutes() {
                     return@delete
                 }
 
+                var sharedRoomIdsForDeletedTask = emptyList<String>()
+
                 dbQuery {
                     // Önce task sahibinin kullanıcı olduğunu doğrula (veya odada yetkisi var mı diye bak)
                     val isOwner = TasksTable.selectAll().where { 
@@ -217,9 +239,21 @@ fun Route.taskRoutes() {
                     }.count() > 0
 
                     if (isOwner) {
+                        sharedRoomIdsForDeletedTask = TaskSharedRoomsTable.selectAll()
+                            .where { TaskSharedRoomsTable.taskId eq taskId }
+                            .map { it[TaskSharedRoomsTable.roomId] }
+
                         TaskSharedRoomsTable.deleteWhere { TaskSharedRoomsTable.taskId eq taskId }
                         TaskParticipantsTable.deleteWhere { TaskParticipantsTable.taskId eq taskId }
                         TasksTable.deleteWhere { TasksTable.id eq taskId }
+                    }
+                }
+
+                if (sharedRoomIdsForDeletedTask.isNotEmpty()) {
+                    sharedRoomIdsForDeletedTask.forEach { roomId ->
+                        GlobalScope.launch {
+                            com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                        }
                     }
                 }
 

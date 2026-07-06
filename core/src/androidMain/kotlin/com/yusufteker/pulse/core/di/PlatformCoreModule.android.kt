@@ -8,6 +8,8 @@ import com.yusufteker.pulse.core.preferences.createDataStore
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.yusufteker.pulse.core.database.PulsyDatabase
+import com.yusufteker.pulse.core.reminder.AndroidReminderManager
+import com.yusufteker.pulse.core.reminder.ReminderManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -39,4 +41,7 @@ actual val platformCoreModule = module {
     }
 
     single<SqlDriver> { AndroidSqliteDriver(PulsyDatabase.Schema, androidContext(), "pulsy_v3.db") }
+
+    // Reminder Manager
+    single<ReminderManager> { AndroidReminderManager(androidContext()) }
 }

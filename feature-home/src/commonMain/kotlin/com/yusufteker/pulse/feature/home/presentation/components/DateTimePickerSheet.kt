@@ -141,8 +141,8 @@ fun DateTimePickerSheet(
                         Button(
                             onClick = {
                                 val selectedDateMs = selectedDateMillis
-                                // Combine date and time
-                                val date = Instant.fromEpochMilliseconds(selectedDateMs).toLocalDateTime(TimeZone.UTC)
+                                val tz = TimeZone.currentSystemDefault()
+                                val date = Instant.fromEpochMilliseconds(selectedDateMs).toLocalDateTime(tz)
                                 val resultDateTime = LocalDateTime(
                                     year = date.year,
                                     monthNumber = date.monthNumber,

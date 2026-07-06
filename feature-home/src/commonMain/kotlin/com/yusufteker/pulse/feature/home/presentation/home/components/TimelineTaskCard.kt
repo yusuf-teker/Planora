@@ -142,7 +142,7 @@ fun TimelineTaskCard(
             }
 
             // Footer (Participant count if any)
-            val participantsList = task.participants.values.toList()
+            val participantsList = task.participants.filterValues { it != "PENDING" }.values.toList()
             if (participantsList.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Box(modifier = Modifier.height(24.dp).padding(top = 4.dp)) {
