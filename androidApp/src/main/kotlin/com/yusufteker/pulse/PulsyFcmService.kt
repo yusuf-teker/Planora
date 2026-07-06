@@ -92,10 +92,21 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
      * Handles general notification messages (with title/body).
      */
     private fun handleGeneralNotification(message: RemoteMessage) {
-        val title = message.notification?.title ?: message.data["title"] ?: "Pulsy"
-        val body = message.notification?.body ?: message.data["body"] ?: ""
+        val title = message.notification?.title
+            ?: message.data["title"]
+            ?: "Pulsy"
 
-        showNotification(title, body)
+        val body = message.notification?.body
+            ?: message.data["body"]
+            ?: ""
+
+        val type = message.data["type"] ?: "general"
+
+        showNotification(
+            title = title,
+            body = body,
+            type = type
+        )
     }
 
     /**
@@ -139,35 +150,71 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
         }
     }
 
-    private fun showNotification(title: String, body: String) {
+    private fun showNotification(
+        title: String,
+        body: String,
+        type: String = "general"
+    ) {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            this,
+            100,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notificationBuilder = NotificationCompat.Builder(this, DEFAULT_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 DEFAULT_CHANNEL_ID,
                 DEFAULT_CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                description = "Task, event and reminder notifications"
+                enableLights(true)
+                enableVibration(true)
+                setShowBadge(true)
+            }
+
             notificationManager.createNotificationChannel(channel)
         }
 
-        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
+        val category = when (type.lowercase()) {
+            "task" -> NotificationCompat.CATEGORY_REMINDER
+            "event" -> NotificationCompat.CATEGORY_EVENT
+            else -> NotificationCompat.CATEGORY_MESSAGE
+        }
+
+        val builder = NotificationCompat.Builder(this, DEFAULT_CHANNEL_ID)
+            // Kendi ikonunu koymanı öneririm
+            //.setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(title)
+                    .bigText(body)
+                    .setSummaryText("Pulsy")
+            )
+            .setCategory(category)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setShowWhen(true)
+            .setWhen(System.currentTimeMillis())
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setOnlyAlertOnce(false)
+
+        notificationManager.notify(
+            System.currentTimeMillis().toInt(),
+            builder.build()
+        )
     }
 }

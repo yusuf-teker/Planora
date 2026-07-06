@@ -7,12 +7,15 @@ import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.shared.api.CreateTaskRequest
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskType
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.toLocalDateTime
 
 import com.yusufteker.pulse.core.utils.TimelineViewOption
-
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+// Yeni
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * ViewModel for the Home (Dashboard) screen.
@@ -28,8 +31,8 @@ class HomeViewModel(
 ) {
 
     init {
-        val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-        val currentMonthStart = kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val currentMonthStart = LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
         // Indicate preferences are loading
         setState { copy(isPreferencesLoading = true) }
@@ -228,8 +231,8 @@ class HomeViewModel(
         tasks: List<com.yusufteker.pulse.shared.api.TaskDto>, 
         options: TimelineFilterOptions,
         viewOption: TimelineViewOption = state.value.viewOption,
-        selectedCalendarDate: kotlinx.datetime.LocalDate? = state.value.selectedCalendarDate,
-        visibleCalendarMonth: kotlinx.datetime.LocalDate? = state.value.visibleCalendarMonth
+        selectedCalendarDate: LocalDate? = state.value.selectedCalendarDate,
+        visibleCalendarMonth: LocalDate? = state.value.visibleCalendarMonth
     ): List<com.yusufteker.pulse.shared.api.TaskDto> {
         var filtered = tasks
         
@@ -260,8 +263,8 @@ class HomeViewModel(
         // 3. Calendar filtering
         if (viewOption == TimelineViewOption.CALENDAR) {
             filtered = filtered.filter { task ->
-                val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime)
-                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                val taskDate = Instant.fromEpochMilliseconds(task.startTime)
+                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
                 
                 if (selectedCalendarDate != null) {
                     taskDate == selectedCalendarDate

@@ -1,6 +1,6 @@
 package com.yusufteker.pulse.feature.home.presentation.aichat
 
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 data class AiChatMessage(
     val id: String = Clock.System.now().toEpochMilliseconds().toString(),

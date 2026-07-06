@@ -217,7 +217,7 @@ getTaskById:
 SELECT * FROM taskEntity WHERE id = :id;
 
 updateTaskStatus:
-UPDATE taskEntity SET status = :status WHERE id = :id;
+UPDATE taskEntity SET status = :status, isSynced = :isSynced WHERE id = :id;
 
 -- TaskSharedRoom Sorguları
 insertTaskSharedRoom:

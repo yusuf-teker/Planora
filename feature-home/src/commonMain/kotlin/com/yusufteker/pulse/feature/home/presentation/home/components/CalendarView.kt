@@ -16,13 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yusufteker.pulse.shared.api.TaskDto
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -199,56 +201,62 @@ private fun CalendarDayCell(
         )
         
         Spacer(modifier = Modifier.height(2.dp))
-        
+
         // Avatars / Markers for tasks
+
         if (tasks.isNotEmpty()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Her güne denk gelen task sayısı *
-                Row(horizontalArrangement = Arrangement.Center) {
-                    // Determine how many unique participants or tasks we have
+                // Noktalar ve + işareti yan yana
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically // Elemanları dikeyde mükemmel ortalar
+                ) {
                     val maxAvatarsToShow = 2
-                    val avatarsCount = minOf(tasks.size, maxAvatarsToShow) // Simplification for now
+                    val avatarsCount = minOf(tasks.size, maxAvatarsToShow)
 
                     for (i in 0 until avatarsCount) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
-                                .padding(1.dp)
+                                .padding(horizontal = 1.dp) // Dikey padding yok, yüksekliği daralttık
+                                .size(6.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            // Tiny placeholder
-                        }
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
                     }
 
                     if (tasks.size > maxAvatarsToShow) {
                         Text(
                             text = "+",
-                            fontSize = 8.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 1.dp)
+                            modifier = Modifier.padding(start = 1.dp),
+                            style = TextStyle(
+                                fontSize = 10.sp,
+                                lineHeight = 10.sp, // Satır yüksekliğini font boyutuyla aynı tutuyoruz
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both // KMP'de metnin alt/üst boşluklarını keser
+                                )
+                            )
                         )
                     }
                 }
 
-                for (task in tasks.take(2)) {
+                for (task in tasks.take(1)) {
                     Text(
                         text = task.title,
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            lineHeightStyle = LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both // Görev ismindeki boşluğu da keser
+                            )
+                        ),
                         maxLines = 1,
                         color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 1.dp)
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-
-
             }
-
-
-
-
         }
     }
 }

@@ -276,8 +276,44 @@ class PlanRepositoryImpl(
             if (task != null && task.isRecurring == 0L) {
                 // Non-recurring task: update status directly
                 val newStatus = if (isCompleted) TaskStatus.COMPLETED.name else TaskStatus.PENDING.name
-                database.pulsyDatabaseQueries.updateTaskStatus(newStatus, taskId)
-            } else {
+                database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 0L, taskId)
+                
+                // Arka planda sunucuya senkronize etmeyi dene
+                val dto = mapTaskEntityToDto(task)
+                if (dto != null) {
+                    val request = CreateTaskRequest(
+                        title = dto.title,
+                        description = dto.description,
+                        startTime = dto.startTime,
+                        endTime = dto.endTime,
+                        type = dto.type,
+                        status = TaskStatus.valueOf(newStatus),
+                        visibility = dto.visibility,
+                        sharedRoomIds = dto.sharedRoomIds,
+                        isRecurring = dto.isRecurring,
+                        recurrenceRule = dto.recurrenceRule,
+                        isFlexible = dto.isFlexible,
+                        isOptional = dto.isOptional,
+                        isPostponable = dto.isPostponable,
+                        isAllDay = dto.isAllDay,
+                        aiMetadata = dto.aiMetadata,
+                        reminders = dto.reminders,
+                        participants = dto.participants,
+                        specificDetails = dto.specificDetails,
+                        tags = dto.tags,
+                        color = dto.color,
+                        parentId = dto.parentId
+                    )
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            planApi.updateTask(taskId, request)
+                            database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 1L, taskId)
+                        } catch (e: Exception) {
+                            println("Failed to sync task status completion: ${e.message}")
+                        }
+                    }
+                }
+            } else if (task != null) {
                 // Recurring task: insert exception
                 database.pulsyDatabaseQueries.insertTaskException(
                     taskId = taskId,
@@ -285,8 +321,8 @@ class PlanRepositoryImpl(
                     isCompleted = if (isCompleted) 1L else 0L,
                     isSynced = 0L // Not synced yet
                 )
+                // TODO: Sunucuya recurring task exception sync eklenebilir. Şimdilik sadece PENDING/COMPLETED Tasklar senkronize ediliyor.
             }
-            // TODO: In a real app, you would sync this to the backend here as well
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

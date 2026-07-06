@@ -32,6 +32,8 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         const val EXTRA_TASK_TITLE = "extra_task_title"
         const val EXTRA_REMINDER_MINUTES = "extra_reminder_minutes"
 
+        const val EXTRA_TASK_TYPE = "extra_task_type"
+
         // Receiver action
         const val ACTION_REMINDER = "com.yusufteker.pulse.ACTION_REMINDER"
 
@@ -106,12 +108,14 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
                         "Scheduling requestCode=$requestCode at $triggerTime",
                         tag = TAG
                     )
+                    // Yeni
                     scheduleExactAlarm(
                         requestCode = requestCode,
                         triggerTimeMs = triggerTime,
                         taskId = task.id,
                         taskTitle = task.title,
-                        reminderMinutes = reminderMinutes
+                        reminderMinutes = reminderMinutes,
+                        taskType = task.type
                     )
                     newRequestCodes.add(requestCode)
                 }else{
@@ -152,9 +156,10 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         triggerTimeMs: Long,
         taskId: String,
         taskTitle: String,
-        reminderMinutes: Int
+        reminderMinutes: Int,
+        taskType: TaskType
     ) {
-        val intent = createReminderIntent(taskId, taskTitle, reminderMinutes)
+        val intent = createReminderIntent(taskId, taskTitle, reminderMinutes, taskType)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -200,13 +205,16 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
     private fun createReminderIntent(
         taskId: String,
         taskTitle: String,
-        reminderMinutes: Int
+        reminderMinutes: Int,
+        taskType: TaskType = TaskType.NOTE
+
     ): Intent {
         return Intent(ACTION_REMINDER).apply {
             setPackage(context.packageName)
             putExtra(EXTRA_TASK_ID, taskId)
             putExtra(EXTRA_TASK_TITLE, taskTitle)
             putExtra(EXTRA_REMINDER_MINUTES, reminderMinutes)
+            putExtra(EXTRA_TASK_TYPE, taskType.name)
         }
     }
 
