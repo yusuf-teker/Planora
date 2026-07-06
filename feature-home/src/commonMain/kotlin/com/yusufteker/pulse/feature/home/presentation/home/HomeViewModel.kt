@@ -13,9 +13,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 // Yeni
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 
 /**
  * ViewModel for the Home (Dashboard) screen.
@@ -31,7 +30,7 @@ class HomeViewModel(
 ) {
 
     init {
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         val currentMonthStart = LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
         // Indicate preferences are loading

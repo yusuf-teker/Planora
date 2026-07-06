@@ -24,7 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yusufteker.pulse.shared.api.TaskDto
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -38,7 +39,7 @@ fun CalendarView(
     onMonthChanged: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
+    val today = remember { Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val initialMonth = visibleMonth ?: LocalDate(today.year, today.monthNumber, 1)
     
     // Pager state for infinite scrolling (virtually)

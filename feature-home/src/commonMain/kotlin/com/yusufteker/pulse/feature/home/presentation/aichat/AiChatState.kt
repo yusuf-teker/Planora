@@ -1,9 +1,7 @@
 package com.yusufteker.pulse.feature.home.presentation.aichat
-
-import kotlin.time.Clock
-
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 data class AiChatMessage(
-    val id: String = Clock.System.now().toEpochMilliseconds().toString(),
+    val id: String = getCurrentTimeMs().toString(),
     val text: String,
     val isUser: Boolean,
     val isLoading: Boolean = false

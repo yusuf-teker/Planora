@@ -26,6 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.painterResource
+import pulsy.core.generated.resources.task_ic
+import pulsy.feature_home.generated.resources.Res
 
 @Composable
 fun HomeFabMenu(
@@ -72,7 +75,7 @@ fun HomeFabMenu(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            painter = painterResource(pulsy.core.generated.resources.Res.drawable.task_ic),
                             contentDescription = "Add Task"
                         )
                     }

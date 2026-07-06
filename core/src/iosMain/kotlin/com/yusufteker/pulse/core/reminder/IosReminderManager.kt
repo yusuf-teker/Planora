@@ -93,7 +93,7 @@ class IosReminderManager : ReminderManager {
     override fun scheduleAllReminders(tasks: List<TaskDto>) {
         cancelAllReminders()
 
-        val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+        val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
         val identifiers = mutableListOf<String>()
 
         Napier.d("Scheduling reminders for ${tasks.size} tasks", tag = TAG)
@@ -165,7 +165,7 @@ class IosReminderManager : ReminderManager {
         }
 
         val secondsFromNow =
-            (triggerTimeMs - kotlin.time.Clock.System.now().toEpochMilliseconds()) / 1000.0
+            (triggerTimeMs - com.yusufteker.pulse.core.utils.getCurrentTimeMs()) / 1000.0
         if (secondsFromNow <= 0) {
             Napier.w("Trigger time already passed for $identifier, skipping", tag = TAG)
             return
