@@ -11,6 +11,7 @@ import com.yusufteker.pulse.di.initKoin
  */
 fun MainViewController() = ComposeUIViewController(
     configure = {
+        io.github.aakira.napier.Napier.base(io.github.aakira.napier.DebugAntilog())
         initKoin()
     }
 ) {

@@ -16,7 +16,8 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = false
-            linkerOpts("-lsqlite3")
+            linkerOpts("-lsqlite3", "-framework", "NaturalLanguage", "-framework", "CoreML")
+            export(projects.core)
         }
     }
 
@@ -41,7 +42,7 @@ kotlin {
 
         commonMain.dependencies {
             // Project modules
-            implementation(projects.core)
+            api(projects.core)
             implementation(projects.featureAuth)
             implementation(projects.featureHome)
             implementation(projects.shared)

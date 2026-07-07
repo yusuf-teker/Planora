@@ -6,3 +6,5 @@ package com.yusufteker.pulse.shared
  * Provides expect/actual declarations for platform-dependent functionality.
  */
 expect fun getPlatformName(): String
+
+expect fun isEmulator(): Boolean

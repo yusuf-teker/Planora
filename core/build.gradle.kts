@@ -17,6 +17,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "core"
             isStatic = true
+            linkerOpts("-framework", "NaturalLanguage", "-framework", "CoreML")
         }
     }
 
@@ -89,6 +90,8 @@ kotlin {
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.messaging)
             implementation(libs.firebase.crashlytics)
+            // Google AI Edge SDK — eklendiğinde Gemini Nano otomatik kullanılır.
+            // compileOnly(libs.google.ai.edge.aicore)
         }
 
         iosMain.dependencies {

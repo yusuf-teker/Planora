@@ -63,6 +63,7 @@ junit = "4.13.2"
 
 google-services-plugin = "4.5.0"
 gitlive-firebase = "2.1.0"
+google-ai-edge = "0.9.0"
 
 [libraries]
 # Kotlin
@@ -169,6 +170,9 @@ junit = { module = "junit:junit", version.ref = "junit" }
 firebase-analytics = { module = "dev.gitlive:firebase-analytics", version.ref = "gitlive-firebase" }
 firebase-messaging = { module = "dev.gitlive:firebase-messaging", version.ref = "gitlive-firebase" }
 firebase-crashlytics = { module = "dev.gitlive:firebase-crashlytics", version.ref = "gitlive-firebase" }
+
+# Google AI Edge SDK (On-device Gemini Nano)
+google-ai-edge-aicore = { module = "com.google.ai.edge:aicore", version.ref = "google-ai-edge" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

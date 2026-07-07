@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		20DC7C982FFCF48B0041A6F3 /* LocalLLMClient in Frameworks */ = {isa = PBXBuildFile; productRef = 20DC7C972FFCF48B0041A6F3 /* LocalLLMClient */; };
+		20DC7C9A2FFCF48B0041A6F3 /* LocalLLMClientLlama in Frameworks */ = {isa = PBXBuildFile; productRef = 20DC7C992FFCF48B0041A6F3 /* LocalLLMClientLlama */; };
+		20DC7CAC2FFD10EE0041A6F3 /* LocalLLMClientFoundationModels in Frameworks */ = {isa = PBXBuildFile; productRef = 20DC7CAB2FFD10EE0041A6F3 /* LocalLLMClientFoundationModels */; };
+		20DC7CAE2FFD10F10041A6F3 /* LocalLLMClientMLX in Frameworks */ = {isa = PBXBuildFile; productRef = 20DC7CAD2FFD10F10041A6F3 /* LocalLLMClientMLX */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +48,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				20DC7C982FFCF48B0041A6F3 /* LocalLLMClient in Frameworks */,
+				20DC7CAE2FFD10F10041A6F3 /* LocalLLMClientMLX in Frameworks */,
+				20DC7CAC2FFD10EE0041A6F3 /* LocalLLMClientFoundationModels in Frameworks */,
+				20DC7C9A2FFCF48B0041A6F3 /* LocalLLMClientLlama in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,6 +104,10 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
+				20DC7C972FFCF48B0041A6F3 /* LocalLLMClient */,
+				20DC7C992FFCF48B0041A6F3 /* LocalLLMClientLlama */,
+				20DC7CAB2FFD10EE0041A6F3 /* LocalLLMClientFoundationModels */,
+				20DC7CAD2FFD10F10041A6F3 /* LocalLLMClientMLX */,
 			);
 			productName = iosApp;
 			productReference = 15346AA37086A34DCFB1938C /* Pulsy.app */;
@@ -126,7 +138,7 @@
 			mainGroup = D7C62BE40DD13EB5E76DA2A4;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				202F0FEC2FF53E740014FFDF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				20DC7C962FFCF48B0041A6F3 /* XCRemoteSwiftPackageReference "LocalLLMClient" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2FD84D828EAF0673041F6EAE /* Products */;
@@ -242,6 +254,8 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_CXX_INTEROPERABILITY_MODE = default;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -269,6 +283,7 @@
 					"@executable_path/Frameworks",
 				);
 				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
+				SWIFT_CXX_INTEROPERABILITY_MODE = default;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -298,6 +313,7 @@
 					"@executable_path/Frameworks",
 				);
 				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
+				SWIFT_CXX_INTEROPERABILITY_MODE = default;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -358,6 +374,8 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_CXX_INTEROPERABILITY_MODE = default;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -385,7 +403,39 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		20DC7C962FFCF48B0041A6F3 /* XCRemoteSwiftPackageReference "LocalLLMClient" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tattn/LocalLLMClient.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCSwiftPackageProductDependency section */
+		20DC7C972FFCF48B0041A6F3 /* LocalLLMClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 20DC7C962FFCF48B0041A6F3 /* XCRemoteSwiftPackageReference "LocalLLMClient" */;
+			productName = LocalLLMClient;
+		};
+		20DC7C992FFCF48B0041A6F3 /* LocalLLMClientLlama */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 20DC7C962FFCF48B0041A6F3 /* XCRemoteSwiftPackageReference "LocalLLMClient" */;
+			productName = LocalLLMClientLlama;
+		};
+		20DC7CAB2FFD10EE0041A6F3 /* LocalLLMClientFoundationModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 20DC7C962FFCF48B0041A6F3 /* XCRemoteSwiftPackageReference "LocalLLMClient" */;
+			productName = LocalLLMClientFoundationModels;
+		};
+		20DC7CAD2FFD10F10041A6F3 /* LocalLLMClientMLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 20DC7C962FFCF48B0041A6F3 /* XCRemoteSwiftPackageReference "LocalLLMClient" */;
+			productName = LocalLLMClientMLX;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 46E6FAB3E27EBB3904A16EB8 /* Project object */;
 }

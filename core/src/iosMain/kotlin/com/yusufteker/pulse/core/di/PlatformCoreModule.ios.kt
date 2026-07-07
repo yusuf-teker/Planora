@@ -8,6 +8,8 @@ import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.reminder.IosReminderManager
 import com.yusufteker.pulse.core.reminder.ReminderManager
+import com.yusufteker.pulse.core.ai.IosAiManager
+import com.yusufteker.pulse.core.ai.OfflineAiManager
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
@@ -42,4 +44,7 @@ actual val platformCoreModule = module {
 
     // Reminder Manager
     single<ReminderManager> { IosReminderManager() }
+
+    // Offline AI Manager
+    single<OfflineAiManager> { IosAiManager(get()) }
 }

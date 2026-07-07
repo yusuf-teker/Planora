@@ -10,6 +10,8 @@ import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.reminder.AndroidReminderManager
 import com.yusufteker.pulse.core.reminder.ReminderManager
+import com.yusufteker.pulse.core.ai.AndroidAiManager
+import com.yusufteker.pulse.core.ai.OfflineAiManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -44,4 +46,7 @@ actual val platformCoreModule = module {
 
     // Reminder Manager
     single<ReminderManager> { AndroidReminderManager(androidContext()) }
+
+    // Offline AI Manager
+    single<OfflineAiManager> { AndroidAiManager(androidContext(), get()) }
 }

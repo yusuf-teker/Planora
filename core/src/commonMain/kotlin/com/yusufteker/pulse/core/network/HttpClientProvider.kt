@@ -17,6 +17,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
@@ -51,6 +52,17 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
 
         install(Auth) {
             bearer {
+
+                sendWithoutRequest { request ->
+                    val host = request.url.host
+                    val path = request.url.encodedPath
+
+                    // Eğer istek Google API'ye veya auth endpoint'lerine gidiyorsa Auth eklentisini çalıştırma
+                    val isGoogleApi = host.contains("googleapis.com") || host.contains("generativelanguage")
+                    val isAuthPath = path.contains("auth/login") || path.contains("auth/register")
+
+                    isGoogleApi || isAuthPath
+                }
                 // Gelen istek 401 Unauthorized dönerse (örneğin Access Token'ın süresi 15 dk dolduğunda),
                 // bu blok tetiklenir ve yeni token alır.
                 refreshTokens {
@@ -81,7 +93,10 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
     client.requestPipeline.intercept(io.ktor.client.request.HttpRequestPipeline.State) {
         val requestBuilder = context
         val path = requestBuilder.url.buildString()
-        if (!path.contains("auth/login") && !path.contains("auth/register")) {
+        val isAuthEndpoint = path.contains("auth/login") || path.contains("auth/register")
+        val isGoogleApi = path.contains("googleapis.com") || path.contains("generativelanguage")
+        
+        if (!isAuthEndpoint && !isGoogleApi) {
             val token = sessionPreferences.getAccessToken()
             if (token != null) {
                 requestBuilder.headers.remove(io.ktor.http.HttpHeaders.Authorization)

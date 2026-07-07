@@ -128,7 +128,7 @@ class PlanRepositoryImpl(
                 database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, 0L, request, isSynced = 0L)
                 
                 // Odaları güncelle: Önce eskileri sil, sonra yenileri ekle
-                // database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(taskId) // This query doesn't exist, ignoring for now as it's an edge case
+                database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(taskId)
                 request.sharedRoomIds.forEach { roomId ->
                     database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = taskId, roomId = roomId)
                 }
@@ -229,12 +229,28 @@ class PlanRepositoryImpl(
             
             // Veritabanını güncelle
             database.pulsyDatabaseQueries.transaction {
+                val remoteTaskIds = tasks.map { it.id }.toSet()
+                val localTasks = if (fromTime != null && toTime != null) {
+                    database.pulsyDatabaseQueries.getTasksByTimeRange(fromTime, toTime).executeAsList()
+                } else {
+                    database.pulsyDatabaseQueries.getAllTasks().executeAsList()
+                }
+                
+                localTasks.forEach { localTask ->
+                    if (!remoteTaskIds.contains(localTask.id) && localTask.isSynced == 1L) {
+                        database.pulsyDatabaseQueries.deleteExceptionsForTask(localTask.id)
+                        database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(localTask.id)
+                        database.pulsyDatabaseQueries.deleteTaskById(localTask.id)
+                    }
+                }
+
                 tasks.forEach { task ->
                     val existingTask = database.pulsyDatabaseQueries.getTaskById(task.id).executeAsOneOrNull()
                     if (existingTask != null && existingTask.isSynced == 0L) {
                         return@forEach // Skip overwriting un-synced local changes
                     }
                     database.pulsyDatabaseQueries.insertTaskFromDto(task, isSynced = 1L)
+                    database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(task.id)
                     task.sharedRoomIds.forEach { roomId ->
                         database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
                     }
@@ -250,12 +266,29 @@ class PlanRepositoryImpl(
         return try {
             val tasks = planApi.getRoomTasks(roomId, fromTime, toTime)
             database.pulsyDatabaseQueries.transaction {
+                val remoteTaskIds = tasks.map { it.id }.toSet()
+                val localTasks = if (fromTime != null && toTime != null) {
+                    database.pulsyDatabaseQueries.getTasksByTimeRange(fromTime, toTime).executeAsList()
+                } else {
+                    database.pulsyDatabaseQueries.getAllTasks().executeAsList()
+                }
+                val roomLocalTaskIds = database.pulsyDatabaseQueries.getTaskIdsForRoom(roomId).executeAsList().toSet()
+
+                localTasks.forEach { localTask ->
+                    if (roomLocalTaskIds.contains(localTask.id) && !remoteTaskIds.contains(localTask.id) && localTask.isSynced == 1L) {
+                        database.pulsyDatabaseQueries.deleteExceptionsForTask(localTask.id)
+                        database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(localTask.id)
+                        database.pulsyDatabaseQueries.deleteTaskById(localTask.id)
+                    }
+                }
+
                 tasks.forEach { task ->
                     val existingTask = database.pulsyDatabaseQueries.getTaskById(task.id).executeAsOneOrNull()
                     if (existingTask != null && existingTask.isSynced == 0L) {
                         return@forEach // Skip overwriting un-synced local changes
                     }
                     database.pulsyDatabaseQueries.insertTaskFromDto(task, isSynced = 1L)
+                    database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(task.id)
                     task.sharedRoomIds.forEach { room ->
                         database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = room)
                     }

@@ -230,6 +230,9 @@ SELECT roomId FROM taskSharedRoomEntity WHERE taskId = :taskId;
 getTaskIdsForRoom:
 SELECT taskId FROM taskSharedRoomEntity WHERE roomId = :roomId;
 
+deleteTaskSharedRoomsForTask:
+DELETE FROM taskSharedRoomEntity WHERE taskId = :taskId;
+
 deleteAllTaskSharedRooms:
 DELETE FROM taskSharedRoomEntity;
 

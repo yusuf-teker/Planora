@@ -61,7 +61,7 @@ val homeModule = module {
     viewModelOf(::SocialViewModel)
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModelOf(::AiChatViewModel)
+    viewModel { AiChatViewModel(get(), get(), get(), get(), get()) }
     factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)
