@@ -46,17 +46,15 @@ class CloudAiManager(
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
 
     // ── ADIM 3 Kota Koruması ──────────────────────────────────
-    // Google AI Studio ücretsiz katman: dakikada 15 istek. Bu listeyi kullanarak
-    // son 60 saniyedeki istek sayısını takip ediyoruz; limit dolduysa hiç denemeden
-    // null dönüp ADIM 4'e (rule-based) düşüyoruz.
+    // Kullanıcıya özel kısıtlama: 2 dakikada maksimum 5 mesaj
     private val requestTimestamps = mutableListOf<Long>()
-    private val maxRequestsPerMinute = 15
-    private val windowMs = 60_000L
+    private val maxRequestsPerWindow = 5
+    private val windowMs = 120_000L
 
     private fun hasQuotaAvailable(): Boolean {
         val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
         requestTimestamps.removeAll { now - it > windowMs }
-        return requestTimestamps.size < maxRequestsPerMinute
+        return requestTimestamps.size < maxRequestsPerWindow
     }
 
     private fun recordRequest() {
@@ -68,34 +66,14 @@ class CloudAiManager(
             val now = Instant.fromEpochMilliseconds(com.yusufteker.pulse.core.utils.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault())
             val tz = TimeZone.currentSystemDefault().id
             return """
-        Sen Pulse adlı bir görev ve not asistanısın.
-        Şu anki YEREL zaman: $now (Saat Dilimi: $tz)
-        Kullanıcının girişini analiz et ve aşağıdaki JSON formatında kesin ve hatasız bir yanıt dön:
-        {
-          "intent": "CREATE_TASK" veya "CHAT",
-          "replyText": "Kullanıcıya vereceğin samimi ve doğal yanıt",
-          "extractedEntities": {
-            "title": "Görev başlığı (örn: 'Tenis Dersi', 'Market Alışverişi'). Orijinal cümleyi KOPYALAMA, maksimum 3 kelimeyle özetle!",
-            "description": "Detaylı açıklama (varsa)",
-            "taskType": "TASK" veya "EVENT" veya "NOTE",
-            "dateTime": "YYYY-MM-DDTHH:mm:ss" veya null,
-            "endDateTime": "YYYY-MM-DDTHH:mm:ss" veya null
-          }
-        }
+        Sen Pulse adlı görev/not asistanısın. Yerel zaman: $now ($tz)
         KURALLAR:
-        1. taskType BELİRLEME:
-           - Bir saat aralığı (örn: "8 9 arası") veya etkinlik (toplantı, ders) içeriyorsa KESİNLİKLE "EVENT" olmalıdır.
-           - Belirli bir şeye yetişilmesi gereken, yapılması gereken bir eylem ise (örn: "ödev bitirmem lazım", "elma al") "TASK" olmalıdır.
-           - Zaman içermeyen genel notlar "NOTE" olmalıdır.
-        2. ZAMAN:
-           - "EVENT" ise, dateTime (başlangıç) ve endDateTime (bitiş) olmalıdır. (Yalnızca başlangıç varsa bitişi 1 saat sonrası yap).
-           - "TASK" ise, dateTime (teslim tarihi/deadline) ZORUNLUDUR.
-        3. EKSİK ZAMAN (Soru Sorma): Eğer kullanıcı "TASK" veya "EVENT" oluşturmak istiyor ama ZAMAN belirtmemişse (örneğin sadece "marketten elma almam lazım" dediyse), "intent": "CHAT" yap ve replyText ile "Bunu ne zaman yapacaksın/ne zamana hatırlatayım?" diye sor.
-        4. BAŞLIK (title): Cümleyi başlık yapma. Sadece ana konuyu 2-3 kelimeyle yaz. Örn: "Yarın saat 8 9 arası tenis dersim var" -> "Tenis Dersi".
-        5. TARİH/SAAT FORMATI: Yukarıda verdiğim yerel saate göre hesapla. Sonuçları doğrudan YEREL SAAT olarak "YYYY-MM-DDTHH:mm:ss" formatında (Z harfi OLMADAN) dön ki saat farkı oluşmasın.
-
-        Cevabın sadece JSON formatında olmalı. Markdown kod bloğu KULLANMA.
-    """.trimIndent()
+        1. Saat aralığı/toplantı/ders içeriyorsa taskType=EVENT. Yapılması gereken eylem ise TASK. Zamansız genel not ise NOTE.
+        2. EVENT ise dateTime ve (varsa) endDateTime doldur. TASK ise dateTime zorunlu (deadline).
+        3. Zaman belirtilmemişse intent=CHAT yap, replyText'te ne zaman olduğunu sor.
+        4. title: cümleyi kopyalama, max 2-3 kelime özet (örn. "Tenis Dersi").
+        5. Tarih/saat "YYYY-MM-DDTHH:mm:ss" formatında, Z harfi OLMADAN, yerel saat olarak dön.
+        """.trimIndent()
         }
 
     /**
@@ -114,11 +92,12 @@ class CloudAiManager(
         try {
             recordRequest()
 
-            val history = context.recentMessages.joinToString("\n")
+            val history = context.recentMessages.takeLast(3).joinToString("\n")
+
             val fullInput = if (history.isNotEmpty()) {
-                "Sohbet Geçmişi:\n$history\n\nYeni Kullanıcı Mesajı: $input"
+                "Sohbet Geçmişi:\n$history\n\nYeni Kullanıcı Mesajı: ${input.take(500)}"
             } else {
-                input
+                input.take(500)
             }
 
             val requestBody = buildJsonObject {
@@ -136,6 +115,32 @@ class CloudAiManager(
                 })
                 put("generationConfig", buildJsonObject {
                     put("responseMimeType", JsonPrimitive("application/json"))
+                    put("maxOutputTokens", JsonPrimitive(1024)) // replyText'i de sınırlar
+                    put("responseSchema", buildJsonObject {
+                        put("type", JsonPrimitive("OBJECT"))
+                        put("properties", buildJsonObject {
+                            put("intent", buildJsonObject {
+                                put("type", JsonPrimitive("STRING"))
+                                put("enum", JsonArray(listOf(JsonPrimitive("CREATE_TASK"), JsonPrimitive("CHAT"))))
+                            })
+                            put("replyText", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                            put("extractedEntities", buildJsonObject {
+                                put("type", JsonPrimitive("OBJECT"))
+                                put("properties", buildJsonObject {
+                                    put("title", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                                    put("description", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                    put("taskType", buildJsonObject {
+                                        put("type", JsonPrimitive("STRING"))
+                                        put("enum", JsonArray(listOf(JsonPrimitive("TASK"), JsonPrimitive("EVENT"), JsonPrimitive("NOTE"))))
+                                    })
+                                    put("dateTime", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                    put("endDateTime", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                })
+                                put("required", JsonArray(listOf(JsonPrimitive("title"), JsonPrimitive("taskType"))))
+                            })
+                        })
+                        put("required", JsonArray(listOf(JsonPrimitive("intent"), JsonPrimitive("replyText"), JsonPrimitive("extractedEntities"))))
+                    })
                 })
             }
 
@@ -168,8 +173,20 @@ class CloudAiManager(
     }
 
     private fun parseJsonResponse(jsonString: String, originalInput: String): AiChatResult {
-        val json = Json { ignoreUnknownKeys = true }
-        val parsed = json.parseToJsonElement(jsonString).jsonObject
+        val json = Json {
+            ignoreUnknownKeys = true
+            allowTrailingComma = true
+        }
+        var fixedJsonString = jsonString.trim()
+        if (fixedJsonString.endsWith(",")) {
+            fixedJsonString = fixedJsonString.removeSuffix(",")
+        }
+        val openBraces = fixedJsonString.count { it == '{' }
+        val closeBraces = fixedJsonString.count { it == '}' }
+        if (openBraces > closeBraces) {
+            fixedJsonString += "}".repeat(openBraces - closeBraces)
+        }
+        val parsed = json.parseToJsonElement(fixedJsonString).jsonObject
 
         val replyText = parsed["replyText"]?.jsonPrimitive?.content ?: "Anlaşıldı."
         val entitiesJson = parsed["extractedEntities"]?.jsonObject
@@ -215,7 +232,11 @@ class CloudAiManager(
         }
 
         val dateTimeMs = parseDate(dateStr)
-        val endDateTimeMs = parseDate(endDateStr)
+        var endDateTimeMs = parseDate(endDateStr)
+
+        if (taskType == TaskType.EVENT && endDateTimeMs == null && dateTimeMs != null) {
+            endDateTimeMs = dateTimeMs + 3600_000L
+        }
 
         val entities = ExtractedEntities(
             title = title,
@@ -263,6 +284,26 @@ class CloudAiManager(
             )
         } else null
 
+        val timeText = if (dateTimeMs != null && taskType != TaskType.NOTE) {
+            val local = Instant.fromEpochMilliseconds(dateTimeMs).toLocalDateTime(TimeZone.currentSystemDefault())
+            val date = "${local.dayOfMonth.toString().padStart(2, '0')}.${local.monthNumber.toString().padStart(2, '0')}.${local.year}"
+            val time = "${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
+            " ($date $time)"
+        } else ""
+
+        val typeName = when (taskType) {
+            TaskType.EVENT -> "etkinliği"
+            TaskType.TASK -> "görevi"
+            TaskType.NOTE -> "notu"
+        }
+
+        val finalReplyText = if (shouldCreate) {
+            val successSuffix = "\n\n✅ $title $typeName$timeText başarıyla oluşturuldu."
+            replyText + successSuffix
+        } else {
+            replyText
+        }
+
         return AiChatResult(
             intent = intent,
             extractedEntities = entities,
@@ -272,7 +313,7 @@ class CloudAiManager(
                 sentiment = null,
                 extractedActionItems = emptyList()
             ),
-            replyText = replyText
+            replyText = finalReplyText
         )
     }
 }

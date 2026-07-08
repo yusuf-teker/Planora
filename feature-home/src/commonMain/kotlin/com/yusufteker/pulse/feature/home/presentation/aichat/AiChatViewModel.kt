@@ -6,12 +6,13 @@ import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
-import com.yusufteker.pulse.shared.ai.AiAvailabilityState
+
 import com.yusufteker.pulse.shared.ai.AiChatContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-
+import kotlinx.datetime.toLocalDateTime
 import com.yusufteker.pulse.core.ai.CloudAiManager
+import com.yusufteker.pulse.shared.ai.AiChatResult
 import com.yusufteker.pulse.shared.getPlatformName
 import com.yusufteker.pulse.shared.isEmulator
 
@@ -26,35 +27,10 @@ class AiChatViewModel(
     init {
         // AI kullanılabilirliğini kontrol et
         checkAiAvailability()
-        // İndirme ilerlemesini gözlemle
-        observeDownloadProgress()
     }
 
     private fun checkAiAvailability() {
-        val state = offlineAiManager.availabilityState()
-        setState {
-            copy(
-                aiAvailability = state,
-                showDownloadPrompt = state == AiAvailabilityState.PROMPT_DOWNLOAD
-            )
-        }
-    }
-
-    private fun observeDownloadProgress() {
-        launch {
-            offlineAiManager.downloadProgress().collectLatest { progress ->
-                setState {
-                    copy(
-                        downloadProgress = progress,
-                        aiAvailability = when {
-                            progress == 1.0f -> AiAvailabilityState.AVAILABLE
-                            progress != null -> AiAvailabilityState.DOWNLOADING
-                            else -> aiAvailability
-                        }
-                    )
-                }
-            }
-        }
+        // No-op for now since we removed local LLM
     }
 
     override fun onEvent(event: AiChatEvent) {
@@ -65,12 +41,7 @@ class AiChatViewModel(
             is AiChatEvent.SendMessage -> {
                 sendMessage()
             }
-            is AiChatEvent.DismissDownloadPrompt -> {
-                setState { copy(showDownloadPrompt = false) }
-            }
-            is AiChatEvent.RequestModelDownload -> {
-                requestDownload()
-            }
+
             is AiChatEvent.ClearChat -> {
                 setState { copy(messages = emptyList(), inputText = "") }
             }
@@ -97,7 +68,7 @@ class AiChatViewModel(
                 // AI bağlamını oluştur
                 val context = buildAiChatContext()
 
-                var result: com.yusufteker.pulse.shared.ai.AiChatResult? = null
+                var result: AiChatResult? = null
 
                 // 1. Eğer emülatörse cihazın LLM'ini (Apple Intelligence vb.) kullanamayacağımız için Cloud AI'yi dene
                 if (isEmulator() && !getPlatformName().contains("Android")) {
@@ -129,7 +100,19 @@ class AiChatViewModel(
                     result.suggestedTaskRequest?.let {
                         val createResult = planRepository.createTask(it)
                         if (createResult.isSuccess) {
-                            val successSuffix = "\n\n✅ ${result.extractedEntities?.type?.name ?: "Görev"} başarıyla oluşturuldu."
+                            val typeName = result.extractedEntities?.type?.name ?: "Görev"
+                            val title = result.extractedEntities?.title ?: "İşlem"
+                            val timeInfo = result.extractedEntities?.dateTime?.let { ms ->
+                                val dt = kotlinx.datetime.Instant.fromEpochMilliseconds(ms)
+                                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                                val minutes = dt.minute.toString().padStart(2, '0')
+                                val dateStr = "${dt.dayOfMonth} ${dt.month.name.take(3)} ${dt.year}"
+                                "$dateStr ${dt.hour}:$minutes"
+                            } ?: ""
+                            
+                            val timeText = if (timeInfo.isNotEmpty()) " ($timeInfo)" else ""
+                            val successSuffix = "\n\n✅ $title$timeText başarıyla oluşturuldu."
+                            
                             setState {
                                 copy(
                                     messages = messages.map {
@@ -197,32 +180,5 @@ class AiChatViewModel(
         )
     }
 
-    /**
-     * Kullanıcı model indirmeyi kabul ettiğinde tetiklenir.
-     */
-    private fun requestDownload() {
-        setState {
-            copy(
-                showDownloadPrompt = true,
-                aiAvailability = AiAvailabilityState.DOWNLOADING,
-                downloadProgress = 0f
-            )
-        }
 
-        launch {
-            try {
-                offlineAiManager.requestDownload()
-                // Tamamlandığında downloadProgress Flow üzerinden bildirilir
-            } catch (e: Exception) {
-                setState {
-                    copy(
-                        showDownloadPrompt = false,
-                        aiAvailability = AiAvailabilityState.BASIC_ONLY,
-                        downloadProgress = null
-                    )
-                }
-                setEffect(AiChatEffect.ShowSnackbar("Model indirme başarısız: ${e.message}"))
-            }
-        }
-    }
 }

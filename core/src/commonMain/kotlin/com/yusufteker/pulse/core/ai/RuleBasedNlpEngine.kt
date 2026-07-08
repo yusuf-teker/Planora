@@ -9,6 +9,16 @@ import com.yusufteker.pulse.shared.api.AiMetadata
 import com.yusufteker.pulse.shared.api.CreateTaskRequest
 import com.yusufteker.pulse.shared.api.TaskPriority
 import com.yusufteker.pulse.shared.api.TaskType
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Kural tabanlı NLP motoru — sıfır bağımlılık, her zaman çalışır.
@@ -189,16 +199,12 @@ class RuleBasedNlpEngine {
         }
 
         // En yüksek skoru bul
-        val maxScore = maxOf(eventScore, taskScore, noteScore, queryScore)
-
-        if (maxScore == 0) return AiIntent.CHAT
+        val maxScore = maxOf(eventScore, taskScore, noteScore)
 
         return when {
             noteScore == maxScore && noteScore > 0 -> AiIntent.CREATE_NOTE
-            queryScore == maxScore && queryScore > 0 -> AiIntent.QUERY
             eventScore == maxScore && eventScore > 0 -> AiIntent.CREATE_EVENT
-            taskScore == maxScore && taskScore > 0 -> AiIntent.CREATE_TASK
-            else -> AiIntent.CHAT
+            else -> AiIntent.CREATE_TASK // Varsayılan olarak TASK ekle, CHAT kaldırıldı
         }
     }
 
@@ -222,6 +228,27 @@ class RuleBasedNlpEngine {
         val title = extractCleanTitle(original)
         // Açıklama: başlıktan sonrası varsa
         val description = if (original.length > 80) original.substring(80).trim() else null
+        
+        // Confidence Hesaplaması
+        var conf = 0.6f
+        if (title.isNotBlank() && title != "Yeni Görev") {
+            conf += 0.2f
+        }
+        
+        val timeWords = listOf(
+            "yarın", "bugün", "saat", "haftaya", "sonra", "gün", 
+            "akşam", "sabah", "öğle", "gece", "dakika", 
+            "tomorrow", "today", "next", "at ", "in "
+        )
+        val hasTimeWord = timeWords.any { lowerInput.contains(it) }
+        
+        if (hasTimeWord) {
+            if (dateTime != null) {
+                conf += 0.2f // Zamanı başarıyla bulduk
+            } else {
+                conf -= 0.4f // Zaman kelimesi var ama ayrıştıramadık, Cloud'a düşsün
+            }
+        }
 
         return ExtractedEntities(
             title = title,
@@ -236,7 +263,7 @@ class RuleBasedNlpEngine {
             recurrenceRule = extractRecurrence(lowerInput),
             tags = tags,
             estimatedMinutes = extractDuration(lowerInput),
-            confidence = if (dateTime != null) 0.7f else 0.5f
+            confidence = conf
         )
     }
 
@@ -305,31 +332,6 @@ class RuleBasedNlpEngine {
             return setTimeOnDay(nowMs, 0, hour, minute)
         }
 
-        // "saat 15:00'te", "saat 3'te", "15:00'de", "15.00'te"
-        val saatPattern = Regex("""(?:saat\s*)?(\d{1,2})[.:](\d{2})?\s*['']?(te|de|da)?""")
-        val saatMatch = saatPattern.find(lowerInput)
-        if (saatMatch != null && !lowerInput.contains("gün") && !lowerInput.contains("hafta")) {
-            val hour = saatMatch.groupValues[1].toIntOrNull() ?: return null
-            val minute = saatMatch.groupValues[2].toIntOrNull() ?: 0
-            // Verilen saat şimdiden geçtiyse yarın olarak ayarla
-            return setTimeOnDay(nowMs, 0, hour, minute).let { result ->
-                if (result <= nowMs) result + 86_400_000 else result
-            }
-        }
-
-        // Günün zaman dilimi: "sabah 9'da", "akşam 8'de"
-        for ((period, defaultHour) in timeOfDayMap) {
-            if (lowerInput.contains(period)) {
-                // Belirli bir saat de verilmiş olabilir: "sabah 10'da"
-                val periodHourPattern = Regex("""$period\s*(?:saat\s*)?(\d{1,2})""")
-                val periodMatch = periodHourPattern.find(lowerInput)
-                val hour = periodMatch?.groupValues?.get(1)?.toIntOrNull() ?: defaultHour
-                return setTimeOnDay(nowMs, 0, hour, 0).let { result ->
-                    if (result <= nowMs) result + 86_400_000 else result
-                }
-            }
-        }
-
         // "X gün sonra"
         val gunSonra = Regex("""(\d+)\s*gün\s*sonra""").find(lowerInput)
         if (gunSonra != null) {
@@ -350,7 +352,7 @@ class RuleBasedNlpEngine {
         if (haftayaMatch != null) {
             val dayName = haftayaMatch.groupValues[1]
             val targetDay = turkishDays[dayName] ?: return null
-            return getNextWeekday(nowMs, targetDay, 1)
+            return getNextWeekday(lowerInput, nowMs, targetDay, 1)
         }
 
         // "gelecek hafta pazartesi", "önümüzdeki hafta salı"
@@ -359,7 +361,7 @@ class RuleBasedNlpEngine {
         if (gelecekMatch != null) {
             val dayName = gelecekMatch.groupValues[1]
             val targetDay = turkishDays[dayName] ?: return null
-            return getNextWeekday(nowMs, targetDay, 1)
+            return getNextWeekday(lowerInput, nowMs, targetDay, 1)
         }
 
         // "salı günü", "çarşamba" (tek başına gün adı) → bu hafta veya gelecek hafta
@@ -369,7 +371,7 @@ class RuleBasedNlpEngine {
                 !lowerInput.contains("hafta") &&
                 !lowerInput.contains("gelecek")
             ) {
-                return getNextWeekday(nowMs, dayNum, 0)
+                return getNextWeekday(lowerInput, nowMs, dayNum, 0)
             }
         }
 
@@ -400,10 +402,54 @@ class RuleBasedNlpEngine {
         )
         for ((enDay, dayNum) in englishDays) {
             if (lowerInput.contains("next $enDay")) {
-                return getNextWeekday(nowMs, dayNum, 1)
+                return getNextWeekday(lowerInput, nowMs, dayNum, 1)
             }
             if (lowerInput.contains(enDay) && !lowerInput.contains("next")) {
-                return getNextWeekday(nowMs, dayNum, 0)
+                return getNextWeekday(lowerInput, nowMs, dayNum, 0)
+            }
+        }
+
+        // Standalone time patterns (if no day is specified, assume today/tomorrow)
+        // "saat 15:00'te", "saat 3'te", "15:00'de", "15.00'te"
+        val saatPattern = Regex("""(?:saat\s*)?(\d{1,2})[.:](\d{2})?\s*['']?(te|de|da)?""")
+        val saatMatch = saatPattern.find(lowerInput)
+        if (saatMatch != null && !lowerInput.contains("gün") && !lowerInput.contains("hafta")) {
+            var hour = saatMatch.groupValues[1].toIntOrNull() ?: return null
+            val minute = saatMatch.groupValues[2].toIntOrNull() ?: 0
+            
+            if (hour < 12) {
+                if (lowerInput.contains("akşam") || lowerInput.contains("ikindi") || lowerInput.contains("öğle") || (lowerInput.contains("gece") && hour > 5)) {
+                    hour += 12
+                }
+            } else if (hour == 12 && (lowerInput.contains("gece") || lowerInput.contains("sabah") || lowerInput.contains("akşam"))) {
+                hour = 0
+            }
+            
+            // Verilen saat şimdiden geçtiyse yarın olarak ayarla
+            return setTimeOnDay(nowMs, 0, hour, minute).let { result ->
+                if (result <= nowMs) result + 86_400_000 else result
+            }
+        }
+
+        // Günün zaman dilimi: "sabah 9'da", "akşam 8'de"
+        for ((period, defaultHour) in timeOfDayMap) {
+            if (lowerInput.contains(period)) {
+                // Belirli bir saat de verilmiş olabilir: "sabah 10'da"
+                val periodHourPattern = Regex("""$period\s*(?:saat\s*)?(\d{1,2})""")
+                val periodMatch = periodHourPattern.find(lowerInput)
+                var hour = periodMatch?.groupValues?.get(1)?.toIntOrNull() ?: defaultHour
+                
+                if (hour < 12 && defaultHour >= 12) {
+                    if (!(period.contains("gece") && hour < 6)) {
+                        hour += 12
+                    }
+                } else if (hour == 12 && (period.contains("gece") || period.contains("sabah") || period.contains("akşam"))) {
+                    hour = 0
+                }
+                
+                return setTimeOnDay(nowMs, 0, hour, 0).let { result ->
+                    if (result <= nowMs) result + 86_400_000 else result
+                }
             }
         }
 
@@ -416,8 +462,17 @@ class RuleBasedNlpEngine {
         val timePattern = Regex("""(?:saat\s*)?(\d{1,2})[.:](\d{2})?\s*['']?(te|de|da)?""")
         val timeMatch = timePattern.find(input)
         if (timeMatch != null) {
-            val hour = timeMatch.groupValues[1].toIntOrNull() ?: 9
+            var hour = timeMatch.groupValues[1].toIntOrNull() ?: 9
             val minute = timeMatch.groupValues[2].toIntOrNull() ?: 0
+            
+            if (hour < 12) {
+                if (input.contains("akşam") || input.contains("ikindi") || input.contains("öğle") || (input.contains("gece") && hour > 5)) {
+                    hour += 12
+                }
+            } else if (hour == 12 && (input.contains("gece") || input.contains("sabah") || input.contains("akşam"))) {
+                hour = 0
+            }
+            
             return setTimeOnDay(nowMs, dayOffset, hour, minute)
         }
 
@@ -450,11 +505,13 @@ class RuleBasedNlpEngine {
      * Şimdiki zamandan itibaren [dayOffset] gün sonrasının [hour]:[minute] anını döner.
      */
     private fun setTimeOnDay(nowMs: Long, dayOffset: Int, hour: Int, minute: Int): Long {
-        // Basit yaklaşım: şimdiki zamana gün ofsetini ekle, saat/dakikayı ayarla
-        val oneDayMs = 86_400_000L
-        // Şimdiyi gün başlangıcına yuvarla (kabaca)
-        val currentDayStart = (nowMs / oneDayMs) * oneDayMs
-        return currentDayStart + (dayOffset * oneDayMs) + (hour * 3_600_000L) + (minute * 60_000L)
+        val timeZone = TimeZone.currentSystemDefault()
+        val currentLocal = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(timeZone)
+        
+        val targetDate = currentLocal.date.plus(dayOffset, DateTimeUnit.DAY)
+        val targetTime = LocalTime(hour, minute)
+        
+        return LocalDateTime(targetDate, targetTime).toInstant(timeZone).toEpochMilliseconds()
     }
 
     /**
@@ -462,21 +519,18 @@ class RuleBasedNlpEngine {
      * weekOffset=0 → bu hafta (bugün geçtiyse gelecek hafta)
      * weekOffset=1 → gelecek hafta
      */
-    private fun getNextWeekday(nowMs: Long, targetDayOfWeek: Int, weekOffset: Int): Long {
-        val oneDayMs = 86_400_000L
-        // Bugünün haftanın kaçıncı günü olduğunu hesapla (1=Pazartesi, 7=Pazar)
-        // 1 Ocak 1970 Perşembe (4)
-        val epochDay = (nowMs / oneDayMs).toInt()
-        val currentDayOfWeek = ((epochDay + 3) % 7) + 1 // 1=Pzt
-
+    private fun getNextWeekday(input: String, nowMs: Long, targetDayOfWeek: Int, weekOffset: Int): Long {
+        val timeZone = TimeZone.currentSystemDefault()
+        val currentLocal = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(timeZone)
+        
+        val currentDayOfWeek = currentLocal.dayOfWeek.isoDayNumber // 1=Pzt, 7=Pzr
+        
         var daysUntil = targetDayOfWeek - currentDayOfWeek
         if (daysUntil < 0) daysUntil += 7
-        if (daysUntil == 0 && weekOffset == 0 && nowMs % oneDayMs > 0) {
-            // Aynı gün ama şimdiden geçtiyse → gelecek hafta
-        }
+        
         daysUntil += weekOffset * 7
-
-        return setTimeOnDay(nowMs, daysUntil, 9, 0)
+        
+        return parseTimeWithDayOffset(input, nowMs, daysUntil)
     }
 
     // ── Konum Çıkarımı ──
@@ -651,41 +705,35 @@ class RuleBasedNlpEngine {
                 )
                 templates.random()
             }
-            AiIntent.QUERY -> {
-                "Sorgulama özelliği henüz geliştiriliyor. İleride bana 'Bugün ne yapmam lazım?' diye sorabileceksin! Şimdilik görev, etkinlik ve not ekleyebilirim."
-            }
-            AiIntent.CHAT, AiIntent.UNKNOWN -> {
-                val sentiment = detectSentiment(title.lowercase())
-                val prefix = when (sentiment) {
-                    "positive" -> "Ne güzel! Seni bu kadar pozitif görmek harika. 😊\n"
-                    "negative" -> "Anlıyorum, canın biraz sıkkın gibi. 😔\n"
-                    else -> ""
-                }
-                
-                prefix + "Sana nasıl yardımcı olabileceğimi merak ediyorsan, şunları yapabilirim:\n" +
-                    "• Görev ekleme (örn: 'Yarın market alışverişi yapmam lazım')\n" +
-                    "• Etkinlik planlama (örn: 'Haftaya salı 15:00'te Ahmet ile toplantı')\n" +
-                    "• Not alma (örn: 'Not al: Kapı kodu 1234')\n\n" +
-                    "Söyle bakalım, ne yapıyoruz?"
+            AiIntent.QUERY, AiIntent.CHAT, AiIntent.UNKNOWN -> {
+                // CHAT veya QUERY gelirse artık CREATE_TASK gibi davranıyoruz, ancak
+                // tip güvenliği için yine de metinleri tutabiliriz.
+                val templates = listOf(
+                    "Bunu senin için bir görev olarak kaydettim: '${title}'.",
+                    "Anlaşıldı, bunu yapacaklar listene ekliyorum: '${title}'."
+                )
+                templates.random()
             }
         }
     }
 
     // ── Yanıt için tarih formatlama (Türkçe, göreceli) ──
     private fun formatDateTimeForResponse(epochMs: Long): String {
-        val nowMs = getCurrentTimeMs()
-        val oneDayMs = 86_400_000L
-        val diffDays = (epochMs - nowMs) / oneDayMs
+        val timeZone = TimeZone.currentSystemDefault()
+        val targetLocal = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(timeZone)
+        val currentLocal = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(timeZone)
+        
+        val diffDays = (targetLocal.date.toEpochDays() - currentLocal.date.toEpochDays()).toInt()
 
-        val hour = ((epochMs % oneDayMs) / 3_600_000).toInt()
-        val minute = ((epochMs % 3_600_000) / 60_000).toInt()
+        val hour = targetLocal.hour
+        val minute = targetLocal.minute
         val timeStr = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
 
         return when {
             diffDays < 0 -> "geçmiş bir zaman"
-            diffDays == 0L -> "bugün saat $timeStr"
-            diffDays == 1L -> "yarın saat $timeStr"
-            diffDays < 7L -> "$diffDays gün sonra, saat $timeStr"
+            diffDays == 0 -> "bugün saat $timeStr"
+            diffDays == 1 -> "yarın saat $timeStr"
+            diffDays < 7 -> "$diffDays gün sonra, saat $timeStr"
             else -> "belirtilen zamanda"
         }
     }

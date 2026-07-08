@@ -5,7 +5,6 @@ import ComposeApp
 struct PulseApp: App {
     init() {
         setupAiBridge()
-        setupLocalLlmBridge()
     }
     var body: some Scene {
         WindowGroup { ContentView() }

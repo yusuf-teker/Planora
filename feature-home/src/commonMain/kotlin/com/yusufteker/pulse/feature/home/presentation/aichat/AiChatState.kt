@@ -2,7 +2,6 @@ package com.yusufteker.pulse.feature.home.presentation.aichat
 
 import com.yusufteker.pulse.core.base.UiState
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
-import com.yusufteker.pulse.shared.ai.AiAvailabilityState
 
 import kotlin.random.Random
 
@@ -23,8 +22,4 @@ data class AiChatState(
     val inputText: String = "",
     val isLoading: Boolean = false,
 
-    // ── AI durumu ──
-    val aiAvailability: AiAvailabilityState = AiAvailabilityState.BASIC_ONLY,
-    val showDownloadPrompt: Boolean = false,
-    val downloadProgress: Float? = null
 ) : UiState

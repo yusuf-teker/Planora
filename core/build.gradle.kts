@@ -32,6 +32,9 @@ kotlin {
     }
 
     sourceSets {
+        androidMain.dependencies {
+            
+        }
         commonMain.dependencies {
             // Compose
             api(libs.compose.runtime)

@@ -9,6 +9,7 @@ androidx-core = "1.19.0"
 androidx-lifecycle = "2.11.0-beta01"
 composeMultiplatform = "1.11.1"
 kotlin = "2.4.0"
+mediapipe-tasks-genai = "0.10.35"
 
 # Navigation 3
 navigation3 = "1.0.0-alpha05"
@@ -173,6 +174,8 @@ firebase-crashlytics = { module = "dev.gitlive:firebase-crashlytics", version.re
 
 # Google AI Edge SDK (On-device Gemini Nano)
 google-ai-edge-aicore = { module = "com.google.ai.edge:aicore", version.ref = "google-ai-edge" }
+
+mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipe-tasks-genai" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

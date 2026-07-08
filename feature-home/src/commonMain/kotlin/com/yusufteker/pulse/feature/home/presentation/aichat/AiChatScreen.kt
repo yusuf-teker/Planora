@@ -22,8 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.yusufteker.pulse.shared.ai.AiAvailabilityState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +34,7 @@ fun AiChatScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val focusRequester = androidx.compose.runtime.remember { FocusRequester() }
 
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
@@ -40,19 +42,14 @@ fun AiChatScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     androidx.compose.runtime.DisposableEffect(Unit) {
         onDispose {
             viewModel.onEvent(AiChatEvent.ClearChat)
         }
-    }
-
-    // ── İndirme İstek Dialogu ──
-    if (state.showDownloadPrompt) {
-        DownloadModelPromptDialog(
-            progress = state.downloadProgress,
-            onDownload = { viewModel.onEvent(AiChatEvent.RequestModelDownload) },
-            onDismiss = { viewModel.onEvent(AiChatEvent.DismissDownloadPrompt) }
-        )
     }
 
     Scaffold(
@@ -62,8 +59,17 @@ fun AiChatScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("AI Asistan")
                         Spacer(modifier = Modifier.width(8.dp))
-                        // ── Kullanılabilirlik göstergesi ──
-                        AiAvailabilityDot(state.aiAvailability)
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "BETA",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -103,7 +109,7 @@ fun AiChatScreen(
                             value = state.inputText,
                             onValueChange = { viewModel.onEvent(AiChatEvent.InputTextChanged(it)) },
                             placeholder = { Text("Görev veya not yazın...") },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).focusRequester(focusRequester),
                             shape = RoundedCornerShape(24.dp),
                             maxLines = 3,
                             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
@@ -163,109 +169,7 @@ fun AiChatScreen(
     }
 }
 
-// ═══════════════════════════════════════════════════════════
-// AI Kullanılabilirlik Göstergesi
-// ═══════════════════════════════════════════════════════════
 
-@Composable
-fun AiAvailabilityDot(state: AiAvailabilityState) {
-    val color = when (state) {
-        AiAvailabilityState.AVAILABLE -> Color(0xFF4CAF50)      // yeşil
-        AiAvailabilityState.BASIC_ONLY -> Color(0xFFFFA726)     // turuncu
-        AiAvailabilityState.DOWNLOADING -> Color(0xFF42A5F5)    // mavi
-        AiAvailabilityState.PROMPT_DOWNLOAD -> Color(0xFFEF5350) // kırmızı
-        AiAvailabilityState.ERROR -> Color(0xFFBDBDBD)           // gri
-    }
-    val label = when (state) {
-        AiAvailabilityState.AVAILABLE -> "Cihaz Üstü AI Aktif"
-        AiAvailabilityState.BASIC_ONLY -> "Temel AI Modu"
-        AiAvailabilityState.DOWNLOADING -> "İndiriliyor..."
-        AiAvailabilityState.PROMPT_DOWNLOAD -> "AI İndirilebilir"
-        AiAvailabilityState.ERROR -> "AI Kullanılamıyor"
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-// ═══════════════════════════════════════════════════════════
-// Model İndirme İstek Dialogu
-// ═══════════════════════════════════════════════════════════
-
-@Composable
-fun DownloadModelPromptDialog(
-    progress: Float?,
-    onDownload: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val isDownloading = progress != null && progress < 1.0f
-    val isComplete = progress != null && progress >= 1.0f
-
-    AlertDialog(
-        onDismissRequest = { if (!isDownloading) onDismiss() },
-        title = {
-            Text(
-                if (isComplete) "İndirme Tamamlandı!"
-                else if (isDownloading) "İndiriliyor..."
-                else "Yapay Zeka Modeli İndirilsin mi?"
-            )
-        },
-        text = {
-            Column {
-                if (isComplete) {
-                    Text("AI model başarıyla indirildi. Artık daha akıllı yanıtlar alabilirsin.")
-                } else if (isDownloading) {
-                    Text("Model indiriliyor, lütfen bekleyin...")
-                    Spacer(Modifier.height(12.dp))
-                    LinearProgressIndicator(
-                        progress = { progress!! },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "%${(progress!! * 100).toInt()}",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                } else {
-                    Text(
-                        "Daha iyi yanıtlar için cihazına Gemini Nano AI modeli indirilecek " +
-                                "(~1.5 GB). İndirmeden de temel özellikleri kullanmaya devam edebilirsin."
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            when {
-                isComplete -> {
-                    TextButton(onClick = onDismiss) { Text("Tamam") }
-                }
-                isDownloading -> {
-                    // İndirme devam ederken buton gösterilmez
-                }
-                else -> {
-                    TextButton(onClick = onDownload) { Text("İndir") }
-                }
-            }
-        },
-        dismissButton = {
-            if (!isDownloading && !isComplete) {
-                TextButton(onClick = onDismiss) { Text("Şimdi Değil") }
-            }
-        }
-    )
-}
 
 // ═══════════════════════════════════════════════════════════
 // Hızlı Eylem Çipleri

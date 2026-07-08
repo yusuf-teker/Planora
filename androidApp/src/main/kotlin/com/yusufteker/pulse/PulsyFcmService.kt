@@ -26,6 +26,13 @@ import kotlin.getValue
 
 class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
 
+    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences by inject()
+    private val authRepository: com.yusufteker.pulse.feature.auth.domain.repository.AuthRepository by inject()
+    private val planRepository: com.yusufteker.pulse.feature.home.domain.repository.PlanRepository by inject()
+    private val database: com.yusufteker.pulse.core.database.PulsyDatabase by inject()
+    private val reminderManager: ReminderManager by inject()
+
+
     companion object {
         const val DEFAULT_CHANNEL_ID = "pulse_default_channel"
         const val DEFAULT_CHANNEL_NAME = "Pulsy Bildirimleri"
@@ -39,11 +46,9 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
         scope.launch {
             try {
                 // Save the token locally
-                val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences by inject()
                 sessionPreferences.saveFcmToken(token)
 
                 // Try to send it to backend if logged in
-                val authRepository: com.yusufteker.pulse.feature.auth.domain.repository.AuthRepository by inject()
                 if (authRepository.hasValidSession()) {
                     authRepository.registerFcmToken(token)
                 }
@@ -77,7 +82,6 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
         val scope = CoroutineScope(Dispatchers.IO)
         scope.launch {
             try {
-                val planRepository: com.yusufteker.pulse.feature.home.domain.repository.PlanRepository by inject()
                 planRepository.fetchMyTasks()
 
                 // After sync, reschedule all reminders
@@ -114,9 +118,6 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
      */
     private fun rescheduleRemindersFromDb() {
         try {
-            val database: com.yusufteker.pulse.core.database.PulsyDatabase by inject()
-            val reminderManager: ReminderManager by inject()
-
             val taskEntities = database.pulsyDatabaseQueries.getAllTasks().executeAsList()
             val tasks = taskEntities.mapNotNull { entity ->
                 try {

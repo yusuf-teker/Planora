@@ -58,41 +58,4 @@ data class AiChatContext(
     val recentMessages: List<String> = emptyList()
 )
 
-/**
- * AI motorunun cihazdaki kullanılabilirlik durumu.
- *
- * NOT: Bu artık "tek bir motorun" durumu değil, 4 kademeli fallback zincirinin
- * o an hangi kademede olduğunu UI'a bildiren genel bir durumdur:
- *
- * ADIM 1 (Nano / Apple Intelligence) → AVAILABLE
- * ADIM 2 (İndirilebilir Local LLM)   → PROMPT_DOWNLOAD / DOWNLOADING
- * ADIM 3 (Cloud Gemini API)          → UI'a ayrıca yansıtılmaz, sessizce dener
- * ADIM 4 (Rule-Based)                → BASIC_ONLY
- */
-enum class AiAvailabilityState {
-    /** Cihaz üstü LLM hazır (Gemini Nano / Apple Intelligence) */
-    AVAILABLE,
-    /** Sadece kural tabanlı NLP çalışıyor (ya da geçici olarak Cloud API deneniyor) */
-    BASIC_ONLY,
-    /** LLM modeli indiriliyor */
-    DOWNLOADING,
-    /** Kullanıcıya indirme sorusu sorulmalı */
-    PROMPT_DOWNLOAD,
-    /** Beklenmeyen hata */
-    ERROR
-}
-
-/**
- * Kullanıcının "küçük local LLM'i indirmek ister misin?" teklifine verdiği cevap.
- * Bu karar, uygulama açık kaldığı sürece hafızada tutulur; her mesajda tekrar
- * sorulmaması için kullanılır. Kalıcı hale getirmek istersen (DataStore/UserDefaults
- * ile) bunu tekrar uygulama açılışında oku.
- */
-enum class LocalLlmDecision {
-    /** Henüz hiç sorulmadı */
-    NOT_ASKED,
-    /** Kullanıcı indirmeyi kabul etti */
-    ACCEPTED,
-    /** Kullanıcı indirmeyi reddetti — bir daha sorma */
-    DECLINED
-}
+// File cleaned up

@@ -27,19 +27,46 @@ actual val platformCoreModule = module {
 
     single {
         val context = androidContext()
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-            
-        val sharedPreferences = EncryptedSharedPreferences.create(
-            context,
-            "secure_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
         
-        SecureSettings(SharedPreferencesSettings(sharedPreferences))
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+                
+            val sharedPreferences = EncryptedSharedPreferences.create(
+                context,
+                "secure_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            SecureSettings(SharedPreferencesSettings(sharedPreferences))
+        } catch (e: Exception) {
+            // This happens if the app was uninstalled and reinstalled, 
+            // and Android Auto Backup restored the secure_prefs.xml but the Keystore key was deleted.
+            // We must delete the corrupted file and try again.
+            context.getSharedPreferences("secure_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+            
+            // Also try to delete the file physically just in case
+            val dir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
+            val file = java.io.File(dir, "secure_prefs.xml")
+            if (file.exists()) {
+                file.delete()
+            }
+
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            val sharedPreferences = EncryptedSharedPreferences.create(
+                context,
+                "secure_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            SecureSettings(SharedPreferencesSettings(sharedPreferences))
+        }
     }
 
     single<SqlDriver> { AndroidSqliteDriver(PulsyDatabase.Schema, androidContext(), "pulsy_v3.db") }
