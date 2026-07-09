@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -144,7 +147,20 @@ fun WheelDatePicker(
         } catch (e: Exception) {}
     }
 
-    val monthNames = listOf("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")
+    val monthNames = listOf(
+        stringResource(Res.string.month_jan),
+        stringResource(Res.string.month_feb),
+        stringResource(Res.string.month_mar),
+        stringResource(Res.string.month_apr),
+        stringResource(Res.string.month_may),
+        stringResource(Res.string.month_jun),
+        stringResource(Res.string.month_jul),
+        stringResource(Res.string.month_aug),
+        stringResource(Res.string.month_sep),
+        stringResource(Res.string.month_oct),
+        stringResource(Res.string.month_nov),
+        stringResource(Res.string.month_dec)
+    )
 
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         // Highlight background for the selected row

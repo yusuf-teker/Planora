@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.yusufteker.pulse.core.ui.text.UiText
 import com.yusufteker.pulse.core.utils.TimelineViewOption
 import com.yusufteker.pulse.core.utils.formatDayName
 import com.yusufteker.pulse.core.utils.formatShortDate
@@ -19,6 +21,12 @@ import com.yusufteker.pulse.feature.home.presentation.components.EmptyStateCompo
 import com.yusufteker.pulse.feature.home.presentation.home.HomeState
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskDto
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.chat_with_ai
+import pulsy.core.generated.resources.no_tasks
+import pulsy.core.generated.resources.today
+import pulsy.core.generated.resources.tomorrow
 
 @Composable
 fun TimelineSection(
@@ -38,8 +46,8 @@ fun TimelineSection(
 
             TimelineViewOption.DATE -> {
                 when {
-                    isToday(time) -> "Bugün"
-                    isTomorrow(time) -> "Yarın"
+                    isToday(time) -> stringResource(Res.string.today)
+                    isTomorrow(time) -> stringResource(Res.string.tomorrow)
                     else -> "${formatDayName(time)}, ${formatShortDate(time)}"
                 }
             }
@@ -58,12 +66,18 @@ fun TimelineSection(
         }
     }
 
+    // Don't show empty state until the first data load has completed.
+    // After hasLoadedTasks is true, the state is reliable.
+    if (!state.hasLoadedTasks && state.upcomingTasks.isEmpty()) {
+        return
+    }
+
     if (state.upcomingTasks.isEmpty()) {
 
         EmptyStateComponent(
             icon = Icons.Default.CalendarToday,
-            title = "Henüz görevin yok",
-            description = "Aşağıdan AI'a bir şey söyle!",
+            title = stringResource(Res.string.no_tasks),
+            description = stringResource(Res.string.chat_with_ai),
             modifier = modifier.fillMaxWidth()
 
         )

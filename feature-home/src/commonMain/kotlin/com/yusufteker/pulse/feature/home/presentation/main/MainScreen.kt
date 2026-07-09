@@ -198,27 +198,42 @@ fun MainScreen() {
                 modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
                 entryProvider = entryProvider {
                     entry<MainDestination.Home> {
-                        val viewModel = koinViewModel<HomeViewModel>(key = vmKey)
+                        val viewModel = koinViewModel<HomeViewModel>(
+                            viewModelStoreOwner = viewModelStoreOwner,
+                            key = vmKey
+                        )
                         HomeScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.Social> {
-                        val viewModel = koinViewModel<SocialViewModel>(key = vmKey)
+                        val viewModel = koinViewModel<SocialViewModel>(
+                            viewModelStoreOwner = viewModelStoreOwner,
+                            key = vmKey
+                        )
                         SocialScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.Profile> {
-                        val viewModel = koinViewModel<ProfileViewModel>(key = vmKey)
+                        val viewModel = koinViewModel<ProfileViewModel>(
+                            viewModelStoreOwner = viewModelStoreOwner,
+                            key = vmKey
+                        )
                         ProfileScreen(viewModel = viewModel)
                     }
                     
                     entry<MainDestination.Notes> {
-                        val viewModel = koinViewModel<NotesViewModel>(key = vmKey)
+                        val viewModel = koinViewModel<NotesViewModel>(
+                            viewModelStoreOwner = viewModelStoreOwner,
+                            key = vmKey
+                        )
                         NotesScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.PlanRooms> {
-                        val viewModel = koinViewModel<PlanRoomsViewModel>(key = vmKey)
+                        val viewModel = koinViewModel<PlanRoomsViewModel>(
+                            viewModelStoreOwner = viewModelStoreOwner,
+                            key = vmKey
+                        )
                         val state = viewModel.state.collectAsStateWithLifecycle().value
                         val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
                         PlanRoomsScreen(
@@ -239,7 +254,10 @@ fun MainScreen() {
                     }
 
                     entry<MainDestination.Settings> {
-                        val viewModel = koinViewModel<SettingsViewModel>(key = vmKey)
+                        val viewModel = koinViewModel<SettingsViewModel>(
+                            viewModelStoreOwner = viewModelStoreOwner,
+                            key = vmKey
+                        )
                         SettingsScreen(viewModel = viewModel)
                     }
                 }

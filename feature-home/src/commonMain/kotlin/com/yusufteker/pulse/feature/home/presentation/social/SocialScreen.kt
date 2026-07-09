@@ -36,6 +36,9 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import com.yusufteker.pulse.core.navigation.Screen
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,13 +108,13 @@ fun SocialScreen(
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Sosyal ağı görmek için giriş yapmalısınız.",
+                        text = stringResource(Res.string.info_login_required_social),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { rootNavigator.navigate(Screen.Login) }) {
-                        Text("Giriş Yap")
+                        Text(stringResource(Res.string.action_login))
                     }
                 }
             }
@@ -192,10 +195,10 @@ fun SocialScreen(
                                 item {
                                     Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("Bir hata oluştu: ${(refresh as app.cash.paging.LoadStateError).error.message}")
+                                            Text(stringResource(Res.string.error_occurred, (refresh as app.cash.paging.LoadStateError).error.message ?: ""))
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Button(onClick = { feedItems.retry() }) {
-                                                Text("Tekrar Dene")
+                                                Text(stringResource(Res.string.action_retry))
                                             }
                                         }
                                     }
@@ -213,9 +216,9 @@ fun SocialScreen(
                                 item {
                                     Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("Daha fazla yüklenemedi", color = MaterialTheme.colorScheme.error)
+                                            Text(stringResource(Res.string.error_failed_to_load_more), color = MaterialTheme.colorScheme.error)
                                             TextButton(onClick = { feedItems.retry() }) {
-                                                Text("Tekrar Dene")
+                                                Text(stringResource(Res.string.action_retry))
                                             }
                                         }
                                     }

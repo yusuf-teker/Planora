@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,7 +60,7 @@ fun AiChatScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("AI Asistan")
+                        Text(stringResource(Res.string.title_ai_assistant))
                         Spacer(modifier = Modifier.width(8.dp))
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
@@ -74,7 +77,7 @@ fun AiChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -108,7 +111,7 @@ fun AiChatScreen(
                         OutlinedTextField(
                             value = state.inputText,
                             onValueChange = { viewModel.onEvent(AiChatEvent.InputTextChanged(it)) },
-                            placeholder = { Text("Görev veya not yazın...") },
+                            placeholder = { Text(stringResource(Res.string.ai_chat_placeholder)) },
                             modifier = Modifier.weight(1f).focusRequester(focusRequester),
                             shape = RoundedCornerShape(24.dp),
                             maxLines = 3,
@@ -141,7 +144,7 @@ fun AiChatScreen(
                             } else {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Gönder",
+                                    contentDescription = stringResource(Res.string.action_send),
                                     tint = if (state.inputText.isNotBlank())
                                         MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
@@ -178,9 +181,9 @@ fun AiChatScreen(
 @Composable
 fun SuggestedActionChips(onChipClick: (String) -> Unit) {
     val suggestions = listOf(
-        "📋 Görev ekle" to "yapmam lazım: ",
-        "📅 Toplantı planla" to "yarın saat 'te toplantı ",
-        "📝 Not al" to "not al: "
+        stringResource(Res.string.ai_chip_add_task_label) to stringResource(Res.string.ai_chip_add_task_value),
+        stringResource(Res.string.ai_chip_plan_meeting_label) to stringResource(Res.string.ai_chip_plan_meeting_value),
+        stringResource(Res.string.ai_chip_take_note_label) to stringResource(Res.string.ai_chip_take_note_value)
     )
 
     Row(
@@ -234,7 +237,7 @@ fun MessageBubble(message: AiChatMessage) {
                         color = textColor,
                         strokeWidth = 2.dp
                     )
-                    Text("Düşünüyor...", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(Res.string.ai_thinking), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
             } else {
                 Text(

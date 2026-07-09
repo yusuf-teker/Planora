@@ -23,6 +23,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.jetbrains.compose.resources.getString
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 class TaskEditorViewModel(
     private val planRepository: PlanRepository,
@@ -171,7 +174,8 @@ class TaskEditorViewModel(
                         ) 
                     }
                 } else {
-                    _state.update { it.copy(isLoading = false, error = "Görev bulunamadı") }
+                    val errorMsg = getString(Res.string.error_task_not_found)
+                    _state.update { it.copy(isLoading = false, error = errorMsg) }
                 }
             }
         }
@@ -180,7 +184,9 @@ class TaskEditorViewModel(
     private fun saveTask() {
         val currentState = _state.value
         if (currentState.title.isBlank()) {
-            setEffect(TaskEditorEffect.ShowSnackbar("Lütfen bir başlık girin."))
+            viewModelScope.launch {
+                setEffect(TaskEditorEffect.ShowSnackbar(getString(Res.string.error_enter_title)))
+            }
             return
         }
 

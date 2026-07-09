@@ -32,6 +32,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import androidx.compose.animation.AnimatedVisibility
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -82,14 +85,14 @@ fun PlanRoomDetailScreen(
                     if (state.isRoomCreator) {
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more_options))
                         }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Odayı Düzenle") },
+                                text = { Text(stringResource(Res.string.action_edit_room)) },
                                 onClick = {
                                     showMenu = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick)
@@ -99,7 +102,7 @@ fun PlanRoomDetailScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Odayı Sil", color = MaterialTheme.colorScheme.error) },
+                                text = { Text(stringResource(Res.string.action_delete_room), color = MaterialTheme.colorScheme.error) },
                                 onClick = {
                                     showMenu = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnDeleteRoomClick)
@@ -124,7 +127,7 @@ fun PlanRoomDetailScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(bottom = 16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
-                            Text("Görev Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text(stringResource(Res.string.action_add_task), modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             SmallFloatingActionButton(
                                 onClick = { 
                                     isFabExpanded = false
@@ -132,11 +135,11 @@ fun PlanRoomDetailScreen(
                                 },
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer
                             ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = "Add Task")
+                                Icon(Icons.Default.CheckCircle, contentDescription = stringResource(Res.string.action_add_task))
                             }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Etkinlik Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text(stringResource(Res.string.action_add_event), modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             SmallFloatingActionButton(
                                 onClick = { 
                                     isFabExpanded = false
@@ -144,7 +147,7 @@ fun PlanRoomDetailScreen(
                                 },
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer
                             ) {
-                                Icon(Icons.Default.Event, contentDescription = "Add Event")
+                                Icon(Icons.Default.Event, contentDescription = stringResource(Res.string.action_add_event))
                             }
                         }
                     }
@@ -252,7 +255,7 @@ fun PlanRoomDetailScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Kişi Davet Et",
+                        text = stringResource(Res.string.action_invite_person),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -261,7 +264,7 @@ fun PlanRoomDetailScreen(
                     OutlinedTextField(
                         value = state.searchQuery,
                         onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnSearchQueryChange(it)) },
-                        placeholder = { Text("Takip ettiklerin arasında ara...") },
+                        placeholder = { Text(stringResource(Res.string.search_following_placeholder)) },
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         singleLine = true
                     )
@@ -278,7 +281,7 @@ fun PlanRoomDetailScreen(
                         )
                     } else if (state.followingUsers.isEmpty()) {
                         Text(
-                            text = "Kişi bulunamadı.",
+                            text = stringResource(Res.string.error_no_users_found),
                             modifier = Modifier.padding(vertical = 16.dp)
                         )
                     } else {
@@ -331,7 +334,7 @@ fun PlanRoomDetailScreen(
                         onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissInviteDialog) },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Kapat")
+                        Text(stringResource(Res.string.action_close))
                     }
                 }
             }
@@ -346,7 +349,7 @@ fun PlanRoomDetailScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Oda Adını Değiştir",
+                        text = stringResource(Res.string.action_rename_room),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -355,7 +358,7 @@ fun PlanRoomDetailScreen(
                     OutlinedTextField(
                         value = state.renameRoomName,
                         onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomNameChange(it)) },
-                        label = { Text("Oda Adı") },
+                        label = { Text(stringResource(Res.string.room_name_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -367,14 +370,14 @@ fun PlanRoomDetailScreen(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRenameDialog) }) {
-                            Text("İptal")
+                            Text(stringResource(Res.string.cancel))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomSubmit) },
                             enabled = state.renameRoomName.isNotBlank() && !state.isLoading
                         ) {
-                            Text("Kaydet")
+                            Text(stringResource(Res.string.save))
                         }
                     }
                 }

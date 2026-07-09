@@ -120,24 +120,24 @@ fun PlanRoomsScreen(
     if (state.isCreateRoomDialogVisible) {
         AlertDialog(
             onDismissRequest = { onEvent(PlanRoomsEvent.OnCreateRoomClick(false)) },
-            title = { Text("Yeni Plan Odası") },
+            title = { Text(stringResource(Res.string.title_new_plan_room)) },
             text = {
                 OutlinedTextField(
                     value = state.createRoomNameInput,
                     onValueChange = { onEvent(PlanRoomsEvent.OnCreateRoomNameChanged(it)) },
-                    label = { Text("Oda İsmi") },
+                    label = { Text(stringResource(Res.string.room_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
                 Button(onClick = { onEvent(PlanRoomsEvent.SubmitCreateRoom) }) {
-                    Text("Oluştur")
+                    Text(stringResource(Res.string.action_create))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(false)) }) {
-                    Text("İptal")
+                    Text(stringResource(Res.string.cancel))
                 }
             }
         )
@@ -149,7 +149,7 @@ fun PlanRoomsScreen(
             onDismissRequest = { onEvent(PlanRoomsEvent.OnInvitationsClick(false)) },
             title = { 
                 Text(
-                    "Gelen Davetler",
+                    stringResource(Res.string.title_incoming_invitations),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 ) 
@@ -157,7 +157,7 @@ fun PlanRoomsScreen(
             text = {
                 if (state.pendingInvitations.isEmpty()) {
                     Text(
-                        "Bekleyen davetiniz bulunmuyor.",
+                        stringResource(Res.string.empty_invitations_prompt),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -197,13 +197,13 @@ fun PlanRoomsScreen(
                                             ),
                                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
                                         ) {
-                                            Text("Reddet")
+                                            Text(stringResource(Res.string.action_decline))
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Button(
                                             onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, true)) },
                                         ) {
-                                            Text("Kabul Et")
+                                            Text(stringResource(Res.string.action_accept))
                                         }
                                     }
                                 }
@@ -214,7 +214,7 @@ fun PlanRoomsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { onEvent(PlanRoomsEvent.OnInvitationsClick(false)) }) {
-                    Text("Kapat")
+                    Text(stringResource(Res.string.action_close))
                 }
             },
             shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)

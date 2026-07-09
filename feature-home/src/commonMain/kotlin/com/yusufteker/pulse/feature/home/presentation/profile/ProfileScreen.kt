@@ -216,21 +216,21 @@ fun ProfileScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(text = state.postsCount.toString(), style = MaterialTheme.typography.titleLarge)
-                                Text(text = "Posts", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = stringResource(Res.string.profile_posts_label), style = MaterialTheme.typography.bodyMedium)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = state.followersCount.toString(),
                                     style = MaterialTheme.typography.titleLarge
                                 )
-                                Text(text = "Followers", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = stringResource(Res.string.profile_followers_label), style = MaterialTheme.typography.bodyMedium)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = state.followingCount.toString(),
                                     style = MaterialTheme.typography.titleLarge
                                 )
-                                Text(text = "Following", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = stringResource(Res.string.profile_following_label), style = MaterialTheme.typography.bodyMedium)
                             }
                         }
 
@@ -253,7 +253,7 @@ fun ProfileScreen(
                                 ) {
                                     Icon(
                                         Icons.Filled.PersonAdd,
-                                        contentDescription = "Add Friend",
+                                        contentDescription = stringResource(Res.string.action_add_friend),
                                         tint = androidx.compose.ui.graphics.Color.Green
                                     )
                                 }
@@ -269,7 +269,7 @@ fun ProfileScreen(
                                 ) {
                                     Icon(
                                         Icons.Filled.Settings,
-                                        contentDescription = "Settings",
+                                        contentDescription = stringResource(Res.string.settings_title),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -285,7 +285,7 @@ fun ProfileScreen(
                                 ) {
                                     Icon(
                                         Icons.AutoMirrored.Filled.Logout,
-                                        contentDescription = "Logout",
+                                        contentDescription = stringResource(Res.string.action_logout),
                                         tint = androidx.compose.ui.graphics.Color.Red
                                     )
                                 }
@@ -294,14 +294,14 @@ fun ProfileScreen(
                             androidx.compose.material3.Button(
                                 onClick = { viewModel.onEvent(ProfileEvent.ToggleFollowClicked) }
                             ) {
-                                Text(text = if (state.isFollowedByMe) "Unfollow" else "Follow")
+                                Text(text = if (state.isFollowedByMe) stringResource(Res.string.action_unfollow) else stringResource(Res.string.action_follow))
                             }
                         }
                     } else {
                         // Not logged in
                         Spacer(modifier = Modifier.height(16.dp))
                         androidx.compose.material3.Button(onClick = { rootNavigator.navigate(Screen.Login) }) {
-                            Text("Giriş Yap")
+                            Text(stringResource(Res.string.action_login))
                         }
                     }
                 }

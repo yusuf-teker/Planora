@@ -28,6 +28,9 @@ import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
 import com.yusufteker.pulse.shared.api.TaskStatus
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,21 +68,21 @@ fun TaskEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.id == null) "Yeni Görev" else "Düzenle", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (state.id == null) stringResource(Res.string.title_new_task) else stringResource(Res.string.action_edit), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(TaskEditorEvent.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     if (state.id != null) {
                         IconButton(onClick = { viewModel.onEvent(TaskEditorEvent.DeleteClicked) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.action_delete), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     if (state.id == null) {
                         TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.SaveClicked) }) {
-                            Text("Kaydet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.save), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 },
@@ -106,7 +109,7 @@ fun TaskEditorScreen(
                     TextField(
                         value = state.title,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.TitleChanged(it)) },
-                        placeholder = { Text("Başlık", style = MaterialTheme.typography.titleLarge) },
+                        placeholder = { Text(stringResource(Res.string.task_title_label), style = MaterialTheme.typography.titleLarge) },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         colors = TextFieldDefaults.colors(
@@ -123,7 +126,7 @@ fun TaskEditorScreen(
                     TextField(
                         value = state.description,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.DescriptionChanged(it)) },
-                        placeholder = { Text("Açıklama (Opsiyonel)") },
+                        placeholder = { Text(stringResource(Res.string.task_desc_label)) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -145,10 +148,10 @@ fun TaskEditorScreen(
                         } else {
                             "${formatShortDate(ms)} ${formatTime(ms)}"
                         }
-                    } ?: "Seçilmedi"
+                    } ?: stringResource(Res.string.option_not_selected)
 
                     FormRow(
-                        label = if (isTimeOnly) "Saat" else "Bitiş (Deadline)",
+                        label = if (isTimeOnly) stringResource(Res.string.time_label) else stringResource(Res.string.deadline_label),
                         value = deadlineText,
                         onClick = { viewModel.onEvent(TaskEditorEvent.OnDeadlinePickerVisibilityChanged(true)) }
                     )
@@ -156,15 +159,15 @@ fun TaskEditorScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
                     
                     val repeatText = when (val rule = state.recurrenceRule) {
-                        null -> "Yok"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily -> "Her Gün"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly -> "Haftada ${rule.daysOfWeek.size} Gün"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) "Her Ay (Son Gün)" else "Her Ay"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> "Her Yıl"
+                        null -> stringResource(Res.string.repeat_none)
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily -> stringResource(Res.string.repeat_daily)
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly -> stringResource(Res.string.repeat_weekly_pattern, rule.daysOfWeek.size.toString())
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) stringResource(Res.string.repeat_monthly_last_day) else stringResource(Res.string.repeat_monthly)
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> stringResource(Res.string.repeat_yearly)
                     }
 
                     FormRow(
-                        label = "Tekrar",
+                        label = stringResource(Res.string.repeat_label),
                         value = repeatText,
                         onClick = { viewModel.onEvent(TaskEditorEvent.OnRepeatPickerVisibilityChanged(true)) }
                     )
@@ -174,7 +177,7 @@ fun TaskEditorScreen(
                 FormSection {
                     if (state.id != null) {
                         FormSwitchRow(
-                            label = "Tamamlandı",
+                            label = stringResource(Res.string.task_completed_label),
                             checked = state.status == TaskStatus.COMPLETED,
                             onCheckedChange = { viewModel.onEvent(TaskEditorEvent.StatusChanged(it)) }
                         )
@@ -182,7 +185,7 @@ fun TaskEditorScreen(
                     }
 
                     FormSwitchRow(
-                        label = "Opsiyonel",
+                        label = stringResource(Res.string.task_optional_label),
                         checked = state.isOptional,
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.OnIsOptionalChanged(it)) }
                     )
@@ -190,8 +193,8 @@ fun TaskEditorScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
 
                     FormRow(
-                        label = "Hatırlatıcılar",
-                        value = if (state.reminders.isNotEmpty()) "${state.reminders.size} Seçildi" else "Yok",
+                        label = stringResource(Res.string.reminders_label),
+                        value = if (state.reminders.isNotEmpty()) stringResource(Res.string.reminders_selected_count_pattern, state.reminders.size.toString()) else stringResource(Res.string.repeat_none),
                         onClick = { viewModel.onEvent(TaskEditorEvent.OnReminderPickerVisibilityChanged(true)) }
                     )
                 }
@@ -200,8 +203,8 @@ fun TaskEditorScreen(
                 if (state.planRoomId != null) {
                     FormSection {
                         FormRow(
-                            label = "Sorumlular",
-                            value = "${state.participants.size} Kişi",
+                            label = stringResource(Res.string.assignees_label),
+                            value = stringResource(Res.string.participants_count_pattern, state.participants.size.toString()),
                             onClick = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
                     }
@@ -245,7 +248,7 @@ fun TaskEditorScreen(
 
     if (state.isParticipantPickerVisible) {
         ParticipantPickerSheet(
-            title = "Sorumlular",
+            title = stringResource(Res.string.assignees_label),
             roomMembers = state.roomMembers,
             selectedParticipantIds = state.participants.keys,
             sheetState = participantSheetState,

@@ -17,6 +17,9 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @Composable
 fun FeedTimelineComponent(
@@ -56,14 +59,14 @@ fun FeedTimelineComponent(
                     onClick = { showPastTasks = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Geçmiş Etkinlikleri Göster")
+                    Text(stringResource(Res.string.show_past_events))
                 }
             } else {
                 TextButton(
                     onClick = { showPastTasks = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Geçmiş Etkinlikleri Gizle")
+                    Text(stringResource(Res.string.hide_past_events))
                 }
             }
         }
@@ -71,7 +74,7 @@ fun FeedTimelineComponent(
         if (groupedTasks.isEmpty()) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Gösterilecek etkinlik yok.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(Res.string.empty_events_prompt), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         }

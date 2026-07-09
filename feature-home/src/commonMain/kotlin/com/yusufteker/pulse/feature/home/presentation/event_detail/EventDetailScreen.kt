@@ -27,6 +27,9 @@ import com.yusufteker.pulse.feature.home.presentation.components.ParticipantPick
 import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,20 +68,20 @@ fun EventDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.id == null) "Yeni Etkinlik" else "Düzenle", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (state.id == null) stringResource(Res.string.title_new_event) else stringResource(Res.string.action_edit), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
                     if (state.id != null) {
                         IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnDeleteClick) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.action_delete), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     TextButton(onClick = { viewModel.onEvent(EventDetailEvent.OnSaveClick) }) {
-                        Text("Kaydet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(Res.string.save), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -105,7 +108,7 @@ fun EventDetailScreen(
                     TextField(
                         value = state.title,
                         onValueChange = { viewModel.onEvent(EventDetailEvent.OnTitleChange(it)) },
-                        placeholder = { Text("Başlık", style = MaterialTheme.typography.titleLarge) },
+                        placeholder = { Text(stringResource(Res.string.task_title_label), style = MaterialTheme.typography.titleLarge) },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         colors = TextFieldDefaults.colors(
@@ -122,7 +125,7 @@ fun EventDetailScreen(
                     TextField(
                         value = state.location,
                         onValueChange = { viewModel.onEvent(EventDetailEvent.OnLocationChange(it)) },
-                        placeholder = { Text("Konum (Opsiyonel)") },
+                        placeholder = { Text(stringResource(Res.string.event_location_optional)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -138,7 +141,7 @@ fun EventDetailScreen(
                     TextField(
                         value = state.description,
                         onValueChange = { viewModel.onEvent(EventDetailEvent.OnDescriptionChange(it)) },
-                        placeholder = { Text("Açıklama (Opsiyonel)") },
+                        placeholder = { Text(stringResource(Res.string.task_desc_label)) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -157,7 +160,7 @@ fun EventDetailScreen(
                     val endText = if (isTimeOnly) formatTime(state.endDateTimeMs) else "${formatShortDate(state.endDateTimeMs)} ${formatTime(state.endDateTimeMs)}"
 
                     FormRow(
-                        label = if (isTimeOnly) "Başlangıç Saati" else "Başlangıç",
+                        label = if (isTimeOnly) stringResource(Res.string.event_start_time_label) else stringResource(Res.string.event_start_label),
                         value = startText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnStartPickerVisibilityChanged(true)) }
                     )
@@ -165,7 +168,7 @@ fun EventDetailScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
                     
                     FormRow(
-                        label = if (isTimeOnly) "Bitiş Saati" else "Bitiş",
+                        label = if (isTimeOnly) stringResource(Res.string.event_end_time_label) else stringResource(Res.string.event_end_label),
                         value = endText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnEndPickerVisibilityChanged(true)) }
                     )
@@ -173,15 +176,15 @@ fun EventDetailScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
                     
                     val repeatText = when (val rule = state.recurrenceRule) {
-                        null -> "Yok"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily -> "Her Gün"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly -> "Haftada ${rule.daysOfWeek.size} Gün"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) "Her Ay (Son Gün)" else "Her Ay"
-                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> "Her Yıl"
+                        null -> stringResource(Res.string.repeat_none)
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily -> stringResource(Res.string.repeat_daily)
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly -> stringResource(Res.string.repeat_weekly_pattern, rule.daysOfWeek.size.toString())
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) stringResource(Res.string.repeat_monthly_last_day) else stringResource(Res.string.repeat_monthly)
+                        is com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly -> stringResource(Res.string.repeat_yearly)
                     }
 
                     FormRow(
-                        label = "Tekrar",
+                        label = stringResource(Res.string.repeat_label),
                         value = repeatText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnRepeatPickerVisibilityChanged(true)) }
                     )
@@ -191,8 +194,8 @@ fun EventDetailScreen(
                 if (state.planRoomId != null) {
                     FormSection {
                         FormRow(
-                            label = "Katılımcılar",
-                            value = "${state.participants.size} Kişi",
+                            label = stringResource(Res.string.participants_label),
+                            value = stringResource(Res.string.participants_count_pattern, state.participants.size.toString()),
                             onClick = { viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
                     }
@@ -239,7 +242,7 @@ fun EventDetailScreen(
 
     if (state.isParticipantPickerVisible) {
         ParticipantPickerSheet(
-            title = "Katılımcılar",
+            title = stringResource(Res.string.participants_label),
             roomMembers = state.roomMembers,
             selectedParticipantIds = state.participants.keys,
             sheetState = participantSheetState,

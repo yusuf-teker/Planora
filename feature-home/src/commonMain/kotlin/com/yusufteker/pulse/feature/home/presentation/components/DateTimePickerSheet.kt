@@ -33,6 +33,9 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 import androidx.compose.foundation.layout.Arrangement
 
 
@@ -82,7 +85,7 @@ fun DateTimePickerSheet(
         ) {
             if (!showTimePicker) {
                 Text(
-                    text = "Tarih Seçin",
+                    text = stringResource(Res.string.title_select_date),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -99,19 +102,19 @@ fun DateTimePickerSheet(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismissRequest) {
-                        Text("İptal")
+                        Text(stringResource(Res.string.cancel))
                     }
                     Button(
                         onClick = { showTimePicker = true },
                         modifier = Modifier.padding(start = 8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("İleri")
+                        Text(stringResource(Res.string.action_next))
                     }
                 }
             } else {
                 Text(
-                    text = "Saat Seçin",
+                    text = stringResource(Res.string.title_select_time),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -131,12 +134,12 @@ fun DateTimePickerSheet(
                 ) {
                     if (!timeOnly) {
                         TextButton(onClick = { showTimePicker = false }) {
-                            Text("Geri")
+                            Text(stringResource(Res.string.back))
                         }
                     }
                     Row {
                         TextButton(onClick = onDismissRequest) {
-                            Text("İptal")
+                            Text(stringResource(Res.string.cancel))
                         }
                         Button(
                             onClick = {
@@ -158,7 +161,7 @@ fun DateTimePickerSheet(
                             modifier = Modifier.padding(start = 8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Tamam")
+                            Text(stringResource(Res.string.action_ok))
                         }
                     }
                 }

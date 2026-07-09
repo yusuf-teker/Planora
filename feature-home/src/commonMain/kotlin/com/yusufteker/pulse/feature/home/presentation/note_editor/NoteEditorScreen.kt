@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,7 +175,7 @@ fun NoteEditorScreen(
                     OutlinedTextField(
                         value = aiQuery,
                         onValueChange = { aiQuery = it },
-                        placeholder = { Text("Pulsy AI ile notunuzu sihirli bir şekilde düzenleyin...") },
+                        placeholder = { Text(stringResource(Res.string.note_ai_placeholder)) },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                         trailingIcon = {
                             IconButton(

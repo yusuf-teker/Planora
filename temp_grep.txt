@@ -1,0 +1,63 @@
+feature-auth/src/commonMain/kotlin/com/yusufteker/pulse/feature/auth/presentation/login/LoginScreen.kt:100:            label = { Text("E-posta veya Kullanıcı Adı") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/home/components/FilterBottomSheetComponent.kt:113:                Text("Uygula ve Kapat")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/pending_posts/PendingPostsScreen.kt:52:                title = { Text("Bekleyen Gönderiler") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/pending_posts/PendingPostsScreen.kt:67:                Text("Kuyrukta bekleyen gönderiniz yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:123:            title = { Text("Yeni Plan Odası") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:128:                    label = { Text("Oda İsmi") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:135:                    Text("Oluştur")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:140:                    Text("İptal")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:200:                                            Text("Reddet")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:206:                                            Text("Kabul Et")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_rooms/PlanRoomsScreen.kt:217:                    Text("Kapat")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/note_editor/NoteEditorScreen.kt:175:                        placeholder = { Text("Pulsy AI ile notunuzu sihirli bir şekilde düzenleyin...") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/create_post/CreatePostScreen.kt:100:                        Text("Paylaş")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/create_post/CreatePostScreen.kt:121:                    Text("Taslaklarım")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/create_post/CreatePostScreen.kt:128:                    Text("Taslak Kaydet")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/create_post/CreatePostScreen.kt:194:                        label = { Text("+ Daha Fazla") }
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/create_post/CreatePostScreen.kt:200:                        label = { Text("- Gizle") }
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/create_post/CreatePostScreen.kt:213:                placeholder = { Text("Ne düşünüyorsun? (Seçip formatlayabilirsin)") }
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:92:                                text = { Text("Odayı Düzenle") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:102:                                text = { Text("Odayı Sil", color = MaterialTheme.colorScheme.error) },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:127:                            Text("Görev Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:139:                            Text("Etkinlik Ekle", modifier = Modifier.padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:264:                        placeholder = { Text("Takip ettiklerin arasında ara...") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:334:                        Text("Kapat")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:358:                        label = { Text("Oda Adı") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:370:                            Text("İptal")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/PlanRoomDetailScreen.kt:377:                            Text("Kaydet")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/components/FeedTimelineComponent.kt:59:                    Text("Geçmiş Etkinlikleri Göster")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/components/FeedTimelineComponent.kt:66:                    Text("Geçmiş Etkinlikleri Gizle")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/plan_room_detail/components/FeedTimelineComponent.kt:74:                    Text("Gösterilecek etkinlik yok.", style = MaterialTheme.typography.bodyLarge)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/event_detail/EventDetailScreen.kt:81:                        Text("Kaydet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/event_detail/EventDetailScreen.kt:108:                        placeholder = { Text("Başlık", style = MaterialTheme.typography.titleLarge) },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/event_detail/EventDetailScreen.kt:125:                        placeholder = { Text("Konum (Opsiyonel)") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/event_detail/EventDetailScreen.kt:141:                        placeholder = { Text("Açıklama (Opsiyonel)") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/aichat/AiChatScreen.kt:60:                        Text("AI Asistan")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/aichat/AiChatScreen.kt:111:                            placeholder = { Text("Görev veya not yazın...") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/aichat/AiChatScreen.kt:237:                    Text("Düşünüyor...", color = textColor, style = MaterialTheme.typography.bodyMedium)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/social/SocialScreen.kt:114:                        Text("Giriş Yap")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/social/SocialScreen.kt:195:                                            Text("Bir hata oluştu: ${(refresh as app.cash.paging.LoadStateError).error.message}")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/social/SocialScreen.kt:198:                                                Text("Tekrar Dene")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/social/SocialScreen.kt:216:                                            Text("Daha fazla yüklenemedi", color = MaterialTheme.colorScheme.error)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/social/SocialScreen.kt:218:                                                Text("Tekrar Dene")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/DateTimePickerSheet.kt:102:                        Text("İptal")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/DateTimePickerSheet.kt:109:                        Text("İleri")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/DateTimePickerSheet.kt:134:                            Text("Geri")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/DateTimePickerSheet.kt:139:                            Text("İptal")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/DateTimePickerSheet.kt:161:                            Text("Tamam")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/WheelDatePickerComponent.kt:224:            Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/RepeatPickerSheet.kt:118:                Text("Hangi Günler?", fontWeight = FontWeight.Bold)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/RepeatPickerSheet.kt:140:                Text("Aylık Tekrar Tipi", fontWeight = FontWeight.Bold)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/RepeatPickerSheet.kt:147:                        Text("Ayın aynı günü")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/RepeatPickerSheet.kt:154:                        Text("Ayın son günü")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/RepeatPickerSheet.kt:160:                Text("Seçilen başlangıç tarihi ile aynı ay ve günde her yıl tekrarlar.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/components/RepeatPickerSheet.kt:178:                Text("Tamam")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/notes/NotesScreen.kt:63:                title = { Text("Notlar") },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/profile/ProfileScreen.kt:219:                                Text(text = "Posts", style = MaterialTheme.typography.bodyMedium)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/profile/ProfileScreen.kt:226:                                Text(text = "Followers", style = MaterialTheme.typography.bodyMedium)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/profile/ProfileScreen.kt:233:                                Text(text = "Following", style = MaterialTheme.typography.bodyMedium)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/profile/ProfileScreen.kt:304:                            Text("Giriş Yap")
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/task_editor/TaskEditorScreen.kt:82:                            Text("Kaydet", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/task_editor/TaskEditorScreen.kt:109:                        placeholder = { Text("Başlık", style = MaterialTheme.typography.titleLarge) },
+feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/task_editor/TaskEditorScreen.kt:126:                        placeholder = { Text("Açıklama (Opsiyonel)") },
+core/src/commonMain/kotlin/com/yusufteker/pulse/core/ui/components/WheelPicker.kt:176:                Text("Tamam", style = MaterialTheme.typography.titleMedium)

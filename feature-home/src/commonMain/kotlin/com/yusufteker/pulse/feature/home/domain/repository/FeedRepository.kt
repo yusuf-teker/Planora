@@ -15,6 +15,7 @@ import com.yusufteker.pulse.feature.home.data.api.FeedApi
 import com.yusufteker.pulse.feature.home.data.paging.FeedRemoteMediator
 import com.yusufteker.pulse.feature.home.domain.model.Post
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -84,7 +85,7 @@ class FeedRepository(
     private val sessionPreferences: SessionPreferences
 ) {
 
-    @OptIn(ExperimentalPagingApi::class)
+    @OptIn(ExperimentalPagingApi::class, ExperimentalCoroutinesApi::class)
     fun getFeed(topic: String?): Flow<PagingData<Post>> {
         return sessionPreferences.userIdFlow.flatMapLatest { userId ->
             val ownerId = userId ?: "guest"

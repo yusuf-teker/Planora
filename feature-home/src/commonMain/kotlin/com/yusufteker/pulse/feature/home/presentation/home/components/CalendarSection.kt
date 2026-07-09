@@ -90,6 +90,9 @@ fun CalendarSection(
     Spacer(modifier = Modifier.height(16.dp))
 
     when {
+        !state.hasLoadedTasks && state.upcomingTasks.isEmpty() -> {
+            // Still loading first data, show nothing
+        }
         state.selectedCalendarDate != null &&
                 state.upcomingTasks.isEmpty() -> {
 

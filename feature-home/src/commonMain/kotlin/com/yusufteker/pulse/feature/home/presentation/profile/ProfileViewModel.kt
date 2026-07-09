@@ -8,6 +8,9 @@ import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.database.clearAll
 
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+import org.jetbrains.compose.resources.getString
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 class ProfileViewModel(
     private val sessionPreferences: SessionPreferences,
@@ -36,9 +39,10 @@ class ProfileViewModel(
                 Napier.d(tag = "Screen", message = { "DataStore Flow geldi → isim='${data.name}', avatar='${data.avatarId}', isLoggedIn=$isLoggedIn" })
                 // Only update from datastore if it's my profile and hasn't been loaded from network yet
                 if (state.value.isMyProfile && state.value.profileId == null) {
+                    val guestName = getString(Res.string.profile_guest)
                     setState {
                         copy(
-                            name = data.name ?: "Misafir",
+                            name = data.name ?: guestName,
                             avatarId = data.avatarId ?: "avatar_1",
                             followersCount = data.followersCount,
                             followingCount = data.followingCount
@@ -109,9 +113,10 @@ class ProfileViewModel(
                     val isMyProfile = userIdToLoad == null
                     
                     if (isMyProfile && !state.value.isLoggedIn) {
+                        val guestName = getString(Res.string.profile_guest)
                         setState {
                             copy(
-                                name = "Misafir",
+                                name = guestName,
                                 avatarId = "avatar_1",
                                 isMyProfile = true,
                                 isLoading = false

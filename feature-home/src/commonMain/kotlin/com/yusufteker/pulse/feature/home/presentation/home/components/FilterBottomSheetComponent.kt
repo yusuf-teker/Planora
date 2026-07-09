@@ -8,6 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.feature.home.presentation.home.TimelineFilterOptions
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,7 +113,7 @@ fun FilterBottomSheetComponent(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Uygula ve Kapat")
+                Text(stringResource(Res.string.action_apply_and_close))
             }
             
             Spacer(modifier = Modifier.height(16.dp))

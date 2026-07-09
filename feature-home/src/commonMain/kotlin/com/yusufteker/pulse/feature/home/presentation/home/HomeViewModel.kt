@@ -33,42 +33,50 @@ class HomeViewModel(
         val today = Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         val currentMonthStart = LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
-        // Indicate preferences are loading
-        setState { copy(isPreferencesLoading = true) }
-
         // Load stored filter options and view option
         launch {
-            val showOnlyNextRecurring = sessionPreferences.getShowOnlyNextRecurring()
-            val showCompleted = sessionPreferences.getShowCompleted()
-            val savedViewOption = sessionPreferences.getViewOption()
-            val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted)
-            setState {
-                copy(
-                    filterOptions = newFilterOptions,
-                    viewOption = savedViewOption,
-                    upcomingTasks = applyFilters(allFetchedTasks, newFilterOptions, viewOption = savedViewOption),
-                    isPreferencesLoading = false
-                )
+            try {
+                val showOnlyNextRecurring = sessionPreferences.getShowOnlyNextRecurring()
+                val showCompleted = sessionPreferences.getShowCompleted()
+                val savedViewOption = sessionPreferences.getViewOption()
+                val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted)
+                setState {
+                    copy(
+                        filterOptions = newFilterOptions,
+                        viewOption = savedViewOption,
+                        upcomingTasks = applyFilters(allFetchedTasks, newFilterOptions, viewOption = savedViewOption),
+                        isPreferencesLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                setState { copy(isPreferencesLoading = false) }
             }
         }
 
         // Observe tasks range
         launch {
-            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-            val thirtyDays = 86400000L * 30
-            planRepository.observeTasksForRange(fromTimeMs = now - thirtyDays, toTimeMs = now + thirtyDays)
-                .collect { tasks ->
-                    val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
-                        .sortedBy { task ->
-                            (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            try {
+                val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                val thirtyDays = 86400000L * 30
+                planRepository.observeTasksForRange(fromTimeMs = now - thirtyDays, toTimeMs = now + thirtyDays)
+                    .collect { tasks ->
+                        val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
+                            .sortedBy { task ->
+                                (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+                            }
+                        setState {
+                            copy(
+                                allFetchedTasks = filteredTasks,
+                                upcomingTasks = applyFilters(filteredTasks, state.value.filterOptions, viewOption = state.value.viewOption),
+                                hasLoadedTasks = true
+                            )
                         }
-                    setState {
-                        copy(
-                            allFetchedTasks = filteredTasks,
-                            upcomingTasks = applyFilters(filteredTasks, state.value.filterOptions, viewOption = state.value.viewOption)
-                        )
                     }
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                setState { copy(hasLoadedTasks = true) }
+            }
         }
 
         // Trigger a background fetch

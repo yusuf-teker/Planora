@@ -36,6 +36,9 @@ import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +63,7 @@ fun NotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notlar") },
+                title = { Text(stringResource(Res.string.title_notes)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
@@ -72,7 +75,7 @@ fun NotesScreen(
                 onClick = { viewModel.onEvent(NotesEvent.CreateNoteClicked) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Filled.Add, "Create Note")
+                Icon(Icons.Filled.Add, stringResource(Res.string.action_create_note))
             }
         }
     ) { paddingValues ->
@@ -85,8 +88,8 @@ fun NotesScreen(
             if (state.notes.isEmpty()) {
                 EmptyStateComponent(
                     icon = androidx.compose.material.icons.Icons.Default.Edit,
-                    title = "Henüz Not Yok",
-                    description = "Yeni bir not oluşturmak için yukarıdaki + butonuna tıklayın.",
+                    title = stringResource(Res.string.empty_notes_title),
+                    description = stringResource(Res.string.empty_notes_desc),
                     modifier = Modifier.weight(1f)
                 )
             } else {
@@ -108,7 +111,7 @@ fun NotesScreen(
                         ) {
                             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                                 Text(
-                                    text = note.title.ifBlank { "İsimsiz Not" },
+                                    text = note.title.ifBlank { stringResource(Res.string.untitled_note_label) },
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant

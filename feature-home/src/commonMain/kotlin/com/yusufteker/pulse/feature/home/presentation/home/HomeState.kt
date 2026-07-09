@@ -19,7 +19,8 @@ data class HomeState(
     val isFilterSheetVisible: Boolean = false,
     val selectedCalendarDate: kotlinx.datetime.LocalDate? = null,
     val visibleCalendarMonth: kotlinx.datetime.LocalDate? = null,
-    val isPreferencesLoading: Boolean = true
+    val isPreferencesLoading: Boolean = false,
+    val hasLoadedTasks: Boolean = false
 ) : UiState
 
 data class TimelineFilterOptions(

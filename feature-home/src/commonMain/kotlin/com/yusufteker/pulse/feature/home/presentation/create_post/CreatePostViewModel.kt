@@ -8,6 +8,9 @@ import com.yusufteker.pulse.core.base.UiState
 import com.yusufteker.pulse.feature.home.domain.repository.PostRepository
 import kotlinx.coroutines.launch
 import com.yusufteker.pulse.core.analytics.AnalyticsManager
+import org.jetbrains.compose.resources.getString
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 data class CreatePostState(
     val content: String = "",
@@ -49,7 +52,7 @@ class CreatePostViewModel(
                         ) 
                     }
                 } else {
-                    showSnackbar("Gönderi bulunamadı", com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
+                    showSnackbar(getString(Res.string.error_post_not_found), com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
                     setEffect(CreatePostEffect.NavigateBack)
                 }
             }
@@ -66,7 +69,9 @@ class CreatePostViewModel(
 
     private fun savePost(content: String, isDraft: Boolean, topic: String) {
         if (content.isBlank()) {
-            showSnackbar("Gönderi içeriği boş olamaz", com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
+            viewModelScope.launch {
+                showSnackbar(getString(Res.string.error_post_content_empty), com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
+            }
             return
         }
 
@@ -81,7 +86,7 @@ class CreatePostViewModel(
                 if (!shouldCreateNew) {
                     // Var olanı güncelliyoruz
                     postRepository.updatePendingPost(id = postId!!, content = content, isDraft = isDraft, topic = topic)
-                    val message = if (isDraft) "Taslak güncellendi" else "Gönderi güncellendi"
+                    val message = if (isDraft) getString(Res.string.info_draft_updated) else getString(Res.string.info_post_updated)
                     showSnackbar(message, com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
                 } else {
                     // Yeni oluşturuyoruz
@@ -90,7 +95,7 @@ class CreatePostViewModel(
                     val eventName = if (isDraft) "draft_created" else "post_created"
                     analyticsManager.logEvent(eventName, mapOf("topic" to topic))
                     
-                    val message = if (isDraft) "Taslak olarak kaydedildi" else "Gönderi oluşturuldu"
+                    val message = if (isDraft) getString(Res.string.info_draft_saved) else getString(Res.string.info_post_created)
                     showSnackbar(message, com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
                 }
                 
@@ -98,7 +103,7 @@ class CreatePostViewModel(
                 setEffect(CreatePostEffect.NavigateBack)
             } catch (e: Throwable) {
                 analyticsManager.logException(e)
-                showSnackbar(e.message ?: "Beklenmeyen bir hata oluştu", com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
+                showSnackbar(e.message ?: getString(Res.string.error_unexpected), com.yusufteker.pulse.core.snackbar.SnackbarType.ERROR)
             } finally {
                 setState { copy(isSaving = false) }
             }

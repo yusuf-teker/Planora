@@ -58,6 +58,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.yusufteker.pulse.feature.home.presentation.util.color
+import com.yusufteker.pulse.feature.home.presentation.util.titleRes
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -86,10 +90,10 @@ fun CreatePostScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isEditing) "Gönderiyi Düzenle" else "Yeni Post Oluştur") },
+                title = { Text(if (state.isEditing) stringResource(Res.string.title_edit_post) else stringResource(Res.string.title_create_post)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
@@ -97,7 +101,7 @@ fun CreatePostScreen(
                         onClick = { viewModel.onEvent(CreatePostEvent.OnPost(richTextState.toMarkdown())) },
                         enabled = richTextState.annotatedString.text.isNotBlank() && !state.isSaving
                     ) {
-                        Text("Paylaş")
+                        Text(stringResource(Res.string.action_share))
                     }
                 }
             )
@@ -118,14 +122,14 @@ fun CreatePostScreen(
                     onClick = { rootNavigator.navigate(Screen.PendingPosts) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Taslaklarım")
+                    Text(stringResource(Res.string.title_my_drafts))
                 }
                 OutlinedButton(
                     onClick = { viewModel.onEvent(CreatePostEvent.OnSaveDraft(richTextState.toMarkdown())) },
                     enabled = richTextState.annotatedString.text.isNotBlank() && !state.isSaving,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Taslak Kaydet")
+                    Text(stringResource(Res.string.action_save_draft))
                 }
             }
 
@@ -138,17 +142,17 @@ fun CreatePostScreen(
             ) {
                 item {
                     IconButton(onClick = { richTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) }) {
-                        Icon(imageVector = Icons.Default.FormatBold, contentDescription = "Kalın")
+                        Icon(imageVector = Icons.Default.FormatBold, contentDescription = stringResource(Res.string.action_bold))
                     }
                 }
                 item {
                     IconButton(onClick = { richTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) }) {
-                        Icon(imageVector = Icons.Default.FormatItalic, contentDescription = "İtalik")
+                        Icon(imageVector = Icons.Default.FormatItalic, contentDescription = stringResource(Res.string.action_italic))
                     }
                 }
                 item {
                     IconButton(onClick = { richTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) }) {
-                        Icon(imageVector = Icons.Default.FormatStrikethrough, contentDescription = "Üstü Çizili")
+                        Icon(imageVector = Icons.Default.FormatStrikethrough, contentDescription = stringResource(Res.string.action_strikethrough))
                     }
                 }
             }
@@ -159,7 +163,7 @@ fun CreatePostScreen(
 
             // Topic Selector (Konu Seçimi)
             Text(
-                text = "Konu Seç",
+                text = stringResource(Res.string.select_topic_label),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -179,7 +183,7 @@ fun CreatePostScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { viewModel.onEvent(CreatePostEvent.OnTopicSelected(topic.id)) },
-                        label = { Text(topic.displayName) },
+                        label = { Text(stringResource(topic.titleRes)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = chipColor.copy(alpha = 0.2f),
                             selectedLabelColor = chipColor
@@ -191,13 +195,13 @@ fun CreatePostScreen(
                     FilterChip(
                         selected = false,
                         onClick = { isTopicsExpanded = true },
-                        label = { Text("+ Daha Fazla") }
+                        label = { Text(stringResource(Res.string.action_show_more)) }
                     )
                 } else if (isTopicsExpanded) {
                     FilterChip(
                         selected = false,
                         onClick = { isTopicsExpanded = false },
-                        label = { Text("- Gizle") }
+                        label = { Text(stringResource(Res.string.action_hide)) }
                     )
                 }
             }
@@ -210,7 +214,7 @@ fun CreatePostScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 8.dp),
-                placeholder = { Text("Ne düşünüyorsun? (Seçip formatlayabilirsin)") }
+                placeholder = { Text(stringResource(Res.string.create_post_placeholder)) }
             )
         }
     }

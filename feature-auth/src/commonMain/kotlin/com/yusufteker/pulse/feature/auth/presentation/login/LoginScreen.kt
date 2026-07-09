@@ -97,7 +97,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = state.identifier,
             onValueChange = { viewModel.onEvent(LoginEvent.IdentifierChanged(it)) },
-            label = { Text("E-posta veya Kullanıcı Adı") },
+            label = { Text(stringResource(Res.string.login_email_or_username)) },
             isError = state.identifierError != null,
             supportingText = state.identifierError?.let { error ->
                 { Text(error.asString()) }

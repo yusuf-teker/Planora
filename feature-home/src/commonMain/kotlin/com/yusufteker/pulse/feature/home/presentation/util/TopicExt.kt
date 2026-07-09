@@ -2,6 +2,9 @@ package com.yusufteker.pulse.feature.home.presentation.util
 
 import androidx.compose.ui.graphics.Color
 import com.yusufteker.pulse.feature.home.domain.model.Topic
+import org.jetbrains.compose.resources.StringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 val Topic.color: Color
     get() = when (this) {
@@ -20,4 +23,23 @@ val Topic.color: Color
         Topic.FOOD -> Color(0xFFFF5722)
         Topic.MUSIC -> Color(0xFF673AB7)
         Topic.GAMING -> Color(0xFF8BC34A)
+    }
+
+val Topic.titleRes: StringResource
+    get() = when (this) {
+        Topic.GENERAL -> Res.string.topic_general
+        Topic.TECHNOLOGY -> Res.string.topic_technology
+        Topic.SOFTWARE -> Res.string.topic_software
+        Topic.DESIGN -> Res.string.topic_design
+        Topic.NEWS -> Res.string.topic_news
+        Topic.SPORTS -> Res.string.topic_sports
+        Topic.ENTERTAINMENT -> Res.string.topic_entertainment
+        Topic.FINANCE -> Res.string.topic_finance
+        Topic.HEALTH -> Res.string.topic_health
+        Topic.ART -> Res.string.topic_art
+        Topic.SCIENCE -> Res.string.topic_science
+        Topic.TRAVEL -> Res.string.topic_travel
+        Topic.FOOD -> Res.string.topic_food
+        Topic.MUSIC -> Res.string.topic_music
+        Topic.GAMING -> Res.string.topic_gaming
     }

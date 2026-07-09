@@ -30,6 +30,9 @@ import kotlinx.datetime.toLocalDateTime
 import com.yusufteker.pulse.feature.home.domain.model.Topic
 import com.yusufteker.pulse.feature.home.presentation.util.color
 import org.koin.compose.viewmodel.koinViewModel
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,10 +52,10 @@ fun PendingPostsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Bekleyen Gönderiler") },
+                title = { Text(stringResource(Res.string.title_pending_posts)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
@@ -64,7 +67,7 @@ fun PendingPostsScreen(
             }
         } else if (state.posts.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Kuyrukta bekleyen gönderiniz yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.empty_pending_posts), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(

@@ -11,6 +11,9 @@ import com.yusufteker.pulse.shared.ai.AiChatContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.getString
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 import com.yusufteker.pulse.core.ai.CloudAiManager
 import com.yusufteker.pulse.shared.ai.AiChatResult
 import com.yusufteker.pulse.shared.getPlatformName
@@ -100,8 +103,8 @@ class AiChatViewModel(
                     result.suggestedTaskRequest?.let {
                         val createResult = planRepository.createTask(it)
                         if (createResult.isSuccess) {
-                            val typeName = result.extractedEntities?.type?.name ?: "Görev"
-                            val title = result.extractedEntities?.title ?: "İşlem"
+                            val typeName = result.extractedEntities?.type?.name ?: getString(Res.string.task_label_simple)
+                            val title = result.extractedEntities?.title ?: getString(Res.string.action_label_simple)
                             val timeInfo = result.extractedEntities?.dateTime?.let { ms ->
                                 val dt = kotlinx.datetime.Instant.fromEpochMilliseconds(ms)
                                     .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
@@ -111,7 +114,7 @@ class AiChatViewModel(
                             } ?: ""
                             
                             val timeText = if (timeInfo.isNotEmpty()) " ($timeInfo)" else ""
-                            val successSuffix = "\n\n✅ $title$timeText başarıyla oluşturuldu."
+                            val successSuffix = getString(Res.string.ai_chat_task_created_success, title, timeText)
                             
                             setState {
                                 copy(
@@ -123,8 +126,8 @@ class AiChatViewModel(
                                 )
                             }
                         } else {
-                            val errorMsg = createResult.exceptionOrNull()?.message ?: "Bilinmeyen hata"
-                            val errorSuffix = "\n\n❌ Oluşturulamadı: $errorMsg"
+                            val errorMsg = createResult.exceptionOrNull()?.message ?: getString(Res.string.error_unknown)
+                            val errorSuffix = getString(Res.string.ai_chat_task_created_failed, errorMsg)
                             setState {
                                 copy(
                                     messages = messages.map {
@@ -140,7 +143,7 @@ class AiChatViewModel(
                 }
             } catch (e: Exception) {
                 val errorMessage = aiLoadingMessage.copy(
-                    text = "Üzgünüm, bir hata oluştu: ${e.message}\n\nLütfen tekrar dener misin?",
+                    text = getString(Res.string.ai_chat_error_occurred, e.message ?: ""),
                     isLoading = false
                 )
                 setState {
