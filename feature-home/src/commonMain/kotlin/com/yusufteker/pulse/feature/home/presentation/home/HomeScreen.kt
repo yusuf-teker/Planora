@@ -117,13 +117,14 @@ fun HomeScreen(
                 CalendarSection(
                     state = state, onEvent = viewModel::onEvent
                 )
+            } else {
+                // Timeline
+                TimelineSection(
+                    state = state, onTaskClick = {
+                        viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
+                    }
+                )
             }
-
-            // Timeline
-            TimelineSection(
-                state = state, onTaskClick = {
-                    viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
-                })
 
         }
     }

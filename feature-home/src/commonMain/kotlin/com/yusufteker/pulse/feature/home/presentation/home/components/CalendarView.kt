@@ -3,8 +3,8 @@ package com.yusufteker.pulse.feature.home.presentation.home.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,27 +35,42 @@ fun CalendarView(
     tasksByDate: Map<LocalDate, List<TaskDto>>,
     selectedDate: LocalDate?,
     visibleMonth: LocalDate?,
+    upcomingTasks: List<TaskDto>,
+    hasLoadedTasks: Boolean,
     onDateSelected: (LocalDate) -> Unit,
     onMonthChanged: (LocalDate) -> Unit,
+    onTaskClick: (TaskDto) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val today = remember { Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date }
-    val initialMonth = visibleMonth ?: LocalDate(today.year, today.monthNumber, 1)
+    val initialMonth = remember { visibleMonth ?: LocalDate(today.year, today.monthNumber, 1) }
     
-    // Pager state for infinite scrolling (virtually)
-    // We'll set a large page count and start in the middle
+    // LazyColumn state for infinite scrolling (virtually)
+    // We'll set a large item count and start in the middle
     val initialPage = 5000
-    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { 10000 })
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialPage)
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(pagerState.currentPage) {
-        val monthOffset = pagerState.currentPage - initialPage
-        val currentMonthDate = getMonthDateWithOffset(initialMonth, monthOffset)
-        onMonthChanged(currentMonthDate)
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collect { index ->
+            val monthOffset = index - initialPage
+            val currentMonthDate = getMonthDateWithOffset(initialMonth, monthOffset)
+            onMonthChanged(currentMonthDate)
+        }
+    }
+
+    LaunchedEffect(selectedDate) {
+        if (selectedDate != null) {
+            val monthOffset = (selectedDate.year - initialMonth.year) * 12 + (selectedDate.monthNumber - initialMonth.monthNumber)
+            val targetPage = initialPage + monthOffset
+            if (listState.firstVisibleItemIndex != targetPage) {
+                listState.animateScrollToItem(targetPage)
+            }
+        }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Header
+        // Header (Optional, if we want to keep the chevron navigation to jump months)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -65,13 +80,13 @@ fun CalendarView(
         ) {
             IconButton(onClick = {
                 coroutineScope.launch {
-                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                    listState.animateScrollToItem(listState.firstVisibleItemIndex - 1)
                 }
             }) {
                 Icon(Icons.Default.ChevronLeft, contentDescription = "Önceki Ay")
             }
             
-            val currentMonthOffset = pagerState.currentPage - initialPage
+            val currentMonthOffset = listState.firstVisibleItemIndex - initialPage
             val displayMonth = getMonthDateWithOffset(initialMonth, currentMonthOffset)
             val monthName = getMonthNameTurkish(displayMonth.monthNumber)
             
@@ -84,7 +99,7 @@ fun CalendarView(
             
             IconButton(onClick = {
                 coroutineScope.launch {
-                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                    listState.animateScrollToItem(listState.firstVisibleItemIndex + 1)
                 }
             }) {
                 Icon(Icons.Default.ChevronRight, contentDescription = "Sonraki Ay")
@@ -105,20 +120,75 @@ fun CalendarView(
             }
         }
 
-        // Calendar Grid Pager
-        HorizontalPager(
-            state = pagerState,
+        // Vertical List of Calendars
+        LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxWidth()
-        ) { page ->
-            val monthOffset = page - initialPage
-            val monthDate = getMonthDateWithOffset(initialMonth, monthOffset)
-            CalendarMonthGrid(
-                monthDate = monthDate,
-                today = today,
-                selectedDate = selectedDate,
-                tasksByDate = tasksByDate,
-                onDateSelected = onDateSelected
-            )
+        ) {
+            items(10000) { page ->
+                val monthOffset = page - initialPage
+                val monthDate = getMonthDateWithOffset(initialMonth, monthOffset)
+                
+                Column {
+                    // Render the Month Name if you want a separator inside the list (optional)
+                    // We already have a sticky header-like row above, but a label inside helps for continuous scrolling
+                    Text(
+                        text = "${getMonthNameTurkish(monthDate.monthNumber)} ${monthDate.year}",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    CalendarMonthGrid(
+                        monthDate = monthDate,
+                        today = today,
+                        selectedDate = selectedDate,
+                        tasksByDate = tasksByDate,
+                        onDateSelected = onDateSelected
+                    )
+
+                    // INLINE TASKS
+                    if (selectedDate != null && selectedDate.monthNumber == monthDate.monthNumber && selectedDate.year == monthDate.year) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        if (hasLoadedTasks && upcomingTasks.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Bugün etkinlik yok.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                upcomingTasks.forEach { task ->
+                                    TimelineTaskCard(
+                                        task = task,
+                                        showDate = false,
+                                        onClick = { onTaskClick(task) }
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                }
+            }
         }
     }
 }

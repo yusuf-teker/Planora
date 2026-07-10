@@ -73,6 +73,9 @@ class CloudAiManager(
         3. Zaman belirtilmemişse intent=CHAT yap, replyText'te ne zaman olduğunu sor.
         4. title: cümleyi kopyalama, max 2-3 kelime özet (örn. "Tenis Dersi").
         5. Tarih/saat "YYYY-MM-DDTHH:mm:ss" formatında, Z harfi OLMADAN, yerel saat olarak dön.
+        6. Hatırlatıcı süreleri istenmişse 'reminders' dizisi içinde dakika cinsinden dön (örn 1 saat için 60, 1 gün için 1440).
+        7. Tekrar eden bir işlemse 'recurrenceRule' içinde RRULE formatında dön (örn: FREQ=DAILY).
+        8. Eğer bir mekan/konum belirtilmişse 'location' alanında dön.
         """.trimIndent()
         }
 
@@ -135,6 +138,13 @@ class CloudAiManager(
                                     })
                                     put("dateTime", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
                                     put("endDateTime", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                    put("recurrenceRule", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                    put("reminders", buildJsonObject {
+                                        put("type", JsonPrimitive("ARRAY"))
+                                        put("items", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
+                                        put("nullable", JsonPrimitive(true))
+                                    })
+                                    put("location", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
                                 })
                                 put("required", JsonArray(listOf(JsonPrimitive("title"), JsonPrimitive("taskType"))))
                             })
@@ -188,14 +198,20 @@ class CloudAiManager(
         }
         val parsed = json.parseToJsonElement(fixedJsonString).jsonObject
 
-        val replyText = parsed["replyText"]?.jsonPrimitive?.content ?: "Anlaşıldı."
-        val entitiesJson = parsed["extractedEntities"]?.jsonObject
+        fun getString(jsonObj: JsonObject?, key: String): String? {
+            val el = jsonObj?.get(key) ?: return null
+            if (el is kotlinx.serialization.json.JsonNull) return null
+            return el.jsonPrimitive.content
+        }
 
-        val title = entitiesJson?.get("title")?.jsonPrimitive?.content ?: originalInput.take(80)
-        val description = entitiesJson?.get("description")?.jsonPrimitive?.content
-        val intentStr = parsed["intent"]?.jsonPrimitive?.content ?: "CHAT"
+        val replyText = getString(parsed, "replyText") ?: "Anlaşıldı."
+        val entitiesJson = parsed["extractedEntities"]?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.jsonObject
 
-        val taskTypeStr = entitiesJson?.get("taskType")?.jsonPrimitive?.content
+        val title = getString(entitiesJson, "title") ?: originalInput.take(80)
+        val description = getString(entitiesJson, "description")
+        val intentStr = getString(parsed, "intent") ?: "CHAT"
+
+        val taskTypeStr = getString(entitiesJson, "taskType")
         val taskType = when (taskTypeStr) {
             "EVENT" -> TaskType.EVENT
             "NOTE" -> TaskType.NOTE
@@ -214,8 +230,8 @@ class CloudAiManager(
 
         val shouldCreate = intent == AiIntent.CREATE_TASK || intent == AiIntent.CREATE_EVENT || intent == AiIntent.CREATE_NOTE
 
-        val dateStr = entitiesJson?.get("dateTime")?.jsonPrimitive?.content
-        val endDateStr = entitiesJson?.get("endDateTime")?.jsonPrimitive?.content
+        val dateStr = getString(entitiesJson, "dateTime")
+        val endDateStr = getString(entitiesJson, "endDateTime")
 
         fun parseDate(str: String?): Long? {
             if (str == null || str == "null" || str.isEmpty()) return null
@@ -238,6 +254,23 @@ class CloudAiManager(
             endDateTimeMs = dateTimeMs + 3600_000L
         }
 
+        val recurrenceRuleStr = getString(entitiesJson, "recurrenceRule")
+        val recurrenceRuleVal = if (recurrenceRuleStr == "null" || recurrenceRuleStr.isNullOrEmpty()) null else recurrenceRuleStr
+
+        val locationStr = getString(entitiesJson, "location")
+        val locationVal = if (locationStr == "null" || locationStr.isNullOrEmpty()) null else locationStr
+
+        val remindersElement = entitiesJson?.get("reminders")
+        val remindersArray = if (remindersElement is JsonArray) remindersElement else null
+        val parsedReminders = remindersArray?.mapNotNull { 
+            if (it is JsonPrimitive && it !is kotlinx.serialization.json.JsonNull) it.content.toIntOrNull() else null 
+        }
+        val finalReminders = if (!parsedReminders.isNullOrEmpty()) {
+            parsedReminders
+        } else {
+            listOf(60, 1440)
+        }
+
         val entities = ExtractedEntities(
             title = title,
             description = if (description == "null") null else description,
@@ -245,10 +278,10 @@ class CloudAiManager(
             dateTime = dateTimeMs,
             endDateTime = endDateTimeMs,
             isAllDay = false,
-            location = null,
+            location = locationVal,
             participants = emptyList(),
             priority = TaskPriority.MEDIUM,
-            recurrenceRule = null,
+            recurrenceRule = recurrenceRuleVal,
             tags = emptyList(),
             estimatedMinutes = null,
             confidence = 1.0f
@@ -264,15 +297,19 @@ class CloudAiManager(
                 type = taskType,
                 status = com.yusufteker.pulse.shared.api.TaskStatus.PENDING,
                 visibility = com.yusufteker.pulse.shared.api.TaskVisibility.PRIVATE,
-                isRecurring = false,
-                recurrenceRule = null,
+                isRecurring = recurrenceRuleVal != null,
+                recurrenceRule = recurrenceRuleVal,
                 isFlexible = entities.dateTime == null,
                 isOptional = true,
                 isPostponable = true,
                 isAllDay = false,
                 aiMetadata = null,
-                reminders = emptyList(),
-                specificDetails = null,
+                reminders = finalReminders,
+                specificDetails = when (taskType) {
+                    TaskType.EVENT -> com.yusufteker.pulse.shared.api.ItemDetails.Event(location = entities.location)
+                    TaskType.TASK -> com.yusufteker.pulse.shared.api.ItemDetails.Task(deadline = entities.dateTime)
+                    TaskType.NOTE -> com.yusufteker.pulse.shared.api.ItemDetails.Note()
+                },
                 participants = emptyMap(),
                 color = when (taskType) {
                     TaskType.TASK -> "#4CAF50"

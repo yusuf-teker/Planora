@@ -27,6 +27,8 @@ data class EventDetailState(
     val isRecurring: Boolean = false,
     val recurrenceRule: RecurrenceRule? = null,
     
+    val reminders: List<Int> = emptyList(),
+    
     val isLoading: Boolean = false,
     val error: String? = null,
     
@@ -34,6 +36,7 @@ data class EventDetailState(
     val isStartPickerOpen: Boolean = false,
     val isEndPickerOpen: Boolean = false,
     val isRepeatPickerOpen: Boolean = false,
+    val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
     val roomMembers: List<com.yusufteker.pulse.shared.api.UserProfileResponse> = emptyList()
 )

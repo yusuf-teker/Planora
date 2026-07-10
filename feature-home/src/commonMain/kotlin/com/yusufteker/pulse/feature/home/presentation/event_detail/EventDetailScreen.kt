@@ -23,6 +23,7 @@ import com.yusufteker.pulse.feature.home.presentation.components.DateTimePickerS
 import com.yusufteker.pulse.feature.home.presentation.components.FormRow
 import com.yusufteker.pulse.feature.home.presentation.components.FormSection
 import com.yusufteker.pulse.feature.home.presentation.components.RepeatPickerSheet
+import com.yusufteker.pulse.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.pulse.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
@@ -44,6 +45,7 @@ fun EventDetailScreen(
     val startDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val endDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val reminderSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val participantSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
@@ -188,6 +190,14 @@ fun EventDetailScreen(
                         value = repeatText,
                         onClick = { viewModel.onEvent(EventDetailEvent.OnRepeatPickerVisibilityChanged(true)) }
                     )
+                    
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+
+                    FormRow(
+                        label = stringResource(Res.string.reminders_label),
+                        value = if (state.reminders.isNotEmpty()) stringResource(Res.string.reminders_selected_count_pattern, state.reminders.size.toString()) else stringResource(Res.string.repeat_none),
+                        onClick = { viewModel.onEvent(EventDetailEvent.OnReminderPickerVisibilityChanged(true)) }
+                    )
                 }
 
                 // Context specific: Plan Room Participants
@@ -237,6 +247,15 @@ fun EventDetailScreen(
             onRuleSelected = { rule -> 
                 viewModel.onEvent(EventDetailEvent.OnRecurrenceRuleChanged(rule))
             }
+        )
+    }
+
+    if (state.isReminderPickerVisible) {
+        ReminderPickerSheet(
+            selectedReminders = state.reminders,
+            sheetState = reminderSheetState,
+            onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnReminderPickerVisibilityChanged(false)) },
+            onReminderToggled = { min -> viewModel.onEvent(EventDetailEvent.OnReminderToggled(min)) }
         )
     }
 

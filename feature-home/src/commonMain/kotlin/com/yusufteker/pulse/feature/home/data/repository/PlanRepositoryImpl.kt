@@ -124,8 +124,11 @@ class PlanRepositoryImpl(
 
     override suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit> {
         return try {
+            val existingTask = database.pulsyDatabaseQueries.getTaskById(taskId).executeAsOneOrNull()
+            val creatorId = existingTask?.creatorId ?: 0L
+
             database.pulsyDatabaseQueries.transaction {
-                database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, 0L, request, isSynced = 0L)
+                database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, creatorId, request, isSynced = 0L)
                 
                 // Odaları güncelle: Önce eskileri sil, sonra yenileri ekle
                 database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(taskId)
@@ -141,7 +144,7 @@ class PlanRepositoryImpl(
                     database.pulsyDatabaseQueries.transaction {
                         // isSynced = 1 yapmak için bir query eklemek gerek,
                         // Şimdilik yeniden insertTask yapıyoruz.
-                        database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, 0L, request, isSynced = 1L)
+                        database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, creatorId, request, isSynced = 1L)
                     }
                 } catch (e: Exception) {
                     println("Task update sync failed: ${e.message}")

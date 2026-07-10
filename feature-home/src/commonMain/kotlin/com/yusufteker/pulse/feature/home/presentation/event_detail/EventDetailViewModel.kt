@@ -71,6 +71,18 @@ class EventDetailViewModel(
                 }
             }
             
+            is EventDetailEvent.OnReminderPickerVisibilityChanged -> _state.update { it.copy(isReminderPickerVisible = event.isVisible) }
+            is EventDetailEvent.OnReminderToggled -> {
+                _state.update {
+                    val newReminders = if (it.reminders.contains(event.minutes)) {
+                        it.reminders - event.minutes
+                    } else {
+                        it.reminders + event.minutes
+                    }
+                    it.copy(reminders = newReminders)
+                }
+            }
+            
             is EventDetailEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
             is EventDetailEvent.OnParticipantToggled -> _state.update {
                 val currentMap = it.participants.toMutableMap()
@@ -155,6 +167,7 @@ class EventDetailViewModel(
                             isRecurring = task.isRecurring,
                             participants = task.participants,
                             recurrenceRule = ruleObj,
+                            reminders = task.reminders,
                             isLoading = false
                         ) 
                     }
@@ -192,13 +205,18 @@ class EventDetailViewModel(
                 isOptional = false,
                 isPostponable = false,
                 isAllDay = false,
-                reminders = emptyList(),
+                reminders = currentState.reminders,
                 specificDetails = ItemDetails.Event(location = currentState.location.ifBlank { null }, meetingUrl = null),
                 tags = emptyList(),
                 color = null
             )
 
-            planRepository.createTask(request)
+            if (currentState.id != null) {
+                planRepository.updateTask(currentState.id, request)
+            } else {
+                planRepository.createTask(request)
+            }
+            
             _state.update { it.copy(isLoading = false) }
             setEffect(EventDetailEffect.NavigateBack)
         }

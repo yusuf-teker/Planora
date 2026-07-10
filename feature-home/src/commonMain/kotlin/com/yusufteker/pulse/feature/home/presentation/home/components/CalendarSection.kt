@@ -79,54 +79,16 @@ fun CalendarSection(
         tasksByDate = tasksByDate,
         selectedDate = state.selectedCalendarDate,
         visibleMonth = state.visibleCalendarMonth,
+        upcomingTasks = state.upcomingTasks,
+        hasLoadedTasks = state.hasLoadedTasks,
         onDateSelected = {
             onEvent(HomeEvent.CalendarDateSelected(it))
         },
         onMonthChanged = {
             onEvent(HomeEvent.CalendarMonthChanged(it))
+        },
+        onTaskClick = { task ->
+            onEvent(HomeEvent.TimelineItemClicked(task))
         }
     )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    when {
-        !state.hasLoadedTasks && state.upcomingTasks.isEmpty() -> {
-            // Still loading first data, show nothing
-        }
-        state.selectedCalendarDate != null &&
-                state.upcomingTasks.isEmpty() -> {
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-
-                Text(
-                    text = "Bugün etkinlik yok.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        state.selectedCalendarDate == null &&
-                state.upcomingTasks.isEmpty() -> {
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-
-                Text(
-                    text = "Bu ay etkinlik yok.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
 }

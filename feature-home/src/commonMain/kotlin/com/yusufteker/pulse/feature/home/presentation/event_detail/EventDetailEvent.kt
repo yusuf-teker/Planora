@@ -23,6 +23,9 @@ sealed interface EventDetailEvent {
     data class OnRecurrenceRuleChanged(val rule: RecurrenceRule?) : EventDetailEvent
     data class OnRepeatPickerVisibilityChanged(val isVisible: Boolean) : EventDetailEvent
     
+    data class OnReminderPickerVisibilityChanged(val isVisible: Boolean) : EventDetailEvent
+    data class OnReminderToggled(val minutes: Int) : EventDetailEvent
+    
     object OnSaveClick : EventDetailEvent
     object OnDeleteClick : EventDetailEvent
     object OnBackClick : EventDetailEvent
