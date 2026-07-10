@@ -156,15 +156,36 @@ fun UserListItem(
             }
         }
         
+        val isPending = user.followRequestStatus == "PENDING"
+        val isFollowing = user.isFollowedByMe
+
+        val buttonText = when {
+            isFollowing -> stringResource(Res.string.action_following)
+            isPending -> stringResource(Res.string.action_requested)
+            else -> stringResource(Res.string.action_follow)
+        }
+
+        val containerColor = if (isFollowing || isPending) {
+            MaterialTheme.colorScheme.surfaceVariant
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
+
+        val contentColor = if (isFollowing || isPending) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.onPrimary
+        }
+
         Button(
             onClick = onFollowClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (user.isFollowedByMe) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
-                contentColor = if (user.isFollowedByMe) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                containerColor = containerColor,
+                contentColor = contentColor
             ),
             shape = CircleShape
         ) {
-            Text(if (user.isFollowedByMe) stringResource(Res.string.action_following) else stringResource(Res.string.action_follow))
+            Text(buttonText)
         }
     }
 }

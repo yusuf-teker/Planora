@@ -39,4 +39,24 @@ class ProfileRepositoryImpl(
     override suspend fun getFollowingUsers(): Result<List<com.yusufteker.pulse.shared.api.UserProfileResponse>> {
         return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).getFollowingUsers()
     }
+
+    override suspend fun getFollowers(): Result<List<com.yusufteker.pulse.shared.api.UserProfileResponse>> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).getFollowers()
+    }
+
+    override suspend fun getFollowRequests(): Result<List<com.yusufteker.pulse.shared.api.FollowRequestResponse>> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).getFollowRequests()
+    }
+
+    override suspend fun acceptFollowRequest(requestId: Int): Result<Unit> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).acceptFollowRequest(requestId)
+    }
+
+    override suspend fun rejectFollowRequest(requestId: Int): Result<Unit> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).rejectFollowRequest(requestId)
+    }
+
+    override suspend fun removeFollower(userId: Int): Result<Unit> {
+        return com.yusufteker.pulse.feature.home.data.api.ProfileApi(httpClient).removeFollower(userId)
+    }
 }

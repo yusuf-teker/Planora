@@ -57,12 +57,21 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                     val host = request.url.host
                     val path = request.url.encodedPath
 
-                    // Eğer istek Google API'ye veya auth endpoint'lerine gidiyorsa Auth eklentisini çalıştırma
+                    // Eğer istek Google API'ye veya auth endpoint'lerine gidiyorsa token gönderme
                     val isGoogleApi = host.contains("googleapis.com") || host.contains("generativelanguage")
                     val isAuthPath = path.contains("auth/login") || path.contains("auth/register")
 
-                    isGoogleApi || isAuthPath
+                    // true = token'ı proaktif olarak gönder (401 beklemeden).
+                    // Auth ve Google API istekleri hariç tüm isteklere token ekle.
+                    !isGoogleApi && !isAuthPath
                 }
+
+                loadTokens {
+                    val accessToken = sessionPreferences.getAccessToken() ?: return@loadTokens null
+                    val refreshToken = sessionPreferences.getRefreshToken() ?: return@loadTokens null
+                    BearerTokens(accessToken, refreshToken)
+                }
+
                 // Gelen istek 401 Unauthorized dönerse (örneğin Access Token'ın süresi 15 dk dolduğunda),
                 // bu blok tetiklenir ve yeni token alır.
                 refreshTokens {

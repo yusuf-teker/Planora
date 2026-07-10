@@ -26,6 +26,7 @@ import com.yusufteker.pulse.feature.home.data.api.PlanApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.data.repository.PlanRepositoryImpl
 import com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailViewModel
+import com.yusufteker.pulse.feature.home.presentation.follow_list.FollowListViewModel
 import com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorViewModel
 import com.yusufteker.pulse.feature.home.presentation.plan_rooms.PlanRoomsViewModel
 
@@ -65,6 +66,7 @@ val homeModule = module {
     factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)
+    viewModelOf(::FollowListViewModel)
     viewModelOf(::PlanRoomsViewModel)
     viewModelOf(::PlanRoomDetailViewModel)
     viewModelOf(::NotesViewModel)

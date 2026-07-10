@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -42,7 +43,8 @@ fun PulseBottomBar(
     currentDestination: Screen.MainDestination?,
     isDark: Boolean,
     onNavigate: (Screen.MainDestination) -> Unit,
-    onAiButtonClick: () -> Unit
+    onAiButtonClick: () -> Unit,
+    pendingRequestsCount: Int = 0
 ) {
     val surfaceColor = if (isDark) Color.Black else MaterialTheme.colorScheme.surface
     // Temanın ana rengini alarak Pulse efektine uyguluyoruz
@@ -124,7 +126,8 @@ fun PulseBottomBar(
                         unselectedIcon = Icons.Outlined.Person,
                         isSelected = currentDestination is Screen.MainDestination.Profile || currentDestination is Screen.MainDestination.Settings,
                         onClick = { onNavigate(Screen.MainDestination.Profile) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        badgeCount = pendingRequestsCount
                     )
                 }
             }
@@ -165,7 +168,8 @@ private fun PulseBottomNavItem(
     unselectedIcon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    badgeCount: Int = 0
 ) {
     val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -183,11 +187,22 @@ private fun PulseBottomNavItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = if (isSelected) selectedIcon else unselectedIcon,
-                contentDescription = label,
-                tint = contentColor
-            )
+            Box {
+                Icon(
+                    imageVector = if (isSelected) selectedIcon else unselectedIcon,
+                    contentDescription = label,
+                    tint = contentColor
+                )
+                if (badgeCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.error)
+                            .align(Alignment.TopEnd)
+                    )
+                }
+            }
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,

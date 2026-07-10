@@ -102,7 +102,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues).padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.Start,
         ) {
 
             // Header (Pulsy Top Bar)

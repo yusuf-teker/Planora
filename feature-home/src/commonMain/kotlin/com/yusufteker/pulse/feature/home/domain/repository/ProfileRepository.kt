@@ -18,4 +18,14 @@ interface ProfileRepository {
     suspend fun searchUsers(query: String): Result<List<UserProfileResponse>>
     
     suspend fun getFollowingUsers(): Result<List<UserProfileResponse>>
+    
+    suspend fun getFollowers(): Result<List<UserProfileResponse>>
+    
+    suspend fun getFollowRequests(): Result<List<com.yusufteker.pulse.shared.api.FollowRequestResponse>>
+    
+    suspend fun acceptFollowRequest(requestId: Int): Result<Unit>
+    
+    suspend fun rejectFollowRequest(requestId: Int): Result<Unit>
+    
+    suspend fun removeFollower(userId: Int): Result<Unit>
 }

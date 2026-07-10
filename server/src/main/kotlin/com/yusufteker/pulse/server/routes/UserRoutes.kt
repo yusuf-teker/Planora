@@ -61,6 +61,11 @@ fun Route.userRoutes() {
                         val followingCount = FollowerEntity.find { FollowersTable.followerId eq user.id.value }.count().toInt()
                         val postsCount = com.yusufteker.pulse.server.database.tables.PostEntity.find { com.yusufteker.pulse.server.database.tables.PostsTable.authorId eq user.id.value }.count().toInt()
                         
+                        val followRequest = com.yusufteker.pulse.server.database.tables.FollowRequestEntity.find {
+                            (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.requesterId eq currentUserId) and
+                            (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq user.id.value)
+                        }.firstOrNull()
+
                         UserProfileResponse(
                             id = user.id.value,
                             name = user.name,
@@ -70,6 +75,7 @@ fun Route.userRoutes() {
                             followingCount = followingCount,
                             postsCount = postsCount,
                             isFollowedByMe = followedUserIds.contains(user.id.value),
+                            followRequestStatus = followRequest?.status,
                             username = user.username
                         )
                     }
@@ -104,6 +110,11 @@ fun Route.userRoutes() {
                         (FollowersTable.followerId eq currentUserId) and (FollowersTable.followedId eq targetUserId) 
                     }.count() > 0
 
+                    val followRequest = com.yusufteker.pulse.server.database.tables.FollowRequestEntity.find {
+                        (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.requesterId eq currentUserId) and
+                        (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq targetUserId)
+                    }.firstOrNull()
+
                     UserProfileResponse(
                         id = user.id.value,
                         name = user.name,
@@ -113,6 +124,7 @@ fun Route.userRoutes() {
                         followingCount = followingCount,
                         postsCount = postsCount,
                         isFollowedByMe = isFollowedByMe,
+                        followRequestStatus = followRequest?.status,
                         username = user.username
                     )
                 }
@@ -146,21 +158,167 @@ fun Route.userRoutes() {
                         return@dbQuery
                     }
 
+                    // Check if already following
                     val existingFollow = FollowerEntity.find { 
                         (FollowersTable.followerId eq currentUserId) and (FollowersTable.followedId eq targetUserId) 
                     }.firstOrNull()
 
                     if (existingFollow != null) {
                         existingFollow.delete() // Unfollow
+                        
+                        // İleride tekrar istek atabilmesi için varsa eski isteği de temizle
+                        val existingRequest = com.yusufteker.pulse.server.database.tables.FollowRequestEntity.find {
+                            (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.requesterId eq currentUserId) and
+                            (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq targetUserId)
+                        }.firstOrNull()
+                        existingRequest?.delete()
+                        
+                        return@dbQuery
+                    }
+
+                    // Check if a request already exists (regardless of status, just in case old ACCEPTED ones exist)
+                    val existingRequest = com.yusufteker.pulse.server.database.tables.FollowRequestEntity.find {
+                        (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.requesterId eq currentUserId) and
+                        (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq targetUserId)
+                    }.firstOrNull()
+
+                    if (existingRequest != null) {
+                        existingRequest.delete() // Cancel request (or clear old stuck request)
                     } else {
-                        FollowerEntity.new {
-                            follower = currentUser
-                            followed = targetUser
+                        com.yusufteker.pulse.server.database.tables.FollowRequestEntity.new {
+                            requester = currentUser
+                            target = targetUser
+                            status = "PENDING"
                             createdAt = Instant.now()
-                        } // Follow
+                        } // Send request
+                        
+                        // Send push notification to target user
+                        com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                            userId = targetUserId,
+                            title = "Yeni Takip İsteği",
+                            body = "@${currentUser.username} seni takip etmek istiyor.",
+                            data = mapOf("type" to "follow_request")
+                        )
                     }
                 }
 
+                call.respond(HttpStatusCode.OK)
+            }
+
+            post("/{userId}/remove-follower") {
+                val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                val followerId = call.parameters["userId"]?.toIntOrNull()
+
+                if (currentUserId == null || followerId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid user ID")
+                    return@post
+                }
+
+                dbQuery {
+                    val existingFollow = FollowerEntity.find { 
+                        (FollowersTable.followerId eq followerId) and (FollowersTable.followedId eq currentUserId) 
+                    }.firstOrNull()
+                    existingFollow?.delete()
+                }
+                call.respond(HttpStatusCode.OK)
+            }
+
+            get("/followers") {
+                val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                if (currentUserId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@get
+                }
+
+                val followers = dbQuery {
+                    FollowerEntity.find { FollowersTable.followedId eq currentUserId }
+                        .map {
+                            val user = it.follower
+                            val followersCount = FollowerEntity.find { FollowersTable.followedId eq user.id.value }.count().toInt()
+                            val followingCount = FollowerEntity.find { FollowersTable.followerId eq user.id.value }.count().toInt()
+                            val postsCount = com.yusufteker.pulse.server.database.tables.PostEntity.find { com.yusufteker.pulse.server.database.tables.PostsTable.authorId eq user.id.value }.count().toInt()
+                            val isFollowedByMe = FollowerEntity.find {
+                                (FollowersTable.followerId eq currentUserId) and (FollowersTable.followedId eq user.id.value)
+                            }.count() > 0
+
+                            UserProfileResponse(
+                                id = user.id.value,
+                                name = user.name,
+                                username = user.username,
+                                email = user.email,
+                                followersCount = followersCount,
+                                followingCount = followingCount,
+                                isFollowedByMe = isFollowedByMe,
+                                avatarId = user.avatarId,
+                                postsCount = postsCount
+                            )
+                        }
+                }
+                call.respond(HttpStatusCode.OK, followers)
+            }
+
+            get("/follow-requests") {
+                val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                if (currentUserId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@get
+                }
+
+                val requests = dbQuery {
+                    com.yusufteker.pulse.server.database.tables.FollowRequestEntity.find {
+                        (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq currentUserId) and
+                        (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.status eq "PENDING")
+                    }.map {
+                        val requester = it.requester
+                        com.yusufteker.pulse.shared.api.FollowRequestResponse(
+                            id = it.id.value,
+                            requesterId = requester.id.value,
+                            requesterName = requester.name,
+                            requesterUsername = requester.username,
+                            requesterAvatarId = requester.avatarId,
+                            status = it.status
+                        )
+                    }
+                }
+                call.respond(HttpStatusCode.OK, requests)
+            }
+
+            post("/follow-requests/{requestId}/accept") {
+                val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                val requestId = call.parameters["requestId"]?.toIntOrNull()
+                if (currentUserId == null || requestId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid Request ID")
+                    return@post
+                }
+
+                dbQuery {
+                    val request = com.yusufteker.pulse.server.database.tables.FollowRequestEntity.findById(requestId)
+                    if (request != null && request.target.id.value == currentUserId && request.status == "PENDING") {
+                        FollowerEntity.new {
+                            follower = request.requester
+                            followed = request.target
+                            createdAt = Instant.now()
+                        }
+                        request.delete() // Accept the request by creating follower and deleting request
+                    }
+                }
+                call.respond(HttpStatusCode.OK)
+            }
+
+            post("/follow-requests/{requestId}/reject") {
+                val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                val requestId = call.parameters["requestId"]?.toIntOrNull()
+                if (currentUserId == null || requestId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid Request ID")
+                    return@post
+                }
+
+                dbQuery {
+                    val request = com.yusufteker.pulse.server.database.tables.FollowRequestEntity.findById(requestId)
+                    if (request != null && request.target.id.value == currentUserId) {
+                        request.delete() // Just delete it if rejected
+                    }
+                }
                 call.respond(HttpStatusCode.OK)
             }
 

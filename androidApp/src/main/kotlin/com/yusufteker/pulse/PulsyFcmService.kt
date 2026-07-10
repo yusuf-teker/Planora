@@ -66,6 +66,16 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
 
         when (type) {
             "sync_tasks" -> handleSyncTasksTrigger()
+            "follow_request" -> {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        sessionPreferences.incrementPendingFollowRequestsCount()
+                    } catch (e: Exception) {
+                        Napier.e("Failed to increment follow requests count", e, tag = "PulsyFcmService")
+                    }
+                }
+                handleGeneralNotification(message)
+            }
             else -> handleGeneralNotification(message)
         }
     }

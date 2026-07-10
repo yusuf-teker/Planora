@@ -67,7 +67,21 @@ data class UserProfileResponse(
     val followersCount: Int = 0,
     val followingCount: Int = 0,
     val postsCount: Int = 0,
-    val isFollowedByMe: Boolean = false
+    val isFollowedByMe: Boolean = false,
+    val followRequestStatus: String? = null
+)
+
+/**
+ * The response sent back from the server when requesting a list of follow requests.
+ */
+@Serializable
+data class FollowRequestResponse(
+    val id: Int,
+    val requesterId: Int,
+    val requesterName: String,
+    val requesterUsername: String,
+    val requesterAvatarId: String,
+    val status: String
 )
 
 /**

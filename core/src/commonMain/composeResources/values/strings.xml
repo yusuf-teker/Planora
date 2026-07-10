@@ -288,9 +288,23 @@
     <string name="month_nov">November</string>
     <string name="month_dec">December</string>
     <string name="action_more_options">More options</string>
+
+    <!-- Follow System -->
+    <string name="action_requested">Requested</string>
+    <string name="action_remove_follower">Remove</string>
+    <string name="tab_followers">Followers</string>
+    <string name="tab_following">Following</string>
+    <string name="tab_requests">Requests</string>
+    <string name="title_follow_list">Follow List</string>
+    <string name="empty_followers">No followers yet.</string>
+    <string name="empty_following">Not following anyone yet.</string>
+    <string name="empty_requests">No pending requests.</string>
+    <string name="follow_request_sent">Follow request sent!</string>
+    <string name="follow_request_accepted">Follow request accepted!</string>
+    <string name="follow_request_rejected">Follow request rejected.</string>
+    <string name="action_cancel_request">Cancel Request</string>
     <string name="today">Today</string>
     <string name="tomorrow">Today</string>
     <string name="chat_with_ai">Say something to the AI!</string>
-
-
+    <string name="no_tasks">No tasks for today.</string>
 </resources>

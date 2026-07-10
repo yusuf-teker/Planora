@@ -14,8 +14,8 @@ object TokenService {
     private val secret = AppConfig.jwtSecret
     private val issuer = AppConfig.jwtIssuer
     
-    // Access token valid for 15 minutes
-    private const val ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 15
+    // Access token valid for 2 hours
+    private const val ACCESS_TOKEN_EXPIRATION = 1000L * 60 * 60 * 2
     // Refresh token valid for 30 days
     const val REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 30
 

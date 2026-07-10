@@ -59,22 +59,48 @@ class SearchUsersViewModel(
         if (userIndex == -1) return
 
         val user = currentResults[userIndex]
-        val wasFollowed = user.isFollowedByMe
+        val isFollowing = user.isFollowedByMe
+        val requestStatus = user.followRequestStatus
+        val currentFollowers = user.followersCount
+
+        val newIsFollowed: Boolean
+        val newRequestStatus: String?
+        val newFollowersCount: Int
+        val followingDelta: Int
+
+        if (isFollowing) {
+            newIsFollowed = false
+            newRequestStatus = null
+            newFollowersCount = currentFollowers - 1
+            followingDelta = -1
+        } else if (requestStatus == "PENDING") {
+            newIsFollowed = false
+            newRequestStatus = null
+            newFollowersCount = currentFollowers
+            followingDelta = 0
+        } else {
+            newIsFollowed = false
+            newRequestStatus = "PENDING"
+            newFollowersCount = currentFollowers
+            followingDelta = 0
+        }
 
         // Optimistic UI update
         val updatedUsers = currentResults.toMutableList()
         updatedUsers[userIndex] = user.copy(
-            isFollowedByMe = !wasFollowed,
-            followersCount = if (wasFollowed) user.followersCount - 1 else user.followersCount + 1
+            isFollowedByMe = newIsFollowed,
+            followRequestStatus = newRequestStatus,
+            followersCount = newFollowersCount
         )
         setState { copy(results = updatedUsers) }
 
         launch {
-            // Optimistic global update
-            sessionPreferences.updateFollowCounts(
-                followersDelta = 0,
-                followingDelta = if (wasFollowed) -1 else 1
-            )
+            if (followingDelta != 0) {
+                sessionPreferences.updateFollowCounts(
+                    followersDelta = 0,
+                    followingDelta = followingDelta
+                )
+            }
             
             val result = profileRepository.toggleFollow(userId)
             result.onFailure {
@@ -82,15 +108,16 @@ class SearchUsersViewModel(
                 val revertedUsers = state.value.results.toMutableList()
                 val idx = revertedUsers.indexOfFirst { it.id == userId }
                 if (idx != -1) {
-                    revertedUsers[idx] = user // original state
+                    revertedUsers[idx] = user
                     setState { copy(results = revertedUsers) }
                 }
                 
-                // Revert globally
-                sessionPreferences.updateFollowCounts(
-                    followersDelta = 0,
-                    followingDelta = if (wasFollowed) 1 else -1
-                )
+                if (followingDelta != 0) {
+                    sessionPreferences.updateFollowCounts(
+                        followersDelta = 0,
+                        followingDelta = -followingDelta
+                    )
+                }
             }
         }
     }

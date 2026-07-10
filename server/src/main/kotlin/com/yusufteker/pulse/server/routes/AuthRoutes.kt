@@ -62,7 +62,7 @@ fun Route.authRoutes() {
             }
 
             // Kayıt olan kullanıcı için hemen yetkilendirme (Access) ve yenileme (Refresh) token'ları üretiyoruz.
-            // accessToken -> userId, email,expirationDate,  hashli secret içerir. 15 dk geçerlidir.
+            // accessToken -> userId, email,expirationDate,  hashli secret içerir. 2 saat geçerlidir.
             val accessToken = TokenService.generateAccessToken(newUser.id.value, newUser.email)
             val refreshToken = TokenService.generateRefreshToken()
 
@@ -114,7 +114,7 @@ fun Route.authRoutes() {
         }
 
         // --- 3. REFRESH TOKEN ENDPOINT ---
-        // Uygulamadaki Access Token (15 dk) süresi dolduğunda, uygulama otomatik olarak (Ktor Auth Plugin ile) bu endpoint'e gelir.
+        // Uygulamadaki Access Token (2 saat) süresi dolduğunda, uygulama otomatik olarak (Ktor Auth Plugin ile) bu endpoint'e gelir.
         post("/refresh") {
             val request = call.receive<RefreshTokenRequest>()
 
@@ -134,23 +134,17 @@ fun Route.authRoutes() {
             val user = dbQuery { refreshTokenEntity.user }
 
             // Eski token geçerli olduğu için kullanıcıya yeni tokenlar veriyoruz.
+            // Eski token geçerli olduğu için kullanıcıya yeni tokenlar veriyoruz.
             val newAccessToken = TokenService.generateAccessToken(user.id.value, user.email)
-            val newRefreshToken = TokenService.generateRefreshToken()
-
+            
             dbQuery {
-                // Güvenlik (Token Rotation): Eski yenileme token'ını siliyoruz ki bir daha kullanılmasın.
-                refreshTokenEntity.delete()
-                
-                RefreshTokenEntity.new {
-                    this.user = user
-                    token = newRefreshToken
-                    expiresAt = Instant.now().plusMillis(TokenService.REFRESH_TOKEN_EXPIRATION)
-                    createdAt = Instant.now()
-                }
+                // Refresh Token'ın süresini uzatıyoruz, ancak token'ı değiştirmiyoruz (Token Rotation kapatıldı).
+                // Bu sayede eşzamanlı atılan isteklerde (Concurrency) refresh token'ın silinmesi kaynaklı 401 hataları önlenir.
+                refreshTokenEntity.expiresAt = Instant.now().plusMillis(TokenService.REFRESH_TOKEN_EXPIRATION)
             }
 
             // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, newRefreshToken, user.id.value, user.name, user.avatarId))
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.avatarId))
         }
 
         // --- 4. PROTECTED ENDPOINT (Sadece giriş yapmış kullanıcılar girebilir) ---

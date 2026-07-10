@@ -287,6 +287,22 @@
     <string name="month_nov">Kasım</string>
     <string name="month_dec">Aralık</string>
     <string name="action_more_options">Daha fazla seçenek</string>
+
+    <!-- Follow System -->
+    <string name="action_requested">İstek Gönderildi</string>
+    <string name="action_remove_follower">Çıkar</string>
+    <string name="tab_followers">Takipçiler</string>
+    <string name="tab_following">Takip Edilenler</string>
+    <string name="tab_requests">İstekler</string>
+    <string name="title_follow_list">Takip Listesi</string>
+    <string name="empty_followers">Henüz takipçiniz yok.</string>
+    <string name="empty_following">Henüz kimseyi takip etmiyorsunuz.</string>
+    <string name="empty_requests">Bekleyen takip isteğiniz yok.</string>
+    <string name="follow_request_sent">Takip isteği gönderildi!</string>
+    <string name="follow_request_accepted">Takip isteği kabul edildi!</string>
+    <string name="follow_request_rejected">Takip isteği reddedildi.</string>
+    <string name="action_cancel_request">İsteği İptal Et</string>
+
     <string name="today">Bugün</string>
     <string name="tomorrow">Yarın</string>
     <string name="no_tasks">Henüz görevin yok</string>

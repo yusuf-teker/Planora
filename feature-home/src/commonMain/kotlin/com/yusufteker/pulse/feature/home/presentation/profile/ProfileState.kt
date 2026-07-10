@@ -14,5 +14,8 @@ data class ProfileState(
     val postsCount: Int = 0,
     val isFollowedByMe: Boolean = false,
     val isMyProfile: Boolean = true,
-    val profileId: Int? = null
+    val profileId: Int? = null,
+    val followRequestStatus: String? = null,
+    val pendingRequests: List<com.yusufteker.pulse.shared.api.FollowRequestResponse> = emptyList(),
+    val isLoadingRequests: Boolean = false
 ) : UiState

@@ -59,6 +59,12 @@ sealed interface Screen {
     data object SearchUsers : Screen
     
     /**
+     * Takipçi/Takip edilen/İstekler listesi ekranı.
+     */
+    @Serializable
+    data class FollowList(val initialTab: Int = 0) : Screen
+    
+    /**
      * Plan Odası Detay ekranı.
      */
     @Serializable

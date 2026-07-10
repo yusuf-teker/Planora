@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
@@ -78,7 +79,7 @@ fun TimelineSection(
             icon = Icons.Default.CalendarToday,
             title = stringResource(Res.string.no_tasks),
             description = stringResource(Res.string.chat_with_ai),
-            modifier = modifier.fillMaxWidth()
+            modifier = modifier.fillMaxSize()
 
         )
 

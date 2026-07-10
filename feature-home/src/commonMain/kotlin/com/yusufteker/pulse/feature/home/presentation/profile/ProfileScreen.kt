@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,10 +47,13 @@ import kotlin.collections.getOrNull
 import com.yusufteker.pulse.core.ui.components.AvatarImage
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 /**
  * Profile screen composable.
@@ -65,6 +72,7 @@ fun ProfileScreen(
         when (effect) {
             is ProfileEffect.NavigateBack -> mainNavigator.pop()
             is ProfileEffect.NavigateToLogin -> rootNavigator.setRoot(Screen.Login)
+            is ProfileEffect.NavigateToFollowList -> rootNavigator.navigate(Screen.FollowList(effect.tab))
         }
     }
 
@@ -79,17 +87,6 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        topBar = {
-            if (!state.isEditing && state.isMyProfile) {
-                TopAppBar(
-                    title = {},
-                    actions = {},
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
-            }
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
@@ -172,98 +169,233 @@ fun ProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(horizontal = 0.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Top
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AvatarImage(
-                            avatarId = currentAvatarId,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Text(
-                        text = state.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
-                    if (state.username.isNotBlank()) {
-                        Text(
-                            text = "@${state.username}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
                     if (state.isLoggedIn) {
-                        // Stats Row
-                        androidx.compose.foundation.layout.Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        // Main Profile Card
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .padding(20.dp)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = state.postsCount.toString(), style = MaterialTheme.typography.titleLarge)
-                                Text(text = stringResource(Res.string.profile_posts_label), style = MaterialTheme.typography.bodyMedium)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Centered Avatar with gradient ring border
+                                Box(
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(CircleShape)
+                                        .border(
+                                            width = 3.dp,
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.tertiary,
+                                                    MaterialTheme.colorScheme.secondary
+                                                )
+                                            ),
+                                            shape = CircleShape
+                                        )
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(3.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AvatarImage(
+                                        avatarId = currentAvatarId,
+                                        modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Name & Username
                                 Text(
-                                    text = state.followersCount.toString(),
-                                    style = MaterialTheme.typography.titleLarge
+                                    text = state.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
-                                Text(text = stringResource(Res.string.profile_followers_label), style = MaterialTheme.typography.bodyMedium)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = state.followingCount.toString(),
-                                    style = MaterialTheme.typography.titleLarge
+
+                                if (state.username.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "@${state.username}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                androidx.compose.material3.HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    thickness = 1.dp
                                 )
-                                Text(text = stringResource(Res.string.profile_following_label), style = MaterialTheme.typography.bodyMedium)
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Stats Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Posts
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = state.postsCount.toString(),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = stringResource(Res.string.profile_posts_label).uppercase(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    // Divider
+                                    Box(
+                                        modifier = Modifier
+                                            .width(1.dp)
+                                            .height(24.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                    )
+
+                                    // Followers
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable(enabled = state.isMyProfile) {
+                                                viewModel.onEvent(ProfileEvent.NavigateToFollowList(0))
+                                            }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = state.followersCount.toString(),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = stringResource(Res.string.profile_followers_label).uppercase(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    // Divider
+                                    Box(
+                                        modifier = Modifier
+                                            .width(1.dp)
+                                            .height(24.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                    )
+
+                                    // Following
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable(enabled = state.isMyProfile) {
+                                                viewModel.onEvent(ProfileEvent.NavigateToFollowList(1))
+                                            }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = state.followingCount.toString(),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = stringResource(Res.string.profile_following_label).uppercase(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         if (state.isMyProfile) {
-                            androidx.compose.foundation.layout.Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
+                            // Quick Action Buttons
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Add Friend Button
-                                Box(
+                                // Add Friend pill button
+                                androidx.compose.material3.Button(
+                                    onClick = { rootNavigator.navigate(Screen.SearchUsers) },
                                     modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(androidx.compose.ui.graphics.Color.Green.copy(alpha = 0.2f))
-                                        .clickable { rootNavigator.navigate(Screen.SearchUsers) },
-                                    contentAlignment = Alignment.Center
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    ),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                                 ) {
                                     Icon(
                                         Icons.Filled.PersonAdd,
                                         contentDescription = stringResource(Res.string.action_add_friend),
-                                        tint = androidx.compose.ui.graphics.Color.Green
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(Res.string.action_add_friend),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                     )
                                 }
-                                
-                                // Settings Button
+
+                                // Settings button capsule
                                 Box(
                                     modifier = Modifier
                                         .size(50.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
                                         .clickable { mainNavigator.navigate(MainDestination.Settings) },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -273,39 +405,304 @@ fun ProfileScreen(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                
-                                // Logout Button
+
+                                // Logout button capsule
                                 Box(
                                     modifier = Modifier
                                         .size(50.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(androidx.compose.ui.graphics.Color.Red.copy(alpha = 0.2f))
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.3f),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
                                         .clickable { viewModel.onEvent(ProfileEvent.LogoutClicked) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         Icons.AutoMirrored.Filled.Logout,
                                         contentDescription = stringResource(Res.string.action_logout),
-                                        tint = androidx.compose.ui.graphics.Color.Red
+                                        tint = MaterialTheme.colorScheme.error
                                     )
                                 }
                             }
+
+                            // PENDING REQUESTS SECTION
+                            if (state.pendingRequests.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                        .padding(16.dp)
+                                ) {
+                                    Column {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = "Bildirimler",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onBackground
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = state.pendingRequests.size.toString(),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onPrimary,
+                                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                            if (state.pendingRequests.size > 3) {
+                                                androidx.compose.material3.TextButton(
+                                                    onClick = { viewModel.onEvent(ProfileEvent.NavigateToFollowList(2)) },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        "Tümünü Gör",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            state.pendingRequests.take(3).forEach { request ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .background(
+                                                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                                            shape = RoundedCornerShape(16.dp)
+                                                        )
+                                                        .border(
+                                                            width = 1.dp,
+                                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                                            shape = RoundedCornerShape(16.dp)
+                                                        )
+                                                        .padding(12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    AvatarImage(
+                                                        avatarId = request.requesterAvatarId,
+                                                        modifier = Modifier
+                                                            .size(44.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                    )
+
+                                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = request.requesterName,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onBackground
+                                                        )
+                                                        if (request.requesterUsername.isNotBlank()) {
+                                                            Spacer(modifier = Modifier.height(2.dp))
+                                                            Text(
+                                                                text = "@${request.requesterUsername}",
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                                            )
+                                                        }
+                                                    }
+
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        androidx.compose.material3.Button(
+                                                            onClick = { viewModel.onEvent(ProfileEvent.AcceptRequestClicked(request.id)) },
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                            modifier = Modifier.height(34.dp),
+                                                            colors = ButtonDefaults.buttonColors(
+                                                                containerColor = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        ) {
+                                                            Text(
+                                                                text = stringResource(Res.string.action_accept),
+                                                                style = MaterialTheme.typography.labelMedium,
+                                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                            )
+                                                        }
+                                                        androidx.compose.material3.OutlinedButton(
+                                                            onClick = { viewModel.onEvent(ProfileEvent.RejectRequestClicked(request.id)) },
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                            modifier = Modifier.height(34.dp),
+                                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            ),
+                                                            border = androidx.compose.foundation.BorderStroke(
+                                                                width = 1.dp,
+                                                                color = MaterialTheme.colorScheme.outlineVariant
+                                                            )
+                                                        ) {
+                                                            Text(
+                                                                text = stringResource(Res.string.action_decline),
+                                                                style = MaterialTheme.typography.labelMedium,
+                                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } else {
-                            androidx.compose.material3.Button(
-                                onClick = { viewModel.onEvent(ProfileEvent.ToggleFollowClicked) }
+                            // Follow Action Button (Foreign Profile)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(text = if (state.isFollowedByMe) stringResource(Res.string.action_unfollow) else stringResource(Res.string.action_follow))
+                                val buttonText = when {
+                                    state.isFollowedByMe -> stringResource(Res.string.action_unfollow)
+                                    state.followRequestStatus == "PENDING" -> stringResource(Res.string.action_requested)
+                                    else -> stringResource(Res.string.action_follow)
+                                }
+
+                                val isPending = state.followRequestStatus == "PENDING"
+                                val isFollowing = state.isFollowedByMe
+
+                                androidx.compose.material3.Button(
+                                    onClick = { viewModel.onEvent(ProfileEvent.ToggleFollowClicked) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = when {
+                                        isPending -> ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        isFollowing -> ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                        else -> ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    },
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Text(
+                                        text = buttonText,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     } else {
-                        // Not logged in
-                        Spacer(modifier = Modifier.height(16.dp))
-                        androidx.compose.material3.Button(onClick = { rootNavigator.navigate(Screen.Login) }) {
-                            Text(stringResource(Res.string.action_login))
+                        // Premium non-logged in state banner
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(28.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(28.dp)
+                                )
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape)
+                                        .border(
+                                            width = 3.dp,
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.outlineVariant,
+                                                    MaterialTheme.colorScheme.outline
+                                                )
+                                            ),
+                                            shape = CircleShape
+                                        )
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AvatarImage(
+                                        avatarId = currentAvatarId,
+                                        modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text(
+                                    text = state.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Pulse deneyimini başlatmak için giriş yapın",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(28.dp))
+                                androidx.compose.material3.Button(
+                                    onClick = { rootNavigator.navigate(Screen.Login) },
+                                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.action_login),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    )
+                                }
                         }
                     }
                 }
             }
         }
     }
+}
 }

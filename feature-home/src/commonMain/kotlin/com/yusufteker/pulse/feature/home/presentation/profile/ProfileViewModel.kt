@@ -149,6 +149,7 @@ class ProfileViewModel(
                                 followingCount = profile.followingCount,
                                 postsCount = profile.postsCount,
                                 isFollowedByMe = profile.isFollowedByMe,
+                                followRequestStatus = profile.followRequestStatus,
                                 isMyProfile = isMyProfile,
                                 isLoading = false
                             )
@@ -156,11 +157,20 @@ class ProfileViewModel(
                     }.onFailure {
                         setState { copy(isLoading = false) }
                     }
+                    
+                    // Profil yüklendikten sonra eğer benim profilimse takip isteklerini de çek
+                    if (isMyProfile) {
+                        loadPendingRequests()
+                    }
                 }
             }
 
             is ProfileEvent.ToggleFollowClicked -> {
                 toggleFollow()
+            }
+            
+            is ProfileEvent.NavigateToFollowList -> {
+                setEffect(ProfileEffect.NavigateToFollowList(event.tab))
             }
             
             is ProfileEvent.LogoutClicked -> {
@@ -170,43 +180,132 @@ class ProfileViewModel(
                     setEffect(ProfileEffect.NavigateToLogin)
                 }
             }
+            
+            is ProfileEvent.AcceptRequestClicked -> {
+                acceptRequest(event.requestId)
+            }
+            
+            is ProfileEvent.RejectRequestClicked -> {
+                rejectRequest(event.requestId)
+            }
         }
     }
     
+    private fun loadPendingRequests() {
+        launch {
+            setState { copy(isLoadingRequests = true) }
+            profileRepository.getFollowRequests()
+                .onSuccess { requests ->
+                    setState { copy(pendingRequests = requests, isLoadingRequests = false) }
+                    sessionPreferences.updatePendingFollowRequestsCount(requests.size)
+                }
+                .onFailure {
+                    setState { copy(isLoadingRequests = false) }
+                    Napier.e(tag = "ProfileList") { "Failed to load requests: ${it.message}" }
+                }
+        }
+    }
+
+    private fun acceptRequest(requestId: Int) {
+        val originalRequests = state.value.pendingRequests
+        setState { copy(pendingRequests = pendingRequests.filter { it.id != requestId }) }
+
+        launch {
+            sessionPreferences.updateFollowCounts(followersDelta = 1, followingDelta = 0)
+            sessionPreferences.updatePendingFollowRequestsCount(state.value.pendingRequests.size)
+            setState { copy(followersCount = followersCount + 1) }
+            
+            profileRepository.acceptFollowRequest(requestId)
+                .onFailure {
+                    // Revert
+                    setState { copy(pendingRequests = originalRequests, followersCount = followersCount - 1) }
+                    sessionPreferences.updateFollowCounts(followersDelta = -1, followingDelta = 0)
+                    sessionPreferences.updatePendingFollowRequestsCount(originalRequests.size)
+                }
+        }
+    }
+
+    private fun rejectRequest(requestId: Int) {
+        val originalRequests = state.value.pendingRequests
+        setState { copy(pendingRequests = pendingRequests.filter { it.id != requestId }) }
+
+        launch {
+            sessionPreferences.updatePendingFollowRequestsCount(state.value.pendingRequests.size)
+            
+            profileRepository.rejectFollowRequest(requestId).onFailure {
+                // Revert
+                setState { copy(pendingRequests = originalRequests) }
+                sessionPreferences.updatePendingFollowRequestsCount(originalRequests.size)
+            }
+        }
+    }
+
     // Extracted ToggleFollow logic
     private fun toggleFollow() {
         val currentProfileId = state.value.profileId ?: return
         
-        // Optimistic UI update
-        val wasFollowed = state.value.isFollowedByMe
+        val isFollowed = state.value.isFollowedByMe
+        val requestStatus = state.value.followRequestStatus
         val currentFollowers = state.value.followersCount
+
+        // Optimistic UI state transition
+        val newIsFollowed: Boolean
+        val newRequestStatus: String?
+        val newFollowersCount: Int
+        val followingDelta: Int
+
+        if (isFollowed) {
+            // Takiptesin -> Takibi bırak (Unfollow)
+            newIsFollowed = false
+            newRequestStatus = null
+            newFollowersCount = currentFollowers - 1
+            followingDelta = -1
+        } else if (requestStatus == "PENDING") {
+            // İstek gönderilmiş -> İsteği iptal et (Geri çek)
+            newIsFollowed = false
+            newRequestStatus = null
+            newFollowersCount = currentFollowers
+            followingDelta = 0
+        } else {
+            // İstek yok -> İstek gönder (PENDING)
+            newIsFollowed = false
+            newRequestStatus = "PENDING"
+            newFollowersCount = currentFollowers
+            followingDelta = 0
+        }
+
         setState { 
             copy(
-                isFollowedByMe = !wasFollowed,
-                followersCount = if (wasFollowed) currentFollowers - 1 else currentFollowers + 1
+                isFollowedByMe = newIsFollowed,
+                followRequestStatus = newRequestStatus,
+                followersCount = newFollowersCount
             ) 
         }
 
         launch {
-            // Update the current user's following count in DataStore (global real-time)
-            sessionPreferences.updateFollowCounts(
-                followersDelta = 0,
-                followingDelta = if (wasFollowed) -1 else 1
-            )
+            if (followingDelta != 0) {
+                sessionPreferences.updateFollowCounts(
+                    followersDelta = 0,
+                    followingDelta = followingDelta
+                )
+            }
             
             val result = profileRepository.toggleFollow(currentProfileId)
             result.onFailure {
                 // Revert on failure
                 setState { 
                     copy(
-                        isFollowedByMe = wasFollowed,
+                        isFollowedByMe = isFollowed,
+                        followRequestStatus = requestStatus,
                         followersCount = currentFollowers
                     ) 
                 }
-                sessionPreferences.updateFollowCounts(
-                    followersDelta = 0,
-                    followingDelta = if (wasFollowed) 1 else -1 // Revert global state
-                )
+                if (followingDelta != 0) {
+                    sessionPreferences.updateFollowCounts(
+                        followersDelta = 0,
+                        followingDelta = -followingDelta
+                    )
+                }
             }
         }
     }

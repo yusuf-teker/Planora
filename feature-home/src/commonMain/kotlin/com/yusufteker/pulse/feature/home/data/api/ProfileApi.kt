@@ -46,4 +46,49 @@ class ProfileApi(private val httpClient: HttpClient) {
             Result.failure(e)
         }
     }
+
+    suspend fun getFollowers(): Result<List<UserProfileResponse>> {
+        return try {
+            val response: List<UserProfileResponse> = httpClient.get("users/followers").body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getFollowRequests(): Result<List<com.yusufteker.pulse.shared.api.FollowRequestResponse>> {
+        return try {
+            val response: List<com.yusufteker.pulse.shared.api.FollowRequestResponse> = httpClient.get("users/follow-requests").body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun acceptFollowRequest(requestId: Int): Result<Unit> {
+        return try {
+            httpClient.post("users/follow-requests/$requestId/accept")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun rejectFollowRequest(requestId: Int): Result<Unit> {
+        return try {
+            httpClient.post("users/follow-requests/$requestId/reject")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun removeFollower(userId: Int): Result<Unit> {
+        return try {
+            httpClient.post("users/$userId/remove-follower")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

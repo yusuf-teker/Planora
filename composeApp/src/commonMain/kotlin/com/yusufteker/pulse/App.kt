@@ -182,6 +182,14 @@ fun App() {
                         SearchUsersScreen(viewModel)
                     }
 
+                    entry<Screen.FollowList> { screen ->
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.follow_list.FollowListViewModel>(key = vmKey)
+                        com.yusufteker.pulse.feature.home.presentation.follow_list.FollowListScreen(
+                            viewModel = viewModel,
+                            initialTab = screen.initialTab
+                        )
+                    }
+
                     entry<Screen.CreatePost> { screen ->
                         val viewModel = koinViewModel<CreatePostViewModel>(
                             key = screen.id.toString(),
