@@ -21,6 +21,8 @@ CREATE TABLE postEntity (
     topic TEXT NOT NULL
 );
 
+CREATE INDEX index_postEntity_ownerId_createdAt ON postEntity(ownerId, createdAt DESC);
+CREATE INDEX index_postEntity_ownerId_topic ON postEntity(ownerId, topic);
 -- 2. SAYFALAMA BİLGİSİNİ TUTAN TABLO (Remote Key):
 -- İnternetsiz çalışırken uygulamanın en son hangi sayfada kaldığını bilmesi gerekir.
 -- "nextPage", API'den dönen ve bir sonraki isteği atarken kullanılacak olan sayfalamanın anahtarıdır.
@@ -74,6 +76,7 @@ CREATE TABLE pendingPostEntity (
     topic TEXT NOT NULL
 );
 
+CREATE INDEX index_pendingPostEntity_ownerId_createdAt ON pendingPostEntity(ownerId, createdAt);
 insertPendingPost:
 INSERT OR REPLACE INTO pendingPostEntity(id, ownerId, content, isDraft, createdAt, topic)
 VALUES (?, ?, ?, ?, ?, ?);
@@ -144,6 +147,8 @@ CREATE TABLE taskEntity (
     isSynced INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE INDEX index_taskEntity_startTime ON taskEntity(startTime ASC);
+CREATE INDEX index_taskEntity_isSynced ON taskEntity(isSynced);
 CREATE TABLE taskSharedRoomEntity (
     taskId TEXT NOT NULL,
     roomId TEXT NOT NULL,

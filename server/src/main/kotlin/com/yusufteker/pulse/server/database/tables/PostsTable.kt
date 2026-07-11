@@ -8,12 +8,12 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 import java.util.UUID
 
 object PostsTable : UUIDTable("posts") {
-    val authorId = reference("author_id", UsersTable)
+    val authorId = reference("author_id", UsersTable).index()
     val content = text("content")
-    val createdAt = timestamp("created_at")
+    val createdAt = timestamp("created_at").index()
     val likesCount = integer("likes_count").default(0)
     val commentsCount = integer("comments_count").default(0)
-    val topic = varchar("topic", 50).default("GENERAL")
+    val topic = varchar("topic", 50).default("GENERAL").index()
 }
 
 class PostEntity(id: EntityID<UUID>) : UUIDEntity(id) {

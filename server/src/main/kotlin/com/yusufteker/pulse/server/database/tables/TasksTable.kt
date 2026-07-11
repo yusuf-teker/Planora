@@ -17,7 +17,7 @@ object TasksTable : IdTable<String>("tasks") {
     override val id: Column<EntityID<String>> = varchar("id", 36).entityId()
     
     // Görevi veya notu oluşturan kullanıcının kimliği (Sahibi).
-    val creatorId = reference("creator_id", UsersTable)
+    val creatorId = reference("creator_id", UsersTable).index()
     
     // Planın başlığı (Örn: "Doktora gidilecek", "Market alışverişi")
     val title = varchar("title", 255)
@@ -26,7 +26,7 @@ object TasksTable : IdTable<String>("tasks") {
     val description = text("description").nullable()
     
     // Planın başlama zamanı (Unix Timestamp). Takvimde hangi gün ve saatte gösterileceğini belirler.
-    val startTime = long("start_time")
+    val startTime = long("start_time").index()
     
     // Planın bitiş zamanı. Sadece belli bir saatte biten etkinlikler veya deadline'lar için kullanılır, opsiyoneldir.
     val endTime = long("end_time").nullable()

@@ -188,6 +188,17 @@ class CloudAiManager(
             allowTrailingComma = true
         }
         var fixedJsonString = jsonString.trim()
+        
+        // Remove markdown formatting if present
+        if (fixedJsonString.startsWith("```json")) {
+            fixedJsonString = fixedJsonString.removePrefix("```json").trim()
+        } else if (fixedJsonString.startsWith("```")) {
+            fixedJsonString = fixedJsonString.removePrefix("```").trim()
+        }
+        if (fixedJsonString.endsWith("```")) {
+            fixedJsonString = fixedJsonString.removeSuffix("```").trim()
+        }
+
         if (fixedJsonString.endsWith(",")) {
             fixedJsonString = fixedJsonString.removeSuffix(",")
         }
