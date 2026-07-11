@@ -59,6 +59,10 @@ val homeModule = module {
     single { com.yusufteker.pulse.feature.home.data.api.CalendarApi(get()) }
     single<PlanRepository> { PlanRepositoryImpl(get(), get(), get(), get()) }
     
+    // Use Cases
+    factory { com.yusufteker.pulse.feature.home.domain.use_case.GetFilteredTasksUseCase() }
+    factory { com.yusufteker.pulse.feature.home.domain.use_case.SubmitSmartInputUseCase(get(), get()) }
+    
     viewModelOf(::HomeViewModel)
     viewModelOf(::SocialViewModel)
     viewModelOf(::ProfileViewModel)

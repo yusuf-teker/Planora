@@ -23,8 +23,9 @@ import com.yusufteker.pulse.core.utils.getCurrentTimeMs
  */
 class HomeViewModel(
     private val planRepository: PlanRepository,
-    private val profileRepository: com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository,
-    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
+    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences,
+    private val getFilteredTasksUseCase: com.yusufteker.pulse.feature.home.domain.use_case.GetFilteredTasksUseCase,
+    private val submitSmartInputUseCase: com.yusufteker.pulse.feature.home.domain.use_case.SubmitSmartInputUseCase
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     initialState = HomeState()
 ) {
@@ -44,7 +45,7 @@ class HomeViewModel(
                     copy(
                         filterOptions = newFilterOptions,
                         viewOption = savedViewOption,
-                        upcomingTasks = applyFilters(getCombinedTasks(allFetchedTasks), newFilterOptions, viewOption = savedViewOption),
+                        upcomingTasks = getFilteredTasks(options = newFilterOptions, viewOpt = savedViewOption),
                         isPreferencesLoading = false
                     )
                 }
@@ -68,7 +69,7 @@ class HomeViewModel(
                         setState {
                             copy(
                                 allFetchedTasks = filteredTasks,
-                                upcomingTasks = applyFilters(getCombinedTasks(filteredTasks), state.value.filterOptions, viewOption = state.value.viewOption),
+                                upcomingTasks = getFilteredTasks(myTasks = filteredTasks),
                                 hasLoadedTasks = true
                             )
                         }
@@ -138,29 +139,7 @@ class HomeViewModel(
                 if (text.isNotBlank()) {
                     setState { copy(isLoading = true, smartInputText = "") }
                     launch {
-                        // AI Simulation: Check if any follower's name is in the text
-                        val followers = profileRepository.getFollowingUsers().getOrNull() ?: emptyList()
-                        val mentionedUser = followers.find { text.contains(it.username, ignoreCase = true) }
-                        
-                        val participantsMap = if (mentionedUser != null) {
-                            mapOf(mentionedUser.id to "PENDING")
-                        } else {
-                            emptyMap()
-                        }
-                        
-                        val request = CreateTaskRequest(
-                            title = if (mentionedUser != null) "AI Gen: Event with ${mentionedUser.username}" else "AI Gen: ${
-                                text.take(
-                                    15
-                                )
-                            }...",
-                            description = text,
-                            startTime = getCurrentTimeMs(),
-                            type = if (mentionedUser != null) TaskType.EVENT else TaskType.NOTE,
-                            specificDetails = ItemDetails.Event(),
-                            participants = participantsMap
-                        )
-                        planRepository.createTask(request)
+                        submitSmartInputUseCase(text)
                         setState { copy(isLoading = false) }
                     }
                 }
@@ -177,7 +156,7 @@ class HomeViewModel(
                 setState {
                     copy(
                         viewOption = event.option,
-                        upcomingTasks = applyFilters(getCombinedTasks(), filterOptions, viewOption = event.option)
+                        upcomingTasks = getFilteredTasks(viewOpt = event.option)
                     )
                 }
                 // Persist selected view option
@@ -191,7 +170,7 @@ class HomeViewModel(
                     val newDate = if (selectedCalendarDate == event.date) null else event.date
                     copy(
                         selectedCalendarDate = newDate,
-                        upcomingTasks = applyFilters(getCombinedTasks(), filterOptions, selectedCalendarDate = newDate)
+                        upcomingTasks = getFilteredTasks(calendarDate = newDate)
                     )
                 }
             }
@@ -200,7 +179,7 @@ class HomeViewModel(
                 setState {
                     copy(
                         visibleCalendarMonth = event.monthStart,
-                        upcomingTasks = applyFilters(getCombinedTasks(), filterOptions, visibleCalendarMonth = event.monthStart)
+                        upcomingTasks = getFilteredTasks(calendarMonth = event.monthStart)
                     )
                 }
             }
@@ -209,7 +188,7 @@ class HomeViewModel(
                 setState { 
                     copy(
                         filterOptions = event.filterOptions,
-                        upcomingTasks = applyFilters(getCombinedTasks(), event.filterOptions)
+                        upcomingTasks = getFilteredTasks(options = event.filterOptions)
                     ) 
                 }
                 launch {
@@ -283,7 +262,7 @@ class HomeViewModel(
                                 newMap[userId] = tasks
                                 copy(
                                     sharedTasksByUser = newMap,
-                                    upcomingTasks = applyFilters(getCombinedTasks(allFetchedTasks, newMap, newSelected), filterOptions)
+                                    upcomingTasks = getFilteredTasks(sharedTasksMap = newMap, selectedUsers = newSelected)
                                 )
                             }
                         }
@@ -291,7 +270,7 @@ class HomeViewModel(
                 } else {
                     setState {
                         copy(
-                            upcomingTasks = applyFilters(getCombinedTasks(allFetchedTasks, sharedTasksByUser, newSelected), filterOptions)
+                            upcomingTasks = getFilteredTasks(selectedUsers = newSelected)
                         )
                     }
                 }
@@ -299,68 +278,23 @@ class HomeViewModel(
         }
     }
     
-    private fun getCombinedTasks(
+    private fun getFilteredTasks(
         myTasks: List<com.yusufteker.pulse.shared.api.TaskDto> = state.value.allFetchedTasks,
         sharedTasksMap: Map<Int, List<com.yusufteker.pulse.shared.api.TaskDto>> = state.value.sharedTasksByUser,
-        selectedUsers: Set<Int> = state.value.selectedSharedUserIds
+        selectedUsers: Set<Int> = state.value.selectedSharedUserIds,
+        options: TimelineFilterOptions = state.value.filterOptions,
+        viewOpt: TimelineViewOption = state.value.viewOption,
+        calendarDate: LocalDate? = state.value.selectedCalendarDate,
+        calendarMonth: LocalDate? = state.value.visibleCalendarMonth
     ): List<com.yusufteker.pulse.shared.api.TaskDto> {
-        val sharedTasks = selectedUsers.flatMap { userId ->
-            sharedTasksMap[userId] ?: emptyList()
-        }
-        return (myTasks + sharedTasks).sortedBy { task ->
-            (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
-        }
-    }
-    
-    private fun applyFilters(
-        tasks: List<com.yusufteker.pulse.shared.api.TaskDto>, 
-        options: TimelineFilterOptions,
-        viewOption: TimelineViewOption = state.value.viewOption,
-        selectedCalendarDate: LocalDate? = state.value.selectedCalendarDate,
-        visibleCalendarMonth: LocalDate? = state.value.visibleCalendarMonth
-    ): List<com.yusufteker.pulse.shared.api.TaskDto> {
-        var filtered = tasks
-        
-        // 1. Completed filter (if implemented, for now assuming we just hide if not showCompleted)
-        if (!options.showCompleted) {
-            filtered = filtered.filter { it.status != com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED }
-        }
-        
-        // 2. Recurring next-only filter
-        if (options.showOnlyNextRecurring) {
-            val uniqueTasks = mutableListOf<com.yusufteker.pulse.shared.api.TaskDto>()
-            val seenRecurringBaseIds = mutableSetOf<String>()
-            
-            for (task in filtered) {
-                if (task.isRecurring) {
-                    val baseId = task.id.substringBeforeLast("_")
-                    if (baseId !in seenRecurringBaseIds) {
-                        seenRecurringBaseIds.add(baseId)
-                        uniqueTasks.add(task)
-                    }
-                } else {
-                    uniqueTasks.add(task)
-                }
-            }
-            filtered = uniqueTasks
-        }
-        
-        // 3. Calendar filtering
-        if (viewOption == TimelineViewOption.CALENDAR) {
-            filtered = filtered.filter { task ->
-                val taskDate = Instant.fromEpochMilliseconds(task.startTime)
-                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                
-                if (selectedCalendarDate != null) {
-                    taskDate == selectedCalendarDate
-                } else if (visibleCalendarMonth != null) {
-                    taskDate.year == visibleCalendarMonth.year && taskDate.monthNumber == visibleCalendarMonth.monthNumber
-                } else {
-                    true
-                }
-            }
-        }
-        
-        return filtered
+        return getFilteredTasksUseCase(
+            myTasks = myTasks,
+            sharedTasksMap = sharedTasksMap,
+            selectedUsers = selectedUsers,
+            options = options,
+            viewOption = viewOpt,
+            selectedCalendarDate = calendarDate,
+            visibleCalendarMonth = calendarMonth
+        )
     }
 }
