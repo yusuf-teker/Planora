@@ -40,7 +40,7 @@ fun UserSelectionBottomSheet(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 LazyColumn {
-                    items(users) { user ->
+                    items(users, key = { it.id }) { user ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

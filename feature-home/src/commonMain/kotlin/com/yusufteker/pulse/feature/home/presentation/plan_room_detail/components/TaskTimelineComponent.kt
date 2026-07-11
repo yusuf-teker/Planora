@@ -82,7 +82,7 @@ fun TaskTimelineComponent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(dayTasks) { task ->
+                items(dayTasks, key = { it.id }) { task ->
                     TaskTimelineItem(
                         task = task,
                         profile = memberProfiles[task.creatorId]

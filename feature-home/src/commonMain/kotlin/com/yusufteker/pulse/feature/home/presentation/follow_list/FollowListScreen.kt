@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +24,7 @@ import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.ui.components.AvatarImage
+import com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent
 import com.yusufteker.pulse.shared.api.FollowRequestResponse
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import org.jetbrains.compose.resources.stringResource
@@ -142,13 +146,12 @@ private fun FollowersTab(
             CircularProgressIndicator()
         }
     } else if (followers.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(Res.string.empty_followers),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
+        EmptyStateComponent(
+            icon = Icons.Default.Group,
+            title = stringResource(Res.string.empty_followers),
+            description = "Henüz takipçiniz bulunmuyor.",
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -190,13 +193,12 @@ private fun FollowingTab(
             CircularProgressIndicator()
         }
     } else if (following.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(Res.string.empty_following),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
+        EmptyStateComponent(
+            icon = Icons.Default.PersonSearch,
+            title = stringResource(Res.string.empty_following),
+            description = "Henüz kimseyi takip etmiyorsunuz.",
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -240,13 +242,12 @@ private fun RequestsTab(
             CircularProgressIndicator()
         }
     } else if (requests.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(Res.string.empty_requests),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
+        EmptyStateComponent(
+            icon = Icons.Default.PersonAdd,
+            title = stringResource(Res.string.empty_requests),
+            description = "Bekleyen takip isteğiniz yok.",
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

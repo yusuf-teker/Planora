@@ -145,7 +145,7 @@ fun SocialScreen(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(allTopics) { topic ->
+                            items(allTopics, key = { it?.id ?: "ALL" }) { topic ->
                                 val chipColor = topic?.color ?: MaterialTheme.colorScheme.primary
                                 FilterChip(
                                     selected = state.selectedTopic == topic?.id,

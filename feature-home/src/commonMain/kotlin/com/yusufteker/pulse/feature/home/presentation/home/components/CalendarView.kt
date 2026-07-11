@@ -90,8 +90,7 @@ fun CalendarView(
                 Icon(Icons.Default.ChevronLeft, contentDescription = "Önceki Ay")
             }
             
-            val currentMonthOffset = listState.firstVisibleItemIndex - initialPage
-            val displayMonth = getMonthDateWithOffset(initialMonth, currentMonthOffset)
+            val displayMonth by remember { derivedStateOf { getMonthDateWithOffset(initialMonth, listState.firstVisibleItemIndex - initialPage) } }
             val monthName = getMonthNameTurkish(displayMonth.monthNumber)
             
             Text(

@@ -70,6 +70,8 @@ fun WheelPicker(
                 .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
         )
         
+        val currentCenter by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+        
         LazyColumn(
             state = listState,
             flingBehavior = flingBehavior,
@@ -77,7 +79,7 @@ fun WheelPicker(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             items(paddedItems.size) { index ->
-                val centerOffset = listState.firstVisibleItemIndex + paddingItems - index
+                val centerOffset = currentCenter + paddingItems - index
                 val absCenterOffset = abs(centerOffset)
                 
                 val scale = 1f - (absCenterOffset * 0.15f)

@@ -27,6 +27,7 @@ import com.yusufteker.pulse.core.database.PendingPostEntity
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent
 import com.yusufteker.pulse.feature.home.domain.model.Topic
 import com.yusufteker.pulse.feature.home.presentation.util.color
 import org.koin.compose.viewmodel.koinViewModel
@@ -66,9 +67,12 @@ fun PendingPostsScreen(
                 CircularProgressIndicator()
             }
         } else if (state.posts.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(Res.string.empty_pending_posts), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            EmptyStateComponent(
+                icon = Icons.AutoMirrored.Filled.ScheduleSend,
+                title = stringResource(Res.string.empty_pending_posts),
+                description = "Henüz bekleyen bir gönderiniz yok.",
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -77,7 +81,7 @@ fun PendingPostsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(state.posts) { post ->
+                items(state.posts, key = { it.id }) { post ->
                     PendingPostCard(
                         post = post,
                         onEditClick = { viewModel.onEvent(PendingPostsEvent.OnPostClicked(post.id)) },

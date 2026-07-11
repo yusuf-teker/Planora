@@ -51,7 +51,7 @@ fun SharedUserChipRow(
             )
         }
         
-        items(accessibleUsers) { user ->
+        items(accessibleUsers, key = { it.userId }) { user ->
             val isSelected = selectedUserIds.contains(user.userId)
             val userColor = user.color.toColorOrNull() ?: MaterialTheme.colorScheme.secondary
             UserChip(

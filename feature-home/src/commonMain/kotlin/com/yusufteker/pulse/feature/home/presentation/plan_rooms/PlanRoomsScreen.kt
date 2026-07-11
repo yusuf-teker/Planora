@@ -99,7 +99,7 @@ fun PlanRoomsScreen(
                 )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.rooms) { room ->
+                    items(state.rooms, key = { it.id }) { room ->
                         RoomItem(
                             room = room,
                             onClick = { onEvent(PlanRoomsEvent.OnRoomClick(room.id)) }
@@ -166,7 +166,7 @@ fun PlanRoomsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(state.pendingInvitations) { invite ->
+                        items(state.pendingInvitations, key = { it.id }) { invite ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),

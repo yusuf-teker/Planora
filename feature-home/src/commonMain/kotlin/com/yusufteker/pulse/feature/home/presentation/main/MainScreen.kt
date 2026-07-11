@@ -64,7 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
+
 import androidx.compose.runtime.getValue
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import com.yusufteker.pulse.core.navigation.Navigator
@@ -147,11 +147,13 @@ fun MainScreen() {
     val isDark = LocalIsDarkTheme.current
     
     val sessionPreferences = org.koin.compose.koinInject<com.yusufteker.pulse.core.preferences.SessionPreferences>()
-    val userId by sessionPreferences.userIdFlow.collectAsState(null)
-    val vmKey = userId ?: "guest"
-    val pendingFollowRequestsCount by sessionPreferences.pendingFollowRequestsCountFlow.collectAsState(0)
-    val pendingCalendarRequestsCount by sessionPreferences.pendingCalendarRequestsCountFlow.collectAsState(0)
+    val userId by sessionPreferences.userIdFlow.collectAsStateWithLifecycle(initialValue = null)
+    
+    val pendingFollowRequestsCount by sessionPreferences.pendingFollowRequestsCountFlow.collectAsStateWithLifecycle(initialValue = 0)
+    val pendingCalendarRequestsCount by sessionPreferences.pendingCalendarRequestsCountFlow.collectAsStateWithLifecycle(initialValue = 0)
     val pendingRequestsCount = pendingFollowRequestsCount + pendingCalendarRequestsCount
+
+    val vmKey = userId ?: "guest"
 
     val navigateToTab: (MainDestination) -> Unit = { destination ->
         if (currentDestination != destination) {

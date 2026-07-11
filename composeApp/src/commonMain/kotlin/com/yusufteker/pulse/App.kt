@@ -3,7 +3,7 @@ package com.yusufteker.pulse
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -62,14 +62,14 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun App() {
     val themePreferences = koinInject<ThemePreferences>()
-    val isDarkModePref by themePreferences.isDarkMode.collectAsState(initial = null)
-    val themeColorPref by themePreferences.themeColor.collectAsState(initial = com.yusufteker.pulse.core.preferences.ThemeColor.DEFAULT)
+    val isDarkModePref by themePreferences.isDarkMode.collectAsStateWithLifecycle(initialValue = null)
+    val themeColorPref by themePreferences.themeColor.collectAsStateWithLifecycle(initialValue = com.yusufteker.pulse.core.preferences.ThemeColor.DEFAULT)
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
     PulsyTheme(themeColor = themeColorPref, darkTheme = isDark) {
         val snackbarManager = koinInject<SnackbarManager>()
         val snackbarHostState = remember { SnackbarHostState() }
-        val activeMessage by snackbarManager.messages.collectAsState()
+        val activeMessage by snackbarManager.messages.collectAsStateWithLifecycle()
 
         LaunchedEffect(activeMessage) {
             activeMessage?.let { msg ->
@@ -79,7 +79,7 @@ fun App() {
         }
 
         val sessionPreferences = koinInject<SessionPreferences>()
-        val userId by sessionPreferences.userIdFlow.collectAsState(null)
+        val userId by sessionPreferences.userIdFlow.collectAsStateWithLifecycle(initialValue = null)
         val vmKey = userId ?: "guest"
 
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }

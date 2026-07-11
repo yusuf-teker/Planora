@@ -55,6 +55,8 @@ fun <T> WheelPicker(
 
     val halfCount = visibleItemsCount / 2
     
+    val currentCenter by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+    
     LazyColumn(
         state = listState,
         flingBehavior = flingBehavior,
@@ -64,8 +66,6 @@ fun <T> WheelPicker(
             Box(modifier = Modifier.height(itemHeight))
         }
         items(count = items.size) { index ->
-            // Recompute firstVisibleItemIndex for reactive UI changes
-            val currentCenter = listState.firstVisibleItemIndex
             val isSelected = currentCenter == index
             Box(
                 modifier = Modifier.height(itemHeight).fillMaxWidth(),

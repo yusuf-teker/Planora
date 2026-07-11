@@ -190,7 +190,7 @@ fun PlanRoomDetailScreen(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(state.memberProfiles.values.toList()) { user ->
+                            items(state.memberProfiles.values.toList(), key = { it.id }) { user ->
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(
                                         modifier = Modifier
@@ -288,7 +288,7 @@ fun PlanRoomDetailScreen(
                         LazyColumn(
                             modifier = Modifier.heightIn(max = 300.dp)
                         ) {
-                            items(state.followingUsers) { user ->
+                            items(state.followingUsers, key = { it.id }) { user ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()

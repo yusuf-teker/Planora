@@ -99,7 +99,7 @@ fun NotesScreen(
                     verticalItemSpacing = 8.dp,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.notes) { note ->
+                    items(state.notes, key = { it.id }) { note ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
