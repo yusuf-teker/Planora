@@ -13,6 +13,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -28,6 +29,7 @@ import kotlinx.serialization.json.Json
  */
 fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
     val client = HttpClient {
+        expectSuccess = true
         // Sunucu adresini ve formatı varsayılan olarak ayarlıyoruz. (Android emülatörü için 10.0.2.2, iOS için localhost)
         defaultRequest {
             url(getBaseUrl())
@@ -39,6 +41,11 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                 ignoreUnknownKeys = true
                 prettyPrint = true
             })
+        }
+        
+        install(HttpRequestRetry) {
+            retryOnServerErrors(maxRetries = 3)
+            exponentialDelay()
         }
 
         install(Logging) {

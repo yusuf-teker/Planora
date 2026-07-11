@@ -38,7 +38,7 @@ class PlanRepositoryImpl(
 
     override suspend fun createTask(request: CreateTaskRequest): Result<TaskDto> {
         return try {
-            val localId = generateUUID()
+            val localId = "local_${generateUUID()}"
             
             // Çevrimdışı çalışabilmesi için önce geçici ID ile yerel veritabanına kaydet
             val localDto = TaskDto(
@@ -183,42 +183,66 @@ class PlanRepositoryImpl(
         return try {
             val pendingTasks = database.pulsyDatabaseQueries.getUnsyncedTasks().executeAsList()
             pendingTasks.forEach { entity ->
-                val request = CreateTaskRequest(
-                    title = entity.title,
-                    description = entity.description,
-                    startTime = entity.startTime,
-                    endTime = entity.endTime,
-                    type = com.yusufteker.pulse.shared.api.TaskType.valueOf(entity.type),
-                    status = com.yusufteker.pulse.shared.api.TaskStatus.valueOf(entity.status),
-                    visibility = com.yusufteker.pulse.shared.api.TaskVisibility.valueOf(entity.visibility),
-                    sharedRoomIds = database.pulsyDatabaseQueries.getSharedRoomsForTask(entity.id).executeAsList(),
-                    isRecurring = entity.isRecurring == 1L,
-                    recurrenceRule = entity.recurrenceRule,
-                    isFlexible = entity.isFlexible == 1L,
-                    isOptional = entity.isOptional == 1L,
-                    isPostponable = entity.isPostponable == 1L,
-                    isAllDay = entity.isAllDay == 1L,
-                    parentId = entity.parentId,
-                    aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                    reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                    specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                    tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                    color = entity.color,
-                    participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap()
-                )
+                try {
+                    val request = CreateTaskRequest(
+                        title = entity.title,
+                        description = entity.description,
+                        startTime = entity.startTime,
+                        endTime = entity.endTime,
+                        type = com.yusufteker.pulse.shared.api.TaskType.valueOf(entity.type),
+                        status = com.yusufteker.pulse.shared.api.TaskStatus.valueOf(entity.status),
+                        visibility = com.yusufteker.pulse.shared.api.TaskVisibility.valueOf(entity.visibility),
+                        sharedRoomIds = database.pulsyDatabaseQueries.getSharedRoomsForTask(entity.id).executeAsList(),
+                        isRecurring = entity.isRecurring == 1L,
+                        recurrenceRule = entity.recurrenceRule,
+                        isFlexible = entity.isFlexible == 1L,
+                        isOptional = entity.isOptional == 1L,
+                        isPostponable = entity.isPostponable == 1L,
+                        isAllDay = entity.isAllDay == 1L,
+                        parentId = entity.parentId,
+                        aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                        reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                        specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                        tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                        color = entity.color,
+                        participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap()
+                    )
 
-                if (entity.id.startsWith("local_")) {
-                    val remoteTask = planApi.createTask(request)
-                    database.pulsyDatabaseQueries.transaction {
-                        database.pulsyDatabaseQueries.deleteTaskById(entity.id)
-                        database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
-                        remoteTask.sharedRoomIds.forEach { roomId ->
-                            database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
+                    if (entity.id.startsWith("local_")) {
+                        val remoteTask = planApi.createTask(request)
+                        database.pulsyDatabaseQueries.transaction {
+                            database.pulsyDatabaseQueries.deleteExceptionsForTask(entity.id)
+                            database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(entity.id)
+                            database.pulsyDatabaseQueries.deleteTaskById(entity.id)
+                            database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                            remoteTask.sharedRoomIds.forEach { roomId ->
+                                database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
+                            }
+                        }
+                    } else {
+                        try {
+                            planApi.updateTask(entity.id, request)
+                            database.pulsyDatabaseQueries.updateTaskSyncStatus(1L, entity.id)
+                        } catch (e: io.ktor.client.plugins.ClientRequestException) {
+                            if (e.response.status.value == 404 || e.response.status.value == 403) {
+                                // Geriye dönük uyumluluk veya sunucudan silinmiş görevler için fallback: Yeniden oluştur.
+                                val remoteTask = planApi.createTask(request)
+                                database.pulsyDatabaseQueries.transaction {
+                                    database.pulsyDatabaseQueries.deleteExceptionsForTask(entity.id)
+                                    database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(entity.id)
+                                    database.pulsyDatabaseQueries.deleteTaskById(entity.id)
+                                    database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                                    remoteTask.sharedRoomIds.forEach { roomId ->
+                                        database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
+                                    }
+                                }
+                            } else {
+                                throw e
+                            }
                         }
                     }
-                } else {
-                    planApi.updateTask(entity.id, request)
-                    database.pulsyDatabaseQueries.updateTaskSyncStatus(1L, entity.id)
+                } catch (e: Exception) {
+                    println("Failed to sync task ${entity.id}: ${e.message}")
                 }
             }
             Result.success(Unit)
