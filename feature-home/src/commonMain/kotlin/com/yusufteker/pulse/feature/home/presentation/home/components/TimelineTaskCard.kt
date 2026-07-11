@@ -3,6 +3,7 @@ package com.yusufteker.pulse.feature.home.presentation.home.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +39,8 @@ import com.yusufteker.pulse.shared.api.TaskType
 fun TimelineTaskCard(
     task: TaskDto,
     showDate: Boolean = false,
+    sharedUserAvatar: String? = null,
+    sharedUserColor: Color? = null,
     onClick: () -> Unit = {}
 ) {
     val typeColor = when (task.type) {
@@ -119,15 +122,26 @@ fun TimelineTaskCard(
 
         // Content column (right)
         Column(modifier = Modifier.weight(1f)) {
-            // Title
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                // Title
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (sharedUserAvatar != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    com.yusufteker.pulse.core.ui.components.AvatarImage(
+                        avatarId = sharedUserAvatar,
+                        modifier = Modifier.size(24.dp).clip(CircleShape).border(1.dp, sharedUserColor ?: Color.Transparent, CircleShape)
+                    )
+                }
+            }
 
             // Description
             if (!task.description.isNullOrBlank()) {

@@ -23,4 +23,30 @@ object IosNotificationBridge : KoinComponent {
             }
         }
     }
+
+    fun handlePushData(type: String) {
+        CoroutineScope(Dispatchers.Main).launch {
+            when (type) {
+                "follow_request" -> {
+                    try {
+                        sessionPreferences.incrementPendingFollowRequestsCount()
+                    } catch (e: Exception) {
+                        println("Failed to increment follow requests count: ${e.message}")
+                    }
+                }
+                "calendar_request" -> {
+                    try {
+                        sessionPreferences.incrementPendingCalendarRequestsCount()
+                    } catch (e: Exception) {
+                        println("Failed to increment calendar requests count: ${e.message}")
+                    }
+                }
+                "sync_tasks" -> {
+                    // Trigger a sync manually or dispatch an event
+                    // Note: This requires planRepository access. Since we are in the core module, we cannot directly access feature modules.
+                    println("Received sync_tasks via push on iOS.")
+                }
+            }
+        }
+    }
 }

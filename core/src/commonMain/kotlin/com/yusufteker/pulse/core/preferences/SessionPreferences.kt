@@ -33,6 +33,7 @@ class SessionPreferences(
     private val followersCountKey = intPreferencesKey("followers_count")
     private val followingCountKey = intPreferencesKey("following_count")
     private val pendingFollowRequestsCountKey = intPreferencesKey("pending_follow_requests_count")
+    private val pendingCalendarRequestsCountKey = intPreferencesKey("pending_calendar_requests_count")
     private val appRunKey = androidx.datastore.preferences.core.booleanPreferencesKey("has_run_before")
     private val lastLoggedUserIdKey = stringPreferencesKey("last_logged_user_id")
     private val filterShowOnlyNextRecurringKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_only_next_recurring")
@@ -78,6 +79,22 @@ class SessionPreferences(
         dataStore.edit { prefs ->
             val current = prefs[pendingFollowRequestsCountKey] ?: 0
             prefs[pendingFollowRequestsCountKey] = current + 1
+        }
+    }
+
+    val pendingCalendarRequestsCountFlow: kotlinx.coroutines.flow.Flow<Int> =
+        dataStore.data.map { it[pendingCalendarRequestsCountKey] ?: 0 }.distinctUntilChanged()
+
+    suspend fun updatePendingCalendarRequestsCount(count: Int) {
+        dataStore.edit { prefs ->
+            prefs[pendingCalendarRequestsCountKey] = count
+        }
+    }
+
+    suspend fun incrementPendingCalendarRequestsCount() {
+        dataStore.edit { prefs ->
+            val current = prefs[pendingCalendarRequestsCountKey] ?: 0
+            prefs[pendingCalendarRequestsCountKey] = current + 1
         }
     }
 

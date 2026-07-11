@@ -68,7 +68,8 @@ data class UserProfileResponse(
     val followingCount: Int = 0,
     val postsCount: Int = 0,
     val isFollowedByMe: Boolean = false,
-    val followRequestStatus: String? = null
+    val followRequestStatus: String? = null,
+    val calendarAccessStatus: String? = null
 )
 
 /**

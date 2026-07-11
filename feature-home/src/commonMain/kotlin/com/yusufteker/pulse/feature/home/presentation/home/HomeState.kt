@@ -20,8 +20,20 @@ data class HomeState(
     val selectedCalendarDate: kotlinx.datetime.LocalDate? = null,
     val visibleCalendarMonth: kotlinx.datetime.LocalDate? = null,
     val isPreferencesLoading: Boolean = false,
-    val hasLoadedTasks: Boolean = false
+    val hasLoadedTasks: Boolean = false,
+    val accessibleUsers: List<AccessibleUser> = emptyList(),
+    val selectedSharedUserIds: Set<Int> = emptySet(),
+    val sharedTasksByUser: Map<Int, List<TaskDto>> = emptyMap(),
+    val selectedSharedTask: TaskDto? = null
 ) : UiState
+
+data class AccessibleUser(
+    val userId: Int,
+    val name: String,
+    val username: String,
+    val avatarId: String,
+    val color: String
+)
 
 data class TimelineFilterOptions(
     val showOnlyNextRecurring: Boolean = true,

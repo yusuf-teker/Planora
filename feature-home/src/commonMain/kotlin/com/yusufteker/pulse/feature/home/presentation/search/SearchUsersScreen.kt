@@ -38,9 +38,7 @@ fun SearchUsersScreen(
         when (effect) {
             is SearchUsersEffect.NavigateBack -> navigator.pop()
             is SearchUsersEffect.NavigateToProfile -> {
-                // If we want to navigate to another user's profile, we can push it to main navigator.
-                // Currently ProfileScreen might need modifications to accept userId from navigation args.
-                // For now, just as an example.
+                navigator.navigate(Screen.Profile(effect.userId))
             }
         }
     }

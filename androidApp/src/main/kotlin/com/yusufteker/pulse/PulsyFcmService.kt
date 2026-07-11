@@ -76,6 +76,16 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
                 }
                 handleGeneralNotification(message)
             }
+            "calendar_request" -> {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        sessionPreferences.incrementPendingCalendarRequestsCount()
+                    } catch (e: Exception) {
+                        Napier.e("Failed to increment calendar requests count", e, tag = "PulsyFcmService")
+                    }
+                }
+                handleGeneralNotification(message)
+            }
             else -> handleGeneralNotification(message)
         }
     }

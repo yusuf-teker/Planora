@@ -190,10 +190,20 @@ fun App() {
                         )
                     }
 
+                    entry<Screen.Profile> { screen ->
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.profile.ProfileViewModel>(
+                            key = "${vmKey}_profile_${screen.userId ?: "me"}"
+                        )
+                        com.yusufteker.pulse.feature.home.presentation.profile.ProfileScreen(
+                            viewModel = viewModel,
+                            userId = screen.userId
+                        )
+                    }
+
                     entry<Screen.CreatePost> { screen ->
                         val viewModel = koinViewModel<CreatePostViewModel>(
                             key = screen.id.toString(),
-                            parameters = { org.koin.core.parameter.parametersOf(screen.postId) }
+                            parameters = { parametersOf(screen.postId) }
                         )
                         CreatePostScreen(
                             viewModel = viewModel,

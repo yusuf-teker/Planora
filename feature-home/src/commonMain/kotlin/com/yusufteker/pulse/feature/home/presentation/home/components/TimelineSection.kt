@@ -105,10 +105,17 @@ fun TimelineSection(
                 items = tasks,
                 key = { it.id }
             ) { task ->
+                val isMine = state.allFetchedTasks.any { it.id == task.id }
+                val creatorUser = if (!isMine) state.accessibleUsers.find { it.userId == task.creatorId } else null
+                val creatorColor = creatorUser?.color?.let { 
+                    try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (e: Exception) { null } 
+                }
 
                 TimelineTaskCard(
                     task = task,
                     showDate = state.viewOption == TimelineViewOption.RELATIVE,
+                    sharedUserAvatar = creatorUser?.avatarId,
+                    sharedUserColor = creatorColor,
                     onClick = {
                         onTaskClick(task)
                     }

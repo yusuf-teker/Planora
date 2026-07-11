@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -110,6 +111,13 @@ fun HomeScreen(
                 state = state, onEvent = viewModel::onEvent
             )
 
+            // Shared Users row
+            com.yusufteker.pulse.feature.home.presentation.home.components.SharedUserChipRow(
+                accessibleUsers = state.accessibleUsers,
+                selectedUserIds = state.selectedSharedUserIds,
+                onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Calendar View
@@ -120,9 +128,11 @@ fun HomeScreen(
             } else {
                 // Timeline
                 TimelineSection(
-                    state = state, onTaskClick = {
+                    state = state, 
+                    onTaskClick = {
                         viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
-                    }
+                    },
+                    modifier = Modifier.weight(1f).fillMaxWidth()
                 )
             }
 
@@ -134,6 +144,13 @@ fun HomeScreen(
             filterOptions = state.filterOptions,
             onDismiss = { viewModel.onEvent(HomeEvent.ToggleFilterSheet(false)) },
             onFilterOptionsChanged = { viewModel.onEvent(HomeEvent.FilterOptionChanged(it)) })
+    }
+
+    state.selectedSharedTask?.let { task ->
+        com.yusufteker.pulse.feature.home.presentation.home.components.SharedTaskDetailDialog(
+            task = task,
+            onDismiss = { viewModel.onEvent(HomeEvent.DismissSharedTaskDetail) }
+        )
     }
 }
 

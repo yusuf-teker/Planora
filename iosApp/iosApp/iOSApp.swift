@@ -35,7 +35,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             IosNotificationBridge.shared.setFcmToken(token: token)
         }
     }
-    
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        if let type = userInfo["type"] as? String {
+            IosNotificationBridge.shared.handlePushData(type: type)
+        }
+        
+        completionHandler(.newData)
+    }
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,

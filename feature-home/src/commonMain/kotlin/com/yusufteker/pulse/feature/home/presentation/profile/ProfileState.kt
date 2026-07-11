@@ -17,5 +17,8 @@ data class ProfileState(
     val profileId: Int? = null,
     val followRequestStatus: String? = null,
     val pendingRequests: List<com.yusufteker.pulse.shared.api.FollowRequestResponse> = emptyList(),
-    val isLoadingRequests: Boolean = false
+    val isLoadingRequests: Boolean = false,
+    val calendarAccessStatus: String? = null,
+    val pendingCalendarRequests: List<com.yusufteker.pulse.shared.api.CalendarAccessRequestDto> = emptyList(),
+    val calendarGrants: List<com.yusufteker.pulse.shared.api.CalendarAccessGrantDto> = emptyList()
 ) : UiState

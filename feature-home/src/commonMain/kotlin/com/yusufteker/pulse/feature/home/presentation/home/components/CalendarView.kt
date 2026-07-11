@@ -33,6 +33,10 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun CalendarView(
     tasksByDate: Map<LocalDate, List<TaskDto>>,
+    sharedTasksByDate: Map<Int, Map<LocalDate, List<TaskDto>>>,
+    sharedUserColors: Map<Int, String>,
+    accessibleUsers: List<com.yusufteker.pulse.feature.home.presentation.home.AccessibleUser>,
+    selectedSharedUserIds: Set<Int>,
     selectedDate: LocalDate?,
     visibleMonth: LocalDate?,
     upcomingTasks: List<TaskDto>,
@@ -144,6 +148,9 @@ fun CalendarView(
                         today = today,
                         selectedDate = selectedDate,
                         tasksByDate = tasksByDate,
+                        sharedTasksByDate = sharedTasksByDate,
+                        sharedUserColors = sharedUserColors,
+                        selectedSharedUserIds = selectedSharedUserIds,
                         onDateSelected = onDateSelected
                     )
 
@@ -172,9 +179,16 @@ fun CalendarView(
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 upcomingTasks.forEach { task ->
+                                    val creatorUser = accessibleUsers.find { it.userId == task.creatorId }
+                                    val creatorColor = creatorUser?.color?.let { 
+                                        try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (e: Exception) { null } 
+                                    }
+
                                     TimelineTaskCard(
                                         task = task,
                                         showDate = false,
+                                        sharedUserAvatar = creatorUser?.avatarId,
+                                        sharedUserColor = creatorColor,
                                         onClick = { onTaskClick(task) }
                                     )
                                 }
@@ -199,6 +213,9 @@ private fun CalendarMonthGrid(
     today: LocalDate,
     selectedDate: LocalDate?,
     tasksByDate: Map<LocalDate, List<TaskDto>>,
+    sharedTasksByDate: Map<Int, Map<LocalDate, List<TaskDto>>>,
+    sharedUserColors: Map<Int, String>,
+    selectedSharedUserIds: Set<Int>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysInMonth = getDaysInMonth(monthDate.year, monthDate.monthNumber)
@@ -215,11 +232,24 @@ private fun CalendarMonthGrid(
                     
                     if (dayNum in 1..daysInMonth) {
                         val date = LocalDate(monthDate.year, monthDate.monthNumber, dayNum)
+                        val sharedColors = mutableListOf<androidx.compose.ui.graphics.Color>()
+                        selectedSharedUserIds.forEach { userId ->
+                            val userTasks = sharedTasksByDate[userId]?.get(date)
+                            if (!userTasks.isNullOrEmpty()) {
+                                sharedUserColors[userId]?.let { colorStr ->
+                                    try {
+                                        sharedColors.add(androidx.compose.ui.graphics.Color(colorStr.removePrefix("#").toLong(16) or 0x00000000FF000000))
+                                    } catch (e: Exception) {}
+                                }
+                            }
+                        }
+                        
                         CalendarDayCell(
                             date = date,
                             isToday = date == today,
                             isSelected = date == selectedDate,
                             tasks = tasksByDate[date] ?: emptyList(),
+                            sharedColors = sharedColors,
                             onClick = { onDateSelected(date) },
                             modifier = Modifier.weight(1f)
                         )
@@ -239,6 +269,7 @@ private fun CalendarDayCell(
     isToday: Boolean,
     isSelected: Boolean,
     tasks: List<TaskDto>,
+    sharedColors: List<Color>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -274,40 +305,36 @@ private fun CalendarDayCell(
         Spacer(modifier = Modifier.height(2.dp))
 
         // Avatars / Markers for tasks
-
-        if (tasks.isNotEmpty()) {
+        val hasMyTasks = tasks.isNotEmpty()
+        if (hasMyTasks || sharedColors.isNotEmpty()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Noktalar ve + işareti yan yana
+                // Noktalar yan yana
                 Row(
                     horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically // Elemanları dikeyde mükemmel ortalar
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val maxAvatarsToShow = 2
-                    val avatarsCount = minOf(tasks.size, maxAvatarsToShow)
-
-                    for (i in 0 until avatarsCount) {
+                    if (hasMyTasks) {
                         Box(
                             modifier = Modifier
-                                .padding(horizontal = 1.dp) // Dikey padding yok, yüksekliği daralttık
+                                .padding(horizontal = 1.dp)
                                 .size(6.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
                         )
                     }
-
-                    if (tasks.size > maxAvatarsToShow) {
-                        Text(
-                            text = "+",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 1.dp),
-                            style = TextStyle(
-                                fontSize = 10.sp,
-                                lineHeight = 10.sp, // Satır yüksekliğini font boyutuyla aynı tutuyoruz
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both // KMP'de metnin alt/üst boşluklarını keser
-                                )
-                            )
+                    if (sharedColors.size == 1) {
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 1.dp)
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(sharedColors[0])
+                        )
+                    } else if (sharedColors.size > 1) {
+                        MultiColorDot(
+                            colors = sharedColors,
+                            size = 6.dp,
+                            modifier = Modifier.padding(horizontal = 1.dp)
                         )
                     }
                 }

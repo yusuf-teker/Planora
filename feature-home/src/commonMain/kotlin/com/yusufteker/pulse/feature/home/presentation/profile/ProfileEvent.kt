@@ -14,4 +14,9 @@ sealed interface ProfileEvent : UiEvent {
     data class NavigateToFollowList(val tab: Int) : ProfileEvent
     data class AcceptRequestClicked(val requestId: Int) : ProfileEvent
     data class RejectRequestClicked(val requestId: Int) : ProfileEvent
+    data object RequestCalendarAccessClicked : ProfileEvent
+    data object RevokeCalendarAccessClicked : ProfileEvent
+    data class AcceptCalendarRequestClicked(val requestId: Int) : ProfileEvent
+    data class RejectCalendarRequestClicked(val requestId: Int) : ProfileEvent
+    data class RevokeCalendarGrantClicked(val userId: Int) : ProfileEvent
 }

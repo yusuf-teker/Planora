@@ -269,3 +269,25 @@ SELECT * FROM taskEntity WHERE isSynced = 0;
 
 updateTaskSyncStatus:
 UPDATE taskEntity SET isSynced = :isSynced WHERE id = :id;
+
+-- 6. CALENDAR ACCESS
+CREATE TABLE calendarAccessEntity (
+    userId INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    username TEXT NOT NULL,
+    avatarId TEXT NOT NULL,
+    color TEXT NOT NULL
+);
+
+insertCalendarAccess:
+INSERT OR REPLACE INTO calendarAccessEntity(userId, name, username, avatarId, color)
+VALUES (?, ?, ?, ?, ?);
+
+getAllCalendarAccess:
+SELECT * FROM calendarAccessEntity;
+
+deleteAllCalendarAccess:
+DELETE FROM calendarAccessEntity;
+
+deleteCalendarAccessByUserId:
+DELETE FROM calendarAccessEntity WHERE userId = :userId;

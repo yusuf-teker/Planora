@@ -56,7 +56,8 @@ val homeModule = module {
     
     // Plan Room & Task
     single { PlanApi(get()) }
-    single<PlanRepository> { PlanRepositoryImpl(get(), get(), get()) }
+    single { com.yusufteker.pulse.feature.home.data.api.CalendarApi(get()) }
+    single<PlanRepository> { PlanRepositoryImpl(get(), get(), get(), get()) }
     
     viewModelOf(::HomeViewModel)
     viewModelOf(::SocialViewModel)

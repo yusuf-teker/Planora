@@ -10,5 +10,6 @@ fun PulsyDatabaseQueries.clearAll() {
         deleteAllTasks()
         deleteAllTaskSharedRooms()
         deleteAllTaskExceptions()
+        deleteAllCalendarAccess()
     }
 }

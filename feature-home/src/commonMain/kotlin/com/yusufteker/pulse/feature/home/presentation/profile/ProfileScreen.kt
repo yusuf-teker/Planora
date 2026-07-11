@@ -61,26 +61,33 @@ import androidx.compose.ui.graphics.Color
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel
+    viewModel: ProfileViewModel,
+    userId: Int? = null
 ) {
-    val mainNavigator = LocalMainNavigator.current
+    val mainNavigator = if (userId == null) LocalMainNavigator.current else null
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is ProfileEffect.NavigateBack -> mainNavigator.pop()
+            is ProfileEffect.NavigateBack -> {
+                if (state.isMyProfile) {
+                    mainNavigator?.pop()
+                } else {
+                    rootNavigator.pop()
+                }
+            }
             is ProfileEffect.NavigateToLogin -> rootNavigator.setRoot(Screen.Login)
             is ProfileEffect.NavigateToFollowList -> rootNavigator.navigate(Screen.FollowList(effect.tab))
         }
     }
 
-    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+    androidx.lifecycle.compose.LifecycleResumeEffect(userId) {
         io.github.aakira.napier.Napier.d(
             tag = "Screen",
-            message = { ">>> ProfileScreen resumed | state.name=${state.name}" })
-        viewModel.onEvent(ProfileEvent.LoadProfile(state.profileId))
+            message = { ">>> ProfileScreen resumed | state.name=${state.name} | userId=$userId" })
+        viewModel.onEvent(ProfileEvent.LoadProfile(userId))
         
         onPauseOrDispose {
         }
@@ -173,6 +180,30 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
+                    if (!state.isMyProfile) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { viewModel.onEvent(ProfileEvent.BackClicked) }) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "@${state.username}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
+
                     if (state.isLoggedIn) {
                         // Main Profile Card
                         Box(
@@ -396,7 +427,7 @@ fun ProfileScreen(
                                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                             shape = RoundedCornerShape(16.dp)
                                         )
-                                        .clickable { mainNavigator.navigate(MainDestination.Settings) },
+                                        .clickable { mainNavigator?.navigate(MainDestination.Settings) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -582,6 +613,197 @@ fun ProfileScreen(
                                     }
                                 }
                             }
+
+                            // PENDING CALENDAR REQUESTS SECTION
+                            if (state.pendingCalendarRequests.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                        .padding(16.dp)
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "Takvim Erişim İstekleri",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        state.pendingCalendarRequests.forEach { request ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    AvatarImage(
+                                                        avatarId = request.requesterAvatarId,
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .clip(CircleShape)
+                                                    )
+                                                    Column {
+                                                        Text(
+                                                            text = request.requesterName,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onBackground
+                                                        )
+                                                        Text(
+                                                            text = "@${request.requesterUsername}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                        )
+                                                    }
+                                                }
+
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    androidx.compose.material3.Button(
+                                                        onClick = { viewModel.onEvent(ProfileEvent.AcceptCalendarRequestClicked(request.id)) },
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                        modifier = Modifier.height(34.dp),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    ) {
+                                                        Text(
+                                                            text = "Kabul Et",
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                        )
+                                                    }
+                                                    androidx.compose.material3.OutlinedButton(
+                                                        onClick = { viewModel.onEvent(ProfileEvent.RejectCalendarRequestClicked(request.id)) },
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                        modifier = Modifier.height(34.dp),
+                                                        colors = ButtonDefaults.outlinedButtonColors(
+                                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        ),
+                                                        border = androidx.compose.foundation.BorderStroke(
+                                                            width = 1.dp,
+                                                            color = MaterialTheme.colorScheme.outlineVariant
+                                                        )
+                                                    ) {
+                                                        Text(
+                                                            text = "Reddet",
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // CALENDAR GRANTS SECTION (Users who can see my calendar)
+                            if (state.calendarGrants.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                            shape = RoundedCornerShape(24.dp)
+                                        )
+                                        .padding(16.dp)
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "Takvimimi Görenler",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        state.calendarGrants.forEach { grant ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    AvatarImage(
+                                                        avatarId = grant.avatarId,
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .clip(CircleShape)
+                                                    )
+                                                    Column {
+                                                        Text(
+                                                            text = grant.name,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onBackground
+                                                        )
+                                                        Text(
+                                                            text = "@${grant.username}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                        )
+                                                    }
+                                                }
+
+                                                androidx.compose.material3.OutlinedButton(
+                                                    onClick = { viewModel.onEvent(ProfileEvent.RevokeCalendarGrantClicked(grant.userId)) },
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                    modifier = Modifier.height(34.dp),
+                                                    colors = ButtonDefaults.outlinedButtonColors(
+                                                        contentColor = MaterialTheme.colorScheme.error
+                                                    ),
+                                                    border = androidx.compose.foundation.BorderStroke(
+                                                        width = 1.dp,
+                                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                                                    )
+                                                ) {
+                                                    Text(
+                                                        text = "İptal Et",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } else {
                             // Follow Action Button (Foreign Profile)
                             Spacer(modifier = Modifier.height(16.dp))
@@ -624,6 +846,53 @@ fun ProfileScreen(
                                 ) {
                                     Text(
                                         text = buttonText,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // Calendar Access Action Button (Foreign Profile)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val calendarButtonText = when {
+                                    state.calendarAccessStatus == "ACCEPTED" -> "Takvimi Görmeyi Bırak"
+                                    state.calendarAccessStatus == "PENDING" -> "Takvim İstek Gönderildi"
+                                    else -> "Takvim Erişim İsteği Gönder"
+                                }
+
+                                val isCalendarAccepted = state.calendarAccessStatus == "ACCEPTED"
+                                val isCalendarPending = state.calendarAccessStatus == "PENDING"
+
+                                androidx.compose.material3.Button(
+                                    onClick = { viewModel.onEvent(ProfileEvent.RequestCalendarAccessClicked) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = when {
+                                        isCalendarAccepted -> ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                        isCalendarPending -> ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        else -> ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    },
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Text(
+                                        text = calendarButtonText,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                     )

@@ -28,4 +28,11 @@ interface ProfileRepository {
     suspend fun rejectFollowRequest(requestId: Int): Result<Unit>
     
     suspend fun removeFollower(userId: Int): Result<Unit>
+
+    suspend fun requestCalendarAccess(userId: Int): Result<Unit>
+    suspend fun getCalendarAccessRequests(): Result<List<com.yusufteker.pulse.shared.api.CalendarAccessRequestDto>>
+    suspend fun acceptCalendarRequest(requestId: Int): Result<Unit>
+    suspend fun rejectCalendarRequest(requestId: Int): Result<Unit>
+    suspend fun getCalendarGrants(): Result<List<com.yusufteker.pulse.shared.api.CalendarAccessGrantDto>>
+    suspend fun revokeCalendarAccess(userId: Int): Result<Unit>
 }

@@ -5,6 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import com.yusufteker.pulse.core.database.PulsyDatabase
 import com.yusufteker.pulse.core.utils.generateUUID
 import com.yusufteker.pulse.feature.home.data.api.PlanApi
+import com.yusufteker.pulse.feature.home.data.api.CalendarApi
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.shared.api.CreatePlanRoomRequest
 import com.yusufteker.pulse.shared.api.CreateTaskRequest
@@ -30,6 +31,7 @@ import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromRequest
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
+    private val calendarApi: CalendarApi,
     private val database: PulsyDatabase,
     private val scope: CoroutineScope
 ) : PlanRepository {
@@ -655,5 +657,35 @@ class PlanRepositoryImpl(
                     )
                 }
             }
+    }
+
+    override suspend fun fetchAccessibleUsers(): Result<Unit> {
+        return try {
+            calendarApi.getAccessibleUsers().onSuccess { dtos ->
+                database.pulsyDatabaseQueries.transaction {
+                    database.pulsyDatabaseQueries.deleteAllCalendarAccess()
+                    dtos.forEach { dto ->
+                        database.pulsyDatabaseQueries.insertCalendarAccess(
+                            userId = dto.userId.toLong(),
+                            name = dto.name,
+                            username = dto.username,
+                            avatarId = dto.avatarId,
+                            color = dto.color
+                        )
+                    }
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun observeAccessibleUsers(): Flow<List<com.yusufteker.pulse.core.database.CalendarAccessEntity>> {
+        return database.pulsyDatabaseQueries.getAllCalendarAccess().asFlow().mapToList(Dispatchers.IO)
+    }
+
+    override suspend fun fetchSharedTasks(userId: Int, from: Long?, to: Long?): Result<List<TaskDto>> {
+        return calendarApi.getSharedTasks(userId, from, to)
     }
 }

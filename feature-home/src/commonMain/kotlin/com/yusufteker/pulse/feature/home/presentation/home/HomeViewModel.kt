@@ -44,7 +44,7 @@ class HomeViewModel(
                     copy(
                         filterOptions = newFilterOptions,
                         viewOption = savedViewOption,
-                        upcomingTasks = applyFilters(allFetchedTasks, newFilterOptions, viewOption = savedViewOption),
+                        upcomingTasks = applyFilters(getCombinedTasks(allFetchedTasks), newFilterOptions, viewOption = savedViewOption),
                         isPreferencesLoading = false
                     )
                 }
@@ -68,7 +68,7 @@ class HomeViewModel(
                         setState {
                             copy(
                                 allFetchedTasks = filteredTasks,
-                                upcomingTasks = applyFilters(filteredTasks, state.value.filterOptions, viewOption = state.value.viewOption),
+                                upcomingTasks = applyFilters(getCombinedTasks(filteredTasks), state.value.filterOptions, viewOption = state.value.viewOption),
                                 hasLoadedTasks = true
                             )
                         }
@@ -85,6 +85,26 @@ class HomeViewModel(
             planRepository.syncPendingChanges()
             val thirtyDays = 86400000L * 30
             planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
+        }
+
+        // Load accessible users for shared calendar
+        launch {
+            planRepository.fetchAccessibleUsers()
+        }
+
+        launch {
+            planRepository.observeAccessibleUsers().collect { entities ->
+                val users = entities.map {
+                    AccessibleUser(
+                        userId = it.userId.toInt(),
+                        name = it.name,
+                        username = it.username,
+                        avatarId = it.avatarId,
+                        color = it.color
+                    )
+                }
+                setState { copy(accessibleUsers = users) }
+            }
         }
     }
 
@@ -157,7 +177,7 @@ class HomeViewModel(
                 setState {
                     copy(
                         viewOption = event.option,
-                        upcomingTasks = applyFilters(allFetchedTasks, filterOptions, viewOption = event.option)
+                        upcomingTasks = applyFilters(getCombinedTasks(), filterOptions, viewOption = event.option)
                     )
                 }
                 // Persist selected view option
@@ -171,7 +191,7 @@ class HomeViewModel(
                     val newDate = if (selectedCalendarDate == event.date) null else event.date
                     copy(
                         selectedCalendarDate = newDate,
-                        upcomingTasks = applyFilters(allFetchedTasks, filterOptions, selectedCalendarDate = newDate)
+                        upcomingTasks = applyFilters(getCombinedTasks(), filterOptions, selectedCalendarDate = newDate)
                     )
                 }
             }
@@ -180,7 +200,7 @@ class HomeViewModel(
                 setState {
                     copy(
                         visibleCalendarMonth = event.monthStart,
-                        upcomingTasks = applyFilters(allFetchedTasks, filterOptions, visibleCalendarMonth = event.monthStart)
+                        upcomingTasks = applyFilters(getCombinedTasks(), filterOptions, visibleCalendarMonth = event.monthStart)
                     )
                 }
             }
@@ -189,7 +209,7 @@ class HomeViewModel(
                 setState { 
                     copy(
                         filterOptions = event.filterOptions,
-                        upcomingTasks = applyFilters(allFetchedTasks, event.filterOptions)
+                        upcomingTasks = applyFilters(getCombinedTasks(), event.filterOptions)
                     ) 
                 }
                 launch {
@@ -225,12 +245,70 @@ class HomeViewModel(
             }
             
             is HomeEvent.TimelineItemClicked -> {
-                when (event.task.type) {
-                    com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(HomeEffect.NavigateToTaskEditor(event.task.id))
-                    com.yusufteker.pulse.shared.api.TaskType.EVENT -> setEffect(HomeEffect.NavigateToEventDetail(event.task.id))
-                    com.yusufteker.pulse.shared.api.TaskType.NOTE -> setEffect(HomeEffect.NavigateToNoteEditor(event.task.id))
+                val isMine = state.value.allFetchedTasks.any { it.id == event.task.id }
+                if (isMine) {
+                    when (event.task.type) {
+                        com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(HomeEffect.NavigateToTaskEditor(event.task.id))
+                        com.yusufteker.pulse.shared.api.TaskType.EVENT -> setEffect(HomeEffect.NavigateToEventDetail(event.task.id))
+                        com.yusufteker.pulse.shared.api.TaskType.NOTE -> setEffect(HomeEffect.NavigateToNoteEditor(event.task.id))
+                    }
+                } else {
+                    setState { copy(selectedSharedTask = event.task) }
                 }
             }
+            
+            is HomeEvent.DismissSharedTaskDetail -> {
+                setState { copy(selectedSharedTask = null) }
+            }
+            
+            is HomeEvent.ToggleSharedUser -> {
+                val userId = event.userId
+                val currentSelected = state.value.selectedSharedUserIds
+                val newSelected = if (currentSelected.contains(userId)) {
+                    currentSelected - userId
+                } else {
+                    currentSelected + userId
+                }
+                
+                setState { copy(selectedSharedUserIds = newSelected) }
+                
+                if (newSelected.contains(userId) && !state.value.sharedTasksByUser.containsKey(userId)) {
+                    launch {
+                        val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                        val thirtyDays = 86400000L * 30
+                        val result = planRepository.fetchSharedTasks(userId, now - thirtyDays, now + thirtyDays)
+                        result.onSuccess { tasks ->
+                            setState {
+                                val newMap = sharedTasksByUser.toMutableMap()
+                                newMap[userId] = tasks
+                                copy(
+                                    sharedTasksByUser = newMap,
+                                    upcomingTasks = applyFilters(getCombinedTasks(allFetchedTasks, newMap, newSelected), filterOptions)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    setState {
+                        copy(
+                            upcomingTasks = applyFilters(getCombinedTasks(allFetchedTasks, sharedTasksByUser, newSelected), filterOptions)
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun getCombinedTasks(
+        myTasks: List<com.yusufteker.pulse.shared.api.TaskDto> = state.value.allFetchedTasks,
+        sharedTasksMap: Map<Int, List<com.yusufteker.pulse.shared.api.TaskDto>> = state.value.sharedTasksByUser,
+        selectedUsers: Set<Int> = state.value.selectedSharedUserIds
+    ): List<com.yusufteker.pulse.shared.api.TaskDto> {
+        val sharedTasks = selectedUsers.flatMap { userId ->
+            sharedTasksMap[userId] ?: emptyList()
+        }
+        return (myTasks + sharedTasks).sortedBy { task ->
+            (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
         }
     }
     

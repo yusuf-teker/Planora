@@ -41,4 +41,9 @@ interface PlanRepository {
     suspend fun deleteRoom(roomId: String): Result<Unit>
     
     fun observeAllPlanRooms(): Flow<List<PlanRoomDto>>
+
+    // --- CALENDAR ACCESS ---
+    suspend fun fetchAccessibleUsers(): Result<Unit>
+    fun observeAccessibleUsers(): Flow<List<com.yusufteker.pulse.core.database.CalendarAccessEntity>>
+    suspend fun fetchSharedTasks(userId: Int, from: Long?, to: Long?): Result<List<TaskDto>>
 }

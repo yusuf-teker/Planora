@@ -149,7 +149,9 @@ fun MainScreen() {
     val sessionPreferences = org.koin.compose.koinInject<com.yusufteker.pulse.core.preferences.SessionPreferences>()
     val userId by sessionPreferences.userIdFlow.collectAsState(null)
     val vmKey = userId ?: "guest"
-    val pendingRequestsCount by sessionPreferences.pendingFollowRequestsCountFlow.collectAsState(0)
+    val pendingFollowRequestsCount by sessionPreferences.pendingFollowRequestsCountFlow.collectAsState(0)
+    val pendingCalendarRequestsCount by sessionPreferences.pendingCalendarRequestsCountFlow.collectAsState(0)
+    val pendingRequestsCount = pendingFollowRequestsCount + pendingCalendarRequestsCount
 
     val navigateToTab: (MainDestination) -> Unit = { destination ->
         if (currentDestination != destination) {

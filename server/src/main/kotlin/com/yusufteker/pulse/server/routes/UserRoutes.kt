@@ -5,6 +5,8 @@ import com.yusufteker.pulse.server.database.tables.FollowerEntity
 import com.yusufteker.pulse.server.database.tables.FollowersTable
 import com.yusufteker.pulse.server.database.tables.UserEntity
 import com.yusufteker.pulse.server.database.tables.UsersTable
+import com.yusufteker.pulse.server.database.tables.CalendarAccessTable
+import com.yusufteker.pulse.server.database.tables.CalendarAccessEntity
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -65,6 +67,11 @@ fun Route.userRoutes() {
                             (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.requesterId eq currentUserId) and
                             (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq user.id.value)
                         }.firstOrNull()
+                        
+                        val calendarAccess = CalendarAccessEntity.find {
+                            (CalendarAccessTable.requesterId eq currentUserId) and
+                            (CalendarAccessTable.granterId eq user.id.value)
+                        }.firstOrNull()
 
                         UserProfileResponse(
                             id = user.id.value,
@@ -76,6 +83,7 @@ fun Route.userRoutes() {
                             postsCount = postsCount,
                             isFollowedByMe = followedUserIds.contains(user.id.value),
                             followRequestStatus = followRequest?.status,
+                            calendarAccessStatus = calendarAccess?.status,
                             username = user.username
                         )
                     }
@@ -114,6 +122,11 @@ fun Route.userRoutes() {
                         (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.requesterId eq currentUserId) and
                         (com.yusufteker.pulse.server.database.tables.FollowRequestsTable.targetId eq targetUserId)
                     }.firstOrNull()
+                    
+                    val calendarAccess = CalendarAccessEntity.find {
+                        (CalendarAccessTable.requesterId eq currentUserId) and
+                        (CalendarAccessTable.granterId eq targetUserId)
+                    }.firstOrNull()
 
                     UserProfileResponse(
                         id = user.id.value,
@@ -125,6 +138,7 @@ fun Route.userRoutes() {
                         postsCount = postsCount,
                         isFollowedByMe = isFollowedByMe,
                         followRequestStatus = followRequest?.status,
+                        calendarAccessStatus = calendarAccess?.status,
                         username = user.username
                     )
                 }
@@ -240,6 +254,11 @@ fun Route.userRoutes() {
                             val isFollowedByMe = FollowerEntity.find {
                                 (FollowersTable.followerId eq currentUserId) and (FollowersTable.followedId eq user.id.value)
                             }.count() > 0
+                            
+                            val calendarAccess = CalendarAccessEntity.find {
+                                (CalendarAccessTable.requesterId eq currentUserId) and
+                                (CalendarAccessTable.granterId eq user.id.value)
+                            }.firstOrNull()
 
                             UserProfileResponse(
                                 id = user.id.value,
@@ -250,7 +269,8 @@ fun Route.userRoutes() {
                                 followingCount = followingCount,
                                 isFollowedByMe = isFollowedByMe,
                                 avatarId = user.avatarId,
-                                postsCount = postsCount
+                                postsCount = postsCount,
+                                calendarAccessStatus = calendarAccess?.status
                             )
                         }
                 }
@@ -342,6 +362,11 @@ fun Route.userRoutes() {
                             
                             val postsCount = com.yusufteker.pulse.server.database.tables.PostEntity.find { com.yusufteker.pulse.server.database.tables.PostsTable.authorId eq user.id.value }.count().toInt()
                             
+                            val calendarAccess = CalendarAccessEntity.find {
+                                (CalendarAccessTable.requesterId eq currentUserId) and
+                                (CalendarAccessTable.granterId eq user.id.value)
+                            }.firstOrNull()
+                            
                             UserProfileResponse(
                                 id = user.id.value,
                                 name = user.name,
@@ -351,7 +376,8 @@ fun Route.userRoutes() {
                                 followingCount = followingCount,
                                 isFollowedByMe = true, // We are already querying followings
                                 avatarId = user.avatarId,
-                                postsCount = postsCount
+                                postsCount = postsCount,
+                                calendarAccessStatus = calendarAccess?.status
                             )
                         }
                 }

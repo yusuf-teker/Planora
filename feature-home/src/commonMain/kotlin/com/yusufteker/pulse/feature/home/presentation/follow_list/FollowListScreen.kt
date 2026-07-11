@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalNavigator
+import com.yusufteker.pulse.core.navigation.Screen
 import com.yusufteker.pulse.core.ui.components.AvatarImage
 import com.yusufteker.pulse.shared.api.FollowRequestResponse
 import com.yusufteker.pulse.shared.api.UserProfileResponse
@@ -108,16 +109,19 @@ fun FollowListScreen(
                 0 -> FollowersTab(
                     followers = state.followers,
                     isLoading = state.isLoadingFollowers,
+                    onUserClick = { userId -> navigator.navigate(Screen.Profile(userId)) },
                     onRemoveFollower = { viewModel.onEvent(FollowListEvent.RemoveFollowerClicked(it)) }
                 )
                 1 -> FollowingTab(
                     following = state.following,
                     isLoading = state.isLoadingFollowing,
+                    onUserClick = { userId -> navigator.navigate(Screen.Profile(userId)) },
                     onUnfollow = { viewModel.onEvent(FollowListEvent.UnfollowClicked(it)) }
                 )
                 2 -> RequestsTab(
                     requests = state.requests,
                     isLoading = state.isLoadingRequests,
+                    onUserClick = { userId -> navigator.navigate(Screen.Profile(userId)) },
                     onAccept = { viewModel.onEvent(FollowListEvent.AcceptRequestClicked(it)) },
                     onReject = { viewModel.onEvent(FollowListEvent.RejectRequestClicked(it)) }
                 )
@@ -130,6 +134,7 @@ fun FollowListScreen(
 private fun FollowersTab(
     followers: List<UserProfileResponse>,
     isLoading: Boolean,
+    onUserClick: (Int) -> Unit,
     onRemoveFollower: (Int) -> Unit
 ) {
     if (isLoading && followers.isEmpty()) {
@@ -155,6 +160,7 @@ private fun FollowersTab(
                     avatarId = user.avatarId,
                     name = user.name,
                     username = user.username,
+                    onClick = { onUserClick(user.id) },
                     actionButton = {
                         OutlinedButton(
                             onClick = { onRemoveFollower(user.id) },
@@ -176,6 +182,7 @@ private fun FollowersTab(
 private fun FollowingTab(
     following: List<UserProfileResponse>,
     isLoading: Boolean,
+    onUserClick: (Int) -> Unit,
     onUnfollow: (Int) -> Unit
 ) {
     if (isLoading && following.isEmpty()) {
@@ -201,6 +208,7 @@ private fun FollowingTab(
                     avatarId = user.avatarId,
                     name = user.name,
                     username = user.username,
+                    onClick = { onUserClick(user.id) },
                     actionButton = {
                         Button(
                             onClick = { onUnfollow(user.id) },
@@ -223,6 +231,7 @@ private fun FollowingTab(
 private fun RequestsTab(
     requests: List<FollowRequestResponse>,
     isLoading: Boolean,
+    onUserClick: (Int) -> Unit,
     onAccept: (Int) -> Unit,
     onReject: (Int) -> Unit
 ) {
@@ -249,6 +258,7 @@ private fun RequestsTab(
                     avatarId = request.requesterAvatarId,
                     name = request.requesterName,
                     username = request.requesterUsername,
+                    onClick = { onUserClick(request.requesterId) },
                     actionButton = {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
@@ -279,10 +289,13 @@ private fun FollowUserItem(
     avatarId: String,
     name: String,
     username: String,
+    onClick: (() -> Unit)? = null,
     actionButton: @Composable () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AvatarImage(

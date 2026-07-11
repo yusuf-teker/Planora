@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,20 +76,41 @@ fun CalendarSection(
         }
     }
 
-    CalendarView(
-        tasksByDate = tasksByDate,
-        selectedDate = state.selectedCalendarDate,
-        visibleMonth = state.visibleCalendarMonth,
-        upcomingTasks = state.upcomingTasks,
-        hasLoadedTasks = state.hasLoadedTasks,
-        onDateSelected = {
-            onEvent(HomeEvent.CalendarDateSelected(it))
-        },
-        onMonthChanged = {
-            onEvent(HomeEvent.CalendarMonthChanged(it))
-        },
-        onTaskClick = { task ->
-            onEvent(HomeEvent.TimelineItemClicked(task))
+    val sharedTasksByDate = remember(state.sharedTasksByUser) {
+        state.sharedTasksByUser.mapValues { (_, tasks) ->
+            tasks.groupBy { task ->
+                Instant.fromEpochMilliseconds(task.startTime)
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                    .date
+            }
         }
-    )
+    }
+
+    val sharedUserColors = remember(state.accessibleUsers) {
+        state.accessibleUsers.associate { it.userId to it.color }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+
+        CalendarView(
+            tasksByDate = tasksByDate,
+            sharedTasksByDate = sharedTasksByDate,
+            sharedUserColors = sharedUserColors,
+            accessibleUsers = state.accessibleUsers,
+            selectedSharedUserIds = state.selectedSharedUserIds,
+            selectedDate = state.selectedCalendarDate,
+            visibleMonth = state.visibleCalendarMonth,
+            upcomingTasks = state.upcomingTasks,
+            hasLoadedTasks = state.hasLoadedTasks,
+            onDateSelected = {
+                onEvent(HomeEvent.CalendarDateSelected(it))
+            },
+            onMonthChanged = {
+                onEvent(HomeEvent.CalendarMonthChanged(it))
+            },
+            onTaskClick = { task ->
+                onEvent(HomeEvent.TimelineItemClicked(task))
+            }
+        )
+    }
 }

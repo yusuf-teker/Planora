@@ -15,6 +15,7 @@ import com.yusufteker.pulse.server.routes.commentRoutes
 import com.yusufteker.pulse.server.routes.userRoutes
 import com.yusufteker.pulse.server.routes.planRoomRoutes
 import com.yusufteker.pulse.server.routes.taskRoutes
+import com.yusufteker.pulse.server.routes.calendarRoutes
 
 import com.yusufteker.pulse.server.routes.fcmTokenRoutes
 import com.yusufteker.pulse.server.service.FcmService
@@ -58,5 +59,6 @@ fun Application.module() {
         planRoomRoutes()
         taskRoutes()
         fcmTokenRoutes()
+        calendarRoutes()
     }
 }

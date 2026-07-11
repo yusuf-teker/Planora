@@ -63,6 +63,12 @@ sealed interface Screen {
      */
     @Serializable
     data class FollowList(val initialTab: Int = 0) : Screen
+
+    /**
+     * Diğer kullanıcıların veya kendimizin profil detay ekranı.
+     */
+    @Serializable
+    data class Profile(val userId: Int? = null) : Screen
     
     /**
      * Plan Odası Detay ekranı.

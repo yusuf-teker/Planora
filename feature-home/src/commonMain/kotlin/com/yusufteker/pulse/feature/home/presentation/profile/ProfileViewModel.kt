@@ -94,11 +94,13 @@ class ProfileViewModel(
             is ProfileEvent.LoadProfile -> {
                 val userIdToLoad = event.userId
                 val isSameProfile = state.value.profileId == userIdToLoad
+                val isMyProfile = userIdToLoad == null
                 
                 setState { 
                     copy(
                         isLoading = true, 
                         profileId = userIdToLoad,
+                        isMyProfile = isMyProfile,
                         // Only clear if it's a different profile
                         name = if (isSameProfile) name else "",
                         avatarId = if (isSameProfile) avatarId else "",
@@ -110,19 +112,27 @@ class ProfileViewModel(
                     ) 
                 }
                 launch {
-                    val isMyProfile = userIdToLoad == null
-                    
-                    if (isMyProfile && !state.value.isLoggedIn) {
-                        val guestName = getString(Res.string.profile_guest)
-                        setState {
-                            copy(
-                                name = guestName,
-                                avatarId = "avatar_1",
-                                isMyProfile = true,
-                                isLoading = false
-                            )
+                    if (isMyProfile) {
+                        val localName = sessionPreferences.getUserName()
+                        val localAvatar = sessionPreferences.getUserAvatar()
+                        if (localName != null) {
+                            setState {
+                                copy(
+                                    name = localName,
+                                    avatarId = localAvatar ?: "avatar_1"
+                                )
+                            }
+                        } else if (!state.value.isLoggedIn) {
+                            val guestName = getString(Res.string.profile_guest)
+                            setState {
+                                copy(
+                                    name = guestName,
+                                    avatarId = "avatar_1",
+                                    isLoading = false
+                                )
+                            }
+                            return@launch
                         }
-                        return@launch
                     }
                     
                     val targetId = userIdToLoad?.toString() ?: "me"
@@ -150,6 +160,7 @@ class ProfileViewModel(
                                 postsCount = profile.postsCount,
                                 isFollowedByMe = profile.isFollowedByMe,
                                 followRequestStatus = profile.followRequestStatus,
+                                calendarAccessStatus = profile.calendarAccessStatus,
                                 isMyProfile = isMyProfile,
                                 isLoading = false
                             )
@@ -161,6 +172,7 @@ class ProfileViewModel(
                     // Profil yüklendikten sonra eğer benim profilimse takip isteklerini de çek
                     if (isMyProfile) {
                         loadPendingRequests()
+                        loadCalendarRequestsAndGrants()
                     }
                 }
             }
@@ -188,6 +200,55 @@ class ProfileViewModel(
             is ProfileEvent.RejectRequestClicked -> {
                 rejectRequest(event.requestId)
             }
+
+            is ProfileEvent.RequestCalendarAccessClicked -> {
+                val targetId = state.value.profileId ?: return
+                val currentStatus = state.value.calendarAccessStatus
+                val newStatus = if (currentStatus == "PENDING" || currentStatus == "ACCEPTED") null else "PENDING"
+                setState { copy(calendarAccessStatus = newStatus) }
+                launch {
+                    val result = profileRepository.requestCalendarAccess(targetId)
+                    result.onFailure {
+                        setState { copy(calendarAccessStatus = currentStatus) }
+                    }
+                }
+            }
+
+            is ProfileEvent.RevokeCalendarAccessClicked -> {
+                val targetId = state.value.profileId ?: return
+                val currentStatus = state.value.calendarAccessStatus
+                setState { copy(calendarAccessStatus = null) }
+                launch {
+                    val result = profileRepository.requestCalendarAccess(targetId)
+                    result.onFailure {
+                        setState { copy(calendarAccessStatus = currentStatus) }
+                    }
+                }
+            }
+
+            is ProfileEvent.AcceptCalendarRequestClicked -> {
+                launch {
+                    profileRepository.acceptCalendarRequest(event.requestId).onSuccess {
+                        loadCalendarRequestsAndGrants()
+                    }
+                }
+            }
+
+            is ProfileEvent.RejectCalendarRequestClicked -> {
+                launch {
+                    profileRepository.rejectCalendarRequest(event.requestId).onSuccess {
+                        loadCalendarRequestsAndGrants()
+                    }
+                }
+            }
+
+            is ProfileEvent.RevokeCalendarGrantClicked -> {
+                launch {
+                    profileRepository.revokeCalendarAccess(event.userId).onSuccess {
+                        loadCalendarRequestsAndGrants()
+                    }
+                }
+            }
         }
     }
     
@@ -203,6 +264,18 @@ class ProfileViewModel(
                     setState { copy(isLoadingRequests = false) }
                     Napier.e(tag = "ProfileList") { "Failed to load requests: ${it.message}" }
                 }
+        }
+    }
+
+    private fun loadCalendarRequestsAndGrants() {
+        launch {
+            profileRepository.getCalendarAccessRequests().onSuccess { requests ->
+                setState { copy(pendingCalendarRequests = requests) }
+                sessionPreferences.updatePendingCalendarRequestsCount(requests.size)
+            }
+            profileRepository.getCalendarGrants().onSuccess { grants ->
+                setState { copy(calendarGrants = grants) }
+            }
         }
     }
 
