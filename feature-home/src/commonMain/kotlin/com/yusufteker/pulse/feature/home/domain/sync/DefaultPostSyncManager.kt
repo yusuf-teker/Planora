@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Bu sınıf KMP (Ortak Kod) için varsayılan bir senkronizasyon yöneticisidir.
@@ -21,12 +23,14 @@ class DefaultPostSyncManager(
 ) : PostSyncManager {
 
     private val scope = CoroutineScope(Dispatchers.IO)
+    private val syncMutex = Mutex()
 
     override suspend fun syncPendingPosts() {
         // Coroutine başlatarak işlemi arka plana atıyoruz (UI'ı dondurmamak için)
         scope.launch {
-            try {
-                val ownerId = sessionPreferences.getOwnerId()
+            syncMutex.withLock {
+                try {
+                    val ownerId = sessionPreferences.getOwnerId()
                 // 1. Veritabanından "Gönderilmeyi Bekleyen" (Taslak olmayan) postları çek.
                 val pendingPosts = localDatabase.pulsyDatabaseQueries.getPendingPostsToSync(ownerId = ownerId).executeAsList()
 
@@ -48,6 +52,7 @@ class DefaultPostSyncManager(
                 }
             } catch (e: Exception) {
                 // Hata durumunda (Örn: İnternet yok), postlar veritabanında kalmaya devam eder.
+            }
             }
         }
     }

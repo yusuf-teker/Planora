@@ -32,10 +32,13 @@ import java.util.UUID
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
 import org.apache.commons.logging.Log
 
 fun Route.taskRoutes() {
+    val routeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     authenticate("auth-jwt") {
 
         route("/tasks") {
@@ -127,12 +130,12 @@ fun Route.taskRoutes() {
                     // Trigger FCM sync for room members if shared
                     if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
                         request.sharedRoomIds.forEach { roomId ->
-                            GlobalScope.launch {
+                            routeScope.launch {
                                 com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
                             }
                         }
                     }
-                    call.respond(HttpStatusCode.Created, newTaskDto!!)
+                    call.respond(HttpStatusCode.Created, newTaskDto)
                 } else {
                     call.respond(HttpStatusCode.InternalServerError)
                 }
@@ -211,7 +214,7 @@ fun Route.taskRoutes() {
 
                 if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
                     request.sharedRoomIds.forEach { roomId ->
-                        GlobalScope.launch {
+                        routeScope.launch {
                             com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
                         }
                     }
@@ -251,7 +254,7 @@ fun Route.taskRoutes() {
 
                 if (sharedRoomIdsForDeletedTask.isNotEmpty()) {
                     sharedRoomIdsForDeletedTask.forEach { roomId ->
-                        GlobalScope.launch {
+                        routeScope.launch {
                             com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
                         }
                     }

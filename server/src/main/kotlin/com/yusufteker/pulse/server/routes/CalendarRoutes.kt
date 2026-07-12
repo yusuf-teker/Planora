@@ -276,10 +276,10 @@ fun Route.calendarRoutes() {
                             isOptional = entity.isOptional,
                             isPostponable = entity.isPostponable,
                             isAllDay = entity.isAllDay,
-                            aiMetadata = entity.aiMetadata?.let { Json.decodeFromString(it) },
+                            aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
                             reminders = emptyList(), // Do not share reminders
-                            specificDetails = entity.specificDetails?.let { Json.decodeFromString(it) },
-                            tags = if (isPrivate) emptyList() else entity.tags?.let { Json.decodeFromString(it) } ?: emptyList(),
+                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                            tags = if (isPrivate) emptyList() else entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
                             participants = emptyMap(),

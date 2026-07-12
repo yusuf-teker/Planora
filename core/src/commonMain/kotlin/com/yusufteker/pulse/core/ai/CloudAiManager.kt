@@ -25,6 +25,8 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * ADIM 3 — Bulut tabanlı (Gemini API) AI Yöneticisi.
@@ -50,15 +52,20 @@ class CloudAiManager(
     private val requestTimestamps = mutableListOf<Long>()
     private val maxRequestsPerWindow = 5
     private val windowMs = 120_000L
+    private val quotaMutex = Mutex()
 
-    private fun hasQuotaAvailable(): Boolean {
-        val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-        requestTimestamps.removeAll { now - it > windowMs }
-        return requestTimestamps.size < maxRequestsPerWindow
+    private suspend fun hasQuotaAvailable(): Boolean {
+        return quotaMutex.withLock {
+            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+            requestTimestamps.removeAll { now - it > windowMs }
+            requestTimestamps.size < maxRequestsPerWindow
+        }
     }
 
-    private fun recordRequest() {
-        requestTimestamps.add(com.yusufteker.pulse.core.utils.getCurrentTimeMs())
+    private suspend fun recordRequest() {
+        quotaMutex.withLock {
+            requestTimestamps.add(com.yusufteker.pulse.core.utils.getCurrentTimeMs())
+        }
     }
 
     private val systemPrompt: String
