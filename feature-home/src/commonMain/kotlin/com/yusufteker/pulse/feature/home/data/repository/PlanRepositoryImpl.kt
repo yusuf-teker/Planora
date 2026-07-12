@@ -30,6 +30,7 @@ import com.yusufteker.pulse.core.utils.RecurringTaskEvaluator
 import com.yusufteker.pulse.shared.api.RecurrenceRule
 import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromDto
 import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromRequest
+import kotlinx.coroutines.withContext
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
@@ -205,12 +206,12 @@ class PlanRepositoryImpl(
                             isPostponable = entity.isPostponable == 1L,
                             isAllDay = entity.isAllDay == 1L,
                             parentId = entity.parentId,
-                            aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                            reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                            tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                            aiMetadata = entity.aiMetadata?.let { Json.decodeFromString(it) },
+                            reminders = entity.reminders?.let { Json.decodeFromString(it) } ?: emptyList(),
+                            specificDetails = entity.specificDetails?.let { Json.decodeFromString(it) },
+                            tags = entity.tags?.let { Json.decodeFromString(it) } ?: emptyList(),
                             color = entity.color,
-                            participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap()
+                            participants = entity.participants?.let { Json.decodeFromString(it) } ?: emptyMap()
                         )
 
                         if (entity.id.startsWith("local_")) {
@@ -258,10 +259,10 @@ class PlanRepositoryImpl(
         }
     }
 
-    override suspend fun fetchMyTasks(fromTime: Long?, toTime: Long?): Result<Unit> {
-        return try {
+    override suspend fun fetchMyTasks(fromTime: Long?, toTime: Long?): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
             val tasks = planApi.getMyTasks(fromTime, toTime)
-            
+
             // Veritabanını güncelle
             database.pulsyDatabaseQueries.transaction {
                 val remoteTaskIds = tasks.map { it.id }.toSet()
@@ -348,8 +349,7 @@ class PlanRepositoryImpl(
                 
                 // Arka planda sunucuya senkronize etmeyi dene
                 val dto = mapTaskEntityToDto(task)
-                if (dto != null) {
-                    val request = CreateTaskRequest(
+                val request = CreateTaskRequest(
                         title = dto.title,
                         description = dto.description,
                         startTime = dto.startTime,
@@ -381,7 +381,7 @@ class PlanRepositoryImpl(
                         }
                     }
                 }
-            } else if (task != null) {
+             else if (task != null) {
                 // Recurring task: insert exception
                 database.pulsyDatabaseQueries.insertTaskException(
                     taskId = taskId,
@@ -405,7 +405,7 @@ class PlanRepositoryImpl(
             val result = mutableListOf<TaskDto>()
 
             taskEntities.forEach { entity ->
-                val baseTaskDto = mapTaskEntityToDto(entity) ?: return@forEach
+                val baseTaskDto = mapTaskEntityToDto(entity)
 
                 val ruleStr = baseTaskDto.recurrenceRule
                 if (baseTaskDto.isRecurring && ruleStr != null) {
@@ -489,16 +489,15 @@ class PlanRepositoryImpl(
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { entities ->
-                entities.mapNotNull { entity ->
+                entities.map { entity ->
                     mapTaskEntityToDto(entity)
                 }
             }
     }
 
-    private fun mapTaskEntityToDto(entity: com.yusufteker.pulse.core.database.TaskEntity): TaskDto? {
-        return try {
-            val sharedRooms = database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
-            TaskDto(
+    private fun mapTaskEntityToDto(entity: com.yusufteker.pulse.core.database.TaskEntity): TaskDto {
+        val sharedRooms = database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
+        return TaskDto(
                 id = entity.id,
                 creatorId = entity.creatorId.toInt(),
                 title = entity.title,
@@ -524,12 +523,7 @@ class PlanRepositoryImpl(
                 participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap(),
                 isSynced = entity.isSynced == 1L
             )
-        } catch (e: Exception) {
-            println("Failed to map task ${entity.id}: ${e.message}")
-            null
-        }
     }
-
     override suspend fun fetchMyRooms(): Result<Unit> {
         return try {
             val rooms = planApi.getMyRooms()

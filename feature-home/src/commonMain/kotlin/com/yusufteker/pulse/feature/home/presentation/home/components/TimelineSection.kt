@@ -78,9 +78,8 @@ fun TimelineSection(
         EmptyStateComponent(
             icon = Icons.Default.CalendarToday,
             title = stringResource(Res.string.no_tasks),
-            description = stringResource(Res.string.chat_with_ai),
+            description = stringResource(Res.string.chat_with_ai) + " (Debug - All: ${state.allFetchedTasks.size}, Upcoming: ${state.upcomingTasks.size}, hasLoaded: ${state.hasLoadedTasks})",
             modifier = modifier.fillMaxSize()
-
         )
 
         return

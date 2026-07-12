@@ -150,7 +150,7 @@ fun SocialScreen(
                                 FilterChip(
                                     selected = state.selectedTopic == topic?.id,
                                     onClick = { viewModel.onEvent(SocialEvent.OnTopicSelected(topic?.id)) },
-                                    label = { Text(topic?.displayName ?: "Tümü") },
+                                    label = { Text(topic?.displayName ?: stringResource(Res.string.all_topics)) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = chipColor.copy(alpha = 0.2f),
                                         selectedLabelColor = chipColor,

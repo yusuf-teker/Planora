@@ -306,9 +306,22 @@
     <string name="today">Bugün</string>
     <string name="tomorrow">Yarın</string>
     <string name="no_tasks">Henüz görevin yok</string>
-
     <string name="chat_with_ai">Aşağıdan AI'a bir şey söyle!</string>
 
-
-
+    <!-- Additional localizations -->
+    <string name="title_notifications">Bildirimler</string>
+    <string name="action_see_all">Tümünü Gör</string>
+    <string name="all_topics">Tümü</string>
+    <string name="reminder_5_min">5 dakika önce</string>
+    <string name="reminder_15_min">15 dakika önce</string>
+    <string name="reminder_30_min">30 dakika önce</string>
+    <string name="reminder_1_hour">1 saat önce</string>
+    <string name="reminder_1_day">1 gün önce</string>
+    <string name="reminder_1_week">1 hafta önce</string>
+    <string name="post_draft_label">Taslak</string>
+    <string name="post_pending_label">Gönderilmeyi Bekliyor</string>
+    <string name="empty_pending_posts_desc">Henüz bekleyen bir gönderiniz yok.</string>
+    <string name="action_prev_month">Önceki Ay</string>
+    <string name="action_next_month">Sonraki Ay</string>
+    <string name="empty_events_today">Bugün etkinlik yok.</string>
 </resources>

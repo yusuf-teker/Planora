@@ -486,7 +486,7 @@ fun ProfileScreen(
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
-                                                    text = "Bildirimler",
+                                                    text = stringResource(Res.string.title_notifications),
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onBackground
@@ -512,7 +512,7 @@ fun ProfileScreen(
                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                                 ) {
                                                     Text(
-                                                        "Tümünü Gör",
+                                                        stringResource(Res.string.action_see_all),
                                                         style = MaterialTheme.typography.labelMedium,
                                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                                     )

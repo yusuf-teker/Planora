@@ -90,13 +90,11 @@ class HomeViewModel(
                 val thirtyDays = 86400000L * 30
                 planRepository.observeTasksForRange(fromTimeMs = now - thirtyDays, toTimeMs = now + thirtyDays)
                     .retryWhen { cause, attempt ->
-                        println("observeTasksForRange ERROR: ${cause.message}")
                         cause.printStackTrace()
                         kotlinx.coroutines.delay(500)
                         true
                     }
                     .collect { tasks ->
-                        println("observeTasksForRange COLLECT: size=${tasks.size}")
                         val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
                             .sortedBy { task ->
                                 (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime

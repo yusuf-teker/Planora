@@ -29,6 +29,9 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @Composable
 fun CalendarView(
@@ -87,11 +90,11 @@ fun CalendarView(
                     listState.animateScrollToItem(listState.firstVisibleItemIndex - 1)
                 }
             }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Önceki Ay")
+                Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(Res.string.action_prev_month))
             }
             
             val displayMonth by remember { derivedStateOf { getMonthDateWithOffset(initialMonth, listState.firstVisibleItemIndex - initialPage) } }
-            val monthName = getMonthNameTurkish(displayMonth.monthNumber)
+            val monthName = stringResource(getMonthNameRes(displayMonth.monthNumber))
             
             Text(
                 text = "$monthName ${displayMonth.year}",
@@ -105,16 +108,23 @@ fun CalendarView(
                     listState.animateScrollToItem(listState.firstVisibleItemIndex + 1)
                 }
             }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = "Sonraki Ay")
+                Icon(Icons.Default.ChevronRight, contentDescription = stringResource(Res.string.action_next_month))
             }
         }
 
-        // Days of week header
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            val days = listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz")
-            days.forEach { day ->
+            val days = listOf(
+                Res.string.day_mon,
+                Res.string.day_tue,
+                Res.string.day_wed,
+                Res.string.day_thu,
+                Res.string.day_fri,
+                Res.string.day_sat,
+                Res.string.day_sun
+            )
+            days.forEach { dayRes ->
                 Text(
-                    text = day,
+                    text = stringResource(dayRes),
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelMedium,
@@ -136,7 +146,7 @@ fun CalendarView(
                     // Render the Month Name if you want a separator inside the list (optional)
                     // We already have a sticky header-like row above, but a label inside helps for continuous scrolling
                     Text(
-                        text = "${getMonthNameTurkish(monthDate.monthNumber)} ${monthDate.year}",
+                        text = "${stringResource(getMonthNameRes(monthDate.monthNumber))} ${monthDate.year}",
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(vertical = 8.dp),
                         color = MaterialTheme.colorScheme.primary
@@ -165,7 +175,7 @@ fun CalendarView(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "Bugün etkinlik yok.",
+                                    text = stringResource(Res.string.empty_events_today) + " (Debug - All: ${tasksByDate.values.flatten().size}, Upcoming: ${upcomingTasks.size}, hasLoaded: $hasLoadedTasks)",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -382,20 +392,20 @@ private fun getMonthDateWithOffset(start: LocalDate, offset: Int): LocalDate {
     return LocalDate(y, m + 1, 1)
 }
 
-private fun getMonthNameTurkish(monthNumber: Int): String {
+private fun getMonthNameRes(monthNumber: Int): org.jetbrains.compose.resources.StringResource {
     return when (monthNumber) {
-        1 -> "Ocak"
-        2 -> "Şubat"
-        3 -> "Mart"
-        4 -> "Nisan"
-        5 -> "Mayıs"
-        6 -> "Haziran"
-        7 -> "Temmuz"
-        8 -> "Ağustos"
-        9 -> "Eylül"
-        10 -> "Ekim"
-        11 -> "Kasım"
-        12 -> "Aralık"
-        else -> ""
+        1 -> Res.string.month_jan
+        2 -> Res.string.month_feb
+        3 -> Res.string.month_mar
+        4 -> Res.string.month_apr
+        5 -> Res.string.month_may
+        6 -> Res.string.month_jun
+        7 -> Res.string.month_jul
+        8 -> Res.string.month_aug
+        9 -> Res.string.month_sep
+        10 -> Res.string.month_oct
+        11 -> Res.string.month_nov
+        12 -> Res.string.month_dec
+        else -> Res.string.month_jan
     }
 }

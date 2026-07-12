@@ -70,7 +70,7 @@ fun PendingPostsScreen(
             EmptyStateComponent(
                 icon = Icons.AutoMirrored.Filled.ScheduleSend,
                 title = stringResource(Res.string.empty_pending_posts),
-                description = "Henüz bekleyen bir gönderiniz yok.",
+                description = stringResource(Res.string.empty_pending_posts_desc),
                 modifier = Modifier.fillMaxSize()
             )
         } else {
@@ -101,7 +101,7 @@ fun PendingPostCard(
 ) {
     val isDraft = post.isDraft == 1L
     val icon = if (isDraft) Icons.Default.Drafts else Icons.AutoMirrored.Filled.ScheduleSend
-    val statusText = if (isDraft) "Taslak" else "Gönderilmeyi Bekliyor"
+    val statusText = if (isDraft) stringResource(Res.string.post_draft_label) else stringResource(Res.string.post_pending_label)
     val date = Instant.fromEpochMilliseconds(post.createdAt).toLocalDateTime(TimeZone.currentSystemDefault())
     val dateString = "${date.dayOfMonth}/${date.monthNumber}/${date.year} ${date.hour}:${date.minute.toString().padStart(2, '0')}"
 
@@ -169,7 +169,7 @@ fun PendingPostCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Düzenle",
+                        contentDescription = stringResource(Res.string.action_edit),
                         tint = Color(0xFF4CAF50),
                         modifier = Modifier.size(18.dp)
                     )
@@ -185,7 +185,7 @@ fun PendingPostCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Sil",
+                        contentDescription = stringResource(Res.string.action_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(18.dp)
                     )

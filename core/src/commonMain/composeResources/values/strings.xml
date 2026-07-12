@@ -307,4 +307,21 @@
     <string name="tomorrow">Today</string>
     <string name="chat_with_ai">Say something to the AI!</string>
     <string name="no_tasks">No tasks for today.</string>
+
+    <!-- Additional localizations -->
+    <string name="title_notifications">Notifications</string>
+    <string name="action_see_all">See All</string>
+    <string name="all_topics">All</string>
+    <string name="reminder_5_min">5 minutes before</string>
+    <string name="reminder_15_min">15 minutes before</string>
+    <string name="reminder_30_min">30 minutes before</string>
+    <string name="reminder_1_hour">1 hour before</string>
+    <string name="reminder_1_day">1 day before</string>
+    <string name="reminder_1_week">1 week before</string>
+    <string name="post_draft_label">Draft</string>
+    <string name="post_pending_label">Pending Send</string>
+    <string name="empty_pending_posts_desc">You don\'t have any pending posts in the queue yet.</string>
+    <string name="action_prev_month">Previous Month</string>
+    <string name="action_next_month">Next Month</string>
+    <string name="empty_events_today">No events for today.</string>
 </resources>

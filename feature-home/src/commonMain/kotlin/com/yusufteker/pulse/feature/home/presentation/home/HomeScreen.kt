@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import com.yusufteker.pulse.core.navigation.Screen
@@ -45,7 +45,7 @@ fun HomeScreen(
 ) {
     val mainNavigator = LocalMainNavigator.current
     val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsState()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
@@ -83,7 +83,7 @@ fun HomeScreen(
 
     var isFabExpanded by remember { mutableStateOf(false) }
 
-    if (state.isPreferencesLoading) {
+    if (state.isPreferencesLoading || !state.hasLoadedTasks) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }

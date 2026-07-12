@@ -730,10 +730,10 @@ class RuleBasedNlpEngine {
         val timeStr = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
 
         return when {
-            diffDays < 0 -> "geçmiş bir zaman"
-            diffDays == 0 -> "bugün saat $timeStr"
-            diffDays == 1 -> "yarın saat $timeStr"
-            diffDays < 7 -> "$diffDays gün sonra, saat $timeStr"
+            diffDays < 0L -> "geçmiş bir zaman"
+            diffDays == 0L -> "bugün saat $timeStr"
+            diffDays == 1L -> "yarın saat $timeStr"
+            diffDays < 7L -> "$diffDays gün sonra, saat $timeStr"
             else -> "belirtilen zamanda"
         }
     }
