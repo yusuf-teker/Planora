@@ -85,7 +85,7 @@ class CreatePostViewModel(
 
                 if (!shouldCreateNew) {
                     // Var olanı güncelliyoruz
-                    postRepository.updatePendingPost(id = postId!!, content = content, isDraft = isDraft, topic = topic)
+                    postRepository.updatePendingPost(id = postId, content = content, isDraft = isDraft, topic = topic)
                     val message = if (isDraft) getString(Res.string.info_draft_updated) else getString(Res.string.info_post_updated)
                     showSnackbar(message, com.yusufteker.pulse.core.snackbar.SnackbarType.SUCCESS)
                 } else {

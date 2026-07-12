@@ -182,6 +182,7 @@ class CloudAiManager(
         return null
     }
 
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     private fun parseJsonResponse(jsonString: String, originalInput: String): AiChatResult {
         val json = Json {
             ignoreUnknownKeys = true

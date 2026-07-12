@@ -13,7 +13,7 @@ class RuleBasedStep(
         val result = ruleBasedEngine.processMessage(input, context)
         
         if (strictMode) {
-            val confidence = result?.extractedEntities?.confidence ?: 0f
+            val confidence = result.extractedEntities?.confidence ?: 0f
             val formattedConfidence = ((confidence * 100).toInt() / 100.0).toString()
             if (confidence >= 0.8f) {
                 Napier.d("RuleBasedStep ($platformName): Yüksek güven ($formattedConfidence), Cloud atlanıyor.", tag = "AiManagerLog")

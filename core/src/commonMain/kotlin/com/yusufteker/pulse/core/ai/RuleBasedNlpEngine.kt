@@ -723,7 +723,7 @@ class RuleBasedNlpEngine {
         val targetLocal = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(timeZone)
         val currentLocal = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(timeZone)
         
-        val diffDays = (targetLocal.date.toEpochDays() - currentLocal.date.toEpochDays()).toInt()
+        val diffDays = targetLocal.date.toEpochDays() - currentLocal.date.toEpochDays()
 
         val hour = targetLocal.hour
         val minute = targetLocal.minute

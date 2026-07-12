@@ -1,3 +1,7 @@
 package com.yusufteker.pulse.core.utils
 
-expect fun generateUUID(): String
+import kotlin.uuid.Uuid
+
+fun generateUUID(): String {
+    return Uuid.random().toString()
+}

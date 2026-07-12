@@ -73,7 +73,7 @@ fun EventDetailScreen(
                 title = { Text(if (state.id == null) stringResource(Res.string.title_new_event) else stringResource(Res.string.action_edit), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
