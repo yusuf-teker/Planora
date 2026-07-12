@@ -286,12 +286,11 @@ class ProfileViewModel(
         launch {
             sessionPreferences.updateFollowCounts(followersDelta = 1, followingDelta = 0)
             sessionPreferences.updatePendingFollowRequestsCount(state.value.pendingRequests.size)
-            setState { copy(followersCount = followersCount + 1) }
             
             profileRepository.acceptFollowRequest(requestId)
                 .onFailure {
                     // Revert
-                    setState { copy(pendingRequests = originalRequests, followersCount = followersCount - 1) }
+                    setState { copy(pendingRequests = originalRequests) }
                     sessionPreferences.updateFollowCounts(followersDelta = -1, followingDelta = 0)
                     sessionPreferences.updatePendingFollowRequestsCount(originalRequests.size)
                 }
