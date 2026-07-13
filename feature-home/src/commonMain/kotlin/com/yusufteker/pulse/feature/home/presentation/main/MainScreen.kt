@@ -159,81 +159,107 @@ fun MainScreen() {
             }
         }
 
+        // Create a cache of ViewModelStores for each tab to prevent recreation during transitions
+        val viewModelStores = remember { mutableMapOf<String, ViewModelStore>() }
+
         CompositionLocalProvider(
             LocalMainNavigator provides navigator,
-           LocalViewModelStoreOwner provides viewModelStoreOwner
+            LocalViewModelStoreOwner provides viewModelStoreOwner
         ) {
-
             NavDisplay(
                 backStack = navigator.backStack,
                 onBack = { navigator.pop() },
                 modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
-                transitionSpec = {
-                    ContentTransform(
-                        EnterTransition.None,
-                        ExitTransition.None
-                    )
-                },
                 entryProvider = entryProvider {
                     entry<MainDestination.Home> {
-                    val viewModel = koinViewModel<HomeViewModel>(
-                        viewModelStoreOwner = viewModelStoreOwner,
-                        key = vmKey
-                    )
-                    HomeScreen(viewModel = viewModel)
-                }
+                        val storeOwner = remember {
+                            object : ViewModelStoreOwner {
+                                override val viewModelStore = viewModelStores.getOrPut("Home") { ViewModelStore() }
+                            }
+                        }
+                        val viewModel = koinViewModel<HomeViewModel>(
+                            viewModelStoreOwner = storeOwner,
+                            key = vmKey
+                        )
+                        HomeScreen(viewModel = viewModel)
+                    }
 
                     entry<MainDestination.Social> {
+                        val storeOwner = remember {
+                            object : ViewModelStoreOwner {
+                                override val viewModelStore = viewModelStores.getOrPut("Social") { ViewModelStore() }
+                            }
+                        }
                         val viewModel = koinViewModel<SocialViewModel>(
-                            viewModelStoreOwner = viewModelStoreOwner,
+                            viewModelStoreOwner = storeOwner,
                             key = vmKey
                         )
                         SocialScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.Profile> {
+                        val storeOwner = remember {
+                            object : ViewModelStoreOwner {
+                                override val viewModelStore = viewModelStores.getOrPut("Profile") { ViewModelStore() }
+                            }
+                        }
                         val viewModel = koinViewModel<ProfileViewModel>(
-                            viewModelStoreOwner = viewModelStoreOwner,
+                            viewModelStoreOwner = storeOwner,
                             key = vmKey
                         )
                         ProfileScreen(viewModel = viewModel)
                     }
                     
                     entry<MainDestination.Notes> {
+                        val storeOwner = remember {
+                            object : ViewModelStoreOwner {
+                                override val viewModelStore = viewModelStores.getOrPut("Notes") { ViewModelStore() }
+                            }
+                        }
                         val viewModel = koinViewModel<NotesViewModel>(
-                            viewModelStoreOwner = viewModelStoreOwner,
+                            viewModelStoreOwner = storeOwner,
                             key = vmKey
                         )
                         NotesScreen(viewModel = viewModel)
                     }
 
                     entry<MainDestination.PlanRooms> {
+                        val storeOwner = remember {
+                            object : ViewModelStoreOwner {
+                                override val viewModelStore = viewModelStores.getOrPut("PlanRooms") { ViewModelStore() }
+                            }
+                        }
                         val viewModel = koinViewModel<PlanRoomsViewModel>(
-                            viewModelStoreOwner = viewModelStoreOwner,
+                            viewModelStoreOwner = storeOwner,
                             key = vmKey
                         )
-                        val state = viewModel.state.collectAsStateWithLifecycle().value
-                        val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
+                        val state by viewModel.state.collectAsStateWithLifecycle()
+                        val rootNav = com.yusufteker.pulse.core.navigation.LocalNavigator.current
                         PlanRoomsScreen(
                             state = state,
                             effectFlow = viewModel.effect,
                             onEvent = viewModel::onEvent,
                             onNavigateToRoomDetail = { roomId -> 
-                                rootNavigator.navigate(Screen.PlanRoomDetail(roomId))
+                                rootNav.navigate(Screen.PlanRoomDetail(roomId))
                             },
                             onNavigateToCreateTask = {
-                                rootNavigator.navigate(Screen.TaskEditor(taskId = null))
+                                rootNav.navigate(Screen.TaskEditor(taskId = null))
                             },
                             onNavigateToCreateEvent = {
-                                rootNavigator.navigate(Screen.EventDetail(eventId = null))
+                                rootNav.navigate(Screen.EventDetail(eventId = null))
                             },
                             onShowSnackbar = { /* TODO */ }
                         )
                     }
 
                     entry<MainDestination.Settings> {
+                        val storeOwner = remember {
+                            object : ViewModelStoreOwner {
+                                override val viewModelStore = viewModelStores.getOrPut("Settings") { ViewModelStore() }
+                            }
+                        }
                         val viewModel = koinViewModel<SettingsViewModel>(
-                            viewModelStoreOwner = viewModelStoreOwner,
+                            viewModelStoreOwner = storeOwner,
                             key = vmKey
                         )
                         SettingsScreen(viewModel = viewModel)

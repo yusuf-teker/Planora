@@ -5,13 +5,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.yusufteker.pulse.core.ui.text.UiText
 import com.yusufteker.pulse.core.utils.TimelineViewOption
 import com.yusufteker.pulse.core.utils.formatDayName
 import com.yusufteker.pulse.core.utils.formatShortDate
@@ -24,7 +22,6 @@ import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskDto
 import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
-import pulsy.core.generated.resources.chat_with_ai
 import pulsy.core.generated.resources.no_tasks
 import pulsy.core.generated.resources.today
 import pulsy.core.generated.resources.tomorrow
@@ -78,7 +75,7 @@ fun TimelineSection(
         EmptyStateComponent(
             icon = Icons.Default.CalendarToday,
             title = stringResource(Res.string.no_tasks),
-            description = stringResource(Res.string.chat_with_ai) + " (Debug - All: ${state.allFetchedTasks.size}, Upcoming: ${state.upcomingTasks.size}, hasLoaded: ${state.hasLoadedTasks})",
+            //description = stringResource(Res.string.chat_with_ai) + " (Debug - All: ${state.allFetchedTasks.size}, Upcoming: ${state.upcomingTasks.size}, hasLoaded: ${state.hasLoadedTasks})",
             modifier = modifier.fillMaxSize()
         )
 
