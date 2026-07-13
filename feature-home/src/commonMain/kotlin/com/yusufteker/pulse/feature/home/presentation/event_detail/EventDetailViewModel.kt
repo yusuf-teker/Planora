@@ -84,17 +84,22 @@ class EventDetailViewModel(
             }
             
             is EventDetailEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
-            is EventDetailEvent.OnParticipantToggled -> _state.update {
-                val currentMap = it.participants.toMutableMap()
+            is EventDetailEvent.OnParticipantToggled -> {
+                val currentMap = _state.value.participants.toMutableMap()
                 if (currentMap.containsKey(event.userId)) {
-                    currentMap.remove(event.userId)
+                    if (currentMap.size > 1) {
+                        currentMap.remove(event.userId)
+                        _state.update { it.copy(participants = currentMap) }
+                    } else {
+                        setEffect(EventDetailEffect.ShowToast("En az 1 katılımcı olmalıdır."))
+                    }
                 } else {
-                    val user = it.roomMembers.find { u -> u.id == event.userId }
+                    val user = _state.value.roomMembers.find { u -> u.id == event.userId }
                     if (user != null) {
                         currentMap[event.userId] = user.name
+                        _state.update { it.copy(participants = currentMap) }
                     }
                 }
-                it.copy(participants = currentMap)
             }
             EventDetailEvent.OnSaveClick -> saveEvent()
             EventDetailEvent.OnDeleteClick -> deleteEvent()
@@ -105,9 +110,15 @@ class EventDetailViewModel(
     private fun loadEvent(eventId: String?, planRoomId: String?) {
 
         if (eventId == null) {
-            _state.value = EventDetailState(planRoomId = planRoomId)
-            if (planRoomId != null) {
-                viewModelScope.launch {
+            viewModelScope.launch {
+                val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                val currentUserName = sessionPreferences.getUserName()
+                val defaultParticipants = if (currentUserId != null && currentUserName != null && planRoomId != null) {
+                    mapOf(currentUserId to currentUserName)
+                } else emptyMap()
+
+                _state.value = EventDetailState(planRoomId = planRoomId, participants = defaultParticipants)
+                if (planRoomId != null) {
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }
                         if (room != null) {

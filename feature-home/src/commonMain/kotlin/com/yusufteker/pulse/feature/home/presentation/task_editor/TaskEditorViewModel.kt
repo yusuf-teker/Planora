@@ -83,19 +83,23 @@ class TaskEditorViewModel(
             
             is TaskEditorEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
             is TaskEditorEvent.OnParticipantToggled -> {
-                _state.update {
-                    val currentMap = it.participants.toMutableMap()
-                    if (currentMap.containsKey(event.userId)) {
+                val currentMap = _state.value.participants.toMutableMap()
+                if (currentMap.containsKey(event.userId)) {
+                    if (currentMap.size > 1) {
                         currentMap.remove(event.userId)
+                        _state.update { it.copy(participants = currentMap) }
+                        autoSave()
                     } else {
-                        val user = it.roomMembers.find { u -> u.id == event.userId }
-                        if (user != null) {
-                            currentMap[event.userId] = user.name
-                        }
+                        setEffect(TaskEditorEffect.ShowSnackbar("En az 1 katılımcı olmalıdır."))
                     }
-                    it.copy(participants = currentMap)
+                } else {
+                    val user = _state.value.roomMembers.find { u -> u.id == event.userId }
+                    if (user != null) {
+                        currentMap[event.userId] = user.name
+                        _state.update { it.copy(participants = currentMap) }
+                        autoSave()
+                    }
                 }
-                autoSave()
             }
             TaskEditorEvent.SaveClicked -> saveTask()
             TaskEditorEvent.DeleteClicked -> deleteTask()
@@ -106,9 +110,15 @@ class TaskEditorViewModel(
     private fun loadTask(taskId: String?, planRoomId: String?) {
 
         if (taskId == null) {
-            _state.value = TaskEditorState(planRoomId = planRoomId)
-            if (planRoomId != null) {
-                viewModelScope.launch {
+            viewModelScope.launch {
+                val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                val currentUserName = sessionPreferences.getUserName()
+                val defaultParticipants = if (currentUserId != null && currentUserName != null && planRoomId != null) {
+                    mapOf(currentUserId to currentUserName)
+                } else emptyMap()
+
+                _state.value = TaskEditorState(planRoomId = planRoomId, participants = defaultParticipants)
+                if (planRoomId != null) {
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }
                         if (room != null) {
