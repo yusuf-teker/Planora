@@ -1,11 +1,11 @@
 # Use an official Gradle image to build the Ktor application
-FROM gradle:8.7-jdk17 AS build
+FROM gradle:8.7-jdk21 AS build
 COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 RUN ./gradlew :server:installDist --no-daemon
 
-# Use a lightweight JDK image for the runtime
-FROM eclipse-temurin:17-jre-alpine
+# Use a lightweight JDK 21 image for the runtime
+FROM eclipse-temurin:21-jre-alpine
 EXPOSE 8080
 WORKDIR /app
 

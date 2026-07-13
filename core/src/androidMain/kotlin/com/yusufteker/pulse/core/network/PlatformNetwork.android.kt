@@ -8,9 +8,9 @@ import com.yusufteker.pulse.shared.isEmulator
  */
 actual fun getBaseUrl(): String {
     if (isEmulator()){
-        return "http://10.0.2.2:8080/"
+        return "https://pulse-7b4z.onrender.com"//"http://10.0.2.2:8080/"
     }else{
-          return  "https://pseudomilitaristic-brooks-feasibly.ngrok-free.dev/"
+          return  "https://pulse-7b4z.onrender.com"//"https://pseudomilitaristic-brooks-feasibly.ngrok-free.dev/"
     }
 
 }
