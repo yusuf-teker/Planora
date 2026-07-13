@@ -183,6 +183,8 @@ class TaskEditorViewModel(
 
     private fun saveTask() {
         val currentState = _state.value
+        if (currentState.isLoading) return
+        
         if (currentState.title.isBlank()) {
             viewModelScope.launch {
                 setEffect(TaskEditorEffect.ShowSnackbar(getString(Res.string.error_enter_title)))

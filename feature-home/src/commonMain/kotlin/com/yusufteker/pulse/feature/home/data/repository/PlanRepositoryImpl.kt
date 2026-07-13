@@ -80,47 +80,12 @@ class PlanRepositoryImpl(
                 }
             }
 
-            // Arka planda sunucuya kaydetmeyi dene
+            // Arka planda sunucuya kaydetmeyi dene.
+            // Doğrudan planApi.createTask yapmak yerine syncPendingChanges çağırıyoruz.
+            // Bu sayede aynı anda HomeViewModel'den gelen syncPendingChanges ile yarış (race condition) olmaz
+            // ve görevler API'ye iki kere gönderilmez.
             scope.launch(Dispatchers.IO) {
-                try {
-                    val remoteTask = planApi.createTask(request)
-                    database.pulsyDatabaseQueries.transaction {
-                        // Geçici görevi sil
-                        database.pulsyDatabaseQueries.deleteTaskById(localId)
-                        // Gerçek görevi kaydet
-                        database.pulsyDatabaseQueries.insertTask(
-                            id = remoteTask.id,
-                            creatorId = remoteTask.creatorId.toLong(),
-                            title = remoteTask.title,
-                            description = remoteTask.description,
-                            startTime = remoteTask.startTime,
-                            endTime = remoteTask.endTime,
-                            type = remoteTask.type.name,
-                            status = remoteTask.status.name,
-                            visibility = remoteTask.visibility.name,
-                            isRecurring = if (remoteTask.isRecurring) 1L else 0L,
-                            recurrenceRule = remoteTask.recurrenceRule,
-                            isFlexible = if (remoteTask.isFlexible) 1L else 0L,
-                            isOptional = if (remoteTask.isOptional) 1L else 0L,
-                            isPostponable = if (remoteTask.isPostponable) 1L else 0L,
-                            isAllDay = if (remoteTask.isAllDay) 1L else 0L,
-                            aiMetadata = remoteTask.aiMetadata?.let { Json.encodeToString(it) },
-                            reminders = if (remoteTask.reminders.isNotEmpty()) Json.encodeToString(remoteTask.reminders) else null,
-                            specificDetails = remoteTask.specificDetails?.let { Json.encodeToString(it) },
-                            tags = if (remoteTask.tags.isNotEmpty()) Json.encodeToString(remoteTask.tags) else null,
-                            color = remoteTask.color,
-                            parentId = remoteTask.parentId,
-                            participants = remoteTask.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
-                            isSynced = 1L
-                        )
-                        remoteTask.sharedRoomIds.forEach { roomId ->
-                            database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
-                        }
-                    }
-                } catch (e: Exception) {
-                    println("Task sync failed, keeping local copy: ${e.message}")
-                    // SyncQueue'ya eklenebilir
-                }
+                syncPendingChanges()
             }
             
             Result.success(localDto)
@@ -144,18 +109,10 @@ class PlanRepositoryImpl(
                 }
             }
 
-            // Arka planda sunucuya kaydetmeyi dene
+            // Arka planda sunucuya kaydetmeyi dene.
+            // Yarış (race condition) oluşmaması için doğrudan syncPendingChanges kullanıyoruz.
             scope.launch(Dispatchers.IO) {
-                try {
-                    planApi.updateTask(taskId, request)
-                    database.pulsyDatabaseQueries.transaction {
-                        // isSynced = 1 yapmak için bir query eklemek gerek,
-                        // Şimdilik yeniden insertTask yapıyoruz.
-                        database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, creatorId, request, isSynced = 1L)
-                    }
-                } catch (e: Exception) {
-                    println("Task update sync failed: ${e.message}")
-                }
+                syncPendingChanges()
             }
             Result.success(Unit)
         } catch (e: Exception) {
