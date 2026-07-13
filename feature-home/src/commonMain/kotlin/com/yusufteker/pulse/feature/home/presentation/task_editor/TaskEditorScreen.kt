@@ -202,9 +202,14 @@ fun TaskEditorScreen(
                 // Context specific: Plan Room Participants
                 if (state.planRoomId != null) {
                     FormSection {
+                        val participantsText = if (state.participants.isEmpty()) {
+                            stringResource(Res.string.option_not_selected)
+                        } else {
+                            state.participants.values.joinToString(", ")
+                        }
                         FormRow(
                             label = stringResource(Res.string.assignees_label),
-                            value = stringResource(Res.string.participants_count_pattern, state.participants.size.toString()),
+                            value = participantsText,
                             onClick = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
                     }

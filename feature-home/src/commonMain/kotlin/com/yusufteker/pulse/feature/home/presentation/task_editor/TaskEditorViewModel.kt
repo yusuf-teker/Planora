@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -110,13 +112,14 @@ class TaskEditorViewModel(
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }
                         if (room != null) {
-                            val membersList = mutableListOf<com.yusufteker.pulse.shared.api.UserProfileResponse>()
-                            room.members.forEach { member ->
-                                profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
-                                    membersList.add(profile)
-                                }
+                            val profiles = kotlinx.coroutines.coroutineScope {
+                                room.members.map { member ->
+                                    async {
+                                        profileRepository.getProfile(member.userId.toString()).getOrNull()
+                                    }
+                                }.awaitAll().filterNotNull()
                             }
-                            _state.update { it.copy(roomMembers = membersList) }
+                            _state.update { it.copy(roomMembers = profiles) }
                         }
                     }
                 }
@@ -134,13 +137,14 @@ class TaskEditorViewModel(
                 planRepository.observeAllPlanRooms().collect { rooms ->
                     val room = rooms.find { it.id == planRoomId }
                     if (room != null) {
-                        val membersList = mutableListOf<com.yusufteker.pulse.shared.api.UserProfileResponse>()
-                        room.members.forEach { member ->
-                            profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
-                                membersList.add(profile)
-                            }
+                        val profiles = kotlinx.coroutines.coroutineScope {
+                            room.members.map { member ->
+                                async {
+                                    profileRepository.getProfile(member.userId.toString()).getOrNull()
+                                }
+                            }.awaitAll().filterNotNull()
                         }
-                        _state.update { it.copy(roomMembers = membersList) }
+                        _state.update { it.copy(roomMembers = profiles) }
                     }
                 }
             }

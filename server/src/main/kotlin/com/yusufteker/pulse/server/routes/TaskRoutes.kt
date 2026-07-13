@@ -1,5 +1,8 @@
 package com.yusufteker.pulse.server.routes
 
+import org.jetbrains.exposed.sql.update
+import com.yusufteker.pulse.server.database.tables.UsersTable
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import com.yusufteker.pulse.server.database.DatabaseFactory.dbQuery
 import com.yusufteker.pulse.server.database.tables.PlanRoomMembersTable
 import com.yusufteker.pulse.server.database.tables.TaskEntity
@@ -96,6 +99,9 @@ fun Route.taskRoutes() {
                             it[taskId] = newTaskId
                             it[TaskParticipantsTable.userId] = pId
                             it[status] = "PENDING"
+                            if (pId == userId) {
+                                it[reminders] = if (request.reminders.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(request.reminders) else null
+                            }
                         }
                     }
 
@@ -135,6 +141,23 @@ fun Route.taskRoutes() {
                             }
                         }
                     }
+                    
+                    // Send push notifications to newly added participants
+                    val toAdd = request.participants.keys.filter { it != userId }
+                    if (toAdd.isNotEmpty()) {
+                        val creatorName = org.jetbrains.exposed.sql.transactions.transaction {
+                            com.yusufteker.pulse.server.database.tables.UsersTable.selectAll().where { com.yusufteker.pulse.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.pulse.server.database.tables.UsersTable.name) ?: "Birisi"
+                        }
+                        toAdd.forEach { addedUserId ->
+                            routeScope.launch {
+                                com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                                    userId = addedUserId,
+                                    title = "Yeni Görev",
+                                    body = "$creatorName seni '${request.title}' planına ekledi."
+                                )
+                            }
+                        }
+                    }
                     call.respond(HttpStatusCode.Created, newTaskDto)
                 } else {
                     call.respond(HttpStatusCode.InternalServerError)
@@ -161,54 +184,107 @@ fun Route.taskRoutes() {
                     return@put
                 }
 
-                var isOwner = false
+                var hasPermission = false
                 dbQuery {
                     val taskEntity = TaskEntity.findById(taskId)
-                    if (taskEntity != null && taskEntity.creator.id.value == userId) {
-                        isOwner = true
-                        taskEntity.title = request.title
-                        taskEntity.description = request.description
-                        taskEntity.startTime = request.startTime
-                        taskEntity.endTime = request.endTime
-                        taskEntity.type = request.type
-                        taskEntity.status = request.status
-                        taskEntity.visibility = request.visibility
-                        taskEntity.isRecurring = request.isRecurring
-                        taskEntity.recurrenceRule = request.recurrenceRule
-                        taskEntity.isFlexible = request.isFlexible
-                        taskEntity.isOptional = request.isOptional
-                        taskEntity.isPostponable = request.isPostponable
-                        taskEntity.isAllDay = request.isAllDay
-                        taskEntity.aiMetadata = request.aiMetadata?.let { Json.encodeToString(it) }
-                        taskEntity.reminders = if (request.reminders.isNotEmpty()) Json.encodeToString(request.reminders) else null
-                        taskEntity.specificDetails = request.specificDetails?.let { Json.encodeToString(it) }
-                        taskEntity.tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null
-                        taskEntity.color = request.color
-                        taskEntity.parentId = request.parentId
+                    if (taskEntity != null) {
+                        val isOwner = taskEntity.creator.id.value == userId
+                        
+                        val sharedRoomIds = TaskSharedRoomsTable.selectAll()
+                            .where { TaskSharedRoomsTable.taskId eq taskId }
+                            .map { it[TaskSharedRoomsTable.roomId] }
 
-                        // Update shared rooms
-                        TaskSharedRoomsTable.deleteWhere { TaskSharedRoomsTable.taskId eq taskId }
-                        request.sharedRoomIds.forEach { roomIdToInsert ->
-                            TaskSharedRoomsTable.insert {
-                                it[TaskSharedRoomsTable.taskId] = taskId
-                                it[roomId] = roomIdToInsert
+                        val isRoomMember = if (sharedRoomIds.isNotEmpty()) {
+                            PlanRoomMembersTable.selectAll().where { 
+                                (PlanRoomMembersTable.roomId inList sharedRoomIds) and 
+                                (PlanRoomMembersTable.userId eq userId) and 
+                                (PlanRoomMembersTable.status eq com.yusufteker.pulse.shared.api.RoomMemberStatus.ACCEPTED) 
+                            }.count() > 0
+                        } else false
+
+                        hasPermission = isOwner || isRoomMember
+
+                        if (hasPermission) {
+                            taskEntity.title = request.title
+                            taskEntity.description = request.description
+                            taskEntity.startTime = request.startTime
+                            taskEntity.endTime = request.endTime
+                            taskEntity.type = request.type
+                            taskEntity.status = request.status
+                            taskEntity.visibility = request.visibility
+                            taskEntity.isRecurring = request.isRecurring
+                            taskEntity.recurrenceRule = request.recurrenceRule
+                            taskEntity.isFlexible = request.isFlexible
+                            taskEntity.isOptional = request.isOptional
+                            taskEntity.isPostponable = request.isPostponable
+                            taskEntity.isAllDay = request.isAllDay
+                            taskEntity.aiMetadata = request.aiMetadata?.let { Json.encodeToString(it) }
+                            taskEntity.reminders = if (request.reminders.isNotEmpty()) Json.encodeToString(request.reminders) else null
+                            taskEntity.specificDetails = request.specificDetails?.let { Json.encodeToString(it) }
+                            taskEntity.tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null
+                            taskEntity.color = request.color
+                            taskEntity.parentId = request.parentId
+
+                            // Update shared rooms
+                            TaskSharedRoomsTable.deleteWhere { TaskSharedRoomsTable.taskId eq taskId }
+                            request.sharedRoomIds.forEach { roomIdToInsert ->
+                                TaskSharedRoomsTable.insert {
+                                    it[TaskSharedRoomsTable.taskId] = taskId
+                                    it[roomId] = roomIdToInsert
+                                }
                             }
-                        }
 
-                        // Update participants
-                        TaskParticipantsTable.deleteWhere { TaskParticipantsTable.taskId eq taskId }
-                        request.participants.keys.forEach { pId ->
-                            TaskParticipantsTable.insert {
-                                it[TaskParticipantsTable.taskId] = taskId
-                                it[TaskParticipantsTable.userId] = pId
-                                it[status] = "PENDING"
+                            // Update participants safely
+                            val existingParticipantIds = TaskParticipantsTable.selectAll()
+                                .where { TaskParticipantsTable.taskId eq taskId }
+                                .map { it[TaskParticipantsTable.userId] }
+                            
+                            val requestedParticipantIds = request.participants.keys
+                            val toRemove = existingParticipantIds - requestedParticipantIds
+                            val toAdd = requestedParticipantIds - existingParticipantIds
+
+                            if (toRemove.isNotEmpty()) {
+                                TaskParticipantsTable.deleteWhere { 
+                                    (TaskParticipantsTable.taskId eq taskId) and (TaskParticipantsTable.userId inList toRemove) 
+                                }
+                            }
+
+                            toAdd.forEach { pId ->
+                                TaskParticipantsTable.insert {
+                                    it[TaskParticipantsTable.taskId] = taskId
+                                    it[TaskParticipantsTable.userId] = pId
+                                    it[TaskParticipantsTable.status] = "PENDING"
+                                }
+                            }
+
+                            // Update reminders for the current user if they are a participant
+                            if (requestedParticipantIds.contains(userId)) {
+                                TaskParticipantsTable.update({ (TaskParticipantsTable.taskId eq taskId) and (TaskParticipantsTable.userId eq userId) }) {
+                                    it[TaskParticipantsTable.reminders] = if (request.reminders.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(request.reminders) else null
+                                }
+                            }
+                            
+                            // Send push notifications to newly added users
+                            if (toAdd.isNotEmpty()) {
+                                val creatorName = UsersTable.selectAll().where { UsersTable.id eq userId }.firstOrNull()?.get(UsersTable.name) ?: "Birisi"
+                                toAdd.forEach { addedUserId ->
+                                    if (addedUserId != userId) {
+                                        routeScope.launch {
+                                            com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                                                userId = addedUserId,
+                                                title = "Yeni Görev",
+                                                body = "$creatorName seni '${request.title}' planına ekledi."
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                if (!isOwner) {
-                    call.respond(HttpStatusCode.Forbidden, "Not owner")
+                if (!hasPermission) {
+                    call.respond(HttpStatusCode.Forbidden, "Not owner or room member")
                     return@put
                 }
 
@@ -235,13 +311,29 @@ fun Route.taskRoutes() {
 
                 var sharedRoomIdsForDeletedTask = emptyList<String>()
 
+                var hasPermission = false
+
                 dbQuery {
-                    // Önce task sahibinin kullanıcı olduğunu doğrula (veya odada yetkisi var mı diye bak)
+                    // Önce task sahibinin kullanıcı olduğunu doğrula
                     val isOwner = TasksTable.selectAll().where { 
                         (TasksTable.id eq taskId) and (TasksTable.creatorId eq userId)
                     }.count() > 0
 
-                    if (isOwner) {
+                    val taskSharedRoomIds = TaskSharedRoomsTable.selectAll()
+                        .where { TaskSharedRoomsTable.taskId eq taskId }
+                        .map { it[TaskSharedRoomsTable.roomId] }
+
+                    val isRoomMember = if (taskSharedRoomIds.isNotEmpty()) {
+                        PlanRoomMembersTable.selectAll().where { 
+                            (PlanRoomMembersTable.roomId inList taskSharedRoomIds) and 
+                            (PlanRoomMembersTable.userId eq userId) and 
+                            (PlanRoomMembersTable.status eq com.yusufteker.pulse.shared.api.RoomMemberStatus.ACCEPTED) 
+                        }.count() > 0
+                    } else false
+
+                    hasPermission = isOwner || isRoomMember
+
+                    if (hasPermission) {
                         sharedRoomIdsForDeletedTask = TaskSharedRoomsTable.selectAll()
                             .where { TaskSharedRoomsTable.taskId eq taskId }
                             .map { it[TaskSharedRoomsTable.roomId] }
@@ -250,6 +342,11 @@ fun Route.taskRoutes() {
                         TaskParticipantsTable.deleteWhere { TaskParticipantsTable.taskId eq taskId }
                         TasksTable.deleteWhere { TasksTable.id eq taskId }
                     }
+                }
+
+                if (!hasPermission) {
+                    call.respond(HttpStatusCode.Forbidden, "Not owner or room member")
+                    return@delete
                 }
 
                 if (sharedRoomIdsForDeletedTask.isNotEmpty()) {
@@ -359,7 +456,11 @@ fun Route.taskRoutes() {
                             isPostponable = entity.isPostponable,
                             isAllDay = entity.isAllDay,
                             aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                            reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                            reminders = TaskParticipantsTable.selectAll()
+                                .where { (TaskParticipantsTable.taskId eq entity.id.value) and (TaskParticipantsTable.userId eq userId) }
+                                .firstOrNull()?.get(TaskParticipantsTable.reminders)?.let { 
+                                    try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } 
+                                } ?: entity.reminders?.let { try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
@@ -451,7 +552,11 @@ fun Route.taskRoutes() {
                             isPostponable = entity.isPostponable,
                             isAllDay = entity.isAllDay,
                             aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
-                            reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                            reminders = TaskParticipantsTable.selectAll()
+                                .where { (TaskParticipantsTable.taskId eq entity.id.value) and (TaskParticipantsTable.userId eq userId) }
+                                .firstOrNull()?.get(TaskParticipantsTable.reminders)?.let { 
+                                    try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } 
+                                } ?: entity.reminders?.let { try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,

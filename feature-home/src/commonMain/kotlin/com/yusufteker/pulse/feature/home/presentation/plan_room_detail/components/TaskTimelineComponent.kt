@@ -179,46 +179,68 @@ fun TaskTimelineItem(
                 // Participants or Creator Info
                 val participants = task.participants.values.toList()
                 if (participants.isNotEmpty()) {
-                    Box(modifier = Modifier.height(24.dp).padding(top = 4.dp)) {
-                        participants.take(4).forEachIndexed { index, name ->
-                            val initialName = name.take(1).uppercase()
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = (index * 16).dp)
-                                    .zIndex((4 - index).toFloat())
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = initialName,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontWeight = FontWeight.Bold
-                                )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp), 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val avatarCount = if (participants.size > 4) 5 else participants.size
+                        Box(modifier = Modifier.height(24.dp).width((avatarCount * 16 + 8).dp)) {
+                            participants.take(4).forEachIndexed { index, name ->
+                                val initialName = name.take(1).uppercase()
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = (index * 16).dp)
+                                        .zIndex((4 - index).toFloat())
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = initialName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            if (participants.size > 4) {
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = (4 * 16).dp)
+                                        .zIndex(0f)
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondary)
+                                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
-                        if (participants.size > 4) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = (4 * 16).dp)
-                                    .zIndex(0f)
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondary)
-                                    .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+${participants.size - 4}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSecondary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        val namesText = if (participants.size <= 2) {
+                            participants.joinToString(", ")
+                        } else {
+                            "${participants.take(2).joinToString(", ")} ve ${participants.size - 2} kişi"
                         }
+                        
+                        Text(
+                            text = namesText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
                     }
                 } else {
                     // Creator Info
