@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -46,9 +47,19 @@ fun PulseBottomBar(
     onAiButtonClick: () -> Unit,
     pendingRequestsCount: Int = 0
 ) {
-    val surfaceColor = if (isDark) Color.Black else MaterialTheme.colorScheme.surface
     // Temanın ana rengini alarak Pulse efektine uyguluyoruz
     val pulseGlowColor = MaterialTheme.colorScheme.primary
+    val surfaceColor = if (isDark) Color(0xCC000000) else Color(0xE6FFFFFF) // Glassmorphism opacity
+
+    val infiniteTransition = rememberInfiniteTransition()
+    val buttonScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
 
     Box(
         contentAlignment = Alignment.BottomCenter,
@@ -133,11 +144,14 @@ fun PulseBottomBar(
             }
         }
 
-        // Merkezi Pulse AI Butonu
         Box(
             modifier = Modifier
                 .padding(bottom = 40.dp) // 64.dp'lik çubuğun üzerine taşması için
                 .windowInsetsPadding(WindowInsets.navigationBars)
+                .graphicsLayer {
+                    scaleX = buttonScale
+                    scaleY = buttonScale
+                }
                 .size(48.dp)
                 .shadow(
                     elevation = 8.dp, // Derinliği biraz artırarak daha iyi bir süzülme efekti verebiliriz

@@ -61,7 +61,7 @@ fun MainScreen() {
                 list.map { dest ->
                     when (dest) {
                         MainDestination.Home -> "Home"
-                        MainDestination.Social -> "Social"
+// MainDestination.Social -> "Social"
                         MainDestination.PlanRooms -> "PlanRooms"
                         MainDestination.Notes -> "Notes"
                         MainDestination.Profile -> "Profile"
@@ -74,7 +74,7 @@ fun MainScreen() {
                 savedList.forEach { name ->
                     when (name) {
                         "Home" -> list.add(MainDestination.Home)
-                        "Social" -> list.add(MainDestination.Social)
+// "Social" -> list.add(MainDestination.Social)
                         "PlanRooms" -> list.add(MainDestination.PlanRooms)
                         "Notes" -> list.add(MainDestination.Notes)
                         "Profile" -> list.add(MainDestination.Profile)
@@ -184,6 +184,7 @@ fun MainScreen() {
                         HomeScreen(viewModel = viewModel)
                     }
 
+/*
                     entry<MainDestination.Social> {
                         val storeOwner = remember {
                             object : ViewModelStoreOwner {
@@ -196,6 +197,7 @@ fun MainScreen() {
                         )
                         SocialScreen(viewModel = viewModel)
                     }
+                    */
 
                     entry<MainDestination.Profile> {
                         val storeOwner = remember {

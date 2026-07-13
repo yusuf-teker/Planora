@@ -34,6 +34,11 @@ import com.yusufteker.pulse.core.utils.formatTime
 import com.yusufteker.pulse.core.utils.rotateVertically
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskType
+import com.yusufteker.pulse.shared.api.TaskStatus
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun TimelineTaskCard(
@@ -49,11 +54,26 @@ fun TimelineTaskCard(
         TaskType.NOTE -> Color(0xFFF59E0B)   // Amber
     }
 
+    val isCompleted = task.status == TaskStatus.COMPLETED
+    val animatedAlpha by animateFloatAsState(targetValue = if (isCompleted) 0.5f else 1f, label = "alpha")
+    
+    val backgroundColor = if (MaterialTheme.colorScheme.background.red < 0.5f) {
+        // Dark mode
+        Color(0x33FFFFFF) // subtle white glass on dark
+    } else {
+        // Light mode
+        Color(0x80F0F0F8) // subtle gray glass on light
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(backgroundColor)
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
+            .padding(vertical = 12.dp, horizontal = 12.dp)
+            .graphicsLayer { alpha = animatedAlpha },
         verticalAlignment = Alignment.Top
     ) {
         // Time column (left)
@@ -126,7 +146,9 @@ fun TimelineTaskCard(
                 // Title
                 Text(
                     text = task.title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                    ),
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,

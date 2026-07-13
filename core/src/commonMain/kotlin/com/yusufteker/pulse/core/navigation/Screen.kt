@@ -97,9 +97,9 @@ sealed interface Screen {
         @Serializable
         data object Home : MainDestination
 
-        @Serializable
+        /*@Serializable
         data object Social : MainDestination
-
+*/
         @Serializable
         data object Profile : MainDestination
 

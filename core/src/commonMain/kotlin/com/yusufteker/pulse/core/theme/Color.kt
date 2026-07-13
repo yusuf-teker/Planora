@@ -60,4 +60,17 @@ object PulsyColors {
     val ErrorDark = Color(0xFFFF6B7A)
     val ErrorContainerDark = Color(0xFF5C1520)
     val OnErrorContainerDark = Color(0xFFFFDADA)
+
+    // ── Aura & Glassmorphism ─────────────────────────────────
+    val GlassSurfaceLight = Color(0x99FFFFFF) // 60% opacity white
+    val GlassSurfaceDark = Color(0x66000000)  // 40% opacity black
+    val PulseGlow = Color(0xFF1D9BF0)         // Primary glow
+
+    val MeshGradientLight1 = Color(0xFFE1F5FE)
+    val MeshGradientLight2 = Color(0xFFCCF5F4)
+    val MeshGradientLight3 = Color(0xFFFFE0E0)
+
+    val MeshGradientDark1 = Color(0xFF003355)
+    val MeshGradientDark2 = Color(0xFF003736)
+    val MeshGradientDark3 = Color(0xFF410002)
 }
