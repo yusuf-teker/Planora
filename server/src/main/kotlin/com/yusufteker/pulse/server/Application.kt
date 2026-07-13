@@ -24,7 +24,10 @@ import com.yusufteker.pulse.server.service.FcmService
  * Main entry point for the Ktor server.
  */
 fun main() {
-    embeddedServer(Netty, port = 8080) {
+    // Render dinamik olarak PORT atar. Bulamazsa 8080 kullanır.
+    val port = System.getenv("PORT")?.toInt() ?: 8080
+    // Render'da dışarıdan erişilebilmesi için host "0.0.0.0" olmalıdır.
+    embeddedServer(Netty, port = port, host = "0.0.0.0") {
         module()
     }.start(wait = true)
 }
