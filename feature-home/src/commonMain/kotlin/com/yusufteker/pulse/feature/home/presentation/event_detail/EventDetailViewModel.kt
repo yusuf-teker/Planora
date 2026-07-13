@@ -208,7 +208,8 @@ class EventDetailViewModel(
                 reminders = currentState.reminders,
                 specificDetails = ItemDetails.Event(location = currentState.location.ifBlank { null }, meetingUrl = null),
                 tags = emptyList(),
-                color = null
+                color = null,
+                participants = currentState.participants
             )
 
             if (currentState.id != null) {

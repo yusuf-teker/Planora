@@ -1,0 +1,28 @@
+{
+  "title": "Test Event",
+  "description": "Test Desc",
+  "startTime": 1700000000000,
+  "endTime": 1700003600000,
+  "type": "EVENT",
+  "status": "PENDING",
+  "visibility": "ROOM_SHARED",
+  "sharedRoomIds": ["room-123"],
+  "isRecurring": false,
+  "recurrenceRule": null,
+  "isFlexible": false,
+  "isOptional": false,
+  "isPostponable": false,
+  "isAllDay": false,
+  "reminders": [],
+  "specificDetails": {
+    "type": "com.yusufteker.pulse.shared.api.ItemDetails.Event",
+    "location": "Office",
+    "meetingUrl": null
+  },
+  "tags": [],
+  "color": null,
+  "participants": {
+    "1": "Ali",
+    "2": "Veli"
+  }
+}
