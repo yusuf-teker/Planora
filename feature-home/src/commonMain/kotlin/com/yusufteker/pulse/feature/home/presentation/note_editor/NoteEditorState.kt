@@ -6,5 +6,7 @@ data class NoteEditorState(
     val content: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val dateText: String = "" // Added dateText to hold formatted date
+    val dateText: String = "",
+    val planRoomId: String? = null,
+    val parentId: String? = null
 )

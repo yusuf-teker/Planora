@@ -160,6 +160,10 @@ class EventDetailViewModel(
 
             planRepository.observeAllTasks().collect { tasks ->
                 val task = tasks.find { it.id == eventId && it.type == TaskType.EVENT }
+                
+                // Fetch sub-items that belong to this event
+                val subItemsList = tasks.filter { it.parentId == eventId }
+                
                 if (task != null) {
                     val location = (task.specificDetails as? ItemDetails.Event)?.location ?: ""
                     val ruleObj = try {
@@ -179,6 +183,7 @@ class EventDetailViewModel(
                             participants = task.participants,
                             recurrenceRule = ruleObj,
                             reminders = task.reminders,
+                            subItems = subItemsList,
                             isLoading = false
                         ) 
                     }

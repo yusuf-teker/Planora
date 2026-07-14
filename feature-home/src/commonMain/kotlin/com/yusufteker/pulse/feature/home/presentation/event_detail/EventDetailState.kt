@@ -38,9 +38,9 @@ data class EventDetailState(
     val isRepeatPickerOpen: Boolean = false,
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
-    val roomMembers: List<com.yusufteker.pulse.shared.api.UserProfileResponse> = emptyList()
+    val roomMembers: List<com.yusufteker.pulse.shared.api.UserProfileResponse> = emptyList(),
+    val subItems: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList()
 )
-
 
 
 private fun LocalTime.plusHours(hours: Int): LocalTime {

@@ -45,7 +45,7 @@ class TaskEditorViewModel(
 
     fun onEvent(event: TaskEditorEvent) {
         when (event) {
-            is TaskEditorEvent.OnLoadTask -> loadTask(event.taskId, event.planRoomId)
+            is TaskEditorEvent.OnLoadTask -> loadTask(event.taskId, event.planRoomId, event.parentId)
             is TaskEditorEvent.TitleChanged -> { _state.update { it.copy(title = event.title) }; autoSave() }
             is TaskEditorEvent.DescriptionChanged -> { _state.update { it.copy(description = event.description) }; autoSave() }
             
@@ -107,7 +107,7 @@ class TaskEditorViewModel(
         }
     }
 
-    private fun loadTask(taskId: String?, planRoomId: String?) {
+    private fun loadTask(taskId: String?, planRoomId: String?, parentId: String?) {
 
         if (taskId == null) {
             viewModelScope.launch {
@@ -117,7 +117,7 @@ class TaskEditorViewModel(
                     mapOf(currentUserId to currentUserName)
                 } else emptyMap()
 
-                _state.value = TaskEditorState(planRoomId = planRoomId, participants = defaultParticipants)
+                _state.value = TaskEditorState(planRoomId = planRoomId, parentId = parentId, participants = defaultParticipants)
                 if (planRoomId != null) {
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }
@@ -139,7 +139,7 @@ class TaskEditorViewModel(
 
         viewModelScope.launch {
             val baseId = taskId.substringBeforeLast("_")
-            _state.update { it.copy(isLoading = true, id = baseId, planRoomId = planRoomId) }
+            _state.update { it.copy(isLoading = true, id = baseId, planRoomId = planRoomId, parentId = parentId) }
 
         // Fetch room members if planRoomId is present
         if (planRoomId != null) {
@@ -162,6 +162,10 @@ class TaskEditorViewModel(
 
             planRepository.observeAllTasks().collect { tasks ->
                 val task = tasks.find { it.id == baseId && it.type == TaskType.TASK }
+                
+                // Fetch sub-items (Tasks and Notes) that belong to this task
+                val subItemsList = tasks.filter { it.parentId == baseId }
+                
                 if (task != null) {
                     val ruleObj = try {
                         task.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.pulse.shared.api.RecurrenceRule>(it) }
@@ -184,6 +188,7 @@ class TaskEditorViewModel(
                             isOptional = task.isOptional,
                             reminders = task.reminders,
                             participants = task.participants,
+                            subItems = subItemsList,
                             isLoading = false
                         ) 
                     }
@@ -235,6 +240,7 @@ class TaskEditorViewModel(
                     priority = com.yusufteker.pulse.shared.api.TaskPriority.MEDIUM,
                     deadline = currentState.deadlineDateMs
                 ),
+                parentId = currentState.parentId,
                 tags = emptyList(),
                 color = null
             )
@@ -284,6 +290,7 @@ class TaskEditorViewModel(
                     priority = TaskPriority.MEDIUM,
                     deadline = currentState.deadlineDateMs
                 ),
+                parentId = currentState.parentId,
                 tags = emptyList(),
                 color = null
             )

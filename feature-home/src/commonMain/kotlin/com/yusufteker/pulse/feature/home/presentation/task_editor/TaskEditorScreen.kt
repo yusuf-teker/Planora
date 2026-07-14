@@ -3,11 +3,14 @@ package com.yusufteker.pulse.feature.home.presentation.task_editor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +31,7 @@ import com.yusufteker.pulse.core.utils.formatShortDate
 import com.yusufteker.pulse.core.utils.formatTime
 import com.yusufteker.pulse.shared.api.TaskStatus
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.*
@@ -36,7 +40,9 @@ import pulsy.core.generated.resources.*
 @Composable
 fun TaskEditorScreen(
     viewModel: TaskEditorViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToFocus: (String) -> Unit = {},
+    onNavigateToCreateNote: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -76,8 +82,44 @@ fun TaskEditorScreen(
                 },
                 actions = {
                     if (state.id != null) {
-                        IconButton(onClick = { viewModel.onEvent(TaskEditorEvent.DeleteClicked) }) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.action_delete), tint = MaterialTheme.colorScheme.error)
+                        IconButton(onClick = { onNavigateToFocus(state.id!!) }) {
+                            Icon(
+                                painterResource(Res.drawable.focus_pulse),
+                                contentDescription = "Odaklan",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        
+                        var showMenu by remember { mutableStateOf(false) }
+                        
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "Daha Fazla",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        viewModel.onEvent(TaskEditorEvent.DeleteClicked)
+                                    }
+                                )
+                            }
                         }
                     }
                     if (state.id == null) {
@@ -97,11 +139,15 @@ fun TaskEditorScreen(
                 CircularProgressIndicator()
             }
         } else {
+
+            val scrollState = rememberScrollState()
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 // Title and Description Section
@@ -214,6 +260,54 @@ fun TaskEditorScreen(
                         )
                     }
                 }
+                // Sub-items (Notes)
+                if (state.id != null) {
+                    FormSection {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Alt Notlar",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(onClick = { onNavigateToCreateNote(state.id!!) }) {
+                                Text("Not Ekle")
+                            }
+                        }
+                        
+                        if (state.subItems.isEmpty()) {
+                            Text(
+                                text = "Henüz bir alt not eklenmemiş.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        } else {
+                            state.subItems.forEach { subItem ->
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { } // Later we can navigate to note detail if needed
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = subItem.title,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }

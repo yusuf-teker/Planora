@@ -23,32 +23,7 @@ import kotlinx.coroutines.launch
 
 import kotlin.random.Random
 
-/**
- * UI State (Arayüz Durumu): Ekrandaki tüm verileri temsil eden durum (State) sınıfı.
- * StateFlow ile dinlendiği için buradaki her değişiklik ekranda anında güncellenir (Recomposition).
- */
-data class SocialState(
-    val isLoading: Boolean = false, 
-    val isLoggedIn: Boolean = false, // Misafir modu kontrolü
-    val selectedTopic: String? = null,
-    val selectedPostForComments: Post? = null, // Yorumlar için tıklanan gönderi
-    val comments: List<Comment> = emptyList(), // O gönderiye ait yorum listesi
-    val isCommentsLoading: Boolean = false,
-    val replyToComment: Comment? = null // Eğer bir yoruma "Yanıtla" denildiyse o yorum
-) : UiState
 
-/**
- * UI Event (Arayüz Etkinliği): Kullanıcının ekranda yaptığı eylemleri (Tıklama, Kaydırma vs.) temsil eder.
- */
-sealed interface SocialEvent : UiEvent {
-    data class OnTopicSelected(val topic: String?) : SocialEvent
-    data class OnPostClicked(val post: Post) : SocialEvent // Gönderiye tıklandığında (Yorumları aç)
-    data object OnCloseComments : SocialEvent // BottomSheet kapatıldığında
-    data class OnReplyClicked(val comment: Comment) : SocialEvent // "Yanıtla" butonuna basıldığında
-    data class OnSubmitComment(val content: String) : SocialEvent // "Gönder" ikonuna basıldığında
-    data class OnBookmarkClicked(val postId: String) : SocialEvent // Bookmark tıklandığında
-}
-sealed interface SocialEffect : UiEffect
 
 class SocialViewModel(
     private val feedRepository: FeedRepository,

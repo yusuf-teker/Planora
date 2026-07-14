@@ -215,6 +215,19 @@ class PlanRepositoryImpl(
             }
         }
     }
+    
+    override suspend fun autoScheduleTasks(taskIds: List<String>): Result<Unit> {
+        return try {
+            val request = com.yusufteker.pulse.shared.api.AutoScheduleRequest(taskIds = taskIds)
+            planApi.autoScheduleTasks(request)
+            
+            // After scheduling, fetch tasks again to update local DB with new times
+            fetchMyTasks()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override suspend fun fetchMyTasks(fromTime: Long?, toTime: Long?): Result<Unit> = withContext(Dispatchers.IO) {
         try {

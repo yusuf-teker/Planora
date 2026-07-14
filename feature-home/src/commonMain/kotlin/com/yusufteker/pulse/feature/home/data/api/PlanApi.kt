@@ -2,6 +2,7 @@ package com.yusufteker.pulse.feature.home.data.api
 
 import com.yusufteker.pulse.shared.api.CreatePlanRoomRequest
 import com.yusufteker.pulse.shared.api.CreateTaskRequest
+import com.yusufteker.pulse.shared.api.AutoScheduleRequest
 import com.yusufteker.pulse.shared.api.InviteUserRequest
 import com.yusufteker.pulse.shared.api.PlanRoomDto
 import com.yusufteker.pulse.shared.api.RespondToInviteRequest
@@ -50,6 +51,12 @@ class PlanApi(private val httpClient: HttpClient) {
                 if (toTime != null) parameters.append("to", toTime.toString())
             }
         }.body()
+    }
+    
+    suspend fun autoScheduleTasks(request: AutoScheduleRequest) {
+        httpClient.post("tasks/auto-schedule") {
+            setBody(request)
+        }
     }
 
     // --- PLAN ROOM ENDPOINTS ---

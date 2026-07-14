@@ -34,7 +34,7 @@ class NoteEditorViewModel(
 
     fun onEvent(event: NoteEditorEvent) {
         when (event) {
-            is NoteEditorEvent.OnLoadNote -> loadNote(event.noteId)
+            is NoteEditorEvent.OnLoadNote -> loadNote(event.noteId, event.planRoomId, event.parentId)
             is NoteEditorEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
             is NoteEditorEvent.OnContentChange -> _state.update { it.copy(content = event.content) }
             NoteEditorEvent.OnSaveClick -> saveNote()
@@ -45,16 +45,16 @@ class NoteEditorViewModel(
         }
     }
 
-    private fun loadNote(noteId: String?) {
+    private fun loadNote(noteId: String?, planRoomId: String? = null, parentId: String? = null) {
         if (noteId == null) {
             // New note: Clear previous state entirely (in case ViewModel is reused)
             val formattedDate = com.yusufteker.pulse.core.utils.formatFullDate(com.yusufteker.pulse.core.utils.getCurrentTimeMs())
-            _state.value = NoteEditorState(dateText = formattedDate)
+            _state.value = NoteEditorState(dateText = formattedDate, planRoomId = planRoomId, parentId = parentId)
             return
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, id = noteId) }
+            _state.update { it.copy(isLoading = true, id = noteId, planRoomId = planRoomId, parentId = parentId) }
             planRepository.observeAllTasks().collect { tasks ->
                 val note = tasks.find { it.id == noteId && it.type == TaskType.NOTE }
                 if (note != null) {
@@ -93,15 +93,15 @@ class NoteEditorViewModel(
                 endTime = now,
                 type = TaskType.NOTE,
                 status = TaskStatus.PENDING,
-                visibility = TaskVisibility.PRIVATE, // Offline-first logic: notes are private initially
-                sharedRoomIds = emptyList(),
+                visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
                 isRecurring = false,
                 recurrenceRule = null,
                 isFlexible = true,
                 isOptional = true,
                 isPostponable = false,
                 isAllDay = false,
-                parentId = null,
+                parentId = currentState.parentId,
                 reminders = emptyList(),
                 specificDetails = ItemDetails.Note(content = currentState.content, attachments = emptyList()),
                 tags = emptyList(),

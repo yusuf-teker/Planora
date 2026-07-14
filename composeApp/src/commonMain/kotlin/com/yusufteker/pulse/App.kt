@@ -232,24 +232,26 @@ fun App() {
 
                     entry<Screen.TaskEditor> { screen ->
                         val viewModel = koinViewModel<TaskEditorViewModel>(
-                            key = "task_editor_${screen.taskId}_${screen.planRoomId}"
+                            key = "task_editor_${screen.taskId}_${screen.planRoomId}_${screen.parentId}"
                         )
-                        LaunchedEffect(screen.taskId, screen.planRoomId) {
-                            viewModel.onEvent(TaskEditorEvent.OnLoadTask(screen.taskId, screen.planRoomId))
+                        LaunchedEffect(screen.taskId, screen.planRoomId, screen.parentId) {
+                            viewModel.onEvent(TaskEditorEvent.OnLoadTask(screen.taskId, screen.planRoomId, screen.parentId))
                         }
                         TaskEditorScreen(
                             viewModel = viewModel,
-                            onNavigateBack = { navigator.pop() }
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToFocus = { id -> navigator.navigate(Screen.Focus(taskId = id)) },
+                            onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) }
                         )
                     }
 
                     entry<Screen.NoteEditor> { screen ->
                         val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorViewModel>(
-                            key = screen.noteId ?: "new_note",
+                            key = screen.noteId ?: "new_note_${screen.parentId}",
                             parameters = { org.koin.core.parameter.parametersOf(screen.noteId) }
                         )
                         androidx.compose.runtime.LaunchedEffect(screen) {
-                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorEvent.OnLoadNote(screen.noteId))
+                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorEvent.OnLoadNote(screen.noteId, screen.planRoomId, screen.parentId))
                         }
                         com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorScreen(
                             viewModel = viewModel,
@@ -267,6 +269,17 @@ fun App() {
                         }
                         EventDetailScreen(
                             viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToCreateTask = { parentId -> navigator.navigate(Screen.TaskEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
+                            onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) }
+                        )
+                    }
+
+                    entry<Screen.Focus> { screen ->
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.home.presentation.focus.FocusViewModel>(key = vmKey)
+                        com.yusufteker.pulse.feature.home.presentation.focus.FocusScreen(
+                            viewModel = viewModel,
+                            taskId = screen.taskId,
                             onNavigateBack = { navigator.pop() }
                         )
                     }

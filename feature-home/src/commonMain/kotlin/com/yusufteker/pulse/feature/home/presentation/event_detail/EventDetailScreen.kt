@@ -37,7 +37,9 @@ import pulsy.core.generated.resources.*
 @Composable
 fun EventDetailScreen(
     viewModel: EventDetailViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToCreateTask: (String) -> Unit = {},
+    onNavigateToCreateNote: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -209,6 +211,57 @@ fun EventDetailScreen(
                             value = stringResource(Res.string.participants_count_pattern, state.participants.size.toString()),
                             onClick = { viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
+                    }
+                }
+                // Sub-items (Tasks and Notes)
+                if (state.id != null) {
+                    FormSection {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Alt Öğeler",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row {
+                                TextButton(onClick = { onNavigateToCreateTask(state.id!!) }) {
+                                    Text("Görev Ekle")
+                                }
+                                TextButton(onClick = { onNavigateToCreateNote(state.id!!) }) {
+                                    Text("Not Ekle")
+                                }
+                            }
+                        }
+                        
+                        if (state.subItems.isEmpty()) {
+                            Text(
+                                text = "Henüz bir alt öğe eklenmemiş.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        } else {
+                            state.subItems.forEach { subItem ->
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { } // Can be hooked to edit screen later
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = subItem.title,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 

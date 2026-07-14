@@ -13,6 +13,7 @@ data class TaskEditorState(
     val originalStartTime: Long? = null,
     val deadlineDateMs: Long? = null,
     val planRoomId: String? = null,
+    val parentId: String? = null,
     val status: TaskStatus = TaskStatus.PENDING,
     val isRecurring: Boolean = false,
     val recurrenceRule: RecurrenceRule? = null,
@@ -24,6 +25,7 @@ data class TaskEditorState(
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
     val roomMembers: List<UserProfileResponse> = emptyList(),
+    val subItems: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 ) : UiState

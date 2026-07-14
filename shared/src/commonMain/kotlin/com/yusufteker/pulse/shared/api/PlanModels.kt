@@ -201,3 +201,8 @@ data class CreateTaskRequest(
     val participants: Map<Int, String> = emptyMap(),
     val isSynced: Boolean = true
 )
+
+@Serializable
+data class AutoScheduleRequest(
+    val taskIds: List<String>
+)

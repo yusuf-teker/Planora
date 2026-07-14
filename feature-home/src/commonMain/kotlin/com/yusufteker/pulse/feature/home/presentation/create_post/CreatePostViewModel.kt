@@ -12,24 +12,7 @@ import org.jetbrains.compose.resources.getString
 import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.*
 
-data class CreatePostState(
-    val content: String = "",
-    val isSaving: Boolean = false,
-    val isEditing: Boolean = false,
-    val originalIsDraft: Boolean = false,
-    val selectedTopic: String = "GENERAL"
-) : UiState
 
-sealed interface CreatePostEvent : UiEvent {
-    data class OnPost(val content: String) : CreatePostEvent
-    data class OnSaveDraft(val content: String) : CreatePostEvent
-    data class OnTopicSelected(val topic: String) : CreatePostEvent
-}
-
-sealed interface CreatePostEffect : UiEffect {
-    data object NavigateBack : CreatePostEffect
-    data class ShowError(val message: String) : CreatePostEffect
-}
 
 class CreatePostViewModel(
     private val postId: String?,

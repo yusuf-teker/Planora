@@ -11,19 +11,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-data class PendingPostsState(
-    val posts: List<PendingPostEntity> = emptyList(),
-    val isLoading: Boolean = true
-) : UiState
 
-sealed interface PendingPostsEvent : UiEvent {
-    data class OnPostClicked(val postId: String) : PendingPostsEvent
-    data class OnDeleteClicked(val postId: String) : PendingPostsEvent
-}
-
-sealed interface PendingPostsEffect : UiEffect {
-    data class NavigateToEditPost(val postId: String) : PendingPostsEffect
-}
 
 class PendingPostsViewModel(
     private val postRepository: PostRepository

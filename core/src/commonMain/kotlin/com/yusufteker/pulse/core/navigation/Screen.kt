@@ -77,16 +77,23 @@ sealed interface Screen {
     data class PlanRoomDetail(val roomId: String) : Screen
     
     @Serializable
-    data class TaskEditor(val taskId: String? = null, val planRoomId: String? = null) : Screen
+    data class TaskEditor(val taskId: String? = null, val planRoomId: String? = null, val parentId: String? = null) : Screen
 
     @Serializable
-    data class NoteEditor(val noteId: String? = null) : Screen
+    data class NoteEditor(val noteId: String? = null, val planRoomId: String? = null, val parentId: String? = null) : Screen
 
     @Serializable
     data class EventDetail(val eventId: String? = null, val planRoomId: String? = null) : Screen
     
     @Serializable
     data object AiChat : Screen
+
+    /**
+     * Odaklanma (Focus/Pomodoro) Ekranı
+     * Belirli bir göreve odaklanmak için kullanılır.
+     */
+    @Serializable
+    data class Focus(val taskId: String? = null) : Screen
 
 
     /**  

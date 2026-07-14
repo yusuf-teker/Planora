@@ -11,6 +11,7 @@ import com.yusufteker.pulse.server.database.tables.TaskSharedRoomsTable
 import com.yusufteker.pulse.server.database.tables.TasksTable
 import com.yusufteker.pulse.server.database.tables.UserEntity
 import com.yusufteker.pulse.shared.api.CreateTaskRequest
+import com.yusufteker.pulse.shared.api.AutoScheduleRequest
 import com.yusufteker.pulse.shared.api.RoomMemberStatus
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskVisibility
@@ -45,6 +46,46 @@ fun Route.taskRoutes() {
     authenticate("auth-jwt") {
 
         route("/tasks") {
+            post("/auto-schedule") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@post
+                }
+                
+                val request = call.receiveNullable<AutoScheduleRequest>()
+                if (request == null || request.taskIds.isEmpty()) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid request body")
+                    return@post
+                }
+                
+                var success = false
+                dbQuery {
+                    val tasksToSchedule = TaskEntity.find { 
+                        (TasksTable.id inList request.taskIds) and (TasksTable.creatorId eq userId)
+                    }.toList()
+                    
+                    var currentTime = System.currentTimeMillis()
+                    
+                    tasksToSchedule.forEach { task ->
+                        // Schedule each task for 30 mins sequentially
+                        task.startTime = currentTime
+                        task.endTime = currentTime + (30 * 60 * 1000)
+                        task.isFlexible = false
+                        
+                        currentTime += (30 * 60 * 1000)
+                    }
+                    success = true
+                }
+                
+                if (success) {
+                    call.respond(HttpStatusCode.OK, "Tasks scheduled successfully")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError)
+                }
+            }
+
             // 1. Task/Not oluşturma
             post {
                 val principal = call.principal<JWTPrincipal>()
