@@ -303,9 +303,13 @@ fun Route.planRoomRoutes() {
                     return@post
                 }
 
+                var pushRoomName = ""
+                var pushInviterName = ""
+
                 val success = dbQuery {
                     val room = PlanRoomEntity.findById(roomId) ?: return@dbQuery false
                     val targetUser = UserEntity.findById(request.userId) ?: return@dbQuery false
+                    val inviter = UserEntity.findById(userId) ?: return@dbQuery false
 
                     // Check if current user is an admin of the room
                     val isAdmin = PlanRoomMembersTable.selectAll().where {
@@ -332,10 +336,21 @@ fun Route.planRoomRoutes() {
                         it[role] = RoomMemberRole.MEMBER
                         it[joinedAt] = null
                     }
+                    
+                    pushRoomName = room.name
+                    pushInviterName = inviter.name
                     true
                 }
 
                 if (success) {
+                    if (pushRoomName.isNotBlank()) {
+                        com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                            userId = request.userId,
+                            title = "Yeni Plan Odası Daveti",
+                            body = "$pushInviterName sizi '$pushRoomName' adlı odaya davet etti.",
+                            data = mapOf("type" to "room_invite", "roomId" to roomId)
+                        )
+                    }
                     call.respond(HttpStatusCode.OK, "User invited successfully")
                 } else {
                     call.respond(HttpStatusCode.Forbidden, "Cannot invite user. Either not admin or user already invited.")

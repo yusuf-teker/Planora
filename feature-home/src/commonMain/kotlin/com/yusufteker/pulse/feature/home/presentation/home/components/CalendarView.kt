@@ -175,7 +175,7 @@ fun CalendarView(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = stringResource(Res.string.empty_events_today) + " (Debug - All: ${tasksByDate.values.flatten().size}, Upcoming: ${upcomingTasks.size}, hasLoaded: $hasLoadedTasks)",
+                                    text = stringResource(Res.string.empty_events_today),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

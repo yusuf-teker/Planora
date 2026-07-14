@@ -56,13 +56,21 @@ class GetFilteredTasksUseCase {
         // 4. Calendar filtering
         if (viewOption == TimelineViewOption.CALENDAR) {
             filtered = filtered.filter { task ->
-                val taskDate = Instant.fromEpochMilliseconds(task.startTime)
+                val taskStartDate = Instant.fromEpochMilliseconds(task.startTime)
                     .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                
+                val taskEndDate = task.endTime?.let { 
+                    Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                } ?: taskStartDate
 
                 if (selectedCalendarDate != null) {
-                    taskDate == selectedCalendarDate
+                    selectedCalendarDate in taskStartDate..taskEndDate
                 } else if (visibleCalendarMonth != null) {
-                    taskDate.year == visibleCalendarMonth.year && taskDate.monthNumber == visibleCalendarMonth.monthNumber
+                    val startYearMonth = taskStartDate.year * 12 + taskStartDate.monthNumber
+                    val endYearMonth = taskEndDate.year * 12 + taskEndDate.monthNumber
+                    val targetYearMonth = visibleCalendarMonth.year * 12 + visibleCalendarMonth.monthNumber
+                    
+                    targetYearMonth in startYearMonth..endYearMonth
                 } else {
                     true
                 }

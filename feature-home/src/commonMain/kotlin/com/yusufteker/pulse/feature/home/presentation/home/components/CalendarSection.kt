@@ -20,6 +20,7 @@ import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
@@ -68,21 +69,40 @@ fun CalendarSection(
             filteredTasks = uniqueTasks
         }
 
-        filteredTasks.groupBy { task ->
-            Instant
-                .fromEpochMilliseconds(task.startTime)
-                .toLocalDateTime(TimeZone.currentSystemDefault())
-                .date
+        val tasksMap = mutableMapOf<kotlinx.datetime.LocalDate, MutableList<TaskDto>>()
+        for (task in filteredTasks) {
+            val startDate = Instant.fromEpochMilliseconds(task.startTime)
+                .toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val endDate = task.endTime?.let {
+                Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
+            } ?: startDate
+            
+            var current = startDate
+            while (current <= endDate) {
+                tasksMap.getOrPut(current) { mutableListOf() }.add(task)
+                current = current.plus(1, kotlinx.datetime.DateTimeUnit.DAY)
+            }
         }
+        tasksMap
     }
 
     val sharedTasksByDate = remember(state.sharedTasksByUser) {
         state.sharedTasksByUser.mapValues { (_, tasks) ->
-            tasks.groupBy { task ->
-                Instant.fromEpochMilliseconds(task.startTime)
-                    .toLocalDateTime(TimeZone.currentSystemDefault())
-                    .date
+            val tasksMap = mutableMapOf<kotlinx.datetime.LocalDate, MutableList<TaskDto>>()
+            for (task in tasks) {
+                val startDate = Instant.fromEpochMilliseconds(task.startTime)
+                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val endDate = task.endTime?.let {
+                    Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                } ?: startDate
+                
+                var current = startDate
+                while (current <= endDate) {
+                    tasksMap.getOrPut(current) { mutableListOf() }.add(task)
+                    current = current.plus(1, kotlinx.datetime.DateTimeUnit.DAY)
+                }
             }
+            tasksMap
         }
     }
 
