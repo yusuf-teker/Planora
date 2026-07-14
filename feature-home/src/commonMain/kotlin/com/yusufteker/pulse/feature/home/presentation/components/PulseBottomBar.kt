@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import com.yusufteker.pulse.core.ui.components.bounceClick
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -163,6 +164,7 @@ fun PulseBottomBar(
                     color = surfaceColor,
                     shape = CircleShape
                 )
+                .bounceClick()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -190,6 +192,7 @@ private fun PulseBottomNavItem(
     Box(
         modifier = modifier
             .height(64.dp)
+            .bounceClick()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

@@ -45,20 +45,48 @@ fun EmptyStateComponent(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(32.dp)
         ) {
+            val pulseScale by infiniteTransition.animateFloat(
+                initialValue = 0.8f,
+                targetValue = 1.2f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                )
+            )
+
             Box(
                 modifier = Modifier
                     .graphicsLayer { translationY = floatAnim }
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    .size(160.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                // Outer pulse circle
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .graphicsLayer { 
+                            scaleX = pulseScale
+                            scaleY = pulseScale
+                            alpha = 1.5f - pulseScale // Fade out as it expands
+                        }
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
                 )
+                // Inner circle
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
             Text(

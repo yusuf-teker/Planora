@@ -31,6 +31,7 @@ import com.yusufteker.pulse.feature.home.presentation.home.components.CalendarSe
 import com.yusufteker.pulse.feature.home.presentation.home.components.FilterBottomSheetComponent
 import com.yusufteker.pulse.feature.home.presentation.home.components.HomeFabMenu
 import com.yusufteker.pulse.feature.home.presentation.home.components.HomeTopBar
+import com.yusufteker.pulse.feature.home.presentation.home.components.SharedUserChipRow
 import com.yusufteker.pulse.feature.home.presentation.home.components.TimelineSection
 
 /**
@@ -84,7 +85,7 @@ fun HomeScreen(
     var isFabExpanded by remember { mutableStateOf(false) }
 
     if (state.isPreferencesLoading || !state.hasLoadedTasks) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
@@ -98,46 +99,45 @@ fun HomeScreen(
             }, onCreateEvent = {
                 viewModel.onEvent(HomeEvent.CreateEventClicked)
             })
-        }, containerColor = Color.Transparent
+        }, containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-                .padding(paddingValues).padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.Start,
         ) {
 
             // Header (Pulsy Top Bar)
-            HomeTopBar(
-                state = state, onEvent = viewModel::onEvent
-            )
-
-            // Shared Users row
-            com.yusufteker.pulse.feature.home.presentation.home.components.SharedUserChipRow(
-                accessibleUsers = state.accessibleUsers,
-                selectedUserIds = state.selectedSharedUserIds,
-                onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Calendar View
-            if (state.viewOption == TimelineViewOption.CALENDAR) {
-                CalendarSection(
+                HomeTopBar(
                     state = state, onEvent = viewModel::onEvent
                 )
-            } else {
-                // Timeline
-                TimelineSection(
-                    state = state, 
-                    onTaskClick = {
-                        viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
-                    },
-                    modifier = Modifier.weight(1f).fillMaxWidth()
-                )
-            }
 
+                // Shared Users row
+                SharedUserChipRow(
+                    accessibleUsers = state.accessibleUsers,
+                    selectedUserIds = state.selectedSharedUserIds,
+                    onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Calendar View
+                if (state.viewOption == TimelineViewOption.CALENDAR) {
+                    CalendarSection(
+                        state = state, onEvent = viewModel::onEvent
+                    )
+                } else {
+                    // Timeline
+                    TimelineSection(
+                        state = state, 
+                        onTaskClick = {
+                            viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
+                        },
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    )
+                }
+
+            }
         }
-    }
 
     if (state.isFilterSheetVisible) {
         FilterBottomSheetComponent(

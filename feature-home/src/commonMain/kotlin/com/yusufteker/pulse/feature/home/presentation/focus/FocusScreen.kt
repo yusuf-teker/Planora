@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yusufteker.pulse.core.ui.components.ParticleBurstEffect
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -142,6 +143,14 @@ fun FocusScreen(
                 modifier = Modifier.size(280.dp)
             ) {
                 FocusBreathingCircle(isRunning = state.isRunning)
+                
+                if (state.isFinished) {
+                    ParticleBurstEffect(
+                        modifier = Modifier.fillMaxSize(),
+                        particleColor = MaterialTheme.colorScheme.primary,
+                        particleCount = 60
+                    )
+                }
                 
                 // Time
                 val minutes = state.timeRemainingSeconds / 60

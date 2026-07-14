@@ -131,7 +131,7 @@ fun PulsyTheme(
     CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = PulsyTypography,
+            typography = getPulsyTypography(),
             shapes = PulsyShapes,
             content = content
         )

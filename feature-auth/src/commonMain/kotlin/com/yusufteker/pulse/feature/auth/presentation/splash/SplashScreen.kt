@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +26,7 @@ import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 
 /**
  * Splash screen composable.
@@ -50,6 +53,16 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-    )
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Pulsy",
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
+            ),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
 }
