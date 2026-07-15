@@ -19,7 +19,7 @@ class SubmitSmartInputUseCase(
         val mentionedUser = followers.find { text.contains(it.username, ignoreCase = true) }
 
         val participantsMap = if (mentionedUser != null) {
-            mapOf(mentionedUser.id to "PENDING")
+            mapOf(mentionedUser.id to mentionedUser.username)
         } else {
             emptyMap()
         }

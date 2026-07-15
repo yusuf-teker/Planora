@@ -241,13 +241,16 @@ private fun CalendarMonthGrid(
                     
                     if (dayNum in 1..daysInMonth) {
                         val date = LocalDate(monthDate.year, monthDate.monthNumber, dayNum)
-                        val sharedColors = mutableListOf<androidx.compose.ui.graphics.Color>()
+                        val otherTasksColors = mutableListOf<Color>()
                         selectedSharedUserIds.forEach { userId ->
                             val userTasks = sharedTasksByDate[userId]?.get(date)
                             if (!userTasks.isNullOrEmpty()) {
                                 sharedUserColors[userId]?.let { colorStr ->
                                     try {
-                                        sharedColors.add(androidx.compose.ui.graphics.Color(colorStr.removePrefix("#").toLong(16) or 0x00000000FF000000))
+                                        val color = Color(colorStr.removePrefix("#").toLong(16) or 0x00000000FF000000)
+                                        repeat(userTasks.size) {
+                                            otherTasksColors.add(color)
+                                        }
                                     } catch (e: Exception) {}
                                 }
                             }
@@ -258,7 +261,7 @@ private fun CalendarMonthGrid(
                             isToday = date == today,
                             isSelected = date == selectedDate,
                             tasks = tasksByDate[date] ?: emptyList(),
-                            sharedColors = sharedColors,
+                            sharedColors = otherTasksColors,
                             onClick = { onDateSelected(date) },
                             modifier = Modifier.weight(1f)
                         )
@@ -314,48 +317,82 @@ private fun CalendarDayCell(
         Spacer(modifier = Modifier.height(2.dp))
 
         // Avatars / Markers for tasks
-        val hasMyTasks = tasks.isNotEmpty()
-        if (hasMyTasks || sharedColors.isNotEmpty()) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Noktalar yan yana
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (hasMyTasks) {
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 1.dp)
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
+        val myTasks = tasks.filter { it.participants.size <= 1 && it.sharedRoomIds.isEmpty() }
+        val sharedTasks = tasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
+        
+        if (myTasks.isNotEmpty() || sharedTasks.isNotEmpty() || sharedColors.isNotEmpty()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                // Row 1: My Tasks (Max 3)
+                if (myTasks.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val count = minOf(myTasks.size, 3)
+                        repeat(count) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 1.dp)
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
                     }
-                    if (sharedColors.size == 1) {
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 1.dp)
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(sharedColors[0])
-                        )
-                    } else if (sharedColors.size > 1) {
-                        MultiColorDot(
-                            colors = sharedColors,
-                            size = 6.dp,
-                            modifier = Modifier.padding(horizontal = 1.dp)
-                        )
+                }
+                
+                // Row 2: Shared Tasks (Max 3)
+                if (sharedTasks.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val count = minOf(sharedTasks.size, 3)
+                        val sharedDotColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
+                        repeat(count) {
+                            MultiColorDot(
+                                colors = sharedDotColors,
+                                size = 4.dp,
+                                modifier = Modifier.padding(horizontal = 1.dp)
+                            )
+                        }
+                    }
+                }
+                
+                // Row 3: Others' Tasks (Max 3)
+                if (sharedColors.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val count = minOf(sharedColors.size, 3)
+                        for (i in 0 until count) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 1.dp)
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(sharedColors[i])
+                            )
+                        }
                     }
                 }
 
+                // Görev ismi (ilk görev için)
                 for (task in tasks.take(1)) {
-                    Text(
+                    androidx.compose.material3.Text(
                         text = task.title,
-                        textAlign = TextAlign.Center,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both // Görev ismindeki boşluğu da keser
+                            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both
                             )
                         ),
                         maxLines = 1,

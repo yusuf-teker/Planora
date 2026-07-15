@@ -194,7 +194,8 @@ class TaskEditorViewModel(
                             reminders = task.reminders,
                             participants = task.participants,
                             subItems = subItemsList,
-                            isLoading = false
+                            isLoading = false,
+                            parentId = task.parentId
                         ) 
                     }
                 } else {

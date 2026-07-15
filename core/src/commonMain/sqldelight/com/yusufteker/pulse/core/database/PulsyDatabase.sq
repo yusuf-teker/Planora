@@ -275,6 +275,9 @@ SELECT * FROM taskEntity WHERE isSynced = 0;
 updateTaskSyncStatus:
 UPDATE taskEntity SET isSynced = :isSynced WHERE id = :id;
 
+updateChildTaskParentIds:
+UPDATE taskEntity SET parentId = :newParentId WHERE parentId = :oldParentId;
+
 -- 6. CALENDAR ACCESS
 CREATE TABLE calendarAccessEntity (
     userId INTEGER NOT NULL PRIMARY KEY,

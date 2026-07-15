@@ -139,7 +139,7 @@ fun Route.taskRoutes() {
                         TaskParticipantsTable.insert {
                             it[taskId] = newTaskId
                             it[TaskParticipantsTable.userId] = pId
-                            it[status] = "PENDING"
+                            it[status] = "ACCEPTED"
                             if (pId == userId) {
                                 it[reminders] = if (request.reminders.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(request.reminders) else null
                             }
@@ -294,7 +294,7 @@ fun Route.taskRoutes() {
                                 TaskParticipantsTable.insert {
                                     it[TaskParticipantsTable.taskId] = taskId
                                     it[TaskParticipantsTable.userId] = pId
-                                    it[TaskParticipantsTable.status] = "PENDING"
+                                    it[TaskParticipantsTable.status] = "ACCEPTED"
                                 }
                             }
 
@@ -475,9 +475,9 @@ fun Route.taskRoutes() {
                             emptyList()
                         }
                         
-                        val participantsMap = TaskParticipantsTable.selectAll()
+                        val participantsMap = (TaskParticipantsTable innerJoin com.yusufteker.pulse.server.database.tables.UsersTable).selectAll()
                             .where { TaskParticipantsTable.taskId eq entity.id.value }
-                            .associate { it[TaskParticipantsTable.userId] to it[TaskParticipantsTable.status] }
+                            .associate { it[TaskParticipantsTable.userId] to it[com.yusufteker.pulse.server.database.tables.UsersTable.name] }
 
                         TaskDto(
                             id = entity.id.value,
@@ -571,9 +571,9 @@ fun Route.taskRoutes() {
                             .where { TaskSharedRoomsTable.taskId eq entity.id.value }
                             .map { it[TaskSharedRoomsTable.roomId] }
 
-                        val participantsMap = TaskParticipantsTable.selectAll()
+                        val participantsMap = (TaskParticipantsTable innerJoin com.yusufteker.pulse.server.database.tables.UsersTable).selectAll()
                             .where { TaskParticipantsTable.taskId eq entity.id.value }
-                            .associate { it[TaskParticipantsTable.userId] to it[TaskParticipantsTable.status] }
+                            .associate { it[TaskParticipantsTable.userId] to it[com.yusufteker.pulse.server.database.tables.UsersTable.name] }
 
                         TaskDto(
                             id = entity.id.value,

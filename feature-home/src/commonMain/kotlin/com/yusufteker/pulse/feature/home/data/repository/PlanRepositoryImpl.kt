@@ -178,6 +178,7 @@ class PlanRepositoryImpl(
                                 database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(entity.id)
                                 database.pulsyDatabaseQueries.deleteTaskById(entity.id)
                                 database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                                database.pulsyDatabaseQueries.updateChildTaskParentIds(newParentId = remoteTask.id, oldParentId = entity.id)
                                 remoteTask.sharedRoomIds.forEach { roomId ->
                                     database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
                                 }

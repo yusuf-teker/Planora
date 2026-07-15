@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -260,25 +261,58 @@ fun TimelineTaskCard(
             }
 
             // Participants / Shared User
-            val participantsList =
-                task.participants.filterValues { it != "PENDING" }.values.toList()
-            if (participantsList.isNotEmpty() || sharedUserAvatar != null) {
+            val participantsList = task.participants.filterValues { it != "PENDING" }.values.toList()
+            val isShared = task.participants.size > 1 || task.sharedRoomIds.isNotEmpty()
+
+            if (isShared || sharedUserAvatar != null) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (sharedUserAvatar != null) {
-                        com.yusufteker.pulse.core.ui.components.AvatarImage(
-                            avatarId = sharedUserAvatar,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .border(1.dp, sharedUserColor ?: Color.Transparent, CircleShape)
-                        )
+                    // Left Side: Shared Task Indicator
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isShared) {
+                            Icon(
+                                imageVector = Icons.Default.Group,
+                                contentDescription = "Ortak Görev",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Ortak",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
+                    // Right Side: Avatars/Participants
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (sharedUserAvatar != null) {
+                            com.yusufteker.pulse.core.ui.components.AvatarImage(
+                                avatarId = sharedUserAvatar,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, sharedUserColor ?: Color.Transparent, CircleShape)
+                            )
+                        } else if (participantsList.isNotEmpty()) {
+                            val displayText = if (participantsList.size <= 2) {
+                                participantsList.joinToString(", ")
+                            } else {
+                                "${participantsList.take(2).joinToString(", ")} +${participantsList.size - 2}"
+                            }
+                            Text(
+                                text = displayText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
                 }
             }
         }

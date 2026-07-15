@@ -85,8 +85,12 @@ val homeModule = module {
         )
     }
     viewModel { params ->
+        val (noteId: String?, planRoomId: String?, parentId: String?) = params
+        
         NoteEditorViewModel(
-            noteId = params.getOrNull(),
+            noteId = noteId,
+            planRoomId = planRoomId,
+            parentId = parentId,
             planRepository = get(),
             sessionPreferences = get(),
             cloudAiManager = get()

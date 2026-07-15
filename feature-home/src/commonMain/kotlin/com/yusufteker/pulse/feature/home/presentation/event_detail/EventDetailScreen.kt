@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +40,9 @@ fun EventDetailScreen(
     viewModel: EventDetailViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToCreateTask: (String) -> Unit = {},
-    onNavigateToCreateNote: (String) -> Unit = {}
+    onNavigateToCreateNote: (String) -> Unit = {},
+    onNavigateToEditTask: (String) -> Unit = {},
+    onNavigateToEditNote: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -81,8 +84,35 @@ fun EventDetailScreen(
                 },
                 actions = {
                     if (state.id != null) {
-                        IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnDeleteClick) }) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.action_delete), tint = MaterialTheme.colorScheme.error)
+                        var showMenu by remember { mutableStateOf(false) }
+                        
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "Daha Fazla",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        viewModel.onEvent(EventDetailEvent.OnDeleteClick)
+                                    }
+                                )
+                            }
                         }
                     }
                     TextButton(onClick = { viewModel.onEvent(EventDetailEvent.OnSaveClick) }) {
@@ -204,12 +234,21 @@ fun EventDetailScreen(
                 }
 
                 // Context specific: Plan Room Participants
-                if (state.planRoomId != null) {
+                if (state.planRoomId != null || state.participants.isNotEmpty()) {
                     FormSection {
+                        val participantsText = if (state.participants.isEmpty()) {
+                            stringResource(Res.string.option_not_selected)
+                        } else {
+                            state.participants.values.joinToString(", ")
+                        }
                         FormRow(
                             label = stringResource(Res.string.participants_label),
-                            value = stringResource(Res.string.participants_count_pattern, state.participants.size.toString()),
-                            onClick = { viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(true)) }
+                            value = participantsText,
+                            onClick = { 
+                                if (state.planRoomId != null) {
+                                    viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(true)) 
+                                }
+                            }
                         )
                     }
                 }
@@ -251,7 +290,13 @@ fun EventDetailScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { } // Can be hooked to edit screen later
+                                        .clickable {
+                                            if (subItem.type == com.yusufteker.pulse.shared.api.TaskType.NOTE) {
+                                                onNavigateToEditNote(subItem.id)
+                                            } else {
+                                                onNavigateToEditTask(subItem.id)
+                                            }
+                                        }
                                         .padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {

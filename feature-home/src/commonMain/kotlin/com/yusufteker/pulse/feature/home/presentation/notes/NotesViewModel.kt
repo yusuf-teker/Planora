@@ -13,7 +13,7 @@ class NotesViewModel(
     init {
         launch {
             planRepository.observeAllTasks().collect { tasks ->
-                val notes = tasks.filter { it.type == TaskType.NOTE }
+                val notes = tasks.filter { it.type == TaskType.NOTE && it.parentId == null }
                 setState { copy(notes = notes) }
             }
         }

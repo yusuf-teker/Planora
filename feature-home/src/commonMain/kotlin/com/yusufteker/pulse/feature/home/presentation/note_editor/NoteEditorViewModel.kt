@@ -18,6 +18,8 @@ import kotlinx.datetime.Clock
 
 class NoteEditorViewModel(
     private val noteId: String?,
+    private val planRoomId: String?,
+    private val parentId: String?,
     private val planRepository: PlanRepository,
     private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences,
     private val cloudAiManager: com.yusufteker.pulse.core.ai.CloudAiManager
@@ -30,7 +32,7 @@ class NoteEditorViewModel(
     val effect = _effect.asSharedFlow()
 
     init {
-        loadNote(noteId)
+        loadNote(noteId, planRoomId, parentId)
     }
 
     fun onEvent(event: NoteEditorEvent) {
@@ -125,7 +127,8 @@ class NoteEditorViewModel(
                             title = note.title,
                             content = note.description ?: "",
                             isLoading = false,
-                            dateText = formattedDate
+                            dateText = formattedDate,
+                            parentId = note.parentId
                         ) 
                     }
                 } else {

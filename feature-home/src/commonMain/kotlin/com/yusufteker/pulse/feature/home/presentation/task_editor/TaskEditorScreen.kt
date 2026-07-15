@@ -42,7 +42,8 @@ fun TaskEditorScreen(
     viewModel: TaskEditorViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToFocus: (String) -> Unit = {},
-    onNavigateToCreateNote: (String) -> Unit = {}
+    onNavigateToCreateNote: (String) -> Unit = {},
+    onNavigateToEditNote: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -246,7 +247,7 @@ fun TaskEditorScreen(
                 }
 
                 // Context specific: Plan Room Participants
-                if (state.planRoomId != null) {
+                if (state.planRoomId != null || state.participants.isNotEmpty()) {
                     FormSection {
                         val participantsText = if (state.participants.isEmpty()) {
                             stringResource(Res.string.option_not_selected)
@@ -256,7 +257,11 @@ fun TaskEditorScreen(
                         FormRow(
                             label = stringResource(Res.string.assignees_label),
                             value = participantsText,
-                            onClick = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) }
+                            onClick = { 
+                                if (state.planRoomId != null) {
+                                    viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) 
+                                }
+                            }
                         )
                     }
                 }
@@ -293,7 +298,9 @@ fun TaskEditorScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { } // Later we can navigate to note detail if needed
+                                        .clickable {
+                                            onNavigateToEditNote(subItem.id)
+                                        }
                                         .padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
