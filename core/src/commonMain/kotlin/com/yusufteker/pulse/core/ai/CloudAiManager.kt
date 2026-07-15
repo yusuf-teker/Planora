@@ -372,4 +372,83 @@ class CloudAiManager(
             replyText = finalReplyText
         )
     }
+
+    suspend fun editNoteContent(currentTitle: String, currentContent: String, userPrompt: String): Pair<String, String>? {
+        if (apiKey.isEmpty() || apiKey == "YOUR_FREE_GEMINI_API_KEY_HERE") return null
+        if (!hasQuotaAvailable()) return null
+
+        try {
+            recordRequest()
+
+            val systemInstruction = """
+                Sen Pulse adlı görev/not asistanısın. Kullanıcı sana var olan bir notun başlığını, içeriğini ve bu not üzerinde yapmak istediği değişikliği (prompt) verecek.
+                Senden istenen, bu prompta göre notun başlığını ve içeriğini güncellemek ve JSON formatında dönmek. Çok fazla uzatma, net ve öz ol.
+                LÜTFEN liste, başlıklar veya birden fazla özellik (örneğin servisler, kategoriler vb.) eklendiğinde MUTLAKA satır atla (\n kullan). Metinlerin alt alta okunaklı ve iyi formatlanmış olması çok önemlidir.
+                Yanıtın SADECE JSON formatında olmalı.
+            """.trimIndent()
+
+            val fullInput = """
+                Mevcut Başlık: $currentTitle
+                Mevcut İçerik: $currentContent
+                
+                İstenen Değişiklik: $userPrompt
+            """.trimIndent()
+
+            val requestBody = buildJsonObject {
+                put("contents", JsonArray(listOf(
+                    buildJsonObject {
+                        put("parts", JsonArray(listOf(
+                            buildJsonObject { put("text", JsonPrimitive(fullInput)) }
+                        )))
+                    }
+                )))
+                put("systemInstruction", buildJsonObject {
+                    put("parts", JsonArray(listOf(
+                        buildJsonObject { put("text", JsonPrimitive(systemInstruction)) }
+                    )))
+                })
+                put("generationConfig", buildJsonObject {
+                    put("responseMimeType", JsonPrimitive("application/json"))
+                    put("maxOutputTokens", JsonPrimitive(500)) // Kısa ve öz yanıt için limit
+                    put("responseSchema", buildJsonObject {
+                        put("type", JsonPrimitive("OBJECT"))
+                        put("properties", buildJsonObject {
+                            put("newTitle", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                            put("newContent", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                        })
+                        put("required", JsonArray(listOf(JsonPrimitive("newTitle"), JsonPrimitive("newContent"))))
+                    })
+                })
+            }
+
+            val response = httpClient.post(apiUrl) {
+                contentType(ContentType.Application.Json)
+                setBody(requestBody)
+            }
+
+            val responseBody = response.body<JsonObject>()
+            val candidates = responseBody["candidates"]?.jsonArray
+            val textResponse = candidates?.get(0)?.jsonObject
+                ?.get("content")?.jsonObject
+                ?.get("parts")?.jsonArray
+                ?.get(0)?.jsonObject
+                ?.get("text")?.jsonPrimitive?.content
+
+            if (textResponse != null) {
+                val json = Json { ignoreUnknownKeys = true }
+                var fixedJsonString = textResponse.trim()
+                if (fixedJsonString.startsWith("```json")) fixedJsonString = fixedJsonString.removePrefix("```json").trim()
+                else if (fixedJsonString.startsWith("```")) fixedJsonString = fixedJsonString.removePrefix("```").trim()
+                if (fixedJsonString.endsWith("```")) fixedJsonString = fixedJsonString.removeSuffix("```").trim()
+
+                val parsed = json.parseToJsonElement(fixedJsonString).jsonObject
+                val newTitle = parsed["newTitle"]?.jsonPrimitive?.content?.replace("\\n", "\n") ?: currentTitle
+                val newContent = parsed["newContent"]?.jsonPrimitive?.content?.replace("\\n", "\n") ?: currentContent
+                return Pair(newTitle, newContent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
 }

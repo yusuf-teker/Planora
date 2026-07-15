@@ -19,7 +19,8 @@ import kotlinx.datetime.Clock
 class NoteEditorViewModel(
     private val noteId: String?,
     private val planRepository: PlanRepository,
-    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences
+    private val sessionPreferences: com.yusufteker.pulse.core.preferences.SessionPreferences,
+    private val cloudAiManager: com.yusufteker.pulse.core.ai.CloudAiManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NoteEditorState())
@@ -42,6 +43,66 @@ class NoteEditorViewModel(
             NoteEditorEvent.OnBackClick -> {
                 saveNote() // auto-save on back
             }
+            is NoteEditorEvent.OnAiActionClick -> processAiPrompt(event.prompt)
+            NoteEditorEvent.OnAiCancelClick -> cancelAiProcessing()
+            NoteEditorEvent.OnAiPreviewAccept -> acceptAiPreview()
+            NoteEditorEvent.OnAiPreviewReject -> rejectAiPreview()
+        }
+    }
+
+    private var aiJob: kotlinx.coroutines.Job? = null
+
+    private fun processAiPrompt(prompt: String) {
+        val currentTitle = _state.value.title
+        val currentContent = _state.value.content
+
+        aiJob?.cancel()
+        aiJob = viewModelScope.launch {
+            _state.update { it.copy(isAiLoading = true) }
+            val result = cloudAiManager.editNoteContent(currentTitle, currentContent, prompt)
+            
+            if (result != null) {
+                _state.update { 
+                    it.copy(
+                        isAiLoading = false,
+                        aiPreviewTitle = result.first,
+                        aiPreviewContent = result.second
+                    )
+                }
+            } else {
+                _state.update { it.copy(isAiLoading = false) }
+                setEffect(NoteEditorEffect.ShowToast("Yapay zeka ile bağlantı kurulamadı veya kota doldu."))
+            }
+        }
+    }
+
+    private fun cancelAiProcessing() {
+        aiJob?.cancel()
+        _state.update { it.copy(isAiLoading = false) }
+    }
+
+    private fun acceptAiPreview() {
+        val previewTitle = _state.value.aiPreviewTitle
+        val previewContent = _state.value.aiPreviewContent
+
+        if (previewTitle != null && previewContent != null) {
+            _state.update { 
+                it.copy(
+                    title = previewTitle,
+                    content = previewContent,
+                    aiPreviewTitle = null,
+                    aiPreviewContent = null
+                )
+            }
+        }
+    }
+
+    private fun rejectAiPreview() {
+        _state.update { 
+            it.copy(
+                aiPreviewTitle = null,
+                aiPreviewContent = null
+            )
         }
     }
 

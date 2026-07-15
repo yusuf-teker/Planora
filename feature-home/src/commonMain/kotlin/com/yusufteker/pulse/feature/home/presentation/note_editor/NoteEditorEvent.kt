@@ -7,4 +7,8 @@ sealed class NoteEditorEvent {
     object OnSaveClick : NoteEditorEvent()
     object OnDeleteClick : NoteEditorEvent()
     object OnBackClick : NoteEditorEvent()
+    data class OnAiActionClick(val prompt: String) : NoteEditorEvent()
+    object OnAiCancelClick : NoteEditorEvent()
+    object OnAiPreviewAccept : NoteEditorEvent()
+    object OnAiPreviewReject : NoteEditorEvent()
 }

@@ -8,5 +8,8 @@ data class NoteEditorState(
     val error: String? = null,
     val dateText: String = "",
     val planRoomId: String? = null,
-    val parentId: String? = null
+    val parentId: String? = null,
+    val isAiLoading: Boolean = false,
+    val aiPreviewTitle: String? = null,
+    val aiPreviewContent: String? = null
 )

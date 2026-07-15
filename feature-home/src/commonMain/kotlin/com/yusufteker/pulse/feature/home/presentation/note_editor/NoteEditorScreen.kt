@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -167,47 +169,129 @@ fun NoteEditorScreen(
                 
                 // AI Alanı - Profesyonel Alt Bar Tasarımı
                 var aiQuery by remember { mutableStateOf("") }
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    OutlinedTextField(
-                        value = aiQuery,
-                        onValueChange = { aiQuery = it },
-                        placeholder = { Text(stringResource(Res.string.note_ai_placeholder)) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { 
-                                    // TODO: Trigger AI Action 
-                                    if (aiQuery.isNotBlank()) {
-                                        // Just clear for now to show interaction
-                                        aiQuery = ""
-                                    }
-                                },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AutoAwesome, 
-                                    contentDescription = "AI", 
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        maxLines = 3
+                
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    // Yükleme Göstergesi
+                    if (state.isAiLoading) {
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Notunuz düzenleniyor...",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = aiQuery,
+                            onValueChange = { aiQuery = it },
+                            placeholder = { Text(stringResource(Res.string.note_ai_placeholder)) },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        if (state.isAiLoading) {
+                                            viewModel.onEvent(NoteEditorEvent.OnAiCancelClick)
+                                        } else {
+                                            if (aiQuery.isNotBlank()) {
+                                                viewModel.onEvent(NoteEditorEvent.OnAiActionClick(aiQuery))
+                                                aiQuery = ""
+                                            }
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = if (state.isAiLoading) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = if (state.isAiLoading) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = if (state.isAiLoading) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, 
+                                        contentDescription = if (state.isAiLoading) "Durdur" else "Gönder"
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(24.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            maxLines = 3,
+                            enabled = !state.isAiLoading
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (state.aiPreviewTitle != null) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onEvent(NoteEditorEvent.OnAiPreviewReject) },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = "AI",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Yapay Zeka Önerisi",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = state.aiPreviewTitle ?: "",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = state.aiPreviewContent ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnAiPreviewReject) }) {
+                        Text("İptal")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { viewModel.onEvent(NoteEditorEvent.OnAiPreviewAccept) }) {
+                        Text("Uygula")
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

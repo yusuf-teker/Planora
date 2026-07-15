@@ -88,7 +88,8 @@ val homeModule = module {
         NoteEditorViewModel(
             noteId = params.getOrNull(),
             planRepository = get(),
-            sessionPreferences = get()
+            sessionPreferences = get(),
+            cloudAiManager = get()
         )
     }
     viewModel { params ->
