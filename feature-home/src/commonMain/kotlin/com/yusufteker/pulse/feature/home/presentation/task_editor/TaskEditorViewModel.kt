@@ -117,7 +117,12 @@ class TaskEditorViewModel(
                     mapOf(currentUserId to currentUserName)
                 } else emptyMap()
 
-                _state.value = TaskEditorState(planRoomId = planRoomId, parentId = parentId, participants = defaultParticipants)
+                _state.value = TaskEditorState(
+                    planRoomId = planRoomId, 
+                    parentId = parentId, 
+                    participants = defaultParticipants,
+                    deadlineDateMs = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                )
                 if (planRoomId != null) {
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }

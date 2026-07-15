@@ -75,6 +75,10 @@ fun TimelineTaskCard(
         Color.Black.copy(alpha = if (isCompleted) 0.02f else 0.05f)
     }
 
+    val startDateStr = com.yusufteker.pulse.core.utils.formatShortDate(task.startTime)
+    val endDateStr = if (task.endTime != null) com.yusufteker.pulse.core.utils.formatShortDate(task.endTime!!) else null
+    val isMultiDay = task.endTime != null && startDateStr != endDateStr
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -138,6 +142,17 @@ fun TimelineTaskCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
+                
+                if (task.endTime != null && !isMultiDay && task.type == TaskType.EVENT) {
+                    val endFormatted = formatTime(task.endTime!!).replace(" AM", "").replace(" PM", "")
+                    Text(
+                        text = endFormatted,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
+                        color = typeColor.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             }
         }
 
@@ -164,6 +179,19 @@ fun TimelineTaskCard(
                             .background(typeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
+                    
+                    if (isMultiDay && endDateStr != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "$startDateStr - $endDateStr",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = typeColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .background(typeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                     
                     if (isCompleted) {
                         Spacer(modifier = Modifier.width(6.dp))
@@ -228,22 +256,6 @@ fun TimelineTaskCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
-                )
-            } else if (task.endTime != null && (task.type != TaskType.TASK || task.endTime != task.startTime)) {
-                Spacer(modifier = Modifier.height(4.dp))
-                val startDateStr = com.yusufteker.pulse.core.utils.formatShortDate(task.startTime)
-                val endDateStr = com.yusufteker.pulse.core.utils.formatShortDate(task.endTime!!)
-                
-                val timeText = if (startDateStr != endDateStr && task.type == TaskType.EVENT) {
-                    "$startDateStr - $endDateStr"
-                } else {
-                    "Bitiş: ${formatTime(task.endTime!!)}"
-                }
-                
-                Text(
-                    text = timeText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
 
