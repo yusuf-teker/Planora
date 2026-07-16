@@ -69,7 +69,7 @@ class PlanRepositoryImpl(
                 tags = request.tags,
                 color = request.color,
                 parentId = request.parentId,
-                participants = request.participants
+                participants = request.participants.map { com.yusufteker.pulse.shared.api.TaskParticipantDto(it.key, it.value, "avatar_1", null) }
             )
 
             database.pulsyDatabaseQueries.transaction {
@@ -168,7 +168,11 @@ class PlanRepositoryImpl(
                             specificDetails = entity.specificDetails?.let { Json.decodeFromString(it) },
                             tags = entity.tags?.let { Json.decodeFromString(it) } ?: emptyList(),
                             color = entity.color,
-                            participants = entity.participants?.let { Json.decodeFromString(it) } ?: emptyMap()
+                            participants = entity.participants?.let { 
+                                try { 
+                                    Json.decodeFromString<List<com.yusufteker.pulse.shared.api.TaskParticipantDto>>(it).associate { p -> p.userId to p.name } 
+                                } catch(e: Exception) { emptyMap() } 
+                            } ?: emptyMap()
                         )
 
                         if (entity.id.startsWith("local_")) {
@@ -337,7 +341,7 @@ class PlanRepositoryImpl(
                         isAllDay = dto.isAllDay,
                         aiMetadata = dto.aiMetadata,
                         reminders = dto.reminders,
-                        participants = dto.participants,
+                        participants = dto.participants.associate { it.userId to it.name },
                         specificDetails = dto.specificDetails,
                         tags = dto.tags,
                         color = dto.color,
@@ -491,7 +495,7 @@ class PlanRepositoryImpl(
                 tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                 color = entity.color,
                 parentId = entity.parentId,
-                participants = entity.participants?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyMap() } } ?: emptyMap(),
+                participants = entity.participants?.let { try { Json.decodeFromString<List<com.yusufteker.pulse.shared.api.TaskParticipantDto>>(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                 isSynced = entity.isSynced == 1L
             )
     }

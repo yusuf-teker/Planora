@@ -180,7 +180,7 @@ class EventDetailViewModel(
                             startDateTimeMs = task.startTime,
                             endDateTimeMs = task.endTime ?: task.startTime,
                             isRecurring = task.isRecurring,
-                            participants = task.participants,
+                            participants = task.participants.associate { it.userId to it.name },
                             recurrenceRule = ruleObj,
                             reminders = task.reminders,
                             subItems = subItemsList,

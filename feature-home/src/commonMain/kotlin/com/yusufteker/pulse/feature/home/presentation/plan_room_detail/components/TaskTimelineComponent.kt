@@ -177,7 +177,7 @@ fun TaskTimelineItem(
                 
 
                 // Participants or Creator Info
-                val participants = task.participants.values.toList()
+                val participants = task.participants
                 if (participants.isNotEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp), 
@@ -185,25 +185,18 @@ fun TaskTimelineItem(
                     ) {
                         val avatarCount = if (participants.size > 4) 5 else participants.size
                         Box(modifier = Modifier.height(24.dp).width((avatarCount * 16 + 8).dp)) {
-                            participants.take(4).forEachIndexed { index, name ->
-                                val initialName = name.take(1).uppercase()
-                                Box(
+                            participants.take(4).forEachIndexed { index, participant ->
+                                com.yusufteker.pulse.core.ui.components.AvatarImage(
+                                    avatarId = participant.avatarId,
+                                    profileImageUrl = participant.profileImageUrl,
                                     modifier = Modifier
                                         .offset(x = (index * 16).dp)
                                         .zIndex((4 - index).toFloat())
                                         .size(24.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.primary)
-                                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = initialName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                        .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+                                )
                             }
                             if (participants.size > 4) {
                                 Box(
@@ -229,9 +222,9 @@ fun TaskTimelineItem(
                         Spacer(modifier = Modifier.width(8.dp))
                         
                         val namesText = if (participants.size <= 2) {
-                            participants.joinToString(", ")
+                            participants.joinToString(", ") { it.name }
                         } else {
-                            "${participants.take(2).joinToString(", ")} ve ${participants.size - 2} kişi"
+                            "${participants.take(2).joinToString(", ") { it.name }} ve ${participants.size - 2} kişi"
                         }
                         
                         Text(

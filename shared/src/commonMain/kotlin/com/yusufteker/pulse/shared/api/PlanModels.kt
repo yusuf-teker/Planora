@@ -132,8 +132,16 @@ data class TaskDto(
     val specificDetails: ItemDetails? = null,
     val tags: List<String> = emptyList(),
     val color: String? = null,
-    val participants: Map<Int, String> = emptyMap(),
+    val participants: List<TaskParticipantDto> = emptyList(),
     val isSynced: Boolean = true
+)
+
+@Serializable
+data class TaskParticipantDto(
+    val userId: Int,
+    val name: String,
+    val avatarId: String,
+    val profileImageUrl: String? = null
 )
 
 @Serializable

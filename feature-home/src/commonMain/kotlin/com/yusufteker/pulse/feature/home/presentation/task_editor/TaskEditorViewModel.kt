@@ -192,7 +192,7 @@ class TaskEditorViewModel(
                             recurrenceRule = ruleObj,
                             isOptional = task.isOptional,
                             reminders = task.reminders,
-                            participants = task.participants,
+                            participants = task.participants.associate { it.userId to it.name },
                             subItems = subItemsList,
                             isLoading = false,
                             parentId = task.parentId

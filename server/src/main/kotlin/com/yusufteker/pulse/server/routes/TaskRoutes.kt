@@ -146,6 +146,15 @@ fun Route.taskRoutes() {
                         }
                     }
 
+                    val participantsList = UsersTable.selectAll().where { UsersTable.id inList request.participants.keys }.map {
+                        com.yusufteker.pulse.shared.api.TaskParticipantDto(
+                            userId = it[UsersTable.id].value,
+                            name = it[UsersTable.name],
+                            avatarId = it[UsersTable.avatarId],
+                            profileImageUrl = it[UsersTable.profileImageUrl]
+                        )
+                    }
+
                     newTaskDto = TaskDto(
                         id = newTaskId,
                         creatorId = userId,
@@ -169,7 +178,7 @@ fun Route.taskRoutes() {
                         tags = request.tags,
                         color = request.color,
                         parentId = request.parentId,
-                        participants = request.participants
+                        participants = participantsList
                     )
                 }
 
@@ -475,9 +484,16 @@ fun Route.taskRoutes() {
                             emptyList()
                         }
                         
-                        val participantsMap = (TaskParticipantsTable innerJoin com.yusufteker.pulse.server.database.tables.UsersTable).selectAll()
+                        val participantsList = (TaskParticipantsTable innerJoin com.yusufteker.pulse.server.database.tables.UsersTable).selectAll()
                             .where { TaskParticipantsTable.taskId eq entity.id.value }
-                            .associate { it[TaskParticipantsTable.userId] to it[com.yusufteker.pulse.server.database.tables.UsersTable.name] }
+                            .map { 
+                                com.yusufteker.pulse.shared.api.TaskParticipantDto(
+                                    userId = it[TaskParticipantsTable.userId],
+                                    name = it[com.yusufteker.pulse.server.database.tables.UsersTable.name],
+                                    avatarId = it[com.yusufteker.pulse.server.database.tables.UsersTable.avatarId],
+                                    profileImageUrl = it[com.yusufteker.pulse.server.database.tables.UsersTable.profileImageUrl]
+                                ) 
+                            }
 
                         TaskDto(
                             id = entity.id.value,
@@ -506,7 +522,7 @@ fun Route.taskRoutes() {
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
-                            participants = participantsMap
+                            participants = participantsList
                         )
                     }
                 }
@@ -571,9 +587,16 @@ fun Route.taskRoutes() {
                             .where { TaskSharedRoomsTable.taskId eq entity.id.value }
                             .map { it[TaskSharedRoomsTable.roomId] }
 
-                        val participantsMap = (TaskParticipantsTable innerJoin com.yusufteker.pulse.server.database.tables.UsersTable).selectAll()
+                        val participantsList = (TaskParticipantsTable innerJoin com.yusufteker.pulse.server.database.tables.UsersTable).selectAll()
                             .where { TaskParticipantsTable.taskId eq entity.id.value }
-                            .associate { it[TaskParticipantsTable.userId] to it[com.yusufteker.pulse.server.database.tables.UsersTable.name] }
+                            .map { 
+                                com.yusufteker.pulse.shared.api.TaskParticipantDto(
+                                    userId = it[TaskParticipantsTable.userId],
+                                    name = it[com.yusufteker.pulse.server.database.tables.UsersTable.name],
+                                    avatarId = it[com.yusufteker.pulse.server.database.tables.UsersTable.avatarId],
+                                    profileImageUrl = it[com.yusufteker.pulse.server.database.tables.UsersTable.profileImageUrl]
+                                ) 
+                            }
 
                         TaskDto(
                             id = entity.id.value,
@@ -602,7 +625,7 @@ fun Route.taskRoutes() {
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
-                            participants = participantsMap
+                            participants = participantsList
                         )
                     }
                 }

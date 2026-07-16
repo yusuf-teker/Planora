@@ -40,7 +40,7 @@ class ProfileRepositoryImpl(
 
     override suspend fun uploadProfileImage(imageBytes: ByteArray): Result<String> {
         return try {
-            val response: com.yusufteker.pulse.shared.api.UserProfileResponse = httpClient.post("users/profile-image") {
+            val response: Map<String, String> = httpClient.post("users/profile-image") {
                 setBody(MultiPartFormDataContent(
                     formData {
                         append("image", imageBytes, Headers.build {
@@ -51,13 +51,15 @@ class ProfileRepositoryImpl(
                 ))
             }.body()
             
+            val secureUrl = response["profileImageUrl"]
+            
             // Update local DataStore upon successful upload
             val name = sessionPreferences.getUserName() ?: ""
             val avatarId = sessionPreferences.getUserAvatar() ?: "default"
-            sessionPreferences.updateProfileData(name, avatarId, response.profileImageUrl)
+            sessionPreferences.updateProfileData(name, avatarId, secureUrl)
             
-            if (response.profileImageUrl != null) {
-                Result.success(response.profileImageUrl!!)
+            if (secureUrl != null) {
+                Result.success(secureUrl)
             } else {
                 Result.failure(Exception("Failed to upload image"))
             }

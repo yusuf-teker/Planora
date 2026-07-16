@@ -263,8 +263,7 @@ fun TimelineTaskCard(
                 )
             }
 
-            // Participants / Shared User
-            val participantsList = task.participants.filterValues { it != "PENDING" }.values.toList()
+            val participantsList = task.participants
             val isShared = task.participants.size > 1 || task.sharedRoomIds.isNotEmpty()
 
             if (isShared || sharedUserAvatar != null) {
@@ -294,7 +293,10 @@ fun TimelineTaskCard(
                     }
 
                     // Right Side: Avatars/Participants
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy((-8).dp)
+                    ) {
                         if (sharedUserAvatar != null) {
                             com.yusufteker.pulse.core.ui.components.AvatarImage(
                                 avatarId = sharedUserAvatar,
@@ -302,18 +304,38 @@ fun TimelineTaskCard(
                                     .size(24.dp)
                                     .clip(CircleShape)
                                     .border(1.dp, sharedUserColor ?: Color.Transparent, CircleShape)
+                                    .zIndex(1f)
                             )
                         } else if (participantsList.isNotEmpty()) {
-                            val displayText = if (participantsList.size <= 2) {
-                                participantsList.joinToString(", ")
-                            } else {
-                                "${participantsList.take(2).joinToString(", ")} +${participantsList.size - 2}"
+                            participantsList.take(3).forEachIndexed { index, participant ->
+                                com.yusufteker.pulse.core.ui.components.AvatarImage(
+                                    avatarId = participant.avatarId,
+                                    profileImageUrl = participant.profileImageUrl,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
+                                        .zIndex(3f - index)
+                                )
                             }
-                            Text(
-                                text = displayText,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
+                            if (participantsList.size > 3) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
+                                        .zIndex(0f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+${participantsList.size - 3}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }
