@@ -282,7 +282,7 @@ fun Route.calendarRoutes() {
                             tags = if (isPrivate) emptyList() else entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
-                            participants = emptyMap(),
+                            participants = emptyList(),
                             isSynced = true
                         )
                     }

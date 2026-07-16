@@ -25,6 +25,20 @@ import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.no_tasks
 import pulsy.core.generated.resources.today
 import pulsy.core.generated.resources.tomorrow
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 
 @Composable
 fun TimelineSection(
@@ -75,19 +89,59 @@ fun TimelineSection(
         EmptyStateComponent(
             icon = Icons.Default.CalendarToday,
             title = stringResource(Res.string.no_tasks),
-            //description = stringResource(Res.string.chat_with_ai) + " (Debug - All: ${state.allFetchedTasks.size}, Upcoming: ${state.upcomingTasks.size}, hasLoaded: ${state.hasLoadedTasks})",
             modifier = modifier.fillMaxSize()
         )
 
         return
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxWidth()
-            ,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
+    var firstTodayIndex = -1
+    var currentIndex = 0
+    for ((_, tasks) in grouped) {
+        val hasTodayTask = tasks.any { task ->
+            val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+            isToday(time)
+        }
+        if (hasTodayTask && firstTodayIndex == -1) {
+            firstTodayIndex = currentIndex
+        }
+        currentIndex += 1 // Header
+        currentIndex += tasks.size // Items
+    }
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    val showFab by remember(firstTodayIndex) {
+        derivedStateOf {
+            if (firstTodayIndex == -1) return@derivedStateOf false
+            val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+            if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
+            
+            val firstVisible = visibleItemsInfo.first().index
+            val lastVisible = visibleItemsInfo.last().index
+            
+            firstTodayIndex < firstVisible || firstTodayIndex > lastVisible
+        }
+    }
+
+    val isTodayAbove by remember(firstTodayIndex) {
+        derivedStateOf {
+            if (firstTodayIndex == -1) return@derivedStateOf false
+            val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+            if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
+            
+            val firstVisible = visibleItemsInfo.first().index
+            firstTodayIndex < firstVisible
+        }
+    }
+
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
 
         grouped.forEach { (dayLabel, tasks) ->
 
@@ -119,4 +173,27 @@ fun TimelineSection(
             }
         }
     }
+
+    if (showFab) {
+        FloatingActionButton(
+            onClick = {
+                coroutineScope.launch {
+                    if (firstTodayIndex != -1) {
+                        listState.animateScrollToItem(firstTodayIndex)
+                    }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 88.dp, bottom = 16.dp),
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ) {
+            Icon(
+                imageVector = if (isTodayAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                contentDescription = "Go to Today"
+            )
+        }
+    }
+}
 }

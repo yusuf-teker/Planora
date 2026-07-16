@@ -26,7 +26,8 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun CalendarSection(
     state: HomeState,
-    onEvent: (HomeEvent) -> Unit
+    onEvent: (HomeEvent) -> Unit,
+    modifier: Modifier = Modifier
 ) {
 
     if (state.viewOption != TimelineViewOption.CALENDAR) return
@@ -110,7 +111,7 @@ fun CalendarSection(
         state.accessibleUsers.associate { it.userId to it.color }
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()) {
 
         CalendarView(
             tasksByDate = tasksByDate,

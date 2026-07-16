@@ -123,7 +123,9 @@ fun HomeScreen(
                 // Calendar View
                 if (state.viewOption == TimelineViewOption.CALENDAR) {
                     CalendarSection(
-                        state = state, onEvent = viewModel::onEvent
+                        state = state, 
+                        onEvent = viewModel::onEvent,
+                        modifier = Modifier.weight(1f)
                     )
                 } else {
                     // Timeline

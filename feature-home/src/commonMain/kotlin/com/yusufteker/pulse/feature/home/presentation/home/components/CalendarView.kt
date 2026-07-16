@@ -10,18 +10,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.yusufteker.pulse.shared.api.TaskDto
 import kotlinx.coroutines.launch
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
@@ -73,6 +72,31 @@ fun CalendarView(
             if (listState.firstVisibleItemIndex != targetPage) {
                 listState.animateScrollToItem(targetPage)
             }
+        }
+    }
+
+    val monthOffsetForToday = (today.year - initialMonth.year) * 12 + (today.monthNumber - initialMonth.monthNumber)
+    val todayPage = initialPage + monthOffsetForToday
+
+    val showFab by remember(todayPage) {
+        derivedStateOf {
+            val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+            if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
+            
+            val firstVisible = visibleItemsInfo.first().index
+            val lastVisible = visibleItemsInfo.last().index
+            
+            todayPage < firstVisible || todayPage > lastVisible
+        }
+    }
+
+    val isTodayAbove by remember(todayPage) {
+        derivedStateOf {
+            val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+            if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
+            
+            val firstVisible = visibleItemsInfo.first().index
+            todayPage < firstVisible
         }
     }
 
@@ -134,11 +158,12 @@ fun CalendarView(
         }
 
         // Vertical List of Calendars
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(10000) { page ->
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(10000) { page ->
                 val monthOffset = page - initialPage
                 val monthDate = getMonthDateWithOffset(initialMonth, monthOffset)
                 
@@ -212,9 +237,31 @@ fun CalendarView(
                     }
                 }
             }
+        } // closes LazyColumn
+            
+        if (showFab) {
+            FloatingActionButton(
+                onClick = {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(todayPage)
+                        onDateSelected(today)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 88.dp, bottom = 16.dp),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(
+                    imageVector = if (isTodayAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                    contentDescription = stringResource(Res.string.today)
+                )
+            }
         }
-    }
-}
+    } // closes Box
+} // closes Column
+} // closes CalendarView
 
 @Composable
 private fun CalendarMonthGrid(

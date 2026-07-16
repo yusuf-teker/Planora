@@ -4,8 +4,11 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
+import io.ktor.server.response.respondText
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
+import io.ktor.server.routing.get
 import com.yusufteker.pulse.server.database.DatabaseFactory
 import com.yusufteker.pulse.server.plugins.configureSecurity
 import com.yusufteker.pulse.server.plugins.configureCallLogging
@@ -55,6 +58,9 @@ fun Application.module() {
 
     // 5. API rotalarını yönlendir.
     routing {
+        get("/") {
+            call.respondText("Pulse Server is Running!", status = io.ktor.http.HttpStatusCode.OK)
+        }
         authRoutes()
         postRoutes()
         commentRoutes()

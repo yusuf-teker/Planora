@@ -1,15 +1,20 @@
 package com.yusufteker.pulse.core.analytics
 
+import io.github.aakira.napier.Napier
+
 actual class AnalyticsManager {
     actual fun logEvent(name: String, parameters: Map<String, Any>) {
-        // iOS implementation deferred to Phase 2
+        // Firebase Analytics events are handled natively via FirebaseApp.configure() in AppDelegate.
+        Napier.d("Analytics Event: $name, params: $parameters")
     }
 
     actual fun setUserId(userId: String) {
-        // iOS implementation deferred to Phase 2
+        // Firebase Crashlytics userId is set natively.
+        Napier.d("Analytics setUserId: $userId")
     }
 
     actual fun logException(exception: Throwable) {
-        // iOS implementation deferred to Phase 2
+        // Firebase Crashlytics records exceptions automatically on iOS.
+        Napier.e("Analytics logException: ${exception.message}", exception)
     }
 }

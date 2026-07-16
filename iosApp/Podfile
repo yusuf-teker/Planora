@@ -3,7 +3,9 @@ platform :ios, '15.0'
 target 'iosApp' do
   use_frameworks!
   pod 'FirebaseCore'
+  pod 'FirebaseAnalytics'
   pod 'FirebaseMessaging'
+  pod 'FirebaseCrashlytics'
 end
 
 post_install do |installer|
