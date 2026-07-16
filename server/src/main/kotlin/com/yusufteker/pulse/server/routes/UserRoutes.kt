@@ -7,6 +7,7 @@ import com.yusufteker.pulse.server.database.tables.UserEntity
 import com.yusufteker.pulse.server.database.tables.UsersTable
 import com.yusufteker.pulse.server.database.tables.CalendarAccessTable
 import com.yusufteker.pulse.server.database.tables.CalendarAccessEntity
+import com.yusufteker.pulse.server.service.CloudinaryService
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -71,7 +72,7 @@ fun Route.userRoutes() {
                 }
 
                 if (!oldProfileUrl.isNullOrBlank()) {
-                    com.yusufteker.pulse.server.service.CloudinaryService.deleteImageByUrl(oldProfileUrl!!)
+                    CloudinaryService.deleteImageByUrl(oldProfileUrl!!)
                 }
 
                 dbQuery {

@@ -102,10 +102,11 @@ fun Route.taskRoutes() {
 
                 var newTaskDto: TaskDto? = null
                 dbQuery {
-                    val newTaskId = request.localId ?: UUID.randomUUID().toString()
+                    val localId = request.localId
+                    val newTaskId = localId ?: UUID.randomUUID().toString()
 
-                    if (request.localId != null) {
-                        val existingTask = TaskEntity.findById(request.localId)
+                    if (localId != null) {
+                        val existingTask = TaskEntity.findById(localId)
                         if (existingTask != null) {
                             if (existingTask.creator.id.value == userId) {
                                 // Already created, this is an idempotent retry, return the existing task
