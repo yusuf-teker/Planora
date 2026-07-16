@@ -19,6 +19,7 @@ import kotlinx.datetime.Instant
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.feature.home.domain.use_case.GetFilteredTasksUseCase
 import com.yusufteker.pulse.feature.home.domain.use_case.SubmitSmartInputUseCase
+import com.yusufteker.pulse.feature.home.presentation.home.HomeEffect.*
 import com.yusufteker.pulse.shared.api.TaskDto
 import io.github.aakira.napier.Napier
 
@@ -97,7 +98,7 @@ class HomeViewModel(
                     }
                     .collect { tasks ->
                         println("observeTasksForRange COLLECT: size=${tasks.size}")
-                        val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE }
+                        val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE && it.type != com.yusufteker.pulse.shared.api.TaskType.FOLDER }
                             .sortedBy { task ->
                                 (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
                             }
@@ -262,9 +263,10 @@ class HomeViewModel(
                 val isMine = state.value.allFetchedTasks.any { it.id == event.task.id }
                 if (isMine) {
                     when (event.task.type) {
-                        com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(HomeEffect.NavigateToTaskEditor(event.task.id))
-                        com.yusufteker.pulse.shared.api.TaskType.EVENT -> setEffect(HomeEffect.NavigateToEventDetail(event.task.id))
-                        com.yusufteker.pulse.shared.api.TaskType.NOTE -> setEffect(HomeEffect.NavigateToNoteEditor(event.task.id))
+                        TaskType.TASK -> setEffect(NavigateToTaskEditor(event.task.id))
+                        TaskType.EVENT -> setEffect(NavigateToEventDetail(event.task.id))
+                        TaskType.NOTE -> setEffect(NavigateToNoteEditor(event.task.id))
+                        TaskType.FOLDER -> {}
                     }
                 } else {
                     setState { copy(selectedSharedTask = event.task) }

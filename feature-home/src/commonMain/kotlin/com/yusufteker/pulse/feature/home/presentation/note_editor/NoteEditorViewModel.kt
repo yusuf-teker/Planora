@@ -49,6 +49,58 @@ class NoteEditorViewModel(
             NoteEditorEvent.OnAiCancelClick -> cancelAiProcessing()
             NoteEditorEvent.OnAiPreviewAccept -> acceptAiPreview()
             NoteEditorEvent.OnAiPreviewReject -> rejectAiPreview()
+            is NoteEditorEvent.OnFolderSelected -> {
+                _state.update { it.copy(parentId = event.folderId) }
+                if (_state.value.id != null) saveNote() // autosave
+            }
+            is NoteEditorEvent.OnCreateFolderClick -> createFolder(event.folderName)
+            is NoteEditorEvent.OnAddChecklistItem -> {
+                val newItem = com.yusufteker.pulse.shared.api.SubTask(
+                    id = com.yusufteker.pulse.core.utils.generateUUID(),
+                    title = event.title,
+                    isDone = false
+                )
+                _state.update { it.copy(checklist = it.checklist + newItem) }
+                if (_state.value.id != null) saveNote() // autosave
+            }
+            is NoteEditorEvent.OnToggleChecklistItem -> {
+                _state.update { state ->
+                    state.copy(checklist = state.checklist.map { item ->
+                        if (item.id == event.itemId) item.copy(isDone = !item.isDone) else item
+                    })
+                }
+                if (_state.value.id != null) saveNote() // autosave
+            }
+            is NoteEditorEvent.OnDeleteChecklistItem -> {
+                _state.update { state ->
+                    state.copy(checklist = state.checklist.filter { item -> item.id != event.itemId })
+                }
+                if (_state.value.id != null) saveNote() // autosave
+            }
+            is NoteEditorEvent.OnUpdateChecklistItem -> {
+                _state.update { state ->
+                    state.copy(checklist = state.checklist.map { item ->
+                        if (item.id == event.itemId) item.copy(title = event.newTitle) else item
+                    })
+                }
+                if (_state.value.id != null) saveNote() // autosave
+            }
+        }
+    }
+
+    private fun createFolder(folderName: String) {
+        viewModelScope.launch {
+            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+            val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+                title = folderName,
+                description = null,
+                startTime = now,
+                endTime = now,
+                type = TaskType.FOLDER,
+                status = TaskStatus.PENDING,
+                visibility = TaskVisibility.PRIVATE
+            )
+            planRepository.createTask(request)
         }
     }
 
@@ -110,29 +162,40 @@ class NoteEditorViewModel(
 
     private fun loadNote(noteId: String?, planRoomId: String? = null, parentId: String? = null) {
         if (noteId == null) {
-            // New note: Clear previous state entirely (in case ViewModel is reused)
             val formattedDate = com.yusufteker.pulse.core.utils.formatFullDate(com.yusufteker.pulse.core.utils.getCurrentTimeMs())
             _state.value = NoteEditorState(dateText = formattedDate, planRoomId = planRoomId, parentId = parentId)
+            
+            // Still need to load folders for new note
+            viewModelScope.launch {
+                planRepository.observeAllTasks().collect { tasks ->
+                    val folders = tasks.filter { it.type == TaskType.FOLDER }
+                    _state.update { it.copy(folders = folders) }
+                }
+            }
             return
         }
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, id = noteId, planRoomId = planRoomId, parentId = parentId) }
             planRepository.observeAllTasks().collect { tasks ->
+                val folders = tasks.filter { it.type == TaskType.FOLDER }
                 val note = tasks.find { it.id == noteId && it.type == TaskType.NOTE }
                 if (note != null) {
                     val formattedDate = com.yusufteker.pulse.core.utils.formatFullDate(note.startTime)
+                    val checklist = (note.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Note)?.checklist ?: emptyList()
                     _state.update { 
                         it.copy(
                             title = note.title,
                             content = note.description ?: "",
                             isLoading = false,
                             dateText = formattedDate,
-                            parentId = note.parentId
+                            parentId = note.parentId,
+                            folders = folders,
+                            checklist = checklist
                         ) 
                     }
                 } else {
-                    _state.update { it.copy(isLoading = false, error = "Note not found") }
+                    _state.update { it.copy(isLoading = false, error = "Note not found", folders = folders) }
                 }
             }
         }
@@ -167,7 +230,11 @@ class NoteEditorViewModel(
                 isAllDay = false,
                 parentId = currentState.parentId,
                 reminders = emptyList(),
-                specificDetails = ItemDetails.Note(content = currentState.content, attachments = emptyList()),
+                specificDetails = ItemDetails.Note(
+                    content = currentState.content, 
+                    attachments = emptyList(),
+                    checklist = currentState.checklist
+                ),
                 tags = emptyList(),
                 color = null
             )

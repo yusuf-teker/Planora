@@ -62,6 +62,7 @@ fun TimelineTaskCard(
         TaskType.EVENT -> Color(0xFF6366F1)  // Indigo
         TaskType.TASK -> Color(0xFF10B981)   // Emerald
         TaskType.NOTE -> Color(0xFFF59E0B)   // Amber
+        TaskType.FOLDER -> Color(0xFF22C55E) // Lime
     }
 
     val animatedAlpha by animateFloatAsState(targetValue = if (isCompleted) 0.85f else 1f, label = "alpha")
@@ -120,6 +121,7 @@ fun TimelineTaskCard(
                     TaskType.EVENT -> Icons.Default.Event
                     TaskType.TASK -> Icons.Default.CheckCircle
                     TaskType.NOTE -> Icons.Default.Edit
+                    TaskType.FOLDER -> Icons.Default.Group
                 }
                 Icon(
                     imageVector = icon, 

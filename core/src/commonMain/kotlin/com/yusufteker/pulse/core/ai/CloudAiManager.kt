@@ -243,6 +243,7 @@ class CloudAiManager(
                 TaskType.EVENT -> AiIntent.CREATE_EVENT
                 TaskType.NOTE -> AiIntent.CREATE_NOTE
                 TaskType.TASK -> AiIntent.CREATE_TASK
+                TaskType.FOLDER -> AiIntent.UNKNOWN
             }
         } else {
             AiIntent.CHAT
@@ -329,6 +330,7 @@ class CloudAiManager(
                     TaskType.EVENT -> com.yusufteker.pulse.shared.api.ItemDetails.Event(location = entities.location)
                     TaskType.TASK -> com.yusufteker.pulse.shared.api.ItemDetails.Task(deadline = entities.dateTime)
                     TaskType.NOTE -> com.yusufteker.pulse.shared.api.ItemDetails.Note()
+                    TaskType.FOLDER -> null
                 },
                 participants = emptyMap(),
                 color = when (taskType) {
@@ -352,6 +354,7 @@ class CloudAiManager(
             TaskType.EVENT -> "etkinliği"
             TaskType.TASK -> "görevi"
             TaskType.NOTE -> "notu"
+            TaskType.FOLDER -> "dosyası"
         }
 
         val finalReplyText = replyText

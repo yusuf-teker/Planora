@@ -10,13 +10,26 @@ class NotesViewModel(
     initialState = NotesState()
 ) {
 
+    private var allTasks = emptyList<com.yusufteker.pulse.shared.api.TaskDto>()
+
     init {
         launch {
             planRepository.observeAllTasks().collect { tasks ->
-                val notes = tasks.filter { it.type == TaskType.NOTE && it.parentId == null }
-                setState { copy(notes = notes) }
+                allTasks = tasks
+                updateStateWithTasks()
             }
         }
+    }
+
+    private fun updateStateWithTasks() {
+        val folders = allTasks.filter { it.type == TaskType.FOLDER }
+        val selectedFolderId = state.value.selectedFolderId
+        
+        val notes = allTasks.filter { 
+            it.type == TaskType.NOTE && (selectedFolderId == null || it.parentId == selectedFolderId) 
+        }
+        
+        setState { copy(folders = folders, notes = notes) }
     }
 
     override fun onEvent(event: NotesEvent) {
@@ -44,6 +57,11 @@ class NotesViewModel(
             
             is NotesEvent.CreateNoteClicked -> {
                 setEffect(NotesEffect.NavigateToCreateTask)
+            }
+            
+            is NotesEvent.FolderSelected -> {
+                setState { copy(selectedFolderId = event.folderId) }
+                updateStateWithTasks()
             }
         }
     }

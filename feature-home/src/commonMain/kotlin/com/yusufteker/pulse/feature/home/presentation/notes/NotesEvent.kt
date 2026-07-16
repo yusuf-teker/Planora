@@ -8,4 +8,5 @@ sealed interface NotesEvent : UiEvent {
     data class EditNoteClicked(val noteId: String) : NotesEvent
     data object NotePreviewDismissed : NotesEvent
     data object CreateNoteClicked : NotesEvent
+    data class FolderSelected(val folderId: String?) : NotesEvent
 }

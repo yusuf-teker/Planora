@@ -6,6 +6,8 @@ import com.yusufteker.pulse.shared.api.TaskDto
 data class NotesState(
     val isLoading: Boolean = false,
     val notes: List<TaskDto> = emptyList(),
+    val folders: List<TaskDto> = emptyList(),
+    val selectedFolderId: String? = null,
     val selectedNoteForPreview: TaskDto? = null,
     val error: String? = null
 ) : UiState

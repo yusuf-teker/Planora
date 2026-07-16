@@ -806,6 +806,7 @@ class RuleBasedNlpEngine {
             TaskType.TASK -> "#4CAF50"
             TaskType.EVENT -> "#2196F3"
             TaskType.NOTE -> "#FF9800"
+            TaskType.FOLDER -> "#9E9E9E"
         }
 
         return CreateTaskRequest(

@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 enum class TaskType {
     NOTE,
     TASK,
-    EVENT
+    EVENT,
+    FOLDER
 }
 
 @Serializable
@@ -87,7 +88,8 @@ sealed class ItemDetails {
     @Serializable
     data class Note(
         val content: String = "",
-        val attachments: List<String> = emptyList()
+        val attachments: List<String> = emptyList(),
+        val checklist: List<SubTask> = emptyList()
     ) : ItemDetails()
 
     @Serializable

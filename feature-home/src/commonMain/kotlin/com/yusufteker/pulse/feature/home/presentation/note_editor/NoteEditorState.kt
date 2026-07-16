@@ -11,5 +11,7 @@ data class NoteEditorState(
     val parentId: String? = null,
     val isAiLoading: Boolean = false,
     val aiPreviewTitle: String? = null,
-    val aiPreviewContent: String? = null
+    val aiPreviewContent: String? = null,
+    val folders: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList(),
+    val checklist: List<com.yusufteker.pulse.shared.api.SubTask> = emptyList()
 )

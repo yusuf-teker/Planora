@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -85,6 +88,28 @@ fun NotesScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            if (state.folders.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = state.selectedFolderId == null,
+                            onClick = { viewModel.onEvent(NotesEvent.FolderSelected(null)) },
+                            label = { Text("Tümü") }
+                        )
+                    }
+                    items(state.folders) { folder ->
+                        FilterChip(
+                            selected = state.selectedFolderId == folder.id,
+                            onClick = { viewModel.onEvent(NotesEvent.FolderSelected(folder.id)) },
+                            label = { Text(folder.title) }
+                        )
+                    }
+                }
+            }
+
             if (state.notes.isEmpty()) {
                 EmptyStateComponent(
                     icon = androidx.compose.material.icons.Icons.Default.Edit,

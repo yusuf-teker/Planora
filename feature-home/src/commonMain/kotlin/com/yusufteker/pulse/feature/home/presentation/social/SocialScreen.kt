@@ -137,7 +137,7 @@ fun SocialScreen(
                         .graphicsLayer {
                             translationY = animatedOffset
                         },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp)
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     item {
                         val allTopics = listOf(null) + com.yusufteker.pulse.feature.home.domain.model.Topic.entries

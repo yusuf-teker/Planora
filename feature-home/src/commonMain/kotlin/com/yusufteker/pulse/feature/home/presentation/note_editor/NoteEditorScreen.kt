@@ -4,10 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -36,6 +41,44 @@ fun NoteEditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val contentFocusRequester = remember { FocusRequester() }
+    
+    var showFolderDialog by remember { mutableStateOf(false) }
+    var showFolderDropdown by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+
+    if (showFolderDialog) {
+        AlertDialog(
+            onDismissRequest = { showFolderDialog = false },
+            title = { Text("Yeni Klasör") },
+            text = {
+                OutlinedTextField(
+                    value = newFolderName,
+                    onValueChange = { newFolderName = it },
+                    label = { Text("Klasör Adı") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (newFolderName.isNotBlank()) {
+                        viewModel.onEvent(NoteEditorEvent.OnCreateFolderClick(newFolderName))
+                    }
+                    showFolderDialog = false
+                    newFolderName = ""
+                }) {
+                    Text("Oluştur")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showFolderDialog = false 
+                    newFolderName = ""
+                }) {
+                    Text("İptal")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(state.id) {
         if (state.id == null && !state.isLoading) {
@@ -67,6 +110,49 @@ fun NoteEditorScreen(
                     }
                 },
                 actions = {
+                    Box {
+                        IconButton(onClick = { showFolderDropdown = true }) {
+                            Icon(
+                                Icons.Default.Folder, 
+                                contentDescription = "Klasör", 
+                                tint = if (state.parentId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showFolderDropdown,
+                            onDismissRequest = { showFolderDropdown = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Klasörsüz") },
+                                onClick = { 
+                                    viewModel.onEvent(NoteEditorEvent.OnFolderSelected(null))
+                                    showFolderDropdown = false
+                                }
+                            )
+                            state.folders.forEach { folder ->
+                                DropdownMenuItem(
+                                    text = { Text(folder.title) },
+                                    trailingIcon = if (state.parentId == folder.id) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                    } else null,
+                                    onClick = {
+                                        viewModel.onEvent(NoteEditorEvent.OnFolderSelected(folder.id))
+                                        showFolderDropdown = false
+                                    }
+                                )
+                            }
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Yeni Klasör Ekle") },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                onClick = {
+                                    showFolderDropdown = false
+                                    showFolderDialog = true
+                                }
+                            )
+                        }
+                    }
                     if (state.id != null) {
                         IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnDeleteClick) }) {
                             Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
@@ -101,8 +187,9 @@ fun NoteEditorScreen(
                         .fillMaxWidth()
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 0.dp)
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
                 ) {
+
                     // Title
                     TextField(
                         value = state.title,
@@ -153,7 +240,7 @@ fun NoteEditorScreen(
                                 )
                             ) 
                         },
-                        modifier = Modifier.fillMaxWidth().weight(1f, fill = false).focusRequester(contentFocusRequester),
+                        modifier = Modifier.fillMaxWidth().focusRequester(contentFocusRequester),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f)
                         ),
@@ -165,6 +252,79 @@ fun NoteEditorScreen(
                             cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Checklist
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    state.checklist.forEach { item ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Checkbox(
+                                checked = item.isDone,
+                                onCheckedChange = { viewModel.onEvent(NoteEditorEvent.OnToggleChecklistItem(item.id)) }
+                            )
+                            
+                            TextField(
+                                value = item.title,
+                                onValueChange = { viewModel.onEvent(NoteEditorEvent.OnUpdateChecklistItem(item.id, it)) },
+                                modifier = Modifier.weight(1f),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                textStyle = if (item.isDone) {
+                                    MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough, color = Color.Gray)
+                                } else {
+                                    MaterialTheme.typography.bodyLarge
+                                }
+                            )
+                            
+                            IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnDeleteChecklistItem(item.id)) }) {
+                                Icon(Icons.Default.Close, contentDescription = "Sil", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                    
+                    var newItemTitle by remember { mutableStateOf("") }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = null, 
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp), 
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        TextField(
+                            value = newItemTitle,
+                            onValueChange = { newItemTitle = it },
+                            placeholder = { Text("Yeni öğe ekle...") },
+                            modifier = Modifier.weight(1f),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                        if (newItemTitle.isNotBlank()) {
+                            IconButton(onClick = {
+                                viewModel.onEvent(NoteEditorEvent.OnAddChecklistItem(newItemTitle))
+                                newItemTitle = ""
+                            }) {
+                                Icon(Icons.Default.Check, contentDescription = "Ekle", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
                 
                 // AI Alanı - Profesyonel Alt Bar Tasarımı

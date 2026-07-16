@@ -32,6 +32,7 @@ data class ExtractedEntities(
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val recurrenceRule: String? = null,
     val tags: List<String> = emptyList(),
+    val checklist: List<String> = emptyList(),
     val estimatedMinutes: Int? = null,
     val confidence: Float = 0.5f
 )

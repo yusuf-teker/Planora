@@ -11,4 +11,11 @@ sealed class NoteEditorEvent {
     object OnAiCancelClick : NoteEditorEvent()
     object OnAiPreviewAccept : NoteEditorEvent()
     object OnAiPreviewReject : NoteEditorEvent()
+    
+    data class OnFolderSelected(val folderId: String?) : NoteEditorEvent()
+    data class OnCreateFolderClick(val folderName: String) : NoteEditorEvent()
+    data class OnAddChecklistItem(val title: String) : NoteEditorEvent()
+    data class OnToggleChecklistItem(val itemId: String) : NoteEditorEvent()
+    data class OnDeleteChecklistItem(val itemId: String) : NoteEditorEvent()
+    data class OnUpdateChecklistItem(val itemId: String, val newTitle: String) : NoteEditorEvent()
 }
