@@ -161,6 +161,7 @@ private fun FollowersTab(
             items(followers, key = { it.id }) { user ->
                 FollowUserItem(
                     avatarId = user.avatarId,
+                    profileImageUrl = user.profileImageUrl,
                     name = user.name,
                     username = user.username,
                     onClick = { onUserClick(user.id) },
@@ -208,6 +209,7 @@ private fun FollowingTab(
             items(following, key = { it.id }) { user ->
                 FollowUserItem(
                     avatarId = user.avatarId,
+                    profileImageUrl = user.profileImageUrl,
                     name = user.name,
                     username = user.username,
                     onClick = { onUserClick(user.id) },
@@ -257,6 +259,7 @@ private fun RequestsTab(
             items(requests, key = { it.id }) { request ->
                 FollowUserItem(
                     avatarId = request.requesterAvatarId,
+                    profileImageUrl = request.requesterProfileImageUrl,
                     name = request.requesterName,
                     username = request.requesterUsername,
                     onClick = { onUserClick(request.requesterId) },
@@ -288,6 +291,7 @@ private fun RequestsTab(
 @Composable
 private fun FollowUserItem(
     avatarId: String,
+    profileImageUrl: String? = null,
     name: String,
     username: String,
     onClick: (() -> Unit)? = null,
@@ -301,8 +305,9 @@ private fun FollowUserItem(
     ) {
         AvatarImage(
             avatarId = avatarId,
+            profileImageUrl = profileImageUrl,
             modifier = Modifier
-                .size(50.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )

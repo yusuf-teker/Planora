@@ -77,7 +77,7 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.avatarId))
+            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.avatarId, newUser.profileImageUrl))
         }
 
         // --- 2. LOGIN ENDPOINT ---
@@ -110,7 +110,7 @@ fun Route.authRoutes() {
                 }
             }
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.avatarId))
+            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.avatarId, user.profileImageUrl))
         }
 
         // --- 3. REFRESH TOKEN ENDPOINT ---
@@ -144,7 +144,7 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.avatarId))
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.avatarId, user.profileImageUrl))
         }
 
         // --- 4. PROTECTED ENDPOINT (Sadece giriş yapmış kullanıcılar girebilir) ---
@@ -189,7 +189,8 @@ fun Route.authRoutes() {
                         avatarId = user.avatarId,
                         followersCount = followersCount,
                         followingCount = followingCount,
-                        postsCount = postsCount
+                        postsCount = postsCount,
+                        profileImageUrl = user.profileImageUrl
                     )
                 }
 
@@ -217,6 +218,9 @@ fun Route.authRoutes() {
                     if (entity != null) {
                         entity.name = request.name
                         entity.avatarId = request.avatarId
+                        if (request.profileImageUrl != null) {
+                            entity.profileImageUrl = request.profileImageUrl
+                        }
                     }
                     entity
                 }

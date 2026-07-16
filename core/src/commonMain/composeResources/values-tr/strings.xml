@@ -324,4 +324,5 @@
     <string name="action_prev_month">Önceki Ay</string>
     <string name="action_next_month">Sonraki Ay</string>
     <string name="empty_events_today">Bugün etkinlik yok.</string>
+    <string name="shared">Ortak</string>
 </resources>

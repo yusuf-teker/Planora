@@ -82,6 +82,10 @@ kotlin {
             api(libs.paging.common)
             api(libs.sqldelight.coroutines)
 
+            // Coil
+            api(libs.coil.compose)
+            api(libs.coil.network.ktor)
+
             implementation(project(":shared"))
         }
 

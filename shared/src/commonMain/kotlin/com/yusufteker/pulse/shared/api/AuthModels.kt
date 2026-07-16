@@ -34,7 +34,8 @@ data class AuthResponse(
     val refreshToken: String,
     val userId: Int,
     val name: String,
-    val avatarId: String
+    val avatarId: String,
+    val profileImageUrl: String? = null
 )
 
 /**
@@ -43,7 +44,8 @@ data class AuthResponse(
 @Serializable
 data class UpdateProfileRequest(
     val name: String,
-    val avatarId: String
+    val avatarId: String,
+    val profileImageUrl: String? = null
 )
 
 /**
@@ -69,7 +71,8 @@ data class UserProfileResponse(
     val postsCount: Int = 0,
     val isFollowedByMe: Boolean = false,
     val followRequestStatus: String? = null,
-    val calendarAccessStatus: String? = null
+    val calendarAccessStatus: String? = null,
+    val profileImageUrl: String? = null
 )
 
 /**
@@ -82,7 +85,8 @@ data class FollowRequestResponse(
     val requesterName: String,
     val requesterUsername: String,
     val requesterAvatarId: String,
-    val status: String
+    val status: String,
+    val requesterProfileImageUrl: String? = null
 )
 
 /**

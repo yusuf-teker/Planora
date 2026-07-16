@@ -11,6 +11,8 @@ interface ProfileRepository {
      */
     suspend fun updateProfile(name: String, avatarId: String): Result<Unit>
 
+    suspend fun uploadProfileImage(imageBytes: ByteArray): Result<String>
+
     suspend fun getProfile(userId: String): Result<UserProfileResponse>
 
     suspend fun toggleFollow(userId: Int): Result<Unit>

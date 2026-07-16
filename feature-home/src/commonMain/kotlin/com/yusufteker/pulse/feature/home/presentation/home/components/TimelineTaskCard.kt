@@ -44,6 +44,9 @@ import com.yusufteker.pulse.core.utils.formatTime
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.shared
 
 @Composable
 fun TimelineTaskCard(
@@ -282,7 +285,7 @@ fun TimelineTaskCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Ortak",
+                                text = stringResource(Res.string.shared),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold

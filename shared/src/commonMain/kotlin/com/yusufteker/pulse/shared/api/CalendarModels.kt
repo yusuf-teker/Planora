@@ -12,7 +12,8 @@ data class CalendarAccessRequestDto(
     val requesterName: String,
     val requesterUsername: String,
     val requesterAvatarId: String,
-    val status: String
+    val status: String,
+    val requesterProfileImageUrl: String? = null
 )
 
 /**
@@ -24,7 +25,8 @@ data class CalendarAccessGrantDto(
     val name: String,
     val username: String,
     val avatarId: String,
-    val color: String
+    val color: String,
+    val profileImageUrl: String? = null
 )
 
 /**

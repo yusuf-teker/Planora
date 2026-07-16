@@ -41,4 +41,7 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.2.0") {
         exclude(group = "com.google.guava", module = "listenablefuture")
     }
+
+    // Cloudinary
+    implementation("com.cloudinary:cloudinary-http44:1.36.0")
 }

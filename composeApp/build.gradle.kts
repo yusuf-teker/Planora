@@ -71,6 +71,9 @@ kotlin {
             // Kotlinx
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
+
+            // Peekaboo
+            implementation(libs.peekaboo.image.picker)
         }
 
         commonTest.dependencies {

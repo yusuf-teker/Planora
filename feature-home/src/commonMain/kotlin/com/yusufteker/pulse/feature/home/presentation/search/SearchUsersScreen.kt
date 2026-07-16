@@ -139,6 +139,7 @@ fun UserListItem(
     ) {
         AvatarImage(
             avatarId = user.avatarId,
+            profileImageUrl = user.profileImageUrl,
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)

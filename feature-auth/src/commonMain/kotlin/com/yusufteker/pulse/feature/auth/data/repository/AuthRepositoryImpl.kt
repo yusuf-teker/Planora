@@ -40,7 +40,7 @@ class AuthRepositoryImpl(
             sessionPreferences.setLastLoggedUserId(response.userId.toString())
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
-            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
+            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl)
             Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}'" })
             
             val fcmToken = sessionPreferences.getFcmToken()
@@ -72,7 +72,7 @@ class AuthRepositoryImpl(
             }
             sessionPreferences.setLastLoggedUserId(response.userId.toString())
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
-            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId)
+            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl)
             
             val fcmToken = sessionPreferences.getFcmToken()
             if (fcmToken != null) {
@@ -108,7 +108,8 @@ class AuthRepositoryImpl(
             }
             // Update local DataStore upon successful server update
             val currentUserId = sessionPreferences.getUserId() ?: "guest"
-            sessionPreferences.saveUserProfile(currentUserId, name, avatarId)
+            val currentProfileImageUrl = sessionPreferences.getUserProfileImageUrl()
+            sessionPreferences.saveUserProfile(currentUserId, name, avatarId, currentProfileImageUrl)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -118,7 +119,7 @@ class AuthRepositoryImpl(
     override suspend fun fetchMyProfile(): Result<Unit> {
         return try {
             val profile = httpClient.get("auth/me").body<com.yusufteker.pulse.shared.api.UserProfileResponse>()
-            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.followersCount, profile.followingCount)
+            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.profileImageUrl, profile.followersCount, profile.followingCount)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

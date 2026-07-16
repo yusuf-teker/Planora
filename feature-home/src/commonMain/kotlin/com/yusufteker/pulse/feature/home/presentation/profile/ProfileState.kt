@@ -7,6 +7,8 @@ data class ProfileState(
     val name: String = "Kullanıcı Adı",
     val username: String = "",
     val avatarId: String = "avatar_1",
+    val profileImageUrl: String? = null,
+    val isUploadingImage: Boolean = false,
     val isEditing: Boolean = false,
     val isLoading: Boolean = false,
     val followersCount: Int = 0,

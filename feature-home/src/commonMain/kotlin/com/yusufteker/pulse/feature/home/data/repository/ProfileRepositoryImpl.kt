@@ -9,6 +9,12 @@ import com.yusufteker.pulse.feature.home.data.api.ProfileApi
 import com.yusufteker.pulse.feature.home.data.api.CalendarApi
 import com.yusufteker.pulse.shared.api.CalendarAccessGrantDto
 import com.yusufteker.pulse.shared.api.CalendarAccessRequestDto
+import io.ktor.client.request.post
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
+import io.ktor.client.call.body
 
 class ProfileRepositoryImpl(
     private val httpClient: HttpClient,
@@ -24,8 +30,37 @@ class ProfileRepositoryImpl(
                 setBody(com.yusufteker.pulse.shared.api.UpdateProfileRequest(name, avatarId))
             }
             // Update local DataStore upon successful server update
-            sessionPreferences.updateProfileData(name, avatarId)
+            val currentProfileImageUrl = sessionPreferences.getUserProfileImageUrl()
+            sessionPreferences.updateProfileData(name, avatarId, currentProfileImageUrl)
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun uploadProfileImage(imageBytes: ByteArray): Result<String> {
+        return try {
+            val response: com.yusufteker.pulse.shared.api.UserProfileResponse = httpClient.post("users/profile-image") {
+                setBody(MultiPartFormDataContent(
+                    formData {
+                        append("image", imageBytes, Headers.build {
+                            append(HttpHeaders.ContentType, "image/jpeg")
+                            append(HttpHeaders.ContentDisposition, "filename=\"profile.jpg\"")
+                        })
+                    }
+                ))
+            }.body()
+            
+            // Update local DataStore upon successful upload
+            val name = sessionPreferences.getUserName() ?: ""
+            val avatarId = sessionPreferences.getUserAvatar() ?: "default"
+            sessionPreferences.updateProfileData(name, avatarId, response.profileImageUrl)
+            
+            if (response.profileImageUrl != null) {
+                Result.success(response.profileImageUrl!!)
+            } else {
+                Result.failure(Exception("Failed to upload image"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

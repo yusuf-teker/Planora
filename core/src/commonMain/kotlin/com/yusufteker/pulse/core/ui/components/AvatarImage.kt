@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 
 /** Renk ve ikon listesi. index = avatarId sayısı - 1 */
 private val avatarColors = listOf(
@@ -42,26 +44,43 @@ private val avatarIcons: List<ImageVector> = listOf(
 )
 
 /**
- * Native Compose avatar: renkli daire + Material ikon.
+ * Native Compose avatar: renkli daire + Material ikon veya Coil ile URL'den resim yükleme.
  * XML Vector Drawable kullanmaz, hiçbir paketleme sorunu yaşatmaz.
  */
-@Composable
-fun AvatarImage(avatarId: String, modifier: Modifier = Modifier) {
-    val index = (avatarId.removePrefix("avatar_").toIntOrNull() ?: 1) - 1
-    val colorHex = avatarColors.getOrElse(index) { avatarColors[0] }
-    val icon = avatarIcons.getOrElse(index) { avatarIcons[0] }
+fun getOptimizedCloudinaryUrl(url: String): String {
+    if (!url.contains("res.cloudinary.com") || !url.contains("/upload/")) return url
+    // Eğer halihazırda transformasyon eklenmişse tekrar ekleme
+    if (url.contains("/upload/w_")) return url 
+    return url.replaceFirst("/upload/", "/upload/w_200,h_200,c_fill,q_auto,f_auto/")
+}
 
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(Color(colorHex)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.fillMaxSize(0.6f)
+@Composable
+fun AvatarImage(avatarId: String, modifier: Modifier = Modifier, profileImageUrl: String? = null) {
+    if (profileImageUrl != null) {
+        val optimizedUrl = getOptimizedCloudinaryUrl(profileImageUrl)
+        AsyncImage(
+            model = optimizedUrl,
+            contentDescription = "Profile Image",
+            modifier = modifier.clip(CircleShape),
+            contentScale = ContentScale.Crop
         )
+    } else {
+        val index = (avatarId.removePrefix("avatar_").toIntOrNull() ?: 1) - 1
+        val colorHex = avatarColors.getOrElse(index) { avatarColors[0] }
+        val icon = avatarIcons.getOrElse(index) { avatarIcons[0] }
+
+        Box(
+            modifier = modifier
+                .clip(CircleShape)
+                .background(Color(colorHex)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.fillMaxSize(0.6f)
+            )
+        }
     }
 }

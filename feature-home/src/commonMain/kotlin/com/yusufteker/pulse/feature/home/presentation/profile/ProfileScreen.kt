@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,7 +54,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import com.preat.peekaboo.image.picker.SelectionMode
+import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 
 /**
  * Profile screen composable.
@@ -64,6 +69,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     userId: Int? = null
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val mainNavigator = if (userId == null) LocalMainNavigator.current else null
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -102,78 +108,25 @@ fun ProfileScreen(
                 .padding(paddingValues)
                 .safeContentPadding()
         ) {
+            val imagePickerLauncher = rememberImagePickerLauncher(
+                selectionMode = SelectionMode.Single,
+                scope = coroutineScope,
+                resizeOptions = com.preat.peekaboo.image.picker.ResizeOptions(
+                    width = 400,
+                    height = 400,
+                    compressionQuality = 0.7
+                ),
+                onResult = { byteArrays ->
+                    byteArrays.firstOrNull()?.let { imageBytes ->
+                        viewModel.onEvent(ProfileEvent.ProfileImageSelected(imageBytes))
+                    }
+                }
+            )
 
             val avatarList = List(10) { "avatar_${it + 1}" }
             val currentAvatarId = if (state.avatarId in avatarList) state.avatarId else "avatar_1"
 
-            if (state.isEditing) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = stringResource(Res.string.profile_choose_avatar),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(5),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth().height(180.dp)
-                    ) {
-                        items(avatarList.size) { index ->
-                            val avatarName = avatarList[index]
-                            val isSelected = state.avatarId == avatarName
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(CircleShape)
-                                    .border(
-                                        width = if (isSelected) 3.dp else 0.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
-                                        shape = CircleShape
-                                    )
-                                    .clickable {
-                                        viewModel.onEvent(ProfileEvent.AvatarSelected(avatarName))
-                                    }
-                                    .padding(4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                AvatarImage(
-                                    avatarId = avatarName,
-                                    modifier = Modifier.fillMaxSize().clip(CircleShape)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    androidx.compose.material3.OutlinedTextField(
-                        value = state.name,
-                        onValueChange = { /* Disabled by user request */ },
-                        label = { Text(stringResource(Res.string.profile_username)) },
-                        singleLine = true,
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    androidx.compose.material3.Button(
-                        onClick = { viewModel.onEvent(ProfileEvent.SaveClicked) },
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
-                    ) {
-                        Text(stringResource(Res.string.save))
-                    }
-                }
-            } else {
-                Column(
+            Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 0.dp),
@@ -230,6 +183,9 @@ fun ProfileScreen(
                                     modifier = Modifier
                                         .size(96.dp)
                                         .clip(CircleShape)
+                                        .clickable(enabled = state.isMyProfile) { 
+                                            imagePickerLauncher.launch()
+                                        }
                                         .border(
                                             width = 3.dp,
                                             brush = Brush.linearGradient(
@@ -247,8 +203,23 @@ fun ProfileScreen(
                                 ) {
                                     AvatarImage(
                                         avatarId = currentAvatarId,
+                                        profileImageUrl = state.profileImageUrl,
                                         modifier = Modifier.fillMaxSize().clip(CircleShape)
                                     )
+                                    if (state.isUploadingImage) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(CircleShape)
+                                                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -543,6 +514,7 @@ fun ProfileScreen(
                                                 ) {
                                                     AvatarImage(
                                                         avatarId = request.requesterAvatarId,
+                                                        profileImageUrl = request.requesterProfileImageUrl,
                                                         modifier = Modifier
                                                             .size(44.dp)
                                                             .clip(CircleShape)
@@ -656,6 +628,7 @@ fun ProfileScreen(
                                                 ) {
                                                     AvatarImage(
                                                         avatarId = request.requesterAvatarId,
+                                                        profileImageUrl = request.requesterProfileImageUrl,
                                                         modifier = Modifier
                                                             .size(40.dp)
                                                             .clip(CircleShape)
@@ -761,6 +734,7 @@ fun ProfileScreen(
                                                 ) {
                                                     AvatarImage(
                                                         avatarId = grant.avatarId,
+                                                        profileImageUrl = grant.profileImageUrl,
                                                         modifier = Modifier
                                                             .size(40.dp)
                                                             .clip(CircleShape)
@@ -938,6 +912,7 @@ fun ProfileScreen(
                                 ) {
                                     AvatarImage(
                                         avatarId = currentAvatarId,
+                                        profileImageUrl = state.profileImageUrl,
                                         modifier = Modifier.fillMaxSize().clip(CircleShape)
                                     )
                                 }
@@ -973,5 +948,4 @@ fun ProfileScreen(
             }
         }
     }
-}
 }

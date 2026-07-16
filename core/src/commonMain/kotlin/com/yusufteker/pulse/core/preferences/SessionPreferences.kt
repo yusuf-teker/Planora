@@ -29,6 +29,7 @@ class SessionPreferences(
     // Keys for DataStore (Profile info)
     private val userNameKey = stringPreferencesKey("user_name")
     private val userAvatarKey = stringPreferencesKey("user_avatar")
+    private val userProfileImageUrlKey = stringPreferencesKey("user_profile_image_url")
     private val userIdKey = stringPreferencesKey("user_id")
     private val followersCountKey = intPreferencesKey("followers_count")
     private val followingCountKey = intPreferencesKey("following_count")
@@ -56,6 +57,9 @@ class SessionPreferences(
 
     val userAvatarFlow: kotlinx.coroutines.flow.Flow<String?> =
         dataStore.data.map { it[userAvatarKey] }.distinctUntilChanged()
+        
+    val userProfileImageUrlFlow: kotlinx.coroutines.flow.Flow<String?> =
+        dataStore.data.map { it[userProfileImageUrlKey] }.distinctUntilChanged()
         
     val userIdFlow: kotlinx.coroutines.flow.Flow<String?> =
         dataStore.data.map { it[userIdKey] }.distinctUntilChanged()
@@ -106,6 +110,10 @@ class SessionPreferences(
         return dataStore.data.map { it[userAvatarKey] }.first()
     }
     
+    suspend fun getUserProfileImageUrl(): String? {
+        return dataStore.data.map { it[userProfileImageUrlKey] }.first()
+    }
+    
     suspend fun getUserId(): String? {
         return dataStore.data.map { it[userIdKey] }.first()
     }
@@ -154,20 +162,30 @@ class SessionPreferences(
         return secureSettings.settings.getStringOrNull(fcmTokenKeyString)
     }
 
-    suspend fun saveUserProfile(userId: String, name: String, avatarId: String, followersCount: Int = 0, followingCount: Int = 0) {
+    suspend fun saveUserProfile(userId: String, name: String, avatarId: String, profileImageUrl: String?, followersCount: Int = 0, followingCount: Int = 0) {
         dataStore.edit { prefs ->
             prefs[userIdKey] = userId
             prefs[userNameKey] = name
             prefs[userAvatarKey] = avatarId
+            if (profileImageUrl != null) {
+                prefs[userProfileImageUrlKey] = profileImageUrl
+            } else {
+                prefs.remove(userProfileImageUrlKey)
+            }
             prefs[followersCountKey] = followersCount
             prefs[followingCountKey] = followingCount
         }
     }
 
-    suspend fun updateProfileData(name: String, avatarId: String) {
+    suspend fun updateProfileData(name: String, avatarId: String, profileImageUrl: String?) {
         dataStore.edit { prefs ->
             prefs[userNameKey] = name
             prefs[userAvatarKey] = avatarId
+            if (profileImageUrl != null) {
+                prefs[userProfileImageUrlKey] = profileImageUrl
+            } else {
+                prefs.remove(userProfileImageUrlKey)
+            }
         }
     }
 
@@ -181,6 +199,7 @@ class SessionPreferences(
             prefs.remove(userIdKey)
             prefs.remove(userNameKey)
             prefs.remove(userAvatarKey)
+            prefs.remove(userProfileImageUrlKey)
             prefs.remove(followersCountKey)
             prefs.remove(followingCountKey)
         }

@@ -24,14 +24,20 @@ class ProfileViewModel(
         // Flow olarak dinle: giriş/çıkış yapılınca DataStore değişir,
         // combine her iki değeri birlikte yakalar ve UI otomatik güncellenir.
         launch {
-            combine(
+            val flow1 = combine(
                 sessionPreferences.userIdFlow,
                 sessionPreferences.userNameFlow,
-                sessionPreferences.userAvatarFlow,
+                sessionPreferences.userAvatarFlow
+            ) { id, name, avatar -> Triple(id, name, avatar) }
+            
+            val flow2 = combine(
+                sessionPreferences.userProfileImageUrlFlow,
                 sessionPreferences.followersCountFlow,
                 sessionPreferences.followingCountFlow
-            ) { userId, name, avatarId, followers, following -> 
-                ProfileData(userId, name, avatarId, followers, following) 
+            ) { url, followers, following -> Triple(url, followers, following) }
+            
+            combine(flow1, flow2) { (userId, name, avatarId), (profileImageUrl, followers, following) ->
+                ProfileData(userId, name, avatarId, profileImageUrl, followers, following)
             }
             .collect { data ->
                 val isLoggedIn = data.userId != null
@@ -44,6 +50,7 @@ class ProfileViewModel(
                         copy(
                             name = data.name ?: guestName,
                             avatarId = data.avatarId ?: "avatar_1",
+                            profileImageUrl = data.profileImageUrl,
                             followersCount = data.followersCount,
                             followingCount = data.followingCount
                         )
@@ -57,6 +64,7 @@ class ProfileViewModel(
         val userId: String?,
         val name: String?,
         val avatarId: String?,
+        val profileImageUrl: String?,
         val followersCount: Int,
         val followingCount: Int
     )
@@ -77,6 +85,20 @@ class ProfileViewModel(
 
             is ProfileEvent.AvatarSelected -> {
                 setState { copy(avatarId = event.avatarId) }
+            }
+            
+            is ProfileEvent.ProfileImageSelected -> {
+                launch {
+                    setState { copy(isUploadingImage = true) }
+                    val result = profileRepository.uploadProfileImage(event.imageBytes)
+                    result.onSuccess { url ->
+                        setState { copy(profileImageUrl = url, isUploadingImage = false) }
+                        Napier.d(tag = "Screen") { "Profile image uploaded: $url" }
+                    }.onFailure { e ->
+                        setState { copy(isUploadingImage = false) }
+                        Napier.e(tag = "Screen", throwable = e) { "Failed to upload profile image" }
+                    }
+                }
             }
 
             is ProfileEvent.SaveClicked -> {
@@ -104,6 +126,7 @@ class ProfileViewModel(
                         // Only clear if it's a different profile
                         name = if (isSameProfile) name else "",
                         avatarId = if (isSameProfile) avatarId else "",
+                        profileImageUrl = if (isSameProfile) profileImageUrl else null,
                         username = if (isSameProfile) username else "",
                         followersCount = if (isSameProfile) followersCount else 0,
                         followingCount = if (isSameProfile) followingCount else 0,
@@ -115,11 +138,13 @@ class ProfileViewModel(
                     if (isMyProfile) {
                         val localName = sessionPreferences.getUserName()
                         val localAvatar = sessionPreferences.getUserAvatar()
+                        val localProfileImageUrl = sessionPreferences.getUserProfileImageUrl()
                         if (localName != null) {
                             setState {
                                 copy(
                                     name = localName,
-                                    avatarId = localAvatar ?: "avatar_1"
+                                    avatarId = localAvatar ?: "avatar_1",
+                                    profileImageUrl = localProfileImageUrl
                                 )
                             }
                         } else if (!state.value.isLoggedIn) {
@@ -145,6 +170,7 @@ class ProfileViewModel(
                                     userId = profile.id.toString(),
                                     name = profile.name,
                                     avatarId = profile.avatarId,
+                                    profileImageUrl = profile.profileImageUrl,
                                     followersCount = profile.followersCount,
                                     followingCount = profile.followingCount
                                 )
@@ -155,6 +181,7 @@ class ProfileViewModel(
                                 name = profile.name,
                                 username = profile.username,
                                 avatarId = profile.avatarId,
+                                profileImageUrl = profile.profileImageUrl,
                                 followersCount = profile.followersCount,
                                 followingCount = profile.followingCount,
                                 postsCount = profile.postsCount,

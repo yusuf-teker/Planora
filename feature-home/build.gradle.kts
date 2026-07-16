@@ -65,6 +65,9 @@ kotlin {
             implementation(libs.compose.markdown)
             implementation(libs.compose.markdown.m3)
             implementation(libs.richeditor.compose)
+
+            // Peekaboo Image Picker
+            implementation(libs.peekaboo.image.picker)
         }
 
         commonTest.dependencies {

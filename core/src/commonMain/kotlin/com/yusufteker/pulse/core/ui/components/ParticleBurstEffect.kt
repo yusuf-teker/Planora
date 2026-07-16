@@ -37,7 +37,7 @@ fun ParticleBurstEffect(
     // Generate random particles once
     val particles = remember {
         List(particleCount) {
-            val angle = Random.nextFloat() * 2 * Math.PI
+            val angle = Random.nextFloat() * 2 * kotlin.math.PI
             val distance = Random.nextFloat() * 300f + 50f
             val size = Random.nextFloat() * 12f + 4f
             Particle(

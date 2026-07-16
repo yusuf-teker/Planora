@@ -18,6 +18,10 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import io.ktor.server.request.receiveMultipart
+import io.ktor.http.content.PartData
+import io.ktor.http.content.streamProvider
+import io.ktor.http.content.forEachPart
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.lowerCase
@@ -30,6 +34,42 @@ import java.time.Instant
 fun Route.userRoutes() {
     authenticate("auth-jwt") {
         route("/users") {
+
+            post("/profile-image") {
+                val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                if (currentUserId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@post
+                }
+
+                val multipartData = call.receiveMultipart()
+                var imageBytes: ByteArray? = null
+
+                multipartData.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        imageBytes = part.streamProvider().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (imageBytes == null) {
+                    call.respond(HttpStatusCode.BadRequest, "No image found")
+                    return@post
+                }
+
+                val secureUrl = com.yusufteker.pulse.server.service.CloudinaryService.uploadProfileImage(imageBytes!!, currentUserId)
+                if (secureUrl == null) {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
+                    return@post
+                }
+
+                dbQuery {
+                    val user = UserEntity.findById(currentUserId)
+                    user?.profileImageUrl = secureUrl
+                }
+
+                call.respond(HttpStatusCode.OK, mapOf("profileImageUrl" to secureUrl))
+            }
 
             get("/search") {
                 val currentUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
@@ -84,7 +124,8 @@ fun Route.userRoutes() {
                             isFollowedByMe = followedUserIds.contains(user.id.value),
                             followRequestStatus = followRequest?.status,
                             calendarAccessStatus = calendarAccess?.status,
-                            username = user.username
+                            username = user.username,
+                            profileImageUrl = user.profileImageUrl
                         )
                     }
                     com.yusufteker.pulse.shared.api.SearchUsersResponse(usersResponse)
@@ -139,7 +180,8 @@ fun Route.userRoutes() {
                         isFollowedByMe = isFollowedByMe,
                         followRequestStatus = followRequest?.status,
                         calendarAccessStatus = calendarAccess?.status,
-                        username = user.username
+                        username = user.username,
+                        profileImageUrl = user.profileImageUrl
                     )
                 }
 
@@ -270,7 +312,8 @@ fun Route.userRoutes() {
                                 isFollowedByMe = isFollowedByMe,
                                 avatarId = user.avatarId,
                                 postsCount = postsCount,
-                                calendarAccessStatus = calendarAccess?.status
+                                calendarAccessStatus = calendarAccess?.status,
+                                profileImageUrl = user.profileImageUrl
                             )
                         }
                 }
@@ -296,7 +339,8 @@ fun Route.userRoutes() {
                             requesterName = requester.name,
                             requesterUsername = requester.username,
                             requesterAvatarId = requester.avatarId,
-                            status = it.status
+                            status = it.status,
+                            requesterProfileImageUrl = requester.profileImageUrl
                         )
                     }
                 }
@@ -377,7 +421,8 @@ fun Route.userRoutes() {
                                 isFollowedByMe = true, // We are already querying followings
                                 avatarId = user.avatarId,
                                 postsCount = postsCount,
-                                calendarAccessStatus = calendarAccess?.status
+                                calendarAccessStatus = calendarAccess?.status,
+                                profileImageUrl = user.profileImageUrl
                             )
                         }
                 }
