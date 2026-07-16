@@ -509,6 +509,8 @@ fun Route.taskRoutes() {
                     
                     // In-memory filter for time (can also be done in DB query)
                     val filteredEntities = entities.filter {
+                        if (it.type == com.yusufteker.pulse.shared.api.TaskType.FOLDER) return@filter true
+                        
                         var include = true
                         if (fromTime != null) {
                             include = include && (it.startTime >= fromTime)
@@ -617,6 +619,8 @@ fun Route.taskRoutes() {
                     val entities = TaskEntity.wrapRows(query).toList()
 
                     val filteredEntities = entities.filter {
+                        if (it.type == com.yusufteker.pulse.shared.api.TaskType.FOLDER) return@filter true
+                        
                         var include = true
                         if (fromTime != null) {
                             include = include && (it.startTime >= fromTime)

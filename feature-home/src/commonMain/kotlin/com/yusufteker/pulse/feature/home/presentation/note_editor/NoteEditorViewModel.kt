@@ -40,10 +40,10 @@ class NoteEditorViewModel(
             is NoteEditorEvent.OnLoadNote -> loadNote(event.noteId, event.planRoomId, event.parentId)
             is NoteEditorEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
             is NoteEditorEvent.OnContentChange -> _state.update { it.copy(content = event.content) }
-            NoteEditorEvent.OnSaveClick -> saveNote()
+            NoteEditorEvent.OnSaveClick -> saveNote(shouldNavigateBack = true)
             NoteEditorEvent.OnDeleteClick -> deleteNote()
             NoteEditorEvent.OnBackClick -> {
-                saveNote() // auto-save on back
+                saveNote(shouldNavigateBack = true) // auto-save on back
             }
             is NoteEditorEvent.OnAiActionClick -> processAiPrompt(event.prompt)
             NoteEditorEvent.OnAiCancelClick -> cancelAiProcessing()
@@ -51,7 +51,7 @@ class NoteEditorViewModel(
             NoteEditorEvent.OnAiPreviewReject -> rejectAiPreview()
             is NoteEditorEvent.OnFolderSelected -> {
                 _state.update { it.copy(parentId = event.folderId) }
-                if (_state.value.id != null) saveNote() // autosave
+                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnCreateFolderClick -> createFolder(event.folderName)
             is NoteEditorEvent.OnAddChecklistItem -> {
@@ -61,7 +61,7 @@ class NoteEditorViewModel(
                     isDone = false
                 )
                 _state.update { it.copy(checklist = it.checklist + newItem) }
-                if (_state.value.id != null) saveNote() // autosave
+                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnToggleChecklistItem -> {
                 _state.update { state ->
@@ -69,13 +69,13 @@ class NoteEditorViewModel(
                         if (item.id == event.itemId) item.copy(isDone = !item.isDone) else item
                     })
                 }
-                if (_state.value.id != null) saveNote() // autosave
+                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnDeleteChecklistItem -> {
                 _state.update { state ->
                     state.copy(checklist = state.checklist.filter { item -> item.id != event.itemId })
                 }
-                if (_state.value.id != null) saveNote() // autosave
+                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnUpdateChecklistItem -> {
                 _state.update { state ->
@@ -83,7 +83,7 @@ class NoteEditorViewModel(
                         if (item.id == event.itemId) item.copy(title = event.newTitle) else item
                     })
                 }
-                if (_state.value.id != null) saveNote() // autosave
+                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
         }
     }
@@ -201,10 +201,10 @@ class NoteEditorViewModel(
         }
     }
 
-    private fun saveNote() {
+    private fun saveNote(shouldNavigateBack: Boolean = false) {
         val currentState = _state.value
         if (currentState.title.isBlank() && currentState.content.isBlank()) {
-            setEffect(NoteEditorEffect.NavigateBack) // Empty note, just close
+            if (shouldNavigateBack) setEffect(NoteEditorEffect.NavigateBack) // Empty note, just close
             return
         }
 
@@ -252,7 +252,9 @@ class NoteEditorViewModel(
             }
             
             _state.update { it.copy(isLoading = false) }
-            setEffect(NoteEditorEffect.NavigateBack)
+            if (shouldNavigateBack) {
+                setEffect(NoteEditorEffect.NavigateBack)
+            }
         }
     }
 
