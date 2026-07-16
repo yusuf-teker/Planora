@@ -57,9 +57,10 @@ fun Route.userRoutes() {
                     return@post
                 }
 
-                val secureUrl = com.yusufteker.pulse.server.service.CloudinaryService.uploadProfileImage(imageBytes!!, currentUserId)
-                if (secureUrl == null) {
-                    call.respond(HttpStatusCode.InternalServerError, "Failed to upload image")
+                val secureUrl = try {
+                    com.yusufteker.pulse.server.service.CloudinaryService.uploadProfileImage(imageBytes!!, currentUserId)
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to upload image: ${e.message}")
                     return@post
                 }
 

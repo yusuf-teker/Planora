@@ -42,11 +42,6 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             ?.let { runCatching { TaskType.valueOf(it) }.getOrNull() }
             ?: TaskType.NOTE
 
-        Napier.d(
-            "Reminder fired: taskId=$taskId, title=$taskTitle, minutes=$reminderMinutes, type=$taskType",
-            tag = "ReminderReceiver"
-        )
-
         showNotification(context, taskId, taskTitle, reminderMinutes, taskType)
     }
 

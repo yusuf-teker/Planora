@@ -23,29 +23,25 @@ object CloudinaryService {
     /**
      * Uploads an image byte array to Cloudinary and returns the secure URL.
      */
-    suspend fun uploadProfileImage(imageBytes: ByteArray, userId: Int): String? {
+    suspend fun uploadProfileImage(imageBytes: ByteArray, userId: Int): String {
         return withContext(Dispatchers.IO) {
-            try {
-                // Generate a unique filename
-                val publicId = "pulse_user_${userId}_${UUID.randomUUID()}"
-                
-                // Upload to Cloudinary in the "profile_pictures" folder
-                val uploadResult = cloudinary.uploader().upload(
-                    imageBytes,
-                    ObjectUtils.asMap(
-                        "public_id", publicId,
-                        "folder", "profile_pictures",
-                        "overwrite", true,
-                        "resource_type", "image"
-                    )
+            // Generate a unique filename
+            val publicId = "pulse_user_${userId}_${UUID.randomUUID()}"
+            
+            // Upload to Cloudinary in the "profile_pictures" folder
+            val uploadResult = cloudinary.uploader().upload(
+                imageBytes,
+                ObjectUtils.asMap(
+                    "public_id", publicId,
+                    "folder", "profile_pictures",
+                    "overwrite", true,
+                    "resource_type", "image"
                 )
+            )
 
-                // Return the secure URL
-                uploadResult["secure_url"] as? String
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
+            // Return the secure URL
+            val secureUrl = uploadResult["secure_url"] as? String
+            secureUrl ?: throw Exception("Cloudinary did not return a secure_url")
         }
     }
 }

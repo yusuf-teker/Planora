@@ -55,22 +55,11 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         val now = System.currentTimeMillis()
         val newRequestCodes = mutableSetOf<Int>()
 
-        Napier.d("Scheduling reminders for ${tasks.size} tasks", tag = TAG)
 
         // 2. Schedule new alarms for each task with reminders
         tasks.forEach { task ->
 
-            Napier.d(
-                """
-            Task:
-            id=${task.id}
-            title=${task.title}
-            type=${task.type}
-            reminders=${task.reminders}
-            startTime=${task.startTime}
-            """.trimIndent(),
-                tag = TAG
-            )
+
             if (task.reminders.isEmpty()) {
                 Napier.d("No reminders for ${task.title}", tag = TAG)
                 return@forEach

@@ -108,10 +108,6 @@ fun MainScreen() {
 
     val vmKey = userId ?: "guest"
 
-    LaunchedEffect(vmKey) {
-        println("MAIN_SCREEN vmKey changed to: $vmKey")
-    }
-
     val navigateToTab: (MainDestination) -> Unit = { destination ->
         if (currentDestination != destination) {
             if (destination == MainDestination.Home) {
@@ -150,11 +146,8 @@ fun MainScreen() {
         
         // Clear the ViewModelStore when MainScreen leaves the composition
         DisposableEffect(Unit) {
-            println("MAIN_SCREEN viewModelStoreOwner CREATED: ${viewModelStoreOwner.hashCode()}")
 
             onDispose {
-                println("MAIN_SCREEN viewModelStoreOwner CLEARING: ${viewModelStoreOwner.hashCode()}")
-
                 viewModelStoreOwner.viewModelStore.clear()
             }
         }
