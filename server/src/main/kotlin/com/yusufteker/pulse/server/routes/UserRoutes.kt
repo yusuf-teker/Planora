@@ -57,11 +57,21 @@ fun Route.userRoutes() {
                     return@post
                 }
 
+                var oldProfileUrl: String? = null
+                dbQuery {
+                    val user = UserEntity.findById(currentUserId)
+                    oldProfileUrl = user?.profileImageUrl
+                }
+
                 val secureUrl = try {
                     com.yusufteker.pulse.server.service.CloudinaryService.uploadProfileImage(imageBytes!!, currentUserId)
                 } catch (e: Exception) {
                     call.respond(HttpStatusCode.InternalServerError, "Failed to upload image: ${e.message}")
                     return@post
+                }
+
+                if (!oldProfileUrl.isNullOrBlank()) {
+                    com.yusufteker.pulse.server.service.CloudinaryService.deleteImageByUrl(oldProfileUrl!!)
                 }
 
                 dbQuery {

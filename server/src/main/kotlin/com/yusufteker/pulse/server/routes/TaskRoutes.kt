@@ -102,7 +102,51 @@ fun Route.taskRoutes() {
 
                 var newTaskDto: TaskDto? = null
                 dbQuery {
-                    val newTaskId = UUID.randomUUID().toString()
+                    val newTaskId = request.localId ?: UUID.randomUUID().toString()
+
+                    if (request.localId != null) {
+                        val existingTask = TaskEntity.findById(request.localId)
+                        if (existingTask != null) {
+                            if (existingTask.creator.id.value == userId) {
+                                // Already created, this is an idempotent retry, return the existing task
+                                val participantsList = UsersTable.selectAll().where { UsersTable.id inList request.participants.keys }.map {
+                                    com.yusufteker.pulse.shared.api.TaskParticipantDto(
+                                        userId = it[UsersTable.id].value,
+                                        name = it[UsersTable.name],
+                                        avatarId = it[UsersTable.avatarId],
+                                        profileImageUrl = it[UsersTable.profileImageUrl]
+                                    )
+                                }
+                                newTaskDto = TaskDto(
+                                    id = existingTask.id.value,
+                                    creatorId = existingTask.creator.id.value,
+                                    title = existingTask.title,
+                                    description = existingTask.description,
+                                    startTime = existingTask.startTime,
+                                    endTime = existingTask.endTime,
+                                    type = existingTask.type,
+                                    status = existingTask.status,
+                                    visibility = existingTask.visibility,
+                                    isRecurring = existingTask.isRecurring,
+                                    recurrenceRule = existingTask.recurrenceRule,
+                                    isFlexible = existingTask.isFlexible,
+                                    isOptional = existingTask.isOptional,
+                                    isPostponable = existingTask.isPostponable,
+                                    isAllDay = existingTask.isAllDay,
+                                    aiMetadata = existingTask.aiMetadata?.let { Json.decodeFromString(it) },
+                                    reminders = existingTask.reminders?.let { Json.decodeFromString(it) } ?: emptyList(),
+                                    specificDetails = existingTask.specificDetails?.let { Json.decodeFromString(it) },
+                                    tags = existingTask.tags?.let { Json.decodeFromString(it) } ?: emptyList(),
+                                    color = existingTask.color,
+                                    parentId = existingTask.parentId,
+                                    participants = participantsList,
+                                    sharedRoomIds = TaskSharedRoomsTable.selectAll().where { TaskSharedRoomsTable.taskId eq existingTask.id.value }.map { it[TaskSharedRoomsTable.roomId] }
+                                )
+                                return@dbQuery
+                            }
+                        }
+                    }
+
                     TaskEntity.new(newTaskId) {
                         this.creator = UserEntity[userId]
                         this.title = request.title

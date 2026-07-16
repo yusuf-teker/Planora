@@ -273,24 +273,6 @@ fun TimelineTaskCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left Side: Shared Task Indicator
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isShared) {
-                            Icon(
-                                imageVector = Icons.Default.Group,
-                                contentDescription = "Ortak Görev",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(Res.string.shared),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
 
                     // Right Side: Avatars/Participants
                     Row(

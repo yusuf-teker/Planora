@@ -172,7 +172,8 @@ class PlanRepositoryImpl(
                                 try { 
                                     Json.decodeFromString<List<com.yusufteker.pulse.shared.api.TaskParticipantDto>>(it).associate { p -> p.userId to p.name } 
                                 } catch(e: Exception) { emptyMap() } 
-                            } ?: emptyMap()
+                            } ?: emptyMap(),
+                            localId = if (entity.id.startsWith("local_")) entity.id else null
                         )
 
                         if (entity.id.startsWith("local_")) {

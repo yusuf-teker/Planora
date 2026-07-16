@@ -207,7 +207,8 @@ data class CreateTaskRequest(
     val tags: List<String> = emptyList(),
     val color: String? = null,
     val participants: Map<Int, String> = emptyMap(),
-    val isSynced: Boolean = true
+    val isSynced: Boolean = true,
+    val localId: String? = null
 )
 
 @Serializable

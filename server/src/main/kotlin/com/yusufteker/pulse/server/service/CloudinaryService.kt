@@ -44,4 +44,28 @@ object CloudinaryService {
             secureUrl ?: throw Exception("Cloudinary did not return a secure_url")
         }
     }
+    /**
+     * Extracts public_id from secure URL and deletes it from Cloudinary.
+     */
+    suspend fun deleteImageByUrl(url: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Example URL: https://res.cloudinary.com/cloud_name/image/upload/v1234/profile_pictures/pulse_user_1_uuid.jpg
+                val uploadIndex = url.indexOf("/upload/")
+                if (uploadIndex != -1) {
+                    val afterUpload = url.substring(uploadIndex + 8)
+                    val firstSlashIndex = afterUpload.indexOf("/")
+                    if (firstSlashIndex != -1) {
+                        val pathWithExtension = afterUpload.substring(firstSlashIndex + 1)
+                        val lastDotIndex = pathWithExtension.lastIndexOf(".")
+                        val publicId = if (lastDotIndex != -1) pathWithExtension.substring(0, lastDotIndex) else pathWithExtension
+                        
+                        cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap())
+                    }
+                }
+            } catch (e: Exception) {
+                System.err.println("Failed to delete old image from Cloudinary: ${e.message}")
+            }
+        }
+    }
 }

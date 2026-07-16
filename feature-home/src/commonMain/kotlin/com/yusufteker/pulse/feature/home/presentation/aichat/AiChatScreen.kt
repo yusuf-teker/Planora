@@ -104,7 +104,15 @@ fun AiChatScreen(
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth().navigationBarsPadding().imePadding()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (com.yusufteker.pulse.shared.getPlatformName().contains("Android"))
+                            Modifier.navigationBarsPadding()
+                        else
+                            Modifier
+                    )
+                    .imePadding()
             ) {
                 Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
                     // ── Hızlı Eylem Çipleri ──
