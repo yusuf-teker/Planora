@@ -61,6 +61,16 @@ internal suspend fun buildResultFromIntentJson(
     val baseResult = ruleBasedEngine.processMessage(input, context)
     val intent = mapIntent(fmResult.type)
 
+    if (intent == AiIntent.CHAT && fmResult.clarificationQuestion != null) {
+        return baseResult.copy(
+            intent = AiIntent.CHAT,
+            replyText = fmResult.clarificationQuestion,
+            shouldCreateTask = false,
+            needsClarification = fmResult.needsClarification,
+            extractedEntities = baseResult.extractedEntities
+        )
+    }
+
     if ((intent == AiIntent.CREATE_TASK || intent == AiIntent.CREATE_EVENT) && fmResult.deadline == null) {
         return baseResult.copy(
             intent = AiIntent.CHAT,

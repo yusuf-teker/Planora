@@ -127,10 +127,7 @@ class SocialViewModel(
             
             is SocialEvent.OnBookmarkClicked -> {
                 viewModelScope.launch {
-                    val result = feedRepository.toggleBookmark(event.postId)
-                    if (result.isSuccess) {
-                        // TODO: Update local database to reflect optimistic UI (already handled if we update DB directly, but we need FeedRepository method)
-                    }
+                    feedRepository.toggleBookmark(event.postId)
                 }
             }
         }

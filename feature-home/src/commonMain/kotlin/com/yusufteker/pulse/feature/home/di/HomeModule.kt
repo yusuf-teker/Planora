@@ -49,7 +49,10 @@ val homeModule = module {
     single { FeedApi(get()) }
     single { CommentApi(get()) }
     single { CommentRepository(get()) }
-    single { FeedRepository(get(), get(), get()) }
+    single<com.yusufteker.pulse.feature.home.domain.repository.FeedPagingSourceFactory> { 
+        com.yusufteker.pulse.feature.home.domain.repository.DefaultFeedPagingSourceFactory(get()) 
+    }
+    single { FeedRepository(get(), get(), get(), get()) }
     
     // Sync & Post
     single<PostSyncManager> { DefaultPostSyncManager(get(), get(), get()) }

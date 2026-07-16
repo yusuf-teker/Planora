@@ -59,8 +59,10 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         ensureChannel(notificationManager, style.channelId, style.channelName, style.channelColor)
 
-        val timeText = when (reminderMinutes) {
-            0 -> "Şimdi"
+        val timeText = when {
+            reminderMinutes == 0 -> "Şimdi"
+            reminderMinutes % 1440 == 0 -> "${reminderMinutes / 1440} gün sonra"
+            reminderMinutes % 60 == 0 -> "${reminderMinutes / 60} saat sonra"
             else -> "$reminderMinutes dakika sonra"
         }
         val notificationTitle = "${style.emoji} ${style.titlePrefix}"

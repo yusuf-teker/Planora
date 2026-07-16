@@ -76,13 +76,26 @@ class FeedPagingSource(
     }
 }
 
+interface FeedPagingSourceFactory {
+    fun create(topic: String?, ownerId: String): PagingSource<Int, PostEntity>
+}
+
+class DefaultFeedPagingSourceFactory(
+    private val localDatabase: PulsyDatabase
+) : FeedPagingSourceFactory {
+    override fun create(topic: String?, ownerId: String): PagingSource<Int, PostEntity> {
+        return FeedPagingSource(localDatabase, topic, ownerId)
+    }
+}
+
 // 2. REPOSITORY PATTERN
 // Temiz Mimari'nin kalbidir. SocialViewModel veriyi doğrudan API veya Veritabanından istemez,
 // Gelip bu sınıftan (Repository) ister. Repository, verinin nereden alınacağını koordine eder.
 class FeedRepository(
     private val localDatabase: PulsyDatabase,
     private val feedApi: FeedApi,
-    private val sessionPreferences: SessionPreferences
+    private val sessionPreferences: SessionPreferences,
+    private val pagingSourceFactory: FeedPagingSourceFactory
 ) {
 
     @OptIn(ExperimentalPagingApi::class, ExperimentalCoroutinesApi::class)
@@ -101,7 +114,7 @@ class FeedRepository(
                     ownerId
                 ),
                 pagingSourceFactory = {
-                    FeedPagingSource(localDatabase, topic, ownerId)
+                    pagingSourceFactory.create(topic, ownerId)
                 }
             )
             .flow

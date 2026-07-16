@@ -153,7 +153,12 @@ class IosReminderManager : ReminderManager {
     ) {
         val style = notificationStyleFor(taskType)
 
-        val timeText = if (reminderMinutes > 0) "$reminderMinutes dakika sonra" else "Şimdi"
+        val timeText = when {
+            reminderMinutes == 0 -> "Şimdi"
+            reminderMinutes % 1440 == 0 -> "${reminderMinutes / 1440} gün sonra"
+            reminderMinutes % 60 == 0 -> "${reminderMinutes / 60} saat sonra"
+            else -> "$reminderMinutes dakika sonra"
+        }
 
         val content = UNMutableNotificationContent().apply {
             setTitle("${style.emoji} ${style.titlePrefix}")

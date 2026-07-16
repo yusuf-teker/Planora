@@ -152,19 +152,7 @@ fun FocusScreen(
                     )
                 }
                 
-                // Time
-                val minutes = state.timeRemainingSeconds / 60
-                val seconds = state.timeRemainingSeconds % 60
-                val timeStr = "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
-
-                Text(
-                    text = timeStr,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 72.sp,
-                        fontWeight = FontWeight.Black
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                TimerTextDisplay(timeRemainingSeconds = state.timeRemainingSeconds)
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -323,3 +311,20 @@ fun FocusBreathingCircle(isRunning: Boolean) {
         )
     }
 }
+
+@Composable
+fun TimerTextDisplay(timeRemainingSeconds: Int) {
+    val minutes = timeRemainingSeconds / 60
+    val seconds = timeRemainingSeconds % 60
+    val timeStr = "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
+
+    Text(
+        text = timeStr,
+        style = MaterialTheme.typography.displayLarge.copy(
+            fontSize = 72.sp,
+            fontWeight = FontWeight.Black
+        ),
+        color = MaterialTheme.colorScheme.onBackground
+    )
+}
+

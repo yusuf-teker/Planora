@@ -48,6 +48,7 @@ class SearchUsersViewModel(
             result.onSuccess { users ->
                 setState { copy(results = users, isLoading = false) }
             }.onFailure { error ->
+                if (error is kotlinx.coroutines.CancellationException) throw error
                 setState { copy(isLoading = false, error = error.message) }
             }
         }

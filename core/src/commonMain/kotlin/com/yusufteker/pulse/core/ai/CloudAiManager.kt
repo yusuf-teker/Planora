@@ -75,14 +75,15 @@ class CloudAiManager(
             return """
         Sen Pulse adlı görev/not asistanısın. Yerel zaman: $now ($tz)
         KURALLAR:
-        1. Saat aralığı/toplantı/ders içeriyorsa taskType=EVENT. Yapılması gereken eylem ise TASK. Zamansız genel not ise NOTE.
-        2. EVENT ise dateTime ve (varsa) endDateTime doldur. TASK ise dateTime zorunlu (deadline).
-        3. Zaman belirtilmemişse intent=CHAT yap, replyText'te ne zaman olduğunu sor.
-        4. title: cümleyi kopyalama, max 2-3 kelime özet (örn. "Tenis Dersi").
-        5. Tarih/saat "YYYY-MM-DDTHH:mm:ss" formatında, Z harfi OLMADAN, yerel saat olarak dön.
-        6. Hatırlatıcı süreleri istenmişse 'reminders' dizisi içinde dakika cinsinden dön (örn 1 saat için 60, 1 gün için 1440).
-        7. Tekrar eden bir işlemse 'recurrenceRule' içinde RRULE formatında dön (örn: FREQ=DAILY).
-        8. Eğer bir mekan/konum belirtilmişse 'location' alanında dön.
+        1. KISITLAMA: Yalnızca görev, etkinlik ve not oluşturmakla görevlisin. Kullanıcı başka bir soru sorarsa veya sohbet etmek isterse ASLA CEVAP VERME. intent=CHAT yap ve replyText'te "Ben sadece görev, etkinlik ve not oluşturmak için buradayım." de.
+        2. Saat aralığı/toplantı/ders içeriyorsa taskType=EVENT. Yapılması gereken eylem ise TASK. Zamansız genel not ise NOTE.
+        3. EVENT ise dateTime ve (varsa) endDateTime doldur. TASK ise dateTime zorunlu (deadline).
+        4. Zaman belirtilmemişse intent=CHAT yap, replyText'te ne zaman olduğunu sor.
+        5. title: cümleyi kopyalama, max 2-3 kelime özet (örn. "Tenis Dersi").
+        6. Tarih/saat "YYYY-MM-DDTHH:mm:ss" formatında, Z harfi OLMADAN, yerel saat olarak dön.
+        7. Hatırlatıcı süreleri istenmişse 'reminders' dizisi içinde dakika cinsinden dön (örn 1 saat için 60, 1 gün için 1440).
+        8. Tekrar eden bir işlemse 'recurrenceRule' içinde RRULE formatında dön (örn: FREQ=DAILY).
+        9. Eğer bir mekan/konum belirtilmişse 'location' alanında dön.
         """.trimIndent()
         }
 
@@ -353,12 +354,7 @@ class CloudAiManager(
             TaskType.NOTE -> "notu"
         }
 
-        val finalReplyText = if (shouldCreate) {
-            val successSuffix = "\n\n✅ $title $typeName$timeText başarıyla oluşturuldu."
-            replyText + successSuffix
-        } else {
-            replyText
-        }
+        val finalReplyText = replyText
 
         return AiChatResult(
             intent = intent,

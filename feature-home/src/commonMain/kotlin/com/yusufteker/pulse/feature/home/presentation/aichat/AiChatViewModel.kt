@@ -36,6 +36,8 @@ class AiChatViewModel(
         // No-op for now since we removed local LLM
     }
 
+    private var generationJob: kotlinx.coroutines.Job? = null
+
     override fun onEvent(event: AiChatEvent) {
         when (event) {
             is AiChatEvent.InputTextChanged -> {
@@ -44,9 +46,12 @@ class AiChatViewModel(
             is AiChatEvent.SendMessage -> {
                 sendMessage()
             }
-
             is AiChatEvent.ClearChat -> {
                 setState { copy(messages = emptyList(), inputText = "") }
+            }
+            AiChatEvent.CancelGeneration -> {
+                generationJob?.cancel()
+                setState { copy(isLoading = false) }
             }
         }
     }
@@ -56,17 +61,16 @@ class AiChatViewModel(
         if (input.isEmpty()) return
 
         val userMessage = AiChatMessage(text = input, isUser = true)
-        val aiLoadingMessage = AiChatMessage(text = "...", isUser = false, isLoading = true)
 
         setState {
             copy(
-                messages = messages + userMessage + aiLoadingMessage,
+                messages = messages + userMessage,
                 inputText = "",
                 isLoading = true
             )
         }
 
-        launch {
+        generationJob = launch {
             try {
                 // AI bağlamını oluştur
                 val context = buildAiChatContext()
@@ -85,15 +89,14 @@ class AiChatViewModel(
                 }
 
                 // AI yanıtını göster
-                val responseMessage = aiLoadingMessage.copy(
+                val responseMessage = AiChatMessage(
                     text = result.replyText,
+                    isUser = false,
                     isLoading = false
                 )
                 setState {
                     copy(
-                        messages = messages.map {
-                            if (it.id == aiLoadingMessage.id) responseMessage else it
-                        },
+                        messages = messages + responseMessage,
                         isLoading = false
                     )
                 }
@@ -118,10 +121,10 @@ class AiChatViewModel(
                             
                             setState {
                                 copy(
-                                    messages = messages.map {
-                                        if (it.id == responseMessage.id) {
-                                            it.copy(text = it.text + successSuffix)
-                                        } else it
+                                    messages = messages.map { msg ->
+                                        if (msg.id == responseMessage.id) {
+                                            msg.copy(text = msg.text + successSuffix)
+                                        } else msg
                                     }
                                 )
                             }
@@ -130,10 +133,10 @@ class AiChatViewModel(
                             val errorSuffix = getString(Res.string.ai_chat_task_created_failed, errorMsg)
                             setState {
                                 copy(
-                                    messages = messages.map {
-                                        if (it.id == responseMessage.id) {
-                                            it.copy(text = it.text + errorSuffix)
-                                        } else it
+                                    messages = messages.map { msg ->
+                                        if (msg.id == responseMessage.id) {
+                                            msg.copy(text = msg.text + errorSuffix)
+                                        } else msg
                                     }
                                 )
                             }
@@ -141,16 +144,18 @@ class AiChatViewModel(
                     }
 
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Sadece iptal edildi, bir şey yapmaya gerek yok (isLoading zaten false yapıldı)
+                throw e
             } catch (e: Exception) {
-                val errorMessage = aiLoadingMessage.copy(
+                val errorMessage = AiChatMessage(
                     text = getString(Res.string.ai_chat_error_occurred, e.message ?: ""),
+                    isUser = false,
                     isLoading = false
                 )
                 setState {
                     copy(
-                        messages = messages.map {
-                            if (it.id == aiLoadingMessage.id) errorMessage else it
-                        },
+                        messages = messages + errorMessage,
                         isLoading = false
                     )
                 }

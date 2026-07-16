@@ -229,31 +229,29 @@ fun SocialScreen(
                 }
                 
                 // Bizim ozel dumduz, oklu olmayan Instagram tarzi yukleme ikonumuz
-                if (animatedOffset > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                translationY = animatedOffset - 90f // Listenin 90f ustunde, asagi dogru iner
-                                alpha = (animatedOffset / 140f).coerceIn(0f, 1f)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            CircularProgressIndicator(
-                                progress = { (pullToRefreshState.distanceFraction).coerceIn(0f, 1f) },
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 2.dp,
-                                trackColor = Color.Transparent
-                            )
-                        }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            translationY = animatedOffset - 90f // Listenin 90f ustunde, asagi dogru iner
+                            alpha = (animatedOffset / 140f).coerceIn(0f, 1f)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            progress = { (pullToRefreshState.distanceFraction).coerceIn(0f, 1f) },
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp,
+                            trackColor = Color.Transparent
+                        )
                     }
                 }
             }

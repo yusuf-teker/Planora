@@ -4,6 +4,7 @@ sealed class AiChatEvent : com.yusufteker.pulse.core.base.UiEvent {
     data class InputTextChanged(val text: String) : AiChatEvent()
     data object SendMessage : AiChatEvent()
     data object ClearChat : AiChatEvent()
+    data object CancelGeneration : AiChatEvent()
 }
 
 sealed class AiChatEffect : com.yusufteker.pulse.core.base.UiEffect {
