@@ -9,13 +9,13 @@ import java.util.UUID
 
 object CloudinaryService {
 
-    private val dotenv = Dotenv.load()
+    private val dotenv = Dotenv.configure().ignoreIfMissing().load()
 
     private val cloudinary = Cloudinary(
         ObjectUtils.asMap(
-            "cloud_name", dotenv["CLOUDINARY_CLOUD_NAME"],
-            "api_key", dotenv["CLOUDINARY_API_KEY"],
-            "api_secret", dotenv["CLOUDINARY_API_SECRET"],
+            "cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME") ?: dotenv["CLOUDINARY_CLOUD_NAME"],
+            "api_key", System.getenv("CLOUDINARY_API_KEY") ?: dotenv["CLOUDINARY_API_KEY"],
+            "api_secret", System.getenv("CLOUDINARY_API_SECRET") ?: dotenv["CLOUDINARY_API_SECRET"],
             "secure", true
         )
     )

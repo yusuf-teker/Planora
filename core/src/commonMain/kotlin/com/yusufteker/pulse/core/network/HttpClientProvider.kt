@@ -54,7 +54,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                     io.github.aakira.napier.Napier.d(message = message, tag = "HTTP_LOG")
                 }
             }
-            level = LogLevel.ALL
+            level = LogLevel.INFO
         }
 
         install(Auth) {
