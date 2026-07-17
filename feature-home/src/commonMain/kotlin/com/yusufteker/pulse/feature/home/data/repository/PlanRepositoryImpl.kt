@@ -133,12 +133,8 @@ class PlanRepositoryImpl(
             // Arka planda sunucudan sil
             scope.launch(Dispatchers.IO) {
                 try {
-                    if (!actualTaskId.startsWith("local_")) {
-                        planApi.deleteTask(actualTaskId)
-                        Napier.d { "PlanRepositoryImpl.deleteTask SUCCESS remotely: actualTaskId=$actualTaskId" }
-                    } else {
-                        Napier.d { "PlanRepositoryImpl.deleteTask: skipping remote delete for local task: $actualTaskId" }
-                    }
+                    planApi.deleteTask(actualTaskId)
+                    Napier.d { "PlanRepositoryImpl.deleteTask SUCCESS remotely: actualTaskId=$actualTaskId" }
                 } catch (e: Exception) {
                     Napier.e(e) { "PlanRepositoryImpl.deleteTask remote sync failed for $actualTaskId: ${e.message}" }
                 }
@@ -452,6 +448,7 @@ class PlanRepositoryImpl(
                 
                 // Arka planda sunucuya senkronize etmeyi dene
                 val dto = mapTaskEntityToDto(task)
+
                 val request = CreateTaskRequest(
                         title = dto.title,
                         description = dto.description,
@@ -477,9 +474,7 @@ class PlanRepositoryImpl(
                     )
                     scope.launch(Dispatchers.IO) {
                         try {
-                            if (!actualTaskId.startsWith("local_")) {
-                                planApi.updateTask(actualTaskId, request)
-                            }
+                            planApi.updateTask(actualTaskId, request)
                             database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 1L, actualTaskId)
                         } catch (e: Exception) {
                             println("Failed to sync task status completion: ${e.message}")

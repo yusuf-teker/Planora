@@ -37,6 +37,7 @@ class TaskEditorViewModel(
 
     private val _state = MutableStateFlow(TaskEditorState())
     val state = _state.asStateFlow()
+    private var isDeleted = false
 
     private val _effect = MutableSharedFlow<TaskEditorEffect>()
     val effect = _effect.asSharedFlow()
@@ -212,6 +213,7 @@ class TaskEditorViewModel(
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun saveTask() {
+        if (isDeleted) return
         val currentState = _state.value
         Napier.d { "TaskEditorViewModel.saveTask: id=${currentState.id}, title=${currentState.title}, isDeleted=${currentState.isDeleted}" }
         if (currentState.isDeleted) return   // silinmiş görevi asla diriltme
@@ -282,6 +284,8 @@ class TaskEditorViewModel(
 
     private fun deleteTask() {
         val taskId = _state.value.id ?: return
+        isDeleted = true
+
         Napier.d { "TaskEditorViewModel.deleteTask: taskId=$taskId" }
         _state.update { it.copy(isDeleted = true) }
         viewModelScope.launch {
