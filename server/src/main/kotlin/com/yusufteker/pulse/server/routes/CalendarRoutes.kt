@@ -102,7 +102,8 @@ fun Route.calendarRoutes() {
                             requesterName = requester.name,
                             requesterUsername = requester.username,
                             requesterAvatarId = requester.avatarId,
-                            status = it.status
+                            status = it.status,
+                            requesterProfileImageUrl = requester.profileImageUrl
                         )
                     }
                 }
@@ -168,7 +169,8 @@ fun Route.calendarRoutes() {
                             name = user.name,
                             username = user.username,
                             avatarId = user.avatarId,
-                            color = it.color ?: "#2196F3"
+                            color = it.color ?: "#2196F3",
+                            profileImageUrl = user.profileImageUrl
                         )
                     }
                 }
@@ -194,7 +196,8 @@ fun Route.calendarRoutes() {
                             name = user.name,
                             username = user.username,
                             avatarId = user.avatarId,
-                            color = it.color ?: "#E91E63"
+                            color = it.color ?: "#E91E63",
+                            profileImageUrl = user.profileImageUrl
                         )
                     }
                 }
@@ -253,6 +256,7 @@ fun Route.calendarRoutes() {
                         var include = true
                         if (fromTime != null) include = include && (it.startTime >= fromTime)
                         if (toTime != null) include = include && (it.startTime <= toTime)
+                        include = include && (it.type == com.yusufteker.pulse.shared.api.TaskType.TASK || it.type == com.yusufteker.pulse.shared.api.TaskType.EVENT)
                         include
                     }
 

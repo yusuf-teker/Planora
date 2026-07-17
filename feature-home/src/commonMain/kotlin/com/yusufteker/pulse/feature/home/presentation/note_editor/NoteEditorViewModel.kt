@@ -100,7 +100,11 @@ class NoteEditorViewModel(
                 status = TaskStatus.PENDING,
                 visibility = TaskVisibility.PRIVATE
             )
-            planRepository.createTask(request)
+            val result = planRepository.createTask(request)
+            result.onSuccess { newFolder ->
+                _state.update { it.copy(parentId = newFolder.id) }
+                if (_state.value.id != null) saveNote(shouldNavigateBack = false)
+            }
         }
     }
 
