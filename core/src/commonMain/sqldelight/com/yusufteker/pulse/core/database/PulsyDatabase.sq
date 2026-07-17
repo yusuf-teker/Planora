@@ -284,12 +284,13 @@ CREATE TABLE calendarAccessEntity (
     name TEXT NOT NULL,
     username TEXT NOT NULL,
     avatarId TEXT NOT NULL,
-    color TEXT NOT NULL
+    color TEXT NOT NULL,
+    profileImageUrl TEXT
 );
 
 insertCalendarAccess:
-INSERT OR REPLACE INTO calendarAccessEntity(userId, name, username, avatarId, color)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO calendarAccessEntity(userId, name, username, avatarId, color, profileImageUrl)
+VALUES (?, ?, ?, ?, ?, ?);
 
 getAllCalendarAccess:
 SELECT * FROM calendarAccessEntity;

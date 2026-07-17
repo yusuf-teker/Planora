@@ -24,7 +24,9 @@ data class HomeState(
     val accessibleUsers: List<AccessibleUser> = emptyList(),
     val selectedSharedUserIds: Set<Int> = emptySet(),
     val sharedTasksByUser: Map<Int, List<TaskDto>> = emptyMap(),
-    val selectedSharedTask: TaskDto? = null
+    val selectedSharedTask: TaskDto? = null,
+    val currentUserAvatarId: String? = null,
+    val currentUserProfileImageUrl: String? = null
 ) : UiState
 
 data class AccessibleUser(
@@ -32,7 +34,8 @@ data class AccessibleUser(
     val name: String,
     val username: String,
     val avatarId: String,
-    val color: String
+    val color: String,
+    val profileImageUrl: String? = null
 )
 
 data class TimelineFilterOptions(

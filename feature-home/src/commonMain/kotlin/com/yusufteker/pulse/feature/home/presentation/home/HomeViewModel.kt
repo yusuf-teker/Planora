@@ -137,10 +137,23 @@ class HomeViewModel(
                         name = it.name,
                         username = it.username,
                         avatarId = it.avatarId,
-                        color = it.color
+                        color = it.color,
+                        profileImageUrl = it.profileImageUrl
                     )
                 }
                 setState { copy(accessibleUsers = users) }
+            }
+        }
+        
+        launch {
+            sessionPreferences.userAvatarFlow.collect { avatar ->
+                setState { copy(currentUserAvatarId = avatar) }
+            }
+        }
+        
+        launch {
+            sessionPreferences.userProfileImageUrlFlow.collect { url ->
+                setState { copy(currentUserProfileImageUrl = url) }
             }
         }
     }

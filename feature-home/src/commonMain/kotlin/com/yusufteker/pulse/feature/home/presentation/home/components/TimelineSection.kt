@@ -166,6 +166,7 @@ fun TimelineSection(
                     showDate = state.viewOption == TimelineViewOption.RELATIVE,
                     sharedUserAvatar = creatorUser?.avatarId,
                     sharedUserColor = creatorColor,
+                    sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
                     onClick = {
                         onTaskClick(task)
                     }

@@ -670,7 +670,8 @@ class PlanRepositoryImpl(
                             name = dto.name,
                             username = dto.username,
                             avatarId = dto.avatarId,
-                            color = dto.color
+                            color = dto.color,
+                            profileImageUrl = dto.profileImageUrl
                         )
                     }
                 }

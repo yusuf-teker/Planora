@@ -115,6 +115,8 @@ fun HomeScreen(
                 SharedUserChipRow(
                     accessibleUsers = state.accessibleUsers,
                     selectedUserIds = state.selectedSharedUserIds,
+                    currentUserAvatarId = state.currentUserAvatarId,
+                    currentUserProfileImageUrl = state.currentUserProfileImageUrl,
                     onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
                 )
 

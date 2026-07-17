@@ -30,6 +30,8 @@ private fun String.toColorOrNull(): Color? {
 fun SharedUserChipRow(
     accessibleUsers: List<AccessibleUser>,
     selectedUserIds: Set<Int>,
+    currentUserAvatarId: String?,
+    currentUserProfileImageUrl: String?,
     onToggleUser: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -44,7 +46,8 @@ fun SharedUserChipRow(
             // "Me" Chip
             UserChip(
                 name = "Ben",
-                avatarId = null,
+                avatarId = currentUserAvatarId ?: "avatar_1",
+                profileImageUrl = currentUserProfileImageUrl,
                 color = MaterialTheme.colorScheme.primary,
                 isSelected = true,
                 onClick = { /* Me is always selected for now */ }
@@ -57,6 +60,7 @@ fun SharedUserChipRow(
             UserChip(
                 name = user.name,
                 avatarId = user.avatarId,
+                profileImageUrl = user.profileImageUrl,
                 color = userColor,
                 isSelected = isSelected,
                 onClick = { onToggleUser(user.userId) }
@@ -69,6 +73,7 @@ fun SharedUserChipRow(
 private fun UserChip(
     name: String,
     avatarId: String?,
+    profileImageUrl: String?,
     color: Color,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -91,6 +96,7 @@ private fun UserChip(
         if (avatarId != null) {
             AvatarImage(
                 avatarId = avatarId,
+                profileImageUrl = profileImageUrl,
                 modifier = Modifier.size(20.dp).clip(CircleShape)
             )
         } else {

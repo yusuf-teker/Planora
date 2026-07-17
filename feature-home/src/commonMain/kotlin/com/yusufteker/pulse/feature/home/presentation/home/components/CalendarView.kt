@@ -223,6 +223,7 @@ fun CalendarView(
                                         showDate = false,
                                         sharedUserAvatar = creatorUser?.avatarId,
                                         sharedUserColor = creatorColor,
+                                        sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
                                         onClick = { onTaskClick(task) }
                                     )
                                 }

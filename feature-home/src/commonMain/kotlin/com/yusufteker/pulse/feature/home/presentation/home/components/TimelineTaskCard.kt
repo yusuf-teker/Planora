@@ -54,6 +54,7 @@ fun TimelineTaskCard(
     showDate: Boolean = false,
     sharedUserAvatar: String? = null,
     sharedUserColor: Color? = null,
+    sharedUserProfileImageUrl: String? = null,
     onClick: () -> Unit = {}
 ) {
     val isCompleted = task.status == TaskStatus.COMPLETED
@@ -284,6 +285,7 @@ fun TimelineTaskCard(
                         if (sharedUserAvatar != null) {
                             com.yusufteker.pulse.core.ui.components.AvatarImage(
                                 avatarId = sharedUserAvatar,
+                                profileImageUrl = sharedUserProfileImageUrl,
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
