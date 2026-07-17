@@ -207,6 +207,9 @@ class NoteEditorViewModel(
 
     private fun saveNote(shouldNavigateBack: Boolean = false) {
         val currentState = _state.value
+        
+        if (currentState.isLoading) return
+
         if (currentState.title.isBlank() && currentState.content.isBlank()) {
             if (shouldNavigateBack) setEffect(NoteEditorEffect.NavigateBack) // Empty note, just close
             return

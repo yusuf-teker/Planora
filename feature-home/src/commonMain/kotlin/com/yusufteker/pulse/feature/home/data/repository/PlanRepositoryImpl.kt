@@ -195,7 +195,9 @@ class PlanRepositoryImpl(
                             } catch (e: io.ktor.client.plugins.ClientRequestException) {
                                 if (e.response.status.value == 404 || e.response.status.value == 403) {
                                     // Geriye dönük uyumluluk veya sunucudan silinmiş görevler için fallback: Yeniden oluştur.
-                                    val remoteTask = planApi.createTask(request)
+                                    // ID'nin aynı kalması ve timeout durumunda sunucuda sonsuz döngüyle veri çoklanmaması için localId veriyoruz.
+                                    val fallbackRequest = request.copy(localId = entity.id)
+                                    val remoteTask = planApi.createTask(fallbackRequest)
                                     database.pulsyDatabaseQueries.transaction {
                                         database.pulsyDatabaseQueries.deleteExceptionsForTask(entity.id)
                                         database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(entity.id)

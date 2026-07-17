@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -17,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -135,12 +135,23 @@ fun NotesScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                Text(
-                                    text = note.title.ifBlank { stringResource(Res.string.untitled_note_label) },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text(
+                                        text = note.title.ifBlank { stringResource(Res.string.untitled_note_label) },
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (!note.isSynced) {
+                                        Icon(
+                                            imageVector = Icons.Default.SyncProblem,
+                                            contentDescription = "Not Synced",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(16.dp).padding(start = 4.dp)
+                                        )
+                                    }
+                                }
                                 if (!note.description.isNullOrBlank()) {
                                     Text(
                                         text = note.description ?: "",

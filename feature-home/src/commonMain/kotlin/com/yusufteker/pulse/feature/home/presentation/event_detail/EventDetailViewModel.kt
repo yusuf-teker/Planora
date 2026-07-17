@@ -196,6 +196,9 @@ class EventDetailViewModel(
 
     private fun saveEvent() {
         val currentState = _state.value
+        
+        if (currentState.isLoading) return
+
         if (currentState.title.isBlank()) {
             setEffect(EventDetailEffect.ShowToast("Lütfen bir başlık girin."))
             return
