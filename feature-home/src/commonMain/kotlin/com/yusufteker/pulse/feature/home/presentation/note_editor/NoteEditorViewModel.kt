@@ -144,15 +144,51 @@ class NoteEditorViewModel(
         val previewContent = _state.value.aiPreviewContent
 
         if (previewTitle != null && previewContent != null) {
+            val (newContent, newChecklistItems) = parseContentAndChecklist(previewContent)
+            
             _state.update { 
                 it.copy(
                     title = previewTitle,
-                    content = previewContent,
+                    content = newContent,
+                    checklist = it.checklist + newChecklistItems,
                     aiPreviewTitle = null,
                     aiPreviewContent = null
                 )
             }
+            if (_state.value.id != null) saveNote(shouldNavigateBack = false)
         }
+    }
+
+    private fun parseContentAndChecklist(content: String): Pair<String, List<com.yusufteker.pulse.shared.api.SubTask>> {
+        val lines = content.lines()
+        val newContentLines = mutableListOf<String>()
+        val newChecklist = mutableListOf<com.yusufteker.pulse.shared.api.SubTask>()
+
+        // Match typical markdown list formats: "- item", "* item", "1. item", "- [ ] item"
+        val listPattern = Regex("^(?:-|\\*|\\d+\\.|-\\s?\\[\\s?\\])\\s+(.+)$")
+
+        for (line in lines) {
+            val match = listPattern.find(line.trim())
+            if (match != null) {
+                val itemTitle = match.groupValues[1].trim()
+                newChecklist.add(
+                    com.yusufteker.pulse.shared.api.SubTask(
+                        id = com.yusufteker.pulse.core.utils.generateUUID(),
+                        title = itemTitle,
+                        isDone = false
+                    )
+                )
+            } else {
+                newContentLines.add(line)
+            }
+        }
+
+        // Clean up excessive empty lines
+        val cleanedContent = newContentLines.joinToString("\n")
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .trim()
+
+        return Pair(cleanedContent, newChecklist)
     }
 
     private fun rejectAiPreview() {

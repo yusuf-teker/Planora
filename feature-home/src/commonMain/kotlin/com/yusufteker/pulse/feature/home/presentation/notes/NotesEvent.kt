@@ -9,4 +9,8 @@ sealed interface NotesEvent : UiEvent {
     data object NotePreviewDismissed : NotesEvent
     data object CreateNoteClicked : NotesEvent
     data class FolderSelected(val folderId: String?) : NotesEvent
+    data class SearchQueryChanged(val query: String) : NotesEvent
+    data object ToggleViewMode : NotesEvent
+    data class TogglePin(val noteId: String) : NotesEvent
+    data class DeleteNote(val noteId: String) : NotesEvent
 }

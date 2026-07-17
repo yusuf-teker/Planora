@@ -331,6 +331,30 @@ fun NoteEditorScreen(
                 var aiQuery by remember { mutableStateOf("") }
                 
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    // AI Suggestion Chips
+                    if (!state.isAiLoading) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val suggestions = listOf("Özetle", "Yazım hatalarını düzelt", "Maddelere ayır", "Daha profesyonel yaz")
+                            items(suggestions) { suggestion ->
+                                SuggestionChip(
+                                    onClick = { aiQuery = suggestion },
+                                    label = { Text(suggestion, style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    ),
+                                    border = SuggestionChipDefaults.suggestionChipBorder(
+                                        enabled = true,
+                                        borderColor = Color.Transparent
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     // Yükleme Göstergesi
                     if (state.isAiLoading) {
                         Row(

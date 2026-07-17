@@ -144,6 +144,7 @@ CREATE TABLE taskEntity (
     color TEXT,
     parentId TEXT,
     participants TEXT,
+    isPinned INTEGER NOT NULL DEFAULT 0,
     isSynced INTEGER NOT NULL DEFAULT 1
 );
 
@@ -201,8 +202,8 @@ DELETE FROM taskSharedRoomEntity WHERE roomId = :roomId;
 -- Task Sorguları
 insertTask:
 INSERT OR REPLACE INTO taskEntity(
-    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable, isAllDay, aiMetadata, reminders, specificDetails, tags, color, parentId, participants, isSynced
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    id, creatorId, title, description, startTime, endTime, type, status, visibility, isRecurring, recurrenceRule, isFlexible, isOptional, isPostponable, isAllDay, aiMetadata, reminders, specificDetails, tags, color, parentId, participants, isPinned, isSynced
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getAllTasks:
 SELECT * FROM taskEntity ORDER BY startTime ASC;

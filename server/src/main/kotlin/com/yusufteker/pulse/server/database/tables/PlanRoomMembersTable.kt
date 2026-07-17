@@ -10,7 +10,7 @@ import com.yusufteker.pulse.shared.api.RoomMemberRole
  */
 object PlanRoomMembersTable : Table("plan_room_members") {
     // Hangi odaya ait olduğu bilgisi. 
-    val roomId = varchar("room_id", 36).references(PlanRoomsTable.id)
+    val roomId = varchar("room_id", 100).references(PlanRoomsTable.id)
     
     // Odaya dahil olan/davet edilen kullanıcının ID'si.
     val userId = integer("user_id").references(UsersTable.id)

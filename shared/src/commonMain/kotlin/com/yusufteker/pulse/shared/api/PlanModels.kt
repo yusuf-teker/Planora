@@ -135,6 +135,7 @@ data class TaskDto(
     val tags: List<String> = emptyList(),
     val color: String? = null,
     val participants: List<TaskParticipantDto> = emptyList(),
+    val isPinned: Boolean = false,
     val isSynced: Boolean = true
 )
 
@@ -209,6 +210,7 @@ data class CreateTaskRequest(
     val tags: List<String> = emptyList(),
     val color: String? = null,
     val participants: Map<Int, String> = emptyMap(),
+    val isPinned: Boolean = false,
     val isSynced: Boolean = true,
     val localId: String? = null
 )

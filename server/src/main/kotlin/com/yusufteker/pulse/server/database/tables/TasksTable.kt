@@ -14,7 +14,7 @@ import com.yusufteker.pulse.shared.api.TaskVisibility
  */
 object TasksTable : IdTable<String>("tasks") {
     // Görevin benzersiz kimliği. Çevrimdışı (offline) yaratılabilmesi için UUID formatında tutulur.
-    override val id: Column<EntityID<String>> = varchar("id", 36).entityId()
+    override val id: Column<EntityID<String>> = varchar("id", 100).entityId()
     
     // Görevi veya notu oluşturan kullanıcının kimliği (Sahibi).
     val creatorId = reference("creator_id", UsersTable).index()
@@ -76,7 +76,7 @@ object TasksTable : IdTable<String>("tasks") {
     val color = varchar("color", 50).nullable()
     
     // Üst öğe ID'si (Örn: Bu bir alt görevse, bağlı olduğu Event'in veya Task'ın ID'si)
-    val parentId = varchar("parent_id", 36).nullable()
+    val parentId = varchar("parent_id", 100).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -10,7 +10,7 @@ import org.jetbrains.exposed.sql.Column
  */
 object PlanRoomsTable : IdTable<String>("plan_rooms") {
     // Odanın benzersiz kimliği (UUID). İstemcide (local db) ve sunucuda veriyi eşleştirmek için kullanılır.
-    override val id: Column<EntityID<String>> = varchar("id", 36).entityId()
+    override val id: Column<EntityID<String>> = varchar("id", 100).entityId()
     
     // Odanın görünen adı (Örn: "Haftasonu Tatili", "Yusuf & Dilber Planları")
     val name = varchar("name", 255)

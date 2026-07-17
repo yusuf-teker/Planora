@@ -499,6 +499,7 @@ class PlanRepositoryImpl(
                 color = entity.color,
                 parentId = entity.parentId,
                 participants = entity.participants?.let { try { Json.decodeFromString<List<com.yusufteker.pulse.shared.api.TaskParticipantDto>>(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
+                isPinned = entity.isPinned == 1L,
                 isSynced = entity.isSynced == 1L
             )
     }

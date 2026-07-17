@@ -30,6 +30,7 @@ fun PulsyDatabaseQueries.insertTaskFromDto(task: TaskDto, isSynced: Long) {
         color = task.color,
         parentId = task.parentId,
         participants = task.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
+        isPinned = if (task.isPinned) 1L else 0L,
         isSynced = isSynced
     )
 }
@@ -63,6 +64,7 @@ fun PulsyDatabaseQueries.insertTaskFromRequest(
         color = request.color,
         parentId = request.parentId,
         participants = request.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
+        isPinned = if (request.isPinned) 1L else 0L,
         isSynced = isSynced
     )
 }
