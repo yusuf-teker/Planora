@@ -86,6 +86,12 @@ fun NoteEditorScreen(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.onEvent(NoteEditorEvent.OnDispose)
+        }
+    }
+
     LaunchedEffect(Unit) {
         val scope = this
         viewModel.effect.collect { effect ->
@@ -157,10 +163,9 @@ fun NoteEditorScreen(
                         IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnDeleteClick) }) {
                             Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
                         }
-                    } else {
-                        IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnSaveClick) }) {
-                            Icon(Icons.Default.Check, contentDescription = "Kaydet", tint = MaterialTheme.colorScheme.primary)
-                        }
+                    }
+                    IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnSaveClick) }) {
+                        Icon(Icons.Default.Check, contentDescription = "Kaydet", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

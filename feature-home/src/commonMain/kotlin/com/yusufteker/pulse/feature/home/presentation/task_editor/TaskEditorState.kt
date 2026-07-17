@@ -8,6 +8,7 @@ import com.yusufteker.pulse.shared.api.TaskType
 
 data class TaskEditorState(
     val id: String? = null,
+    val originalTask: com.yusufteker.pulse.shared.api.TaskDto? = null,
     val title: String = "",
     val description: String = "",
     val originalStartTime: Long? = null,
@@ -27,5 +28,7 @@ data class TaskEditorState(
     val roomMembers: List<UserProfileResponse> = emptyList(),
     val subItems: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isDeleted: Boolean = false
+
 ) : UiState

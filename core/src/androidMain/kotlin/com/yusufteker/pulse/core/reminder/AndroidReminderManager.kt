@@ -61,7 +61,6 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
 
 
             if (task.reminders.isEmpty()) {
-                Napier.d("No reminders for ${task.title}", tag = TAG)
                 return@forEach
             }
 
@@ -77,17 +76,6 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
                 
                 val triggerTime = baseTime - (reminderMinutes * 60_000L)
 
-                Napier.d(
-                    """
-                Reminder:
-                task=${task.title}
-                reminder=$reminderMinutes min
-                baseTime=$baseTime
-                triggerTime=$triggerTime
-                now=$now
-                """.trimIndent(),
-                    tag = TAG
-                )
 
                 if (triggerTime > now - 60_000L) {
 

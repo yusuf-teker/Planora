@@ -219,3 +219,12 @@ data class CreateTaskRequest(
 data class AutoScheduleRequest(
     val taskIds: List<String>
 )
+
+fun String.extractBaseTaskId(): String {
+    val suffix = this.substringAfterLast("_")
+    return if (suffix.toLongOrNull() != null) {
+        this.substringBeforeLast("_")
+    } else {
+        this
+    }
+}

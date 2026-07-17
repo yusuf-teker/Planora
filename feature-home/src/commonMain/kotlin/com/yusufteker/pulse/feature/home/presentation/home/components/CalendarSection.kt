@@ -18,6 +18,7 @@ import com.yusufteker.pulse.feature.home.presentation.home.HomeEvent
 import com.yusufteker.pulse.feature.home.presentation.home.HomeState
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
+import com.yusufteker.pulse.shared.api.extractBaseTaskId
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
@@ -55,7 +56,7 @@ fun CalendarSection(
 
                 if (task.isRecurring) {
 
-                    val baseId = task.id.substringBeforeLast("_")
+                    val baseId = task.id.extractBaseTaskId()
 
                     if (baseId !in seenRecurringBaseIds) {
                         seenRecurringBaseIds.add(baseId)

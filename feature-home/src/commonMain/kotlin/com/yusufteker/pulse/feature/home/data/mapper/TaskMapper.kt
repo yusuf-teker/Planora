@@ -63,7 +63,10 @@ fun PulsyDatabaseQueries.insertTaskFromRequest(
         tags = if (request.tags.isNotEmpty()) Json.encodeToString(request.tags) else null,
         color = request.color,
         parentId = request.parentId,
-        participants = request.participants.takeIf { it.isNotEmpty() }?.let { Json.encodeToString(it) },
+        participants = request.participants.takeIf { it.isNotEmpty() }?.let { map ->
+            val list = map.map { com.yusufteker.pulse.shared.api.TaskParticipantDto(it.key, it.value, "") }
+            Json.encodeToString(list)
+        },
         isPinned = if (request.isPinned) 1L else 0L,
         isSynced = isSynced
     )

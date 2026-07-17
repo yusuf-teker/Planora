@@ -2,6 +2,7 @@ package com.yusufteker.pulse.feature.home.presentation.note_editor
 
 data class NoteEditorState(
     val id: String? = null,
+    val originalTask: com.yusufteker.pulse.shared.api.TaskDto? = null,
     val title: String = "",
     val content: String = "",
     val isLoading: Boolean = false,

@@ -18,4 +18,5 @@ sealed class NoteEditorEvent {
     data class OnToggleChecklistItem(val itemId: String) : NoteEditorEvent()
     data class OnDeleteChecklistItem(val itemId: String) : NoteEditorEvent()
     data class OnUpdateChecklistItem(val itemId: String, val newTitle: String) : NoteEditorEvent()
+    object OnDispose : NoteEditorEvent()
 }

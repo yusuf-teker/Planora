@@ -8,6 +8,7 @@ import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.shared.api.CreateTaskRequest
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskType
+import com.yusufteker.pulse.shared.api.extractBaseTaskId
 
 import com.yusufteker.pulse.core.utils.TimelineViewOption
 import kotlinx.coroutines.flow.retryWhen
@@ -258,7 +259,7 @@ class HomeViewModel(
                     val dateMs = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
                     val isCurrentlyCompleted = task.status == com.yusufteker.pulse.shared.api.TaskStatus.COMPLETED
                     
-                    val baseId = task.id.substringBeforeLast("_")
+                    val baseId = task.id.extractBaseTaskId()
                     
                     val result = planRepository.completeTaskInstance(
                         taskId = baseId,

@@ -5,6 +5,7 @@ import com.yusufteker.pulse.feature.home.presentation.home.TimelineFilterOptions
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
+import com.yusufteker.pulse.shared.api.extractBaseTaskId
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -41,7 +42,7 @@ class GetFilteredTasksUseCase {
 
             for (task in filtered) {
                 if (task.isRecurring) {
-                    val baseId = task.id.substringBeforeLast("_")
+                    val baseId = task.id.extractBaseTaskId()
                     if (baseId !in seenRecurringBaseIds) {
                         seenRecurringBaseIds.add(baseId)
                         uniqueTasks.add(task)

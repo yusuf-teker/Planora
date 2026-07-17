@@ -67,6 +67,12 @@ fun TaskEditorScreen(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.onEvent(TaskEditorEvent.OnDispose)
+        }
+    }
+
     val isTimeOnly = state.isRecurring && state.recurrenceRule != null && 
         (state.recurrenceRule is com.yusufteker.pulse.shared.api.RecurrenceRule.Daily || 
          state.recurrenceRule is com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly || 
@@ -123,10 +129,8 @@ fun TaskEditorScreen(
                             }
                         }
                     }
-                    if (state.id == null) {
-                        TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.SaveClicked) }) {
-                            Text(stringResource(Res.string.save), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
+                    TextButton(onClick = { viewModel.onEvent(TaskEditorEvent.SaveClicked) }) {
+                        Text(stringResource(Res.string.save), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)

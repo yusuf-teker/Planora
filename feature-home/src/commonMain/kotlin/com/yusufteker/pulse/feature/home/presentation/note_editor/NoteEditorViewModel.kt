@@ -4,17 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.shared.api.ItemDetails
-import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import io.github.aakira.napier.Napier
 
 class NoteEditorViewModel(
     private val noteId: String?,
@@ -31,6 +31,8 @@ class NoteEditorViewModel(
     private val _effect = MutableSharedFlow<NoteEditorEffect>()
     val effect = _effect.asSharedFlow()
 
+    private var isDeleted = false
+
     init {
         loadNote(noteId, planRoomId, parentId)
     }
@@ -40,18 +42,16 @@ class NoteEditorViewModel(
             is NoteEditorEvent.OnLoadNote -> loadNote(event.noteId, event.planRoomId, event.parentId)
             is NoteEditorEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
             is NoteEditorEvent.OnContentChange -> _state.update { it.copy(content = event.content) }
-            NoteEditorEvent.OnSaveClick -> saveNote(shouldNavigateBack = true)
+            NoteEditorEvent.OnSaveClick -> saveNote()
             NoteEditorEvent.OnDeleteClick -> deleteNote()
-            NoteEditorEvent.OnBackClick -> {
-                saveNote(shouldNavigateBack = true) // auto-save on back
-            }
+            NoteEditorEvent.OnBackClick -> setEffect(NoteEditorEffect.NavigateBack)
+            NoteEditorEvent.OnDispose -> {}
             is NoteEditorEvent.OnAiActionClick -> processAiPrompt(event.prompt)
             NoteEditorEvent.OnAiCancelClick -> cancelAiProcessing()
             NoteEditorEvent.OnAiPreviewAccept -> acceptAiPreview()
             NoteEditorEvent.OnAiPreviewReject -> rejectAiPreview()
             is NoteEditorEvent.OnFolderSelected -> {
                 _state.update { it.copy(parentId = event.folderId) }
-                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnCreateFolderClick -> createFolder(event.folderName)
             is NoteEditorEvent.OnAddChecklistItem -> {
@@ -61,7 +61,6 @@ class NoteEditorViewModel(
                     isDone = false
                 )
                 _state.update { it.copy(checklist = it.checklist + newItem) }
-                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnToggleChecklistItem -> {
                 _state.update { state ->
@@ -69,13 +68,11 @@ class NoteEditorViewModel(
                         if (item.id == event.itemId) item.copy(isDone = !item.isDone) else item
                     })
                 }
-                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnDeleteChecklistItem -> {
                 _state.update { state ->
                     state.copy(checklist = state.checklist.filter { item -> item.id != event.itemId })
                 }
-                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
             is NoteEditorEvent.OnUpdateChecklistItem -> {
                 _state.update { state ->
@@ -83,7 +80,6 @@ class NoteEditorViewModel(
                         if (item.id == event.itemId) item.copy(title = event.newTitle) else item
                     })
                 }
-                if (_state.value.id != null) saveNote(shouldNavigateBack = false) // autosave
             }
         }
     }
@@ -103,7 +99,6 @@ class NoteEditorViewModel(
             val result = planRepository.createTask(request)
             result.onSuccess { newFolder ->
                 _state.update { it.copy(parentId = newFolder.id) }
-                if (_state.value.id != null) saveNote(shouldNavigateBack = false)
             }
         }
     }
@@ -155,7 +150,6 @@ class NoteEditorViewModel(
                     aiPreviewContent = null
                 )
             }
-            if (_state.value.id != null) saveNote(shouldNavigateBack = false)
         }
     }
 
@@ -201,6 +195,7 @@ class NoteEditorViewModel(
     }
 
     private fun loadNote(noteId: String?, planRoomId: String? = null, parentId: String? = null) {
+        Napier.d { "NoteEditorViewModel.loadNote: noteId=$noteId, planRoomId=$planRoomId, parentId=$parentId" }
         if (noteId == null) {
             val formattedDate = com.yusufteker.pulse.core.utils.formatFullDate(com.yusufteker.pulse.core.utils.getCurrentTimeMs())
             _state.value = NoteEditorState(dateText = formattedDate, planRoomId = planRoomId, parentId = parentId)
@@ -220,97 +215,109 @@ class NoteEditorViewModel(
             planRepository.observeAllTasks().collect { tasks ->
                 val folders = tasks.filter { it.type == TaskType.FOLDER }
                 val note = tasks.find { it.id == noteId && it.type == TaskType.NOTE }
+                Napier.d { "NoteEditorViewModel observeAllTasks COLLECT: noteFound=${note != null}, totalTasks=${tasks.size}" }
                 if (note != null) {
                     val formattedDate = com.yusufteker.pulse.core.utils.formatFullDate(note.startTime)
-                    val checklist = (note.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Note)?.checklist ?: emptyList()
-                    _state.update { 
-                        it.copy(
-                            title = note.title,
-                            content = note.description ?: "",
+                    val checklist = (note.specificDetails as? ItemDetails.Note)?.checklist ?: emptyList()
+                    _state.update { currentState ->
+                        val newTitle = if (currentState.title.isBlank() || currentState.title == currentState.originalTask?.title) note.title else currentState.title
+                        val newContent = if (currentState.content.isBlank() || currentState.content == (currentState.originalTask?.description ?: "")) note.description ?: "" else currentState.content
+                        
+                        Napier.d { "NoteEditorViewModel updating state with DB emission: title=$newTitle" }
+                        currentState.copy(
+                            originalTask = note,
+                            title = newTitle,
+                            content = newContent,
                             isLoading = false,
                             dateText = formattedDate,
                             parentId = note.parentId,
                             folders = folders,
                             checklist = checklist
-                        ) 
+                        )
                     }
                 } else {
+                    Napier.w { "NoteEditorViewModel loadNote: note $noteId not found in DB list!" }
                     _state.update { it.copy(isLoading = false, error = "Note not found", folders = folders) }
                 }
             }
         }
     }
 
-    private fun saveNote(shouldNavigateBack: Boolean = false) {
+    private fun saveNote() {
+        if (isDeleted) return
         val currentState = _state.value
-        
-        if (currentState.isLoading) return
+        Napier.d { "NoteEditorViewModel.saveNote: id=${currentState.id}, title=${currentState.title}" }
+        if (currentState.title.isBlank() && currentState.content.isBlank()) return
 
-        if (currentState.title.isBlank() && currentState.content.isBlank()) {
-            if (shouldNavigateBack) setEffect(NoteEditorEffect.NavigateBack) // Empty note, just close
-            return
-        }
+        val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+        val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+            title = currentState.title.ifBlank { "İsimsiz Not" },
+            description = currentState.content,
+            startTime = currentState.originalTask?.startTime ?: now,
+            endTime = currentState.originalTask?.endTime ?: now,
+            type = currentState.originalTask?.type ?: TaskType.NOTE,
+            status = currentState.originalTask?.status ?: TaskStatus.PENDING,
+            visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else (currentState.originalTask?.visibility ?: TaskVisibility.PRIVATE),
+            sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
+            isRecurring = currentState.originalTask?.isRecurring ?: false,
+            recurrenceRule = currentState.originalTask?.recurrenceRule,
+            isFlexible = currentState.originalTask?.isFlexible ?: true,
+            isOptional = currentState.originalTask?.isOptional ?: true,
+            isPostponable = currentState.originalTask?.isPostponable ?: false,
+            isAllDay = currentState.originalTask?.isAllDay ?: false,
+            parentId = currentState.parentId,
+            reminders = currentState.originalTask?.reminders ?: emptyList(),
+            specificDetails = ItemDetails.Note(
+                content = currentState.content,
+                attachments = (currentState.originalTask?.specificDetails as? ItemDetails.Note)?.attachments ?: emptyList(),
+                checklist = currentState.checklist
+            ),
+            tags = currentState.originalTask?.tags ?: emptyList(),
+            color = currentState.originalTask?.color,
+            isPinned = currentState.originalTask?.isPinned ?: false
+        )
 
-        viewModelScope.launch {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _state.update { it.copy(isLoading = true) }
-            
-            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-
-            val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
-                title = currentState.title.ifBlank { "İsimsiz Not" },
-                description = currentState.content,
-                startTime = now,
-                endTime = now,
-                type = TaskType.NOTE,
-                status = TaskStatus.PENDING,
-                visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
-                sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
-                isRecurring = false,
-                recurrenceRule = null,
-                isFlexible = true,
-                isOptional = true,
-                isPostponable = false,
-                isAllDay = false,
-                parentId = currentState.parentId,
-                reminders = emptyList(),
-                specificDetails = ItemDetails.Note(
-                    content = currentState.content, 
-                    attachments = emptyList(),
-                    checklist = currentState.checklist
-                ),
-                tags = emptyList(),
-                color = null
-            )
-
-            // Save to local DB or remote
             val result = if (currentState.id != null) {
+                Napier.d { "NoteEditorViewModel.saveNote: calling updateTask for ${currentState.id}" }
                 planRepository.updateTask(currentState.id, request)
             } else {
+                Napier.d { "NoteEditorViewModel.saveNote: calling createTask" }
                 planRepository.createTask(request)
             }
-
-            if (result.isFailure) {
-                println("Note save failed: ${result.exceptionOrNull()?.message}")
-                result.exceptionOrNull()?.printStackTrace()
-            }
-            
             _state.update { it.copy(isLoading = false) }
-            if (shouldNavigateBack) {
+            
+            if (result.isSuccess) {
+                Napier.d { "NoteEditorViewModel.saveNote SUCCESS, navigating back" }
                 setEffect(NoteEditorEffect.NavigateBack)
+            } else {
+                val error = result.exceptionOrNull()
+                Napier.e(error) { "NoteEditorViewModel.saveNote FAILED: ${error?.message}" }
+                setEffect(NoteEditorEffect.ShowToast("Not güncellenemedi, lütfen tekrar deneyin."))
             }
         }
     }
 
     private fun deleteNote() {
         val noteId = _state.value.id ?: return
+        Napier.d { "NoteEditorViewModel.deleteNote: noteId=$noteId" }
+        isDeleted = true
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             
             // Local and remote delete
-            planRepository.deleteTask(noteId)
+            val result = planRepository.deleteTask(noteId)
             
             _state.update { it.copy(isLoading = false) }
-            setEffect(NoteEditorEffect.NavigateBack)
+            if (result.isSuccess) {
+                Napier.d { "NoteEditorViewModel.deleteNote SUCCESS, navigating back" }
+                setEffect(NoteEditorEffect.NavigateBack)
+            } else {
+                val error = result.exceptionOrNull()
+                Napier.e(error) { "NoteEditorViewModel.deleteNote FAILED: ${error?.message}" }
+                setEffect(NoteEditorEffect.ShowToast("Not silinemedi, lütfen tekrar deneyin."))
+            }
         }
     }
 

@@ -27,10 +27,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.yusufteker.pulse.core.utils.RecurringTaskEvaluator
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.shared.api.RecurrenceRule
 import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromDto
 import com.yusufteker.pulse.feature.home.data.mapper.insertTaskFromRequest
 import kotlinx.coroutines.withContext
+import io.github.aakira.napier.Napier
 
 class PlanRepositoryImpl(
     private val planApi: PlanApi,
@@ -40,103 +42,110 @@ class PlanRepositoryImpl(
 ) : PlanRepository {
 
     private val syncMutex = Mutex()
+    private val mapMutex = Mutex()
+    private val localToRemoteIdMap = mutableMapOf<String, String>()
+
+    private suspend fun getActualTaskId(taskId: String): String {
+        return mapMutex.withLock {
+            var actualTaskId = taskId
+            val visited = mutableSetOf<String>()
+            while (localToRemoteIdMap.containsKey(actualTaskId) && visited.add(actualTaskId)) {
+                val next = localToRemoteIdMap[actualTaskId]
+                if (next == null || next == actualTaskId) break
+                actualTaskId = next
+            }
+            actualTaskId
+        }
+    }
 
     override suspend fun createTask(request: CreateTaskRequest): Result<TaskDto> {
+        Napier.d { "PlanRepositoryImpl.createTask: title=${request.title}, type=${request.type}" }
         return try {
-            val localId = "local_${generateUUID()}"
-            
-            // Çevrimdışı çalışabilmesi için önce geçici ID ile yerel veritabanına kaydet
-            val localDto = TaskDto(
-                id = localId,
-                creatorId = 0, // Geçici
-                title = request.title,
-                description = request.description,
-                startTime = request.startTime,
-                endTime = request.endTime,
-                type = request.type,
-                status = request.status,
-                visibility = request.visibility,
-                sharedRoomIds = request.sharedRoomIds,
-                isRecurring = request.isRecurring,
-                recurrenceRule = request.recurrenceRule,
-                isFlexible = request.isFlexible,
-                isOptional = request.isOptional,
-                isPostponable = request.isPostponable,
-                isAllDay = request.isAllDay,
-                aiMetadata = request.aiMetadata,
-                reminders = request.reminders,
-                specificDetails = request.specificDetails,
-                tags = request.tags,
-                color = request.color,
-                parentId = request.parentId,
-                participants = request.participants.map { com.yusufteker.pulse.shared.api.TaskParticipantDto(it.key, it.value, "avatar_1", null) }
-            )
+            val currentUserId = 0L
+            val localTaskId = "local_${generateUUID()}"
 
             database.pulsyDatabaseQueries.transaction {
-                database.pulsyDatabaseQueries.insertTaskFromDto(localDto, isSynced = 0L)
-                
-                localDto.sharedRoomIds.forEach { roomId ->
-                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = localDto.id, roomId = roomId)
+                database.pulsyDatabaseQueries.insertTaskFromRequest(
+                    id = localTaskId, creatorId = currentUserId, request = request, isSynced = 0L
+                )
+                request.sharedRoomIds.forEach { roomId ->
+                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = localTaskId, roomId = roomId)
                 }
             }
 
-            // Arka planda sunucuya kaydetmeyi dene.
-            // Doğrudan planApi.createTask yapmak yerine syncPendingChanges çağırıyoruz.
-            // Bu sayede aynı anda HomeViewModel'den gelen syncPendingChanges ile yarış (race condition) olmaz
-            // ve görevler API'ye iki kere gönderilmez.
-            scope.launch(Dispatchers.IO) {
-                syncPendingChanges()
-            }
-            
+            val localEntity = database.pulsyDatabaseQueries.getTaskById(localTaskId).executeAsOne()
+            val localDto = mapTaskEntityToDto(localEntity)
+
+            Napier.d { "PlanRepositoryImpl.createTask SUCCESS: localTaskId=$localTaskId, DTO title=${localDto.title}" }
+            scope.launch(Dispatchers.IO) { syncPendingChanges() }
             Result.success(localDto)
         } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.createTask FAILED: ${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit> {
+        Napier.d { "PlanRepositoryImpl.updateTask: taskId=$taskId, title=${request.title}, type=${request.type}" }
         return try {
-            val existingTask = database.pulsyDatabaseQueries.getTaskById(taskId).executeAsOneOrNull()
-            val creatorId = existingTask?.creatorId ?: 0L
+            val actualTaskId = getActualTaskId(taskId)
+            Napier.d { "PlanRepositoryImpl.updateTask -> actualTaskId=$actualTaskId" }
+
+            val existingTask = database.pulsyDatabaseQueries.getTaskById(actualTaskId).executeAsOneOrNull()
+            if (existingTask == null) {
+                Napier.w { "PlanRepositoryImpl.updateTask: task not found in local DB: $actualTaskId" }
+            } else {
+                Napier.d { "PlanRepositoryImpl.updateTask: task found in DB, old title=${existingTask.title}" }
+            }
+            val currentUserId = existingTask?.creatorId ?: 0L
 
             database.pulsyDatabaseQueries.transaction {
-                database.pulsyDatabaseQueries.insertTaskFromRequest(taskId, creatorId, request, isSynced = 0L)
-                
-                // Odaları güncelle: Önce eskileri sil, sonra yenileri ekle
-                database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(taskId)
+                database.pulsyDatabaseQueries.insertTaskFromRequest(
+                    id = actualTaskId, creatorId = currentUserId, request = request, isSynced = 0L
+                )
+                database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(actualTaskId)
                 request.sharedRoomIds.forEach { roomId ->
-                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = taskId, roomId = roomId)
+                    database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = actualTaskId, roomId = roomId)
                 }
             }
+            Napier.d { "PlanRepositoryImpl.updateTask SUCCESS: actualTaskId=$actualTaskId" }
 
-            // Arka planda sunucuya kaydetmeyi dene.
-            // Yarış (race condition) oluşmaması için doğrudan syncPendingChanges kullanıyoruz.
-            scope.launch(Dispatchers.IO) {
-                syncPendingChanges()
-            }
+            scope.launch(Dispatchers.IO) { syncPendingChanges() }
             Result.success(Unit)
         } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.updateTask FAILED: taskId=$taskId, message=${e.message}" }
             Result.failure(e)
         }
     }
 
     override suspend fun deleteTask(taskId: String): Result<Unit> {
+        Napier.d { "PlanRepositoryImpl.deleteTask: taskId=$taskId" }
         return try {
+            val actualTaskId = getActualTaskId(taskId)
+            Napier.d { "PlanRepositoryImpl.deleteTask -> actualTaskId=$actualTaskId" }
+
             // Veritabanından sil
             database.pulsyDatabaseQueries.transaction {
-                database.pulsyDatabaseQueries.deleteTaskById(taskId)
+                database.pulsyDatabaseQueries.deleteTaskById(actualTaskId)
             }
+            Napier.d { "PlanRepositoryImpl.deleteTask SUCCESS locally: actualTaskId=$actualTaskId" }
 
             // Arka planda sunucudan sil
             scope.launch(Dispatchers.IO) {
                 try {
-                    planApi.deleteTask(taskId)
+                    if (!actualTaskId.startsWith("local_")) {
+                        planApi.deleteTask(actualTaskId)
+                        Napier.d { "PlanRepositoryImpl.deleteTask SUCCESS remotely: actualTaskId=$actualTaskId" }
+                    } else {
+                        Napier.d { "PlanRepositoryImpl.deleteTask: skipping remote delete for local task: $actualTaskId" }
+                    }
                 } catch (e: Exception) {
-                    println("Task delete sync failed: ${e.message}")
+                    Napier.e(e) { "PlanRepositoryImpl.deleteTask remote sync failed for $actualTaskId: ${e.message}" }
                 }
             }
             Result.success(Unit)
         } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.deleteTask FAILED: taskId=$taskId, message=${e.message}" }
             Result.failure(e)
         }
     }
@@ -145,6 +154,7 @@ class PlanRepositoryImpl(
         return syncMutex.withLock {
             try {
                 val pendingTasks = database.pulsyDatabaseQueries.getUnsyncedTasks().executeAsList()
+                Napier.d { "syncPendingChanges: found ${pendingTasks.size} pending unsynced tasks" }
                 pendingTasks.forEach { entity ->
                     try {
                         val request = CreateTaskRequest(
@@ -173,16 +183,66 @@ class PlanRepositoryImpl(
                                     Json.decodeFromString<List<com.yusufteker.pulse.shared.api.TaskParticipantDto>>(it).associate { p -> p.userId to p.name } 
                                 } catch(e: Exception) { emptyMap() } 
                             } ?: emptyMap(),
+                            isPinned = entity.isPinned == 1L,
                             localId = if (entity.id.startsWith("local_")) entity.id else null
                         )
 
+                        Napier.d { "syncPendingChanges: processing task ${entity.id}, title=${request.title}, startsWithLocal=${entity.id.startsWith("local_")}" }
+
                         if (entity.id.startsWith("local_")) {
+                            Napier.d { "syncPendingChanges: sending POST to create remote task, title=${request.title}" }
                             val remoteTask = planApi.createTask(request)
+                            mapMutex.withLock {
+                                localToRemoteIdMap[entity.id] = remoteTask.id
+                            }
                             database.pulsyDatabaseQueries.transaction {
+                                val currentLocal = database.pulsyDatabaseQueries.getTaskById(entity.id).executeAsOneOrNull()
+                                val needsResync = currentLocal != null && (
+                                    currentLocal.title != entity.title ||
+                                    currentLocal.description != entity.description ||
+                                    currentLocal.startTime != entity.startTime ||
+                                    currentLocal.endTime != entity.endTime ||
+                                    currentLocal.status != entity.status ||
+                                    currentLocal.specificDetails != entity.specificDetails ||
+                                    currentLocal.isPinned != entity.isPinned
+                                )
+
                                 database.pulsyDatabaseQueries.deleteExceptionsForTask(entity.id)
                                 database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(entity.id)
                                 database.pulsyDatabaseQueries.deleteTaskById(entity.id)
-                                database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                                
+                                if (needsResync && currentLocal != null) {
+                                    Napier.d { "Local task ${entity.id} was modified during sync, inserting remote task ${remoteTask.id} with local modifications and keeping isSynced = 0" }
+                                    database.pulsyDatabaseQueries.insertTask(
+                                        id = remoteTask.id,
+                                        creatorId = remoteTask.creatorId.toLong(),
+                                        title = currentLocal.title,
+                                        description = currentLocal.description,
+                                        startTime = currentLocal.startTime,
+                                        endTime = currentLocal.endTime,
+                                        type = currentLocal.type,
+                                        status = currentLocal.status,
+                                        visibility = currentLocal.visibility,
+                                        isRecurring = currentLocal.isRecurring,
+                                        recurrenceRule = currentLocal.recurrenceRule,
+                                        isFlexible = currentLocal.isFlexible,
+                                        isOptional = currentLocal.isOptional,
+                                        isPostponable = currentLocal.isPostponable,
+                                        isAllDay = currentLocal.isAllDay,
+                                        aiMetadata = currentLocal.aiMetadata,
+                                        reminders = currentLocal.reminders,
+                                        specificDetails = currentLocal.specificDetails,
+                                        tags = currentLocal.tags,
+                                        color = currentLocal.color,
+                                        parentId = currentLocal.parentId,
+                                        participants = currentLocal.participants,
+                                        isPinned = currentLocal.isPinned,
+                                        isSynced = 0L
+                                    )
+                                } else {
+                                    database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                                }
+                                
                                 database.pulsyDatabaseQueries.updateChildTaskParentIds(newParentId = remoteTask.id, oldParentId = entity.id)
                                 remoteTask.sharedRoomIds.forEach { roomId ->
                                     database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
@@ -190,19 +250,79 @@ class PlanRepositoryImpl(
                             }
                         } else {
                             try {
+                                Napier.d { "syncPendingChanges: sending PUT to update remote task ${entity.id}, title=${request.title}" }
                                 planApi.updateTask(entity.id, request)
-                                database.pulsyDatabaseQueries.updateTaskSyncStatus(1L, entity.id)
+                                database.pulsyDatabaseQueries.transaction {
+                                    val currentLocal = database.pulsyDatabaseQueries.getTaskById(entity.id).executeAsOneOrNull()
+                                    if (currentLocal != null &&
+                                        currentLocal.title == entity.title &&
+                                        currentLocal.description == entity.description &&
+                                        currentLocal.startTime == entity.startTime &&
+                                        currentLocal.endTime == entity.endTime &&
+                                        currentLocal.status == entity.status &&
+                                        currentLocal.specificDetails == entity.specificDetails &&
+                                        currentLocal.isPinned == entity.isPinned
+                                    ) {
+                                        database.pulsyDatabaseQueries.updateTaskSyncStatus(1L, entity.id)
+                                    } else {
+                                        Napier.d { "Task ${entity.id} was modified locally during sync, keeping isSynced = 0" }
+                                    }
+                                }
                             } catch (e: io.ktor.client.plugins.ClientRequestException) {
                                 if (e.response.status.value == 404 || e.response.status.value == 403) {
                                     // Geriye dönük uyumluluk veya sunucudan silinmiş görevler için fallback: Yeniden oluştur.
                                     // ID'nin aynı kalması ve timeout durumunda sunucuda sonsuz döngüyle veri çoklanmaması için localId veriyoruz.
                                     val fallbackRequest = request.copy(localId = entity.id)
                                     val remoteTask = planApi.createTask(fallbackRequest)
+                                    mapMutex.withLock {
+                                        localToRemoteIdMap[entity.id] = remoteTask.id
+                                    }
                                     database.pulsyDatabaseQueries.transaction {
+                                        val currentLocal = database.pulsyDatabaseQueries.getTaskById(entity.id).executeAsOneOrNull()
+                                        val needsResync = currentLocal != null && (
+                                            currentLocal.title != entity.title ||
+                                            currentLocal.description != entity.description ||
+                                            currentLocal.startTime != entity.startTime ||
+                                            currentLocal.endTime != entity.endTime ||
+                                            currentLocal.status != entity.status ||
+                                            currentLocal.specificDetails != entity.specificDetails ||
+                                            currentLocal.isPinned != entity.isPinned
+                                        )
+
                                         database.pulsyDatabaseQueries.deleteExceptionsForTask(entity.id)
                                         database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(entity.id)
                                         database.pulsyDatabaseQueries.deleteTaskById(entity.id)
-                                        database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                                        
+                                        if (needsResync && currentLocal != null) {
+                                            database.pulsyDatabaseQueries.insertTask(
+                                                id = remoteTask.id,
+                                                creatorId = remoteTask.creatorId.toLong(),
+                                                title = currentLocal.title,
+                                                description = currentLocal.description,
+                                                startTime = currentLocal.startTime,
+                                                endTime = currentLocal.endTime,
+                                                type = currentLocal.type,
+                                                status = currentLocal.status,
+                                                visibility = currentLocal.visibility,
+                                                isRecurring = currentLocal.isRecurring,
+                                                recurrenceRule = currentLocal.recurrenceRule,
+                                                isFlexible = currentLocal.isFlexible,
+                                                isOptional = currentLocal.isOptional,
+                                                isPostponable = currentLocal.isPostponable,
+                                                isAllDay = currentLocal.isAllDay,
+                                                aiMetadata = currentLocal.aiMetadata,
+                                                reminders = currentLocal.reminders,
+                                                specificDetails = currentLocal.specificDetails,
+                                                tags = currentLocal.tags,
+                                                color = currentLocal.color,
+                                                parentId = currentLocal.parentId,
+                                                participants = currentLocal.participants,
+                                                isPinned = currentLocal.isPinned,
+                                                isSynced = 0L
+                                            )
+                                        } else {
+                                            database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                                        }
                                         remoteTask.sharedRoomIds.forEach { roomId ->
                                             database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = remoteTask.id, roomId = roomId)
                                         }
@@ -318,12 +438,17 @@ class PlanRepositoryImpl(
 
     override suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit> {
         return try {
-            val task = database.pulsyDatabaseQueries.getTaskById(taskId).executeAsOneOrNull()
+            var actualTaskId = taskId
+            while (localToRemoteIdMap.containsKey(actualTaskId)) {
+                actualTaskId = localToRemoteIdMap[actualTaskId]!!
+            }
+
+            val task = database.pulsyDatabaseQueries.getTaskById(actualTaskId).executeAsOneOrNull()
             
             if (task != null && task.isRecurring == 0L) {
                 // Non-recurring task: update status directly
                 val newStatus = if (isCompleted) TaskStatus.COMPLETED.name else TaskStatus.PENDING.name
-                database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 0L, taskId)
+                database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 0L, actualTaskId)
                 
                 // Arka planda sunucuya senkronize etmeyi dene
                 val dto = mapTaskEntityToDto(task)
@@ -352,8 +477,10 @@ class PlanRepositoryImpl(
                     )
                     scope.launch(Dispatchers.IO) {
                         try {
-                            planApi.updateTask(taskId, request)
-                            database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 1L, taskId)
+                            if (!actualTaskId.startsWith("local_")) {
+                                planApi.updateTask(actualTaskId, request)
+                            }
+                            database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 1L, actualTaskId)
                         } catch (e: Exception) {
                             println("Failed to sync task status completion: ${e.message}")
                         }
@@ -362,7 +489,7 @@ class PlanRepositoryImpl(
              else if (task != null) {
                 // Recurring task: insert exception
                 database.pulsyDatabaseQueries.insertTaskException(
-                    taskId = taskId,
+                    taskId = actualTaskId,
                     dateMs = dateMs,
                     isCompleted = if (isCompleted) 1L else 0L,
                     isSynced = 0L // Not synced yet

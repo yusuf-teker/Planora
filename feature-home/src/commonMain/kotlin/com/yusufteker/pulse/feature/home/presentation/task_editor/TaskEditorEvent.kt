@@ -2,7 +2,6 @@ package com.yusufteker.pulse.feature.home.presentation.task_editor
 
 import com.yusufteker.pulse.core.base.UiEvent
 import com.yusufteker.pulse.shared.api.RecurrenceRule
-import com.yusufteker.pulse.shared.api.TaskType
 
 sealed interface TaskEditorEvent : UiEvent {
     data class TitleChanged(val title: String) : TaskEditorEvent
@@ -22,4 +21,5 @@ sealed interface TaskEditorEvent : UiEvent {
     data class OnReminderToggled(val minutes: Int) : TaskEditorEvent
     data class OnParticipantPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data class OnParticipantToggled(val userId: Int) : TaskEditorEvent
+    data object OnDispose : TaskEditorEvent
 }
