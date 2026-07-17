@@ -434,10 +434,7 @@ class PlanRepositoryImpl(
 
     override suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit> {
         return try {
-            var actualTaskId = taskId
-            while (localToRemoteIdMap.containsKey(actualTaskId)) {
-                actualTaskId = localToRemoteIdMap[actualTaskId]!!
-            }
+            val actualTaskId = getActualTaskId(taskId)
 
             val task = database.pulsyDatabaseQueries.getTaskById(actualTaskId).executeAsOneOrNull()
             
