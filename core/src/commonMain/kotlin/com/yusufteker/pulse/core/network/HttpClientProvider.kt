@@ -14,6 +14,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -46,6 +47,12 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         install(HttpRequestRetry) {
             retryOnServerErrors(maxRetries = 3)
             exponentialDelay()
+        }
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = 60000L
+            connectTimeoutMillis = 60000L
+            socketTimeoutMillis = 60000L
         }
 
         install(Logging) {
@@ -90,6 +97,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                         
                         BearerTokens(response.accessToken, response.refreshToken)
                     } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
                         // Eğer refresh token da geçersizse (30 günü dolmuşsa) null dön. Uygulama kullanıcıyı çıkış yapmalı.
                         sessionPreferences.clearSession()
                         null

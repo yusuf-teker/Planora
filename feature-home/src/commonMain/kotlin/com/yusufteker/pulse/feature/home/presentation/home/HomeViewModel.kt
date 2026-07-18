@@ -11,12 +11,17 @@ import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.extractBaseTaskId
 
 import com.yusufteker.pulse.core.utils.TimelineViewOption
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 // Yeni
 import kotlinx.datetime.Instant
+import kotlinx.datetime.atStartOfDayIn
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.feature.home.domain.use_case.GetFilteredTasksUseCase
 import com.yusufteker.pulse.feature.home.domain.use_case.SubmitSmartInputUseCase
@@ -29,6 +34,7 @@ import io.github.aakira.napier.Napier
  *
  * Manages home feed state and navigation.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     private val planRepository: PlanRepository,
     private val sessionPreferences: SessionPreferences,
@@ -37,6 +43,8 @@ class HomeViewModel(
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     initialState = HomeState()
 ) {
+    private val fetchedMonths = mutableSetOf<LocalDate>()
+
     override fun onCleared() {
         Napier.d ("HomeViewModel CLEARED: ${this.hashCode()}")
         super.onCleared()
@@ -48,6 +56,7 @@ class HomeViewModel(
         val today = Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         val currentMonthStart = LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
+        fetchedMonths.add(currentMonthStart)
         // Load stored filter options and view option.
         // NOTE: We intentionally do NOT recalculate upcomingTasks here to avoid a race condition
         // with the DB observer coroutine below. If preferences load after the DB emits its first
@@ -85,12 +94,28 @@ class HomeViewModel(
             }
         }
 
-        // Observe tasks range
+        // Observe tasks range dynamically based on active view option and calendar month.
         launch {
             try {
-                val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-                val thirtyDays = 86400000L * 30
-                planRepository.observeTasksForRange(fromTimeMs = now - thirtyDays, toTimeMs = now + thirtyDays)
+                state
+                    .map { s ->
+                        val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                        val thirtyDays = 86400000L * 30
+                        if (s.viewOption == TimelineViewOption.CALENDAR && s.visibleCalendarMonth != null) {
+                            val zone = TimeZone.currentSystemDefault()
+                            val monthStartMs = s.visibleCalendarMonth.atStartOfDayIn(zone).toEpochMilliseconds()
+                            // Observe 15 days before visible month start to 45 days after to cover the visible grid fully.
+                            val fromTime = monthStartMs - 86400000L * 15
+                            val toTime = monthStartMs + 86400000L * 45
+                            Pair(fromTime, toTime)
+                        } else {
+                            Pair(now - thirtyDays, now + thirtyDays)
+                        }
+                    }
+                    .distinctUntilChanged()
+                    .flatMapLatest { range ->
+                        planRepository.observeTasksForRange(fromTimeMs = range.first, toTimeMs = range.second)
+                    }
                     .retryWhen { cause, attempt ->
                         println("observeTasksForRange ERROR: ${cause.message}")
                         cause.printStackTrace()
@@ -171,6 +196,11 @@ class HomeViewModel(
 
             is HomeEvent.RefreshRequested -> {
                 setState { copy(isLoading = true) }
+                fetchedMonths.clear()
+                val today = Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val currentMonthStart = LocalDate(today.year, today.monthNumber, 1)
+                fetchedMonths.add(currentMonthStart)
+                
                 launch {
                     val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
                     val thirtyDays = 86400000L * 30
@@ -231,6 +261,42 @@ class HomeViewModel(
                         visibleCalendarMonth = event.monthStart,
                         upcomingTasks = getFilteredTasks(calendarMonth = event.monthStart)
                     )
+                }
+                // Sadece bu ay daha önce sunucudan çekilmediyse istek at (mükerrer istekleri önler)
+                if (!fetchedMonths.contains(event.monthStart)) {
+                    fetchedMonths.add(event.monthStart)
+                    launch {
+                        try {
+                            val zone = TimeZone.currentSystemDefault()
+                            val monthStartMs = event.monthStart.atStartOfDayIn(zone).toEpochMilliseconds()
+                            val fromTime = monthStartMs - 86400000L * 15
+                            val toTime = monthStartMs + 86400000L * 45
+                            
+                            val result = planRepository.fetchMyTasks(fromTime = fromTime, toTime = toTime)
+                            if (result.isFailure) {
+                                // İstek başarısız olursa önbellekten kaldır ki kullanıcı tekrar denediğinde çekebilsin
+                                fetchedMonths.remove(event.monthStart)
+                            }
+                            
+                            // Fetch shared tasks for the same range if any other users are selected.
+                            val selectedUsers = state.value.selectedSharedUserIds
+                            selectedUsers.forEach { userId ->
+                                planRepository.fetchSharedTasks(userId, fromTime, toTime).onSuccess { tasks ->
+                                    setState {
+                                        val newMap = sharedTasksByUser.toMutableMap()
+                                        newMap[userId] = tasks
+                                        copy(
+                                            sharedTasksByUser = newMap,
+                                            upcomingTasks = getFilteredTasks(sharedTasksMap = newMap)
+                                        )
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            fetchedMonths.remove(event.monthStart)
+                            e.printStackTrace()
+                        }
+                    }
                 }
             }
             

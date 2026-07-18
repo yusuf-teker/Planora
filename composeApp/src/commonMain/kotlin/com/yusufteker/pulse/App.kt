@@ -100,6 +100,15 @@ fun App() {
         LaunchedEffect(userId) {
             if (userId != null) {
                 registerFcmTokenUseCase()
+            } else {
+                val currentScreen = navigator.backStack.lastOrNull()
+                if (currentScreen != null && 
+                    currentScreen !is Screen.Splash && 
+                    currentScreen !is Screen.Onboarding && 
+                    currentScreen !is Screen.Login && 
+                    currentScreen !is Screen.Register) {
+                    navigator.setRoot(Screen.Login)
+                }
             }
         }
 

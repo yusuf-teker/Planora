@@ -73,7 +73,8 @@ fun CalendarSection(
 
         val tasksMap = mutableMapOf<kotlinx.datetime.LocalDate, MutableList<TaskDto>>()
         for (task in filteredTasks) {
-            val startDate = Instant.fromEpochMilliseconds(task.startTime)
+            val effectiveTime = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+            val startDate = Instant.fromEpochMilliseconds(effectiveTime)
                 .toLocalDateTime(TimeZone.currentSystemDefault()).date
             val endDate = task.endTime?.let {
                 Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -92,7 +93,8 @@ fun CalendarSection(
         state.sharedTasksByUser.mapValues { (_, tasks) ->
             val tasksMap = mutableMapOf<kotlinx.datetime.LocalDate, MutableList<TaskDto>>()
             for (task in tasks) {
-                val startDate = Instant.fromEpochMilliseconds(task.startTime)
+                val effectiveTime = (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+                val startDate = Instant.fromEpochMilliseconds(effectiveTime)
                     .toLocalDateTime(TimeZone.currentSystemDefault()).date
                 val endDate = task.endTime?.let {
                     Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date

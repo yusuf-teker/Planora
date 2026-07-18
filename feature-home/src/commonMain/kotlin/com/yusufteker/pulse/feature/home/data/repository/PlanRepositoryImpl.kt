@@ -676,13 +676,17 @@ class PlanRepositoryImpl(
                         }
                     } else {
                         // Kural parse edilemezse görevi başlangıç zamanına göre ekle
-                        if (baseTaskDto.startTime in fromTimeMs..toTimeMs) {
+                        val effectiveDate = (baseTaskDto.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: baseTaskDto.startTime
+                        val effectiveEndDate = baseTaskDto.endTime ?: effectiveDate
+                        if (effectiveDate in fromTimeMs..toTimeMs || effectiveEndDate in fromTimeMs..toTimeMs || (effectiveDate <= fromTimeMs && effectiveEndDate >= toTimeMs)) {
                             result.add(baseTaskDto)
                         }
                     }
                 } else {
                     // Tekrarsız görev: Sadece aralıkta başlıyorsa ekle
-                    if (baseTaskDto.startTime in fromTimeMs..toTimeMs) {
+                    val effectiveDate = (baseTaskDto.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: baseTaskDto.startTime
+                    val effectiveEndDate = baseTaskDto.endTime ?: effectiveDate
+                    if (effectiveDate in fromTimeMs..toTimeMs || effectiveEndDate in fromTimeMs..toTimeMs || (effectiveDate <= fromTimeMs && effectiveEndDate >= toTimeMs)) {
                         result.add(baseTaskDto)
                     }
                 }

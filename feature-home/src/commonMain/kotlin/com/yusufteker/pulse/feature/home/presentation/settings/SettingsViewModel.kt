@@ -11,7 +11,7 @@ import com.yusufteker.pulse.core.database.clearAll
 class SettingsViewModel(
     private val themePreferences: ThemePreferences,
     private val sessionPreferences: SessionPreferences,
-    private val database: PulsyDatabase
+    private val database: PulsyDatabase,
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {

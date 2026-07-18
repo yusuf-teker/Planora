@@ -57,7 +57,8 @@ class GetFilteredTasksUseCase {
         // 4. Calendar filtering
         if (viewOption == TimelineViewOption.CALENDAR) {
             filtered = filtered.filter { task ->
-                val taskStartDate = Instant.fromEpochMilliseconds(task.startTime)
+                val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                val taskStartDate = Instant.fromEpochMilliseconds(effectiveTime)
                     .toLocalDateTime(TimeZone.currentSystemDefault()).date
                 
                 val taskEndDate = task.endTime?.let { 

@@ -57,6 +57,7 @@ class AuthRepositoryImpl(
             Result.success(response)
         } catch (e: Exception) {
             // Ağ hatası, yanlış şifre (401) veya sunucu kapalıysa (500) hata olarak döner.
+            Napier.e("Login request failed with exception: ${e.message}", e, tag = "HTTP_LOG")
             Result.failure(e)
         }
     }
