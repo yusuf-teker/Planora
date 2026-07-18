@@ -94,23 +94,14 @@ class HomeViewModel(
             }
         }
 
-        // Observe tasks range dynamically based on active view option and calendar month.
+        // Observe tasks range dynamically. We observe 1 year back and 1 year forward.
         launch {
             try {
                 state
                     .map { s ->
                         val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-                        val thirtyDays = 86400000L * 30
-                        if (s.viewOption == TimelineViewOption.CALENDAR && s.visibleCalendarMonth != null) {
-                            val zone = TimeZone.currentSystemDefault()
-                            val monthStartMs = s.visibleCalendarMonth.atStartOfDayIn(zone).toEpochMilliseconds()
-                            // Observe 15 days before visible month start to 45 days after to cover the visible grid fully.
-                            val fromTime = monthStartMs - 86400000L * 15
-                            val toTime = monthStartMs + 86400000L * 45
-                            Pair(fromTime, toTime)
-                        } else {
-                            Pair(now - thirtyDays, now + thirtyDays)
-                        }
+                        val oneYear = 86400000L * 365
+                        Pair(now - oneYear, now + oneYear)
                     }
                     .distinctUntilChanged()
                     .flatMapLatest { range ->
@@ -146,8 +137,8 @@ class HomeViewModel(
         launch {
             val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
             planRepository.syncPendingChanges()
-            val thirtyDays = 86400000L * 30
-            planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
+            val oneYear = 86400000L * 365
+            planRepository.fetchMyTasks(fromTime = now - oneYear, toTime = now + oneYear)
         }
 
         // Load accessible users for shared calendar
@@ -203,9 +194,9 @@ class HomeViewModel(
                 
                 launch {
                     val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-                    val thirtyDays = 86400000L * 30
+                    val oneYear = 86400000L * 365
                     planRepository.syncPendingChanges()
-                    planRepository.fetchMyTasks(fromTime = now - thirtyDays, toTime = now + thirtyDays)
+                    planRepository.fetchMyTasks(fromTime = now - oneYear, toTime = now + oneYear)
                     setState { copy(isLoading = false) }
                 }
             }
@@ -371,8 +362,8 @@ class HomeViewModel(
                 if (newSelected.contains(userId) && !state.value.sharedTasksByUser.containsKey(userId)) {
                     launch {
                         val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
-                        val thirtyDays = 86400000L * 30
-                        val result = planRepository.fetchSharedTasks(userId, now - thirtyDays, now + thirtyDays)
+                        val oneYear = 86400000L * 365
+                        val result = planRepository.fetchSharedTasks(userId, now - oneYear, now + oneYear)
                         result.onSuccess { tasks ->
                             setState {
                                 val newMap = sharedTasksByUser.toMutableMap()

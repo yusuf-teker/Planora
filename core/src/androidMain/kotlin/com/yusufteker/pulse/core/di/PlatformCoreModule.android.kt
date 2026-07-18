@@ -14,6 +14,8 @@ import com.yusufteker.pulse.core.ai.AndroidAiManager
 import com.yusufteker.pulse.core.ai.OfflineAiManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import com.yusufteker.pulse.core.share.AndroidShareManager
+import com.yusufteker.pulse.core.share.ShareManager
 
 /**
  * Android implementation for platform-specific dependencies.
@@ -76,4 +78,7 @@ actual val platformCoreModule = module {
 
     // Offline AI Manager
     single<OfflineAiManager> { AndroidAiManager(androidContext(), get()) }
+    
+    // Share Manager
+    single<ShareManager> { AndroidShareManager(androidContext()) }
 }

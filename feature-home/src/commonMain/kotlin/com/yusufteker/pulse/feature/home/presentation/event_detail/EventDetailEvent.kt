@@ -5,7 +5,14 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
 sealed interface EventDetailEvent {
-    data class OnLoadEvent(val eventId: String?, val planRoomId: String? = null) : EventDetailEvent
+    data class OnLoadEvent(
+        val eventId: String?, 
+        val planRoomId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : EventDetailEvent
     data class OnTitleChange(val title: String) : EventDetailEvent
     data class OnDescriptionChange(val description: String) : EventDetailEvent
     data class OnLocationChange(val location: String) : EventDetailEvent
@@ -31,4 +38,5 @@ sealed interface EventDetailEvent {
     object OnBackClick : EventDetailEvent
     data class OnParticipantPickerVisibilityChanged(val isVisible: Boolean) : EventDetailEvent
     data class OnParticipantToggled(val userId: Int) : EventDetailEvent
+    object OnShareClick : EventDetailEvent
 }

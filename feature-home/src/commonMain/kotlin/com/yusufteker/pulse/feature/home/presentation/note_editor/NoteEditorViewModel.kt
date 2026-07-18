@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.shared.api.ItemDetails
 import com.yusufteker.pulse.shared.api.TaskStatus
+import com.yusufteker.pulse.feature.home.presentation.utils.encodeUrlParameter
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
 import kotlinx.coroutines.IO
@@ -39,13 +40,35 @@ class NoteEditorViewModel(
 
     fun onEvent(event: NoteEditorEvent) {
         when (event) {
-            is NoteEditorEvent.OnLoadNote -> loadNote(event.noteId, event.planRoomId, event.parentId)
+            is NoteEditorEvent.OnLoadNote -> loadNote(
+                noteId = event.noteId, 
+                planRoomId = event.planRoomId, 
+                parentId = event.parentId,
+                sharedNote = event.sharedNote,
+                sharedSender = event.sharedSender
+            )
             is NoteEditorEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
             is NoteEditorEvent.OnContentChange -> _state.update { it.copy(content = event.content) }
             NoteEditorEvent.OnSaveClick -> saveNote()
             NoteEditorEvent.OnDeleteClick -> deleteNote()
             NoteEditorEvent.OnBackClick -> setEffect(NoteEditorEffect.NavigateBack)
             NoteEditorEvent.OnDispose -> {}
+            NoteEditorEvent.OnShareClick -> {
+                viewModelScope.launch {
+                    val sender = sessionPreferences.getUserName() ?: ""
+                    val note = _state.value.content.encodeUrlParameter()
+                    val senderEncoded = sender.encodeUrlParameter()
+                    val url = "https://pulse.yusufteker.com/share/note?note=$note&sender=$senderEncoded"
+                    val shareText = """
+                        $sender sana bir not paylaştı:
+                        
+                        ${_state.value.content}
+                        
+                        Pulsy'de aç: $url
+                    """.trimIndent()
+                    setEffect(NoteEditorEffect.ShareItem(shareText))
+                }
+            }
             is NoteEditorEvent.OnAiActionClick -> processAiPrompt(event.prompt)
             NoteEditorEvent.OnAiCancelClick -> cancelAiProcessing()
             NoteEditorEvent.OnAiPreviewAccept -> acceptAiPreview()
@@ -194,11 +217,29 @@ class NoteEditorViewModel(
         }
     }
 
-    private fun loadNote(noteId: String?, planRoomId: String? = null, parentId: String? = null) {
+    private fun loadNote(
+        noteId: String?, 
+        planRoomId: String? = null, 
+        parentId: String? = null,
+        sharedNote: String? = null,
+        sharedSender: String? = null
+    ) {
         Napier.d { "NoteEditorViewModel.loadNote: noteId=$noteId, planRoomId=$planRoomId, parentId=$parentId" }
         if (noteId == null) {
             val formattedDate = com.yusufteker.pulse.core.utils.formatFullDate(com.yusufteker.pulse.core.utils.getCurrentTimeMs())
-            _state.value = NoteEditorState(dateText = formattedDate, planRoomId = planRoomId, parentId = parentId)
+            val finalNote = buildString {
+                if (!sharedNote.isNullOrBlank()) append(sharedNote)
+                if (!sharedSender.isNullOrBlank()) {
+                    if (isNotEmpty()) append("\n\n")
+                    append("$sharedSender tarafından paylaşıldı.")
+                }
+            }
+            _state.value = NoteEditorState(
+                dateText = formattedDate, 
+                planRoomId = planRoomId, 
+                parentId = parentId,
+                content = finalNote
+            )
             
             // Still need to load folders for new note
             viewModelScope.launch {

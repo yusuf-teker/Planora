@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ fun EventDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    val shareManager = org.koin.compose.koinInject<com.yusufteker.pulse.core.share.ShareManager>()
 
     val startDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val endDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -63,6 +65,9 @@ fun EventDetailScreen(
                     scope.launch {
                         snackbarHostState.showSnackbar(effect.message)
                     }
+                }
+                is EventDetailEffect.ShareItem -> {
+                    shareManager.shareText(effect.url, state.title.ifBlank { "Event" })
                 }
             }
         }
@@ -86,6 +91,10 @@ fun EventDetailScreen(
                     if (state.id != null) {
                         var showMenu by remember { mutableStateOf(false) }
                         
+                        IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnShareClick) }) {
+                            Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
+                        }
+
                         Box {
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(

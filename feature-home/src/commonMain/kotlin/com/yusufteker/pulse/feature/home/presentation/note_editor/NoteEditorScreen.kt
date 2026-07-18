@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -41,6 +42,7 @@ fun NoteEditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val contentFocusRequester = remember { FocusRequester() }
+    val shareManager = org.koin.compose.koinInject<com.yusufteker.pulse.core.share.ShareManager>()
     
     var showFolderDialog by remember { mutableStateOf(false) }
     var showFolderDropdown by remember { mutableStateOf(false) }
@@ -102,6 +104,9 @@ fun NoteEditorScreen(
                         snackbarHostState.showSnackbar(effect.message)
                     }
                 }
+                is NoteEditorEffect.ShareItem -> {
+                    shareManager.shareText(effect.url, state.title.ifBlank { "Note" })
+                }
             }
         }
     }
@@ -160,6 +165,9 @@ fun NoteEditorScreen(
                         }
                     }
                     if (state.id != null) {
+                        IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnShareClick) }) {
+                            Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
+                        }
                         IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnDeleteClick) }) {
                             Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
                         }

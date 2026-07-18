@@ -19,6 +19,7 @@ import com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase
 import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Navigator
 import com.yusufteker.pulse.core.navigation.Screen
+import com.yusufteker.pulse.core.navigation.DeepLinkManager
 import com.yusufteker.pulse.core.preferences.SessionPreferences
 import com.yusufteker.pulse.core.preferences.ThemePreferences
 import com.yusufteker.pulse.core.snackbar.SnackbarManager
@@ -121,6 +122,50 @@ fun App() {
             } else {
                 // Logged out — cancel all reminders
                 reminderManager.cancelAllReminders()
+            }
+        }
+
+        val deepLinkUrl by DeepLinkManager.deepLinkFlow.collectAsStateWithLifecycle(initialValue = "")
+        val currentScreen = navigator.backStack.lastOrNull()
+        LaunchedEffect(deepLinkUrl, userId, currentScreen) {
+            println("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
+            if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen == Screen.Main) { // Only handle if logged in
+                println("DEEPLINK DEBUG: Conditions met! Parsing URL...")
+                try {
+                    val url = io.ktor.http.Url(deepLinkUrl)
+                    println("DEEPLINK DEBUG: Parsed URL scheme='${url.protocol.name}', host='${url.host}', pathSegments='${url.pathSegments}'")
+                    val isPulsyScheme = url.protocol.name == "pulsy" && url.host == "share"
+                    val pathSegments = url.pathSegments.filter { it.isNotEmpty() }
+                    val isHttpScheme = (url.protocol.name == "http" || url.protocol.name == "https") && 
+                                       url.host == "pulse.yusufteker.com" && 
+                                       pathSegments.firstOrNull() == "share"
+                                       
+                    println("DEEPLINK DEBUG: isPulsyScheme=$isPulsyScheme, isHttpScheme=$isHttpScheme, filteredSegments=$pathSegments")
+                    if (isPulsyScheme || isHttpScheme) {
+                        val type = if (isHttpScheme) pathSegments.getOrNull(1) ?: "" else pathSegments.firstOrNull() ?: ""
+                        val title = url.parameters["title"]
+                        val note = url.parameters["note"]
+                        val dateString = url.parameters["date"]
+                        val date = dateString?.toLongOrNull()
+                        val sender = url.parameters["sender"]
+                        
+                        println("DEEPLINK DEBUG: Navigating to type='$type', title='$title'")
+                        when (type) {
+                            "event" -> {
+                                navigator.navigate(Screen.EventDetail(sharedTitle = title, sharedNote = note, sharedDate = date, sharedSender = sender))
+                            }
+                            "task" -> {
+                                navigator.navigate(Screen.TaskEditor(sharedTitle = title, sharedNote = note, sharedDate = date, sharedSender = sender))
+                            }
+                            "note" -> {
+                                navigator.navigate(Screen.NoteEditor(sharedNote = note, sharedSender = sender))
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("Error parsing deep link: ${e.message}")
+                }
+                DeepLinkManager.consumeLink()
             }
         }
 
@@ -243,8 +288,16 @@ fun App() {
                         val viewModel = koinViewModel<TaskEditorViewModel>(
                             key = "task_editor_${screen.taskId}_${screen.planRoomId}_${screen.parentId}"
                         )
-                        LaunchedEffect(screen.taskId, screen.planRoomId, screen.parentId) {
-                            viewModel.onEvent(TaskEditorEvent.OnLoadTask(screen.taskId, screen.planRoomId, screen.parentId))
+                        LaunchedEffect(screen.taskId, screen.planRoomId, screen.parentId, screen.sharedTitle) {
+                            viewModel.onEvent(TaskEditorEvent.OnLoadTask(
+                                taskId = screen.taskId, 
+                                planRoomId = screen.planRoomId, 
+                                parentId = screen.parentId,
+                                sharedTitle = screen.sharedTitle,
+                                sharedNote = screen.sharedNote,
+                                sharedDate = screen.sharedDate,
+                                sharedSender = screen.sharedSender
+                            ))
                         }
                         TaskEditorScreen(
                             viewModel = viewModel,
@@ -261,7 +314,13 @@ fun App() {
                             parameters = { org.koin.core.parameter.parametersOf(screen.noteId, screen.planRoomId, screen.parentId) }
                         )
                         androidx.compose.runtime.LaunchedEffect(screen) {
-                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorEvent.OnLoadNote(screen.noteId, screen.planRoomId, screen.parentId))
+                            viewModel.onEvent(com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorEvent.OnLoadNote(
+                                noteId = screen.noteId, 
+                                planRoomId = screen.planRoomId, 
+                                parentId = screen.parentId,
+                                sharedNote = screen.sharedNote,
+                                sharedSender = screen.sharedSender
+                            ))
                         }
                         com.yusufteker.pulse.feature.home.presentation.note_editor.NoteEditorScreen(
                             viewModel = viewModel,
@@ -275,7 +334,14 @@ fun App() {
                             parameters = { parametersOf(screen.eventId) }
                         )
                         LaunchedEffect(screen) {
-                            viewModel.onEvent(EventDetailEvent.OnLoadEvent(screen.eventId, screen.planRoomId))
+                            viewModel.onEvent(EventDetailEvent.OnLoadEvent(
+                                eventId = screen.eventId, 
+                                planRoomId = screen.planRoomId,
+                                sharedTitle = screen.sharedTitle,
+                                sharedNote = screen.sharedNote,
+                                sharedDate = screen.sharedDate,
+                                sharedSender = screen.sharedSender
+                            ))
                         }
                         EventDetailScreen(
                             viewModel = viewModel,

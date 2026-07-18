@@ -77,13 +77,34 @@ sealed interface Screen {
     data class PlanRoomDetail(val roomId: String) : Screen
     
     @Serializable
-    data class TaskEditor(val taskId: String? = null, val planRoomId: String? = null, val parentId: String? = null) : Screen
+    data class TaskEditor(
+        val taskId: String? = null, 
+        val planRoomId: String? = null, 
+        val parentId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : Screen
 
     @Serializable
-    data class NoteEditor(val noteId: String? = null, val planRoomId: String? = null, val parentId: String? = null) : Screen
+    data class NoteEditor(
+        val noteId: String? = null, 
+        val planRoomId: String? = null, 
+        val parentId: String? = null,
+        val sharedNote: String? = null,
+        val sharedSender: String? = null
+    ) : Screen
 
     @Serializable
-    data class EventDetail(val eventId: String? = null, val planRoomId: String? = null) : Screen
+    data class EventDetail(
+        val eventId: String? = null, 
+        val planRoomId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : Screen
     
     @Serializable
     data object AiChat : Screen

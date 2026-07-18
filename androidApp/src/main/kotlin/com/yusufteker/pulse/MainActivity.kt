@@ -7,6 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import com.google.firebase.FirebaseApp
+import android.content.Intent
+import com.yusufteker.pulse.core.navigation.DeepLinkManager
+
 /**
  * Main activity for the Android app.
  *
@@ -43,8 +46,24 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Handle initial intent
+        handleIntent(intent)
+
         setContent {
             App()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val dataString = intent?.dataString
+        println("DEEPLINK DEBUG: MainActivity handleIntent dataString='$dataString'")
+        if (dataString != null) {
+            DeepLinkManager.emitLink(dataString)
         }
     }
 }

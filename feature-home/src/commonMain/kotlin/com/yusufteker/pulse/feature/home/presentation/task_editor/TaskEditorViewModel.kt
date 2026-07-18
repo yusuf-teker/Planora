@@ -8,6 +8,7 @@ import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
+import com.yusufteker.pulse.feature.home.presentation.utils.encodeUrlParameter
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -58,7 +59,15 @@ class TaskEditorViewModel(
      */
     fun onEvent(event: TaskEditorEvent) {
         when (event) {
-            is TaskEditorEvent.OnLoadTask -> loadTask(event.taskId, event.planRoomId, event.parentId)
+            is TaskEditorEvent.OnLoadTask -> loadTask(
+                taskId = event.taskId, 
+                planRoomId = event.planRoomId, 
+                parentId = event.parentId,
+                sharedTitle = event.sharedTitle,
+                sharedNote = event.sharedNote,
+                sharedDate = event.sharedDate,
+                sharedSender = event.sharedSender
+            )
             is TaskEditorEvent.TitleChanged -> { _state.update { it.copy(title = event.title) } }
             is TaskEditorEvent.DescriptionChanged -> { _state.update { it.copy(description = event.description) } }
             
@@ -114,6 +123,25 @@ class TaskEditorViewModel(
             is TaskEditorEvent.DeleteClicked -> deleteTask()
             is TaskEditorEvent.OnBackClick -> setEffect(TaskEditorEffect.NavigateBack)
             is TaskEditorEvent.OnDispose -> {}
+            is TaskEditorEvent.OnShareClick -> {
+                viewModelScope.launch {
+                    val sender = sessionPreferences.getUserName() ?: ""
+                    val title = _state.value.title.encodeUrlParameter()
+                    val note = _state.value.description.encodeUrlParameter()
+                    val date = _state.value.deadlineDateMs
+                    val senderEncoded = sender.encodeUrlParameter()
+                    val url = "https://pulse.yusufteker.com/share/task?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                    val shareText = """
+                        $sender sana bir görev paylaştı:
+                        
+                        ${_state.value.title}
+                        ${_state.value.description}
+                        
+                        Pulsy'de aç: $url
+                    """.trimIndent()
+                    setEffect(TaskEditorEffect.ShareItem(shareText))
+                }
+            }
         }
     }
 
@@ -123,7 +151,15 @@ class TaskEditorViewModel(
      * @param planRoomId Görevin ait olduğu paylaşımlı oda ID'si (varsa).
      * @param parentId Alt görev ise, bağlı olduğu ana görevin ID'si (varsa).
      */
-    private fun loadTask(taskId: String?, planRoomId: String?, parentId: String?) {
+    private fun loadTask(
+        taskId: String?, 
+        planRoomId: String?, 
+        parentId: String?,
+        sharedTitle: String? = null,
+        sharedNote: String? = null,
+        sharedDate: Long? = null,
+        sharedSender: String? = null
+    ) {
         // Varsa önceki dinleme/yükleme coroutine'ini iptal et (Mükerrer akışları önler)
         loadJob?.cancel()
 
@@ -136,11 +172,21 @@ class TaskEditorViewModel(
                     mapOf(currentUserId to currentUserName)
                 } else emptyMap()
 
+                val finalNote = buildString {
+                    if (!sharedNote.isNullOrBlank()) append(sharedNote)
+                    if (!sharedSender.isNullOrBlank()) {
+                        if (isNotEmpty()) append("\n\n")
+                        append("$sharedSender tarafından paylaşıldı.")
+                    }
+                }
+
                 _state.value = TaskEditorState(
                     planRoomId = planRoomId, 
                     parentId = parentId, 
                     participants = defaultParticipants,
-                    deadlineDateMs = getCurrentTimeMs()
+                    title = sharedTitle ?: "",
+                    description = finalNote,
+                    deadlineDateMs = sharedDate ?: getCurrentTimeMs()
                 )
                 
                 // Oda üyelerini yükle

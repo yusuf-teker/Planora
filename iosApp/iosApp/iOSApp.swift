@@ -64,7 +64,12 @@ struct PulseApp: App {
         setupAiBridge()
     }
     var body: some Scene {
-        WindowGroup { ContentView() }
+        WindowGroup { 
+            ContentView()
+                .onOpenURL { url in
+                    DeepLinkManager.shared.emitLink(link: url.absoluteString)
+                }
+        }
     }
 }
 

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ fun TaskEditorScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val shareManager = org.koin.compose.koinInject<com.yusufteker.pulse.core.share.ShareManager>()
 
     val dateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -62,6 +64,9 @@ fun TaskEditorScreen(
                     scope.launch {
                         snackbarHostState.showSnackbar(effect.message)
                     }
+                }
+                is TaskEditorEffect.ShareItem -> {
+                    shareManager.shareText(effect.url, state.title.ifBlank { "Task" })
                 }
             }
         }
@@ -100,6 +105,10 @@ fun TaskEditorScreen(
                         
                         var showMenu by remember { mutableStateOf(false) }
                         
+                        IconButton(onClick = { viewModel.onEvent(TaskEditorEvent.OnShareClick) }) {
+                            Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
+                        }
+
                         Box {
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(

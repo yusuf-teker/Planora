@@ -9,6 +9,8 @@ import com.yusufteker.pulse.shared.api.TaskDto
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
+import com.yusufteker.pulse.feature.home.presentation.event_detail.EventDetailEvent
+import com.yusufteker.pulse.feature.home.presentation.utils.encodeUrlParameter
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -37,7 +39,14 @@ class EventDetailViewModel(
 
     fun onEvent(event: EventDetailEvent) {
         when (event) {
-            is EventDetailEvent.OnLoadEvent -> loadEvent(event.eventId, event.planRoomId)
+            is EventDetailEvent.OnLoadEvent -> loadEvent(
+                eventId = event.eventId, 
+                planRoomId = event.planRoomId,
+                sharedTitle = event.sharedTitle,
+                sharedNote = event.sharedNote,
+                sharedDate = event.sharedDate,
+                sharedSender = event.sharedSender
+            )
             is EventDetailEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
             is EventDetailEvent.OnDescriptionChange -> _state.update { it.copy(description = event.description) }
             is EventDetailEvent.OnLocationChange -> _state.update { it.copy(location = event.location) }
@@ -104,10 +113,36 @@ class EventDetailViewModel(
             EventDetailEvent.OnSaveClick -> saveEvent()
             EventDetailEvent.OnDeleteClick -> deleteEvent()
             EventDetailEvent.OnBackClick -> setEffect(EventDetailEffect.NavigateBack)
+            EventDetailEvent.OnShareClick -> {
+                viewModelScope.launch {
+                    val sender = sessionPreferences.getUserName() ?: ""
+                    val title = _state.value.title.encodeUrlParameter()
+                    val note = _state.value.description.encodeUrlParameter()
+                    val date = _state.value.startDateTimeMs
+                    val senderEncoded = sender.encodeUrlParameter()
+                    val url = "https://pulse.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                    val shareText = """
+                        $sender seni bir etkinliğe davet etti:
+                        
+                        ${_state.value.title}
+                        ${_state.value.description}
+                        
+                        Pulsy'de aç: $url
+                    """.trimIndent()
+                    setEffect(EventDetailEffect.ShareItem(shareText))
+                }
+            }
         }
     }
 
-    private fun loadEvent(eventId: String?, planRoomId: String?) {
+    private fun loadEvent(
+        eventId: String?, 
+        planRoomId: String?,
+        sharedTitle: String? = null,
+        sharedNote: String? = null,
+        sharedDate: Long? = null,
+        sharedSender: String? = null
+    ) {
 
         if (eventId == null) {
             viewModelScope.launch {
@@ -117,7 +152,26 @@ class EventDetailViewModel(
                     mapOf(currentUserId to currentUserName)
                 } else emptyMap()
 
-                _state.value = EventDetailState(planRoomId = planRoomId, participants = defaultParticipants)
+                val finalNote = buildString {
+                    if (!sharedNote.isNullOrBlank()) append(sharedNote)
+                    if (!sharedSender.isNullOrBlank()) {
+                        if (isNotEmpty()) append("\n\n")
+                        append("$sharedSender tarafından paylaşıldı.")
+                    }
+                }
+                
+                val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                val startTime = sharedDate ?: now
+                val endTime = startTime + 3600000L // +1 hour
+
+                _state.value = EventDetailState(
+                    planRoomId = planRoomId, 
+                    participants = defaultParticipants,
+                    title = sharedTitle ?: "",
+                    description = finalNote,
+                    startDateTimeMs = startTime,
+                    endDateTimeMs = endTime
+                )
                 if (planRoomId != null) {
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }

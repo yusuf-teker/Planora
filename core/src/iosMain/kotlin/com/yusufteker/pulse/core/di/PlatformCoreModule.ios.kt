@@ -12,6 +12,8 @@ import com.yusufteker.pulse.core.ai.IosAiManager
 import com.yusufteker.pulse.core.ai.OfflineAiManager
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.dsl.module
+import com.yusufteker.pulse.core.share.IosShareManager
+import com.yusufteker.pulse.core.share.ShareManager
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
@@ -47,4 +49,7 @@ actual val platformCoreModule = module {
 
     // Offline AI Manager
     single<OfflineAiManager> { IosAiManager(get()) }
+    
+    // Share Manager
+    single<ShareManager> { IosShareManager() }
 }
