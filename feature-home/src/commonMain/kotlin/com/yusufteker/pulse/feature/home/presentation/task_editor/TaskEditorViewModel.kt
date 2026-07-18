@@ -8,7 +8,6 @@ import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.pulse.shared.api.TaskStatus
 import com.yusufteker.pulse.shared.api.TaskType
 import com.yusufteker.pulse.shared.api.TaskVisibility
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -25,10 +24,15 @@ import com.yusufteker.pulse.shared.api.extractBaseTaskId
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
 
+/**
+ * Görev Oluşturma/Düzenleme ekranının durum yönetimini yapan ViewModel.
+ * Görevin yerel veritabanından yüklenmesi, güncellenmesi, silinmesi ve
+ * katılımcı/hatırlatıcı gibi detayların yönetilmesinden sorumludur.
+ */
 class TaskEditorViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
@@ -37,11 +41,21 @@ class TaskEditorViewModel(
 
     private val _state = MutableStateFlow(TaskEditorState())
     val state = _state.asStateFlow()
+    
+    // Silme işlemi tetiklendiğinde mükerrer kaydetme isteklerini engellemek için durum takibi.
     private var isDeleted = false
 
+    // Ekrandan tetiklenecek tek seferlik olaylar (Geri dönme, Snackbar gösterme vb.)
     private val _effect = MutableSharedFlow<TaskEditorEffect>()
     val effect = _effect.asSharedFlow()
 
+    // Ekranda çalışan veri dinleme coroutine'inin referansı.
+    // Yeni bir yükleme tetiklendiğinde eskisini iptal etmek için kullanılır.
+    private var loadJob: Job? = null
+
+    /**
+     * Kullanıcı arayüzünden gelen olayları işleyen ana fonksiyon.
+     */
     fun onEvent(event: TaskEditorEvent) {
         when (event) {
             is TaskEditorEvent.OnLoadTask -> loadTask(event.taskId, event.planRoomId, event.parentId)
@@ -81,6 +95,7 @@ class TaskEditorViewModel(
             is TaskEditorEvent.OnParticipantToggled -> {
                 val currentMap = _state.value.participants.toMutableMap()
                 if (currentMap.containsKey(event.userId)) {
+                    // En az 1 katılımcı bulunması zorunludur.
                     if (currentMap.size > 1) {
                         currentMap.remove(event.userId)
                         _state.update { it.copy(participants = currentMap) }
@@ -102,11 +117,19 @@ class TaskEditorViewModel(
         }
     }
 
+    /**
+     * Görev verisini yerel veritabanından veya oda üyelerinden yükler.
+     * @param taskId Yüklenecek görevin ID'si. Null ise yeni görev oluşturma modudur.
+     * @param planRoomId Görevin ait olduğu paylaşımlı oda ID'si (varsa).
+     * @param parentId Alt görev ise, bağlı olduğu ana görevin ID'si (varsa).
+     */
     private fun loadTask(taskId: String?, planRoomId: String?, parentId: String?) {
-        Napier.d { "TaskEditorViewModel.loadTask: taskId=$taskId, planRoomId=$planRoomId, parentId=$parentId" }
+        // Varsa önceki dinleme/yükleme coroutine'ini iptal et (Mükerrer akışları önler)
+        loadJob?.cancel()
 
-        if (taskId == null) {
-            viewModelScope.launch {
+        loadJob = viewModelScope.launch {
+            // --- GÖREV OLUŞTURMA MODU (taskId == null) ---
+            if (taskId == null) {
                 val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
                 val currentUserName = sessionPreferences.getUserName()
                 val defaultParticipants = if (currentUserId != null && currentUserName != null && planRoomId != null) {
@@ -117,56 +140,32 @@ class TaskEditorViewModel(
                     planRoomId = planRoomId, 
                     parentId = parentId, 
                     participants = defaultParticipants,
-                    deadlineDateMs = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                    deadlineDateMs = getCurrentTimeMs()
                 )
+                
+                // Oda üyelerini yükle
                 if (planRoomId != null) {
-                    planRepository.observeAllPlanRooms().collect { rooms ->
-                        val room = rooms.find { it.id == planRoomId }
-                        if (room != null) {
-                            val profiles = kotlinx.coroutines.coroutineScope {
-                                room.members.map { member ->
-                                    async {
-                                        profileRepository.getProfile(member.userId.toString()).getOrNull()
-                                    }
-                                }.awaitAll().filterNotNull()
-                            }
-                            _state.update { it.copy(roomMembers = profiles) }
-                        }
-                    }
+                    loadRoomMembers(planRoomId)
                 }
+                return@launch
             }
-            return
-        }
 
-        viewModelScope.launch {
+            // --- GÖREV DÜZENLEME MODU (taskId != null) ---
+            // Sanal tekrarlı görevlerin ID'si 'anaId_zamanDamgasi' şeklindedir.
+            // Düzenleme yaparken ana görevi güncellemek için gerçek ID'yi (baseId) çıkartıyoruz.
             val baseId = taskId.extractBaseTaskId()
-            Napier.d { "TaskEditorViewModel.loadTask -> baseId=$baseId" }
             _state.update { it.copy(isLoading = true, id = baseId, planRoomId = planRoomId, parentId = parentId) }
 
-        // Fetch room members if planRoomId is present
-        if (planRoomId != null) {
-            viewModelScope.launch {
-                planRepository.observeAllPlanRooms().collect { rooms ->
-                    val room = rooms.find { it.id == planRoomId }
-                    if (room != null) {
-                        val profiles = kotlinx.coroutines.coroutineScope {
-                            room.members.map { member ->
-                                async {
-                                    profileRepository.getProfile(member.userId.toString()).getOrNull()
-                                }
-                            }.awaitAll().filterNotNull()
-                        }
-                        _state.update { it.copy(roomMembers = profiles) }
-                    }
-                }
+            // Oda üyelerini yükle
+            if (planRoomId != null) {
+                loadRoomMembers(planRoomId)
             }
-        }
 
+            // Veritabanındaki tüm görevlerin güncel akışını dinle
             planRepository.observeAllTasks().collect { tasks ->
                 val task = tasks.find { it.id == baseId && it.type == TaskType.TASK }
-                Napier.d { "TaskEditorViewModel observeAllTasks COLLECT: taskFound=${task != null}, totalTasks=${tasks.size}" }
                 
-                // Fetch sub-items (Tasks and Notes) that belong to this task
+                // Bu görevin altında bulunan alt ögeleri (Sub-tasks / Notes) filtrele
                 val subItemsList = tasks.filter { it.parentId == baseId }
                 
                 if (task != null) {
@@ -180,11 +179,12 @@ class TaskEditorViewModel(
                     val deadline = details?.deadline ?: task.endTime
 
                     _state.update { currentState ->
+                        // Kullanıcının ekranda yaptığı değişikliklerin DB güncellemeleriyle ezilmesini önlüyoruz.
+                        // Eğer başlık/açıklama/son tarih henüz değiştirilmemiş veya DB'deki orijinal değer ile aynıysa güncelleriz.
                         val newTitle = if (currentState.title.isBlank() || currentState.title == currentState.originalTask?.title) task.title else currentState.title
                         val newDescription = if (currentState.description.isBlank() || currentState.description == (currentState.originalTask?.description ?: "")) task.description ?: "" else currentState.description
                         val newDeadline = if (currentState.deadlineDateMs == (currentState.originalTask?.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline) deadline else currentState.deadlineDateMs
 
-                        Napier.d { "TaskEditorViewModel updating state with DB emission: title=$newTitle, isDataLoaded=true" }
                         currentState.copy(
                             originalTask = task,
                             title = newTitle,
@@ -211,12 +211,39 @@ class TaskEditorViewModel(
         }
     }
 
+    /**
+     * Odanın üyelerini planRepository üzerinden çeker ve profil bilgilerini tamamlar.
+     * `CoroutineScope` üzerinden extension fonksiyon olarak tanımlanmıştır.
+     * Bu sayede üst coroutine (loadJob) iptal edildiğinde akış dinleme otomatik olarak sonlanır.
+     */
+    private fun CoroutineScope.loadRoomMembers(planRoomId: String) {
+        launch {
+            planRepository.observeAllPlanRooms().collect { rooms ->
+                val room = rooms.find { it.id == planRoomId }
+                if (room != null) {
+                    val profiles = kotlinx.coroutines.coroutineScope {
+                        room.members.map { member ->
+                            async {
+                                profileRepository.getProfile(member.userId.toString()).getOrNull()
+                            }
+                        }.awaitAll().filterNotNull()
+                    }
+                    _state.update { it.copy(roomMembers = profiles) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Görevi yerel veritabanına kaydeder ve arka planda sunucu senkronizasyonunu tetikler.
+     */
     @OptIn(DelicateCoroutinesApi::class)
     private fun saveTask() {
         if (isDeleted) return
         val currentState = _state.value
-        Napier.d { "TaskEditorViewModel.saveTask: id=${currentState.id}, title=${currentState.title}, isDeleted=${currentState.isDeleted}" }
-        if (currentState.isDeleted) return   // silinmiş görevi asla diriltme
+        
+        // Eğer görev zaten silindiyse tekrar kaydedilmesini engeller.
+        if (currentState.isDeleted) return
         if (currentState.title.isBlank()) {
             setEffect(TaskEditorEffect.ShowSnackbar("Lütfen bir başlık girin."))
             return
@@ -227,16 +254,13 @@ class TaskEditorViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true) }
             val result = if (currentState.id != null) {
-                Napier.d { "TaskEditorViewModel.saveTask: calling updateTask for ${currentState.id}" }
                 planRepository.updateTask(currentState.id, request)
             } else {
-                Napier.d { "TaskEditorViewModel.saveTask: calling createTask" }
                 planRepository.createTask(request)
             }
             _state.update { it.copy(isLoading = false) }
             
             if (result.isSuccess) {
-                Napier.d { "TaskEditorViewModel.saveTask SUCCESS, navigating back" }
                 setEffect(TaskEditorEffect.NavigateBack)
             } else {
                 val error = result.exceptionOrNull()
@@ -247,7 +271,7 @@ class TaskEditorViewModel(
     }
 
     /**
-     * State'den CreateTaskRequest oluşturur. autoSave, forceSave ve saveTask tarafından ortak kullanılır.
+     * Mevcut UI State'inden API ve Veritabanı için CreateTaskRequest nesnesi hazırlar.
      */
     private fun buildCreateTaskRequest(state: TaskEditorState): com.yusufteker.pulse.shared.api.CreateTaskRequest {
         val now = state.originalStartTime ?: getCurrentTimeMs()
@@ -282,18 +306,19 @@ class TaskEditorViewModel(
         )
     }
 
+    /**
+     * Görevi yerel veritabanından siler ve sunucu silme işlemini arka planda başlatır.
+     */
     private fun deleteTask() {
         val taskId = _state.value.id ?: return
         isDeleted = true
 
-        Napier.d { "TaskEditorViewModel.deleteTask: taskId=$taskId" }
         _state.update { it.copy(isDeleted = true) }
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             val result = planRepository.deleteTask(taskId)
             _state.update { it.copy(isLoading = false) }
             if (result.isSuccess) {
-                Napier.d { "TaskEditorViewModel.deleteTask SUCCESS, navigating back" }
                 setEffect(TaskEditorEffect.NavigateBack)
             } else {
                 val error = result.exceptionOrNull()
@@ -303,6 +328,9 @@ class TaskEditorViewModel(
         }
     }
 
+    /**
+     * Ekran efektlerini (Snackbar, Geri Yönlendirme vb.) arayüze iletir.
+     */
     private fun setEffect(effect: TaskEditorEffect) {
         viewModelScope.launch {
             _effect.emit(effect)
