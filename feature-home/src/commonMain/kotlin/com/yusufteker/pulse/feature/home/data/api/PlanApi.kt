@@ -59,6 +59,15 @@ class PlanApi(private val httpClient: HttpClient) {
         }
     }
 
+    ///tasks/123/join?roomId=room45
+    suspend fun joinTask(taskId: String, roomId: String) {
+        httpClient.post("tasks/$taskId/join") {
+            url {
+                parameters.append("roomId", roomId)
+            }
+        }
+    }
+
     // --- PLAN ROOM ENDPOINTS ---
 
     suspend fun getMyRooms(): List<PlanRoomDto> {

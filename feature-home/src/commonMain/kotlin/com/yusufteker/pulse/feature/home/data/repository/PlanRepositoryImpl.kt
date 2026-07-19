@@ -592,6 +592,22 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun joinTask(taskId: String, roomId: String): Result<Unit> {
+        return try {
+            planApi.joinTask(taskId, roomId)
+            
+            // Sync current task list locally from server to pull the task we just joined.
+            // Or we could wait for FCM. Since they click a link and open the app, 
+            // fetching the room tasks right away is a safe approach.
+            fetchRoomTasks(roomId)
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.joinTask FAILED: taskId=$taskId, roomId=$roomId, message=${e.message}" }
+            Result.failure(e)
+        }
+    }
+
     // ─────────────────────────────────────────
     // GÖREV OKUMA / GÖZLEMLEME (Observe)
     // ─────────────────────────────────────────

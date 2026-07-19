@@ -66,6 +66,7 @@ val homeModule = module {
     // Use Cases
     factory { com.yusufteker.pulse.feature.home.domain.use_case.GetFilteredTasksUseCase() }
     factory { com.yusufteker.pulse.feature.home.domain.use_case.SubmitSmartInputUseCase(get(), get()) }
+    factory { com.yusufteker.pulse.feature.home.domain.use_case.ProcessDeepLinkUseCase(get()) }
     
     viewModelOf(::HomeViewModel)
     viewModelOf(::FocusViewModel)

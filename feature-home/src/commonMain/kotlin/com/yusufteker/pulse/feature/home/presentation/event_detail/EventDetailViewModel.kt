@@ -120,15 +120,37 @@ class EventDetailViewModel(
                     val note = _state.value.description.encodeUrlParameter()
                     val date = _state.value.startDateTimeMs
                     val senderEncoded = sender.encodeUrlParameter()
-                    val url = "https://pulse.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
-                    val shareText = """
-                        $sender seni bir etkinliğe davet etti:
-                        
-                        ${_state.value.title}
-                        ${_state.value.description}
-                        
-                        Pulsy'de aç: $url
-                    """.trimIndent()
+                    val eventId = _state.value.id
+                    val roomId = _state.value.planRoomId
+                    
+                    val url = if (eventId != null && roomId != null) {
+                        "https://pulse.yusufteker.com/share/joinEvent?eventId=$eventId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
+                    } else {
+                        "https://pulse.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                    }
+                    
+                    val shareText = if (eventId != null && roomId != null) {
+                        """
+                            $sender seni ortak odadaki bir etkinliğe davet etti:
+                            
+                            Oda: Oda İsmi (Katıldığın oda)
+                            Etkinlik: ${_state.value.title}
+                            Tarih: ${kotlinx.datetime.Instant.fromEpochMilliseconds(_state.value.startDateTimeMs).toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date}
+                            Açıklama: ${_state.value.description}
+                            
+                            Etkinliğe katılmak için tıklayınız:
+                            $url
+                        """.trimIndent()
+                    } else {
+                        """
+                            $sender seni bir etkinliğe davet etti:
+                            
+                            ${_state.value.title}
+                            ${_state.value.description}
+                            
+                            Pulsy'de aç: $url
+                        """.trimIndent()
+                    }
                     setEffect(EventDetailEffect.ShareItem(shareText))
                 }
             }

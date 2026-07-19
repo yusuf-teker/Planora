@@ -1,0 +1,108 @@
+package com.yusufteker.pulse.feature.home.domain.use_case
+
+import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
+import io.ktor.http.Url
+
+sealed class DeepLinkResult {
+    data class NavigateToEvent(
+        val eventId: String? = null,
+        val planRoomId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : DeepLinkResult()
+
+    data class NavigateToTask(
+        val taskId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : DeepLinkResult()
+
+    data class NavigateToNote(
+        val noteId: String? = null,
+        val sharedNote: String? = null,
+        val sharedSender: String? = null
+    ) : DeepLinkResult()
+
+    data object InvalidOrIgnored : DeepLinkResult()
+}
+
+class ProcessDeepLinkUseCase(
+    private val planRepository: PlanRepository
+) {
+    suspend operator fun invoke(deepLinkUrl: String): DeepLinkResult {
+        if (deepLinkUrl.isEmpty()) return DeepLinkResult.InvalidOrIgnored
+
+        try {
+            val url = Url(deepLinkUrl)
+            val isPulsyScheme = url.protocol.name == "pulsy" && url.host == "share"
+            val pathSegments = url.pathSegments.filter { it.isNotEmpty() }
+            val isHttpScheme = (url.protocol.name == "http" || url.protocol.name == "https") &&
+                               url.host == "pulse.yusufteker.com" &&
+                               pathSegments.firstOrNull() == "share"
+
+            if (!isPulsyScheme && !isHttpScheme) {
+                return DeepLinkResult.InvalidOrIgnored
+            }
+
+            val type = if (isHttpScheme) pathSegments.getOrNull(1) ?: "" else pathSegments.firstOrNull() ?: ""
+            val title = url.parameters["title"]
+            val note = url.parameters["note"]
+            val dateString = url.parameters["date"]
+            val date = dateString?.toLongOrNull()
+            val sender = url.parameters["sender"]
+            
+            val eventId = url.parameters["eventId"]
+            val roomId = url.parameters["roomId"]
+
+            return when (type) {
+                "event" -> {
+                    DeepLinkResult.NavigateToEvent(
+                        sharedTitle = title,
+                        sharedNote = note,
+                        sharedDate = date,
+                        sharedSender = sender
+                    )
+                }
+                "joinEvent" -> {
+                    // Logic to join the event automatically
+                    if (eventId != null && roomId != null) {
+                        try {
+                            planRepository.joinTask(taskId = eventId, roomId = roomId)
+                        } catch (e: Exception) {
+                            println("Failed to join task via deep link: ${e.message}")
+                            // If joining fails (e.g. not in room), we might not want to navigate 
+                            // but let's just proceed so the user can see it or handle it.
+                        }
+                    }
+                    DeepLinkResult.NavigateToEvent(
+                        eventId = eventId,
+                        planRoomId = roomId,
+                        sharedSender = sender
+                    )
+                }
+                "task" -> {
+                    DeepLinkResult.NavigateToTask(
+                        sharedTitle = title,
+                        sharedNote = note,
+                        sharedDate = date,
+                        sharedSender = sender
+                    )
+                }
+                "note" -> {
+                    DeepLinkResult.NavigateToNote(
+                        sharedNote = note,
+                        sharedSender = sender
+                    )
+                }
+                else -> DeepLinkResult.InvalidOrIgnored
+            }
+        } catch (e: Exception) {
+            println("Error parsing deep link in UseCase: ${e.message}")
+            return DeepLinkResult.InvalidOrIgnored
+        }
+    }
+}

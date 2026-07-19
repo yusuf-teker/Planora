@@ -1,4 +1,4 @@
-package com.yusufteker.pulse
+    package com.yusufteker.pulse
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
@@ -97,6 +97,7 @@ fun App() {
         val registerFcmTokenUseCase = koinInject<RegisterFcmTokenUseCase>()
         val reminderManager = koinInject<com.yusufteker.pulse.core.reminder.ReminderManager>()
         val planRepository = koinInject<com.yusufteker.pulse.feature.home.domain.repository.PlanRepository>()
+        val processDeepLinkUseCase = koinInject<com.yusufteker.pulse.feature.home.domain.use_case.ProcessDeepLinkUseCase>()
 
         LaunchedEffect(userId) {
             if (userId != null) {
@@ -130,40 +131,44 @@ fun App() {
         LaunchedEffect(deepLinkUrl, userId, currentScreen) {
             println("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
             if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen == Screen.Main) { // Only handle if logged in
-                println("DEEPLINK DEBUG: Conditions met! Parsing URL...")
-                try {
-                    val url = io.ktor.http.Url(deepLinkUrl)
-                    println("DEEPLINK DEBUG: Parsed URL scheme='${url.protocol.name}', host='${url.host}', pathSegments='${url.pathSegments}'")
-                    val isPulsyScheme = url.protocol.name == "pulsy" && url.host == "share"
-                    val pathSegments = url.pathSegments.filter { it.isNotEmpty() }
-                    val isHttpScheme = (url.protocol.name == "http" || url.protocol.name == "https") && 
-                                       url.host == "pulse.yusufteker.com" && 
-                                       pathSegments.firstOrNull() == "share"
-                                       
-                    println("DEEPLINK DEBUG: isPulsyScheme=$isPulsyScheme, isHttpScheme=$isHttpScheme, filteredSegments=$pathSegments")
-                    if (isPulsyScheme || isHttpScheme) {
-                        val type = if (isHttpScheme) pathSegments.getOrNull(1) ?: "" else pathSegments.firstOrNull() ?: ""
-                        val title = url.parameters["title"]
-                        val note = url.parameters["note"]
-                        val dateString = url.parameters["date"]
-                        val date = dateString?.toLongOrNull()
-                        val sender = url.parameters["sender"]
-                        
-                        println("DEEPLINK DEBUG: Navigating to type='$type', title='$title'")
-                        when (type) {
-                            "event" -> {
-                                navigator.navigate(Screen.EventDetail(sharedTitle = title, sharedNote = note, sharedDate = date, sharedSender = sender))
-                            }
-                            "task" -> {
-                                navigator.navigate(Screen.TaskEditor(sharedTitle = title, sharedNote = note, sharedDate = date, sharedSender = sender))
-                            }
-                            "note" -> {
-                                navigator.navigate(Screen.NoteEditor(sharedNote = note, sharedSender = sender))
-                            }
-                        }
+                println("DEEPLINK DEBUG: Conditions met! Parsing URL with UseCase...")
+                val result = processDeepLinkUseCase(deepLinkUrl)
+                when (result) {
+                    is com.yusufteker.pulse.feature.home.domain.use_case.DeepLinkResult.NavigateToEvent -> {
+                        navigator.navigate(
+                            Screen.EventDetail(
+                                eventId = result.eventId,
+                                planRoomId = result.planRoomId,
+                                sharedTitle = result.sharedTitle,
+                                sharedNote = result.sharedNote,
+                                sharedDate = result.sharedDate,
+                                sharedSender = result.sharedSender
+                            )
+                        )
                     }
-                } catch (e: Exception) {
-                    println("Error parsing deep link: ${e.message}")
+                    is com.yusufteker.pulse.feature.home.domain.use_case.DeepLinkResult.NavigateToTask -> {
+                        navigator.navigate(
+                            Screen.TaskEditor(
+                                taskId = result.taskId,
+                                sharedTitle = result.sharedTitle,
+                                sharedNote = result.sharedNote,
+                                sharedDate = result.sharedDate,
+                                sharedSender = result.sharedSender
+                            )
+                        )
+                    }
+                    is com.yusufteker.pulse.feature.home.domain.use_case.DeepLinkResult.NavigateToNote -> {
+                        navigator.navigate(
+                            Screen.NoteEditor(
+                                noteId = result.noteId,
+                                sharedNote = result.sharedNote,
+                                sharedSender = result.sharedSender
+                            )
+                        )
+                    }
+                    com.yusufteker.pulse.feature.home.domain.use_case.DeepLinkResult.InvalidOrIgnored -> {
+                        println("DEEPLINK DEBUG: Invalid or Ignored deep link")
+                    }
                 }
                 DeepLinkManager.consumeLink()
             }

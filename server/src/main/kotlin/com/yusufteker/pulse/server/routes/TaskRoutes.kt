@@ -40,6 +40,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
 import org.apache.commons.logging.Log
+import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.taskRoutes() {
     val routeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -401,6 +402,92 @@ fun Route.taskRoutes() {
                 }
 
                 call.respond(HttpStatusCode.OK, "Deleted successfully")
+            }
+
+            // Join Task via DeepLink (e.g. from WhatsApp)
+            post("/{id}/join") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                val taskId = call.parameters["id"]
+                val roomId = call.request.queryParameters["roomId"]
+                
+                if (userId == null || taskId == null || roomId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid request")
+                    return@post
+                }
+
+                var success = false
+                var creatorId: Int? = null
+                var taskTitle = ""
+                
+                dbQuery {
+                    // 1. Check if user is an accepted member of the room
+                    val isMember = PlanRoomMembersTable.selectAll().where {
+                        (PlanRoomMembersTable.roomId eq roomId) and
+                        (PlanRoomMembersTable.userId eq userId) and
+                        (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED)
+                    }.count() > 0
+
+                    if (!isMember) { // odaya üye değilse birşey yapma
+                        return@dbQuery
+                    }
+
+                    // 2. Check if the task is shared in this room
+                    val taskInRoom = TaskSharedRoomsTable.selectAll().where {
+                        (TaskSharedRoomsTable.taskId eq taskId) and
+                        (TaskSharedRoomsTable.roomId eq roomId)
+                    }.count() > 0
+
+                    if (!taskInRoom) { // paylaşılan task bu odada değilse birşey yapma
+                        return@dbQuery
+                    }
+
+                    //Eğer paylaşılan odada o kullanıcı var o eventi o kullanıcıyıda ekle
+                    // 3. Add to participants if not already added
+                    val alreadyParticipant = TaskParticipantsTable.selectAll().where {
+                        (TaskParticipantsTable.taskId eq taskId) and
+                        (TaskParticipantsTable.userId eq userId)
+                    }.count() > 0
+
+                    if (!alreadyParticipant) {
+                        TaskParticipantsTable.insert {
+                            it[TaskParticipantsTable.taskId] = taskId
+                            it[TaskParticipantsTable.userId] = userId
+                            it[status] = "ACCEPTED"
+                        }
+                    }
+
+                    val taskEntity = TaskEntity.findById(taskId)
+                    if (taskEntity != null) {
+                        creatorId = taskEntity.creator.id.value
+                        taskTitle = taskEntity.title
+                    }
+                    success = true
+                }
+
+                if (success) {
+                    // Send push notification to the creator
+                    if (creatorId != null && creatorId != userId) {
+                        val joinerName = transaction {
+                            UsersTable.selectAll().where { UsersTable.id eq userId }.firstOrNull()?.get(UsersTable.name) ?: "Birisi"
+                        }
+                        routeScope.launch {
+                            com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                                userId = creatorId!!,
+                                title = "Yeni Katılımcı",
+                                body = "$joinerName '${taskTitle}' etkinliğine katıldı."
+                            )
+                        }
+                    }
+                    
+                    routeScope.launch {
+                        com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                    }
+
+                    call.respond(HttpStatusCode.OK, "Joined successfully")
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, "Invalid permissions or task not found")
+                }
             }
 
             // 2. Kişinin kendi görevlerini VE odalar aracılığıyla paylaşılan görevleri getirme

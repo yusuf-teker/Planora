@@ -13,6 +13,7 @@ interface PlanRepository {
     suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit>
     suspend fun deleteTask(taskId: String): Result<Unit>
     suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit>
+    suspend fun joinTask(taskId: String, roomId: String): Result<Unit>
     
     suspend fun fetchMyTasks(fromTime: Long? = null, toTime: Long? = null): Result<Unit>
     suspend fun fetchRoomTasks(roomId: String, fromTime: Long? = null, toTime: Long? = null): Result<Unit>
