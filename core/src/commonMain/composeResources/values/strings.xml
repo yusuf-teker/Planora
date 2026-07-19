@@ -31,12 +31,14 @@
     <string name="error_passwords_mismatch">Passwords do not match</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title_1">Welcome</string>
-    <string name="onboarding_desc_1">Boost your productivity with Pulsy and achieve your goals.</string>
-    <string name="onboarding_title_2">Social Productivity</string>
-    <string name="onboarding_desc_2">Set goals with your friends and stay motivated.</string>
-    <string name="onboarding_title_3">Ready to Start?</string>
-    <string name="onboarding_desc_3">Sign up now and begin your journey.</string>
+    <string name="onboarding_title_1">Your Personal Calendar</string>
+    <string name="onboarding_desc_1">Create and organize your tasks, events, and notes seamlessly.</string>
+    <string name="onboarding_title_2">Plan Rooms</string>
+    <string name="onboarding_desc_2">Create shared rooms with your friends and collaborate on tasks together.</string>
+    <string name="onboarding_title_3">Social Calendars</string>
+    <string name="onboarding_desc_3">View your friends\' calendars and discover their upcoming plans easily.</string>
+    <string name="onboarding_title_4">Pulsy AI</string>
+    <string name="onboarding_desc_4">Let the AI organize your life. Just tell it what you need to do.</string>
     <string name="action_skip">Skip</string>
     <string name="action_next">Next</string>
     <string name="action_start">Start</string>

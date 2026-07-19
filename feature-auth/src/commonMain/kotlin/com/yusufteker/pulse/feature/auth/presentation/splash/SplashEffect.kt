@@ -11,4 +11,7 @@ sealed interface SplashEffect : UiEffect {
 
     /** Navigate to the Home screen (if user is already logged in) */
     data object NavigateToHome : SplashEffect
+
+    /** Navigate to the Login screen */
+    data object NavigateToLogin : SplashEffect
 }

@@ -25,9 +25,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.Crossfade
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
+import com.yusufteker.pulse.feature.auth.presentation.onboarding.components.*
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
@@ -51,6 +53,7 @@ fun OnboardingScreen(
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
             is OnboardingEffect.NavigateToLogin -> navigator.setRoot(Screen.Login)
+            is OnboardingEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
         }
     }
 
@@ -66,6 +69,10 @@ fun OnboardingScreen(
         OnboardingPage(
             title = Res.string.onboarding_title_3,
             description = Res.string.onboarding_desc_3
+        ),
+        OnboardingPage(
+            title = Res.string.onboarding_title_4,
+            description = Res.string.onboarding_desc_4
         )
     )
 
@@ -89,11 +96,28 @@ fun OnboardingScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            } else {
+                Spacer(modifier = Modifier.height(48.dp)) // Reserve space when skip button is hidden
             }
         }
 
-        // Page content
-        Spacer(modifier = Modifier.weight(1f))
+        // Animated illustration area
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Crossfade(
+                targetState = state.currentPage,
+                animationSpec = androidx.compose.animation.core.tween(500)
+            ) { page ->
+                when (page) {
+                    0 -> AnimatedCalendarFeature()
+                    1 -> AnimatedSharedRoomFeature()
+                    2 -> AnimatedFriendCalendarFeature()
+                    3 -> AnimatedAIFeature()
+                }
+            }
+        }
 
         Text(
             text = stringResource(pages[state.currentPage].title),

@@ -31,12 +31,14 @@
     <string name="error_passwords_mismatch">Şifreler eşleşmiyor</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title_1">Hoş Geldin</string>
-    <string name="onboarding_desc_1">Pulsy ile üretkenliğini artır ve hedeflerine ulaş.</string>
-    <string name="onboarding_title_2">Sosyal Üretkenlik</string>
-    <string name="onboarding_desc_2">Arkadaşlarınla birlikte hedefler belirle ve motive ol.</string>
-    <string name="onboarding_title_3">Başlamaya Hazır mısın?</string>
-    <string name="onboarding_desc_3">Hemen kayıt ol ve yolculuğuna başla.</string>
+    <string name="onboarding_title_1">Kişisel Takvimin</string>
+    <string name="onboarding_desc_1">Görevlerini, etkinliklerini ve notlarını sorunsuzca oluştur ve düzenle.</string>
+    <string name="onboarding_title_2">Plan Odaları</string>
+    <string name="onboarding_desc_2">Arkadaşlarınla ortak odalar oluştur ve görevleri birlikte tamamla.</string>
+    <string name="onboarding_title_3">Sosyal Takvimler</string>
+    <string name="onboarding_desc_3">Arkadaşlarının takvimlerini görüntüle ve planlarını kolayca keşfet.</string>
+    <string name="onboarding_title_4">Pulsy AI</string>
+    <string name="onboarding_desc_4">Bırak hayatını yapay zeka planlasın. Sadece ne yapman gerektiğini söyle.</string>
     <string name="action_skip">Atla</string>
     <string name="action_next">İleri</string>
     <string name="action_start">Başla</string>

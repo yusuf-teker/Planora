@@ -8,4 +8,7 @@ import com.yusufteker.pulse.core.base.UiEffect
 sealed interface OnboardingEffect : UiEffect {
     /** Navigate to the Login screen */
     data object NavigateToLogin : OnboardingEffect
+
+    /** Navigate to the Home screen */
+    data object NavigateToHome : OnboardingEffect
 }

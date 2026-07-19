@@ -1,0 +1,18 @@
+ALTER TABLE taskEntity ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS taskExceptionEntity (
+    taskId TEXT NOT NULL,
+    dateMs INTEGER NOT NULL,
+    isCompleted INTEGER NOT NULL,
+    isSynced INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (taskId, dateMs)
+);
+
+CREATE TABLE IF NOT EXISTS calendarAccessEntity (
+    userId INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    username TEXT NOT NULL,
+    avatarId TEXT NOT NULL,
+    color TEXT NOT NULL,
+    profileImageUrl TEXT
+);

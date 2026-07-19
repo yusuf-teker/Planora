@@ -40,6 +40,7 @@ class SessionPreferences(
     private val filterShowOnlyNextRecurringKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_only_next_recurring")
     private val filterShowCompletedKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_completed")
     private val viewOptionKey = stringPreferencesKey("view_option")
+    private val lastSeenOverviewIndexKey = intPreferencesKey("last_seen_overview_index")
 
 
 
@@ -130,6 +131,16 @@ class SessionPreferences(
     suspend fun setHasRunBefore(hasRun: Boolean) {
         dataStore.edit { prefs ->
             prefs[appRunKey] = hasRun
+        }
+    }
+
+    suspend fun getLastSeenOverviewIndex(): Int {
+        return dataStore.data.map { it[lastSeenOverviewIndexKey] ?: 0 }.first()
+    }
+
+    suspend fun setLastSeenOverviewIndex(index: Int) {
+        dataStore.edit { prefs ->
+            prefs[lastSeenOverviewIndexKey] = index
         }
     }
 

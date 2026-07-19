@@ -182,7 +182,7 @@ class EventDetailViewModel(
                     }
                 }
                 
-                val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
                 val startTime = sharedDate ?: now
                 val endTime = startTime + 3600000L // +1 hour
 

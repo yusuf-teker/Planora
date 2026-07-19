@@ -42,11 +42,11 @@ fun SplashScreen(
     val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // Collect side effects
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
             is SplashEffect.NavigateToOnboarding -> navigator.setRoot(Screen.Onboarding)
             is SplashEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is SplashEffect.NavigateToLogin -> navigator.setRoot(Screen.Login)
         }
     }
 
