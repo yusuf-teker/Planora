@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -168,12 +169,29 @@ fun NoteEditorScreen(
                         IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnShareClick) }) {
                             Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
                         }
-                        IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnDeleteClick) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error)
-                        }
                     }
+                    
                     IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnSaveClick) }) {
                         Icon(Icons.Default.Check, contentDescription = "Kaydet", tint = MaterialTheme.colorScheme.primary)
+                    }
+
+                    if (state.id != null) {
+                        var showNoteMenu by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { showNoteMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Daha Fazla", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            DropdownMenu(expanded = showNoteMenu, onDismissRequest = { showNoteMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Sil", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                    onClick = { 
+                                        showNoteMenu = false
+                                        viewModel.onEvent(NoteEditorEvent.OnDeleteClick) 
+                                    }
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -104,7 +104,7 @@ class PlanRepositoryImpl(
      * 2. Kullanıcıya anında başarı döner (optimistik güncelleme).
      * 3. Arka planda [syncPendingChanges] çağrılarak görev sunucuya gönderilir.
      */
-    override suspend fun createTask(request: CreateTaskRequest): Result<TaskDto> {
+    override suspend fun createTask(request: CreateTaskRequest, triggerSync: Boolean): Result<TaskDto> {
         return try {
             val currentUserId = 0L
             val localTaskId = "local_${generateUUID()}"
@@ -122,8 +122,10 @@ class PlanRepositoryImpl(
             val localEntity = database.pulsyDatabaseQueries.getTaskById(localTaskId).executeAsOne()
             val localDto = mapTaskEntityToDto(localEntity)
 
-            // Arka planda sunucu senkronizasyonunu başlat
-            scope.launch(Dispatchers.IO) { syncPendingChanges() }
+            // Arka planda sunucu senkronizasyonunu başlat (eğer triggerSync true ise)
+            if (triggerSync) {
+                scope.launch(Dispatchers.IO) { syncPendingChanges() }
+            }
             Result.success(localDto)
         } catch (e: Exception) {
             Napier.e(e) { "PlanRepositoryImpl.createTask FAILED: ${e.message}" }
@@ -139,7 +141,7 @@ class PlanRepositoryImpl(
      * 2. Görevi yerel DB'de üzerine yazar ve isSynced = 0 yapar.
      * 3. Arka planda [syncPendingChanges] ile sunucuya gönderir.
      */
-    override suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit> {
+    override suspend fun updateTask(taskId: String, request: CreateTaskRequest, triggerSync: Boolean): Result<Unit> {
         return try {
             val actualTaskId = getActualTaskId(taskId)
 
@@ -160,7 +162,9 @@ class PlanRepositoryImpl(
                 }
             }
 
-            scope.launch(Dispatchers.IO) { syncPendingChanges() }
+            if (triggerSync) {
+                scope.launch(Dispatchers.IO) { syncPendingChanges() }
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Napier.e(e) { "PlanRepositoryImpl.updateTask FAILED: taskId=$taskId, message=${e.message}" }

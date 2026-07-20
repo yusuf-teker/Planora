@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -37,6 +40,16 @@ class EventDetailViewModel(
     private val _effect = MutableSharedFlow<EventDetailEffect>()
     val effect = _effect.asSharedFlow()
 
+    private val _saveTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    init {
+        @OptIn(kotlinx.coroutines.FlowPreview::class)
+        _saveTrigger
+            .debounce(1000L)
+            .onEach { autoSaveEvent() }
+            .launchIn(viewModelScope)
+    }
+
     fun onEvent(event: EventDetailEvent) {
         when (event) {
             is EventDetailEvent.OnLoadEvent -> loadEvent(
@@ -47,9 +60,18 @@ class EventDetailViewModel(
                 sharedDate = event.sharedDate,
                 sharedSender = event.sharedSender
             )
-            is EventDetailEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
-            is EventDetailEvent.OnDescriptionChange -> _state.update { it.copy(description = event.description) }
-            is EventDetailEvent.OnLocationChange -> _state.update { it.copy(location = event.location) }
+            is EventDetailEvent.OnTitleChange -> {
+                _state.update { it.copy(title = event.title) }
+                _saveTrigger.tryEmit(Unit)
+            }
+            is EventDetailEvent.OnDescriptionChange -> {
+                _state.update { it.copy(description = event.description) }
+                _saveTrigger.tryEmit(Unit)
+            }
+            is EventDetailEvent.OnLocationChange -> {
+                _state.update { it.copy(location = event.location) }
+                _saveTrigger.tryEmit(Unit)
+            }
             
             is EventDetailEvent.OnStartDateTimeSelected -> {
                 _state.update { 
@@ -64,20 +86,28 @@ class EventDetailViewModel(
                         it.copy(startDateTimeMs = event.dateMs, isStartPickerOpen = false)
                     }
                 }
+                _saveTrigger.tryEmit(Unit)
             }
-            is EventDetailEvent.OnEndDateTimeSelected -> _state.update { 
-                it.copy(endDateTimeMs = event.dateMs, isEndPickerOpen = false, isEndTimeManuallyChanged = true) 
+            is EventDetailEvent.OnEndDateTimeSelected -> {
+                _state.update { 
+                    it.copy(endDateTimeMs = event.dateMs, isEndPickerOpen = false, isEndTimeManuallyChanged = true) 
+                }
+                _saveTrigger.tryEmit(Unit)
             }
             
             is EventDetailEvent.OnStartPickerVisibilityChanged -> _state.update { it.copy(isStartPickerOpen = event.isVisible) }
             is EventDetailEvent.OnEndPickerVisibilityChanged -> _state.update { it.copy(isEndPickerOpen = event.isVisible) }
             is EventDetailEvent.OnRepeatPickerVisibilityChanged -> _state.update { it.copy(isRepeatPickerOpen = event.isVisible) }
             
-            is EventDetailEvent.OnToggleRecurring -> _state.update { it.copy(isRecurring = event.isRecurring) }
+            is EventDetailEvent.OnToggleRecurring -> {
+                _state.update { it.copy(isRecurring = event.isRecurring) }
+                _saveTrigger.tryEmit(Unit)
+            }
             is EventDetailEvent.OnRecurrenceRuleChanged -> {
                 _state.update { currentState ->
                     currentState.copy(recurrenceRule = event.rule, isRecurring = event.rule != null)
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             
             is EventDetailEvent.OnReminderPickerVisibilityChanged -> _state.update { it.copy(isReminderPickerVisible = event.isVisible) }
@@ -90,6 +120,7 @@ class EventDetailViewModel(
                     }
                     it.copy(reminders = newReminders)
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             
             is EventDetailEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
@@ -99,6 +130,7 @@ class EventDetailViewModel(
                     if (currentMap.size > 1) {
                         currentMap.remove(event.userId)
                         _state.update { it.copy(participants = currentMap) }
+                        _saveTrigger.tryEmit(Unit)
                     } else {
                         setEffect(EventDetailEffect.ShowToast("En az 1 katılımcı olmalıdır."))
                     }
@@ -107,6 +139,7 @@ class EventDetailViewModel(
                     if (user != null) {
                         currentMap[event.userId] = user.name
                         _state.update { it.copy(participants = currentMap) }
+                        _saveTrigger.tryEmit(Unit)
                     }
                 }
             }
@@ -270,6 +303,50 @@ class EventDetailViewModel(
         }
     }
 
+    private fun autoSaveEvent() {
+        val currentState = _state.value
+        
+        if (currentState.isLoading || currentState.title.isBlank()) return
+
+        viewModelScope.launch {
+            val recurrenceStr = currentState.recurrenceRule?.let { Json.encodeToString(it) }
+
+            val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+                title = currentState.title,
+                description = currentState.description.ifBlank { null },
+                startTime = currentState.startDateTimeMs,
+                endTime = currentState.endDateTimeMs,
+                type = TaskType.EVENT,
+                status = TaskStatus.PENDING,
+                visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
+                isRecurring = currentState.isRecurring || currentState.recurrenceRule != null,
+                recurrenceRule = recurrenceStr,
+                isFlexible = false,
+                isOptional = false,
+                isPostponable = false,
+                isAllDay = false,
+                reminders = currentState.reminders,
+                specificDetails = ItemDetails.Event(location = currentState.location.ifBlank { null }, meetingUrl = null),
+                tags = emptyList(),
+                color = null,
+                participants = currentState.participants
+            )
+
+            if (currentState.id != null) {
+                planRepository.updateTask(currentState.id, request, triggerSync = false)
+            } else {
+                val result = planRepository.createTask(request, triggerSync = false)
+                if (result.isSuccess) {
+                    val newId = result.getOrNull()?.id
+                    if (newId != null) {
+                        _state.update { it.copy(id = newId) }
+                    }
+                }
+            }
+        }
+    }
+
     private fun saveEvent() {
         val currentState = _state.value
         
@@ -308,9 +385,9 @@ class EventDetailViewModel(
             )
 
             if (currentState.id != null) {
-                planRepository.updateTask(currentState.id, request)
+                planRepository.updateTask(currentState.id, request, triggerSync = true)
             } else {
-                planRepository.createTask(request)
+                planRepository.createTask(request, triggerSync = true)
             }
             
             _state.update { it.copy(isLoading = false) }

@@ -37,7 +37,7 @@ fun EmptyStateComponent(
     )
 
     Box(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(

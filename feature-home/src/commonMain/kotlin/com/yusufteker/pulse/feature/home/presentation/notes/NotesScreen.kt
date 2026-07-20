@@ -304,11 +304,16 @@ fun NoteCard(note: TaskDto, viewModel: NotesViewModel, isGrid: Boolean) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = if (note.isPinned) "Sabitlendi" else "Not",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
+                if (note.isPinned){
+                    Text(
+                        text = "Sabitlendi",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }else{
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
                 
                 if (!note.isSynced) {
                     Icon(

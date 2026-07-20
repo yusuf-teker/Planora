@@ -89,12 +89,17 @@ fun EventDetailScreen(
                 },
                 actions = {
                     if (state.id != null) {
-                        var showMenu by remember { mutableStateOf(false) }
-                        
                         IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnShareClick) }) {
                             Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
                         }
-
+                    }
+                    
+                    IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnSaveClick) }) {
+                        Icon(Icons.Default.Check, contentDescription = stringResource(Res.string.save), tint = MaterialTheme.colorScheme.primary)
+                    }
+                    
+                    if (state.id != null) {
+                        var showMenu by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(
@@ -123,9 +128,6 @@ fun EventDetailScreen(
                                 )
                             }
                         }
-                    }
-                    TextButton(onClick = { viewModel.onEvent(EventDetailEvent.OnSaveClick) }) {
-                        Text(stringResource(Res.string.save), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)

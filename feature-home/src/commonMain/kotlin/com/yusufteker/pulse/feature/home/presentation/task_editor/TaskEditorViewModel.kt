@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.serialization.json.Json
@@ -28,12 +31,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Görev Oluşturma/Düzenleme ekranının durum yönetimini yapan ViewModel.
  * Görevin yerel veritabanından yüklenmesi, güncellenmesi, silinmesi ve
  * katılımcı/hatırlatıcı gibi detayların yönetilmesinden sorumludur.
  */
+@OptIn(FlowPreview::class)
 class TaskEditorViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
@@ -50,9 +56,20 @@ class TaskEditorViewModel(
     private val _effect = MutableSharedFlow<TaskEditorEffect>()
     val effect = _effect.asSharedFlow()
 
+    // Auto-save tetikleyicisi
+    private val _saveTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
     // Ekranda çalışan veri dinleme coroutine'inin referansı.
     // Yeni bir yükleme tetiklendiğinde eskisini iptal etmek için kullanılır.
     private var loadJob: Job? = null
+
+    init {
+
+        _saveTrigger
+            .debounce(1000L.milliseconds)
+            .onEach { autoSaveTask() }
+            .launchIn(viewModelScope)
+    }
 
     /**
      * Kullanıcı arayüzünden gelen olayları işleyen ana fonksiyon.
@@ -68,21 +85,37 @@ class TaskEditorViewModel(
                 sharedDate = event.sharedDate,
                 sharedSender = event.sharedSender
             )
-            is TaskEditorEvent.TitleChanged -> { _state.update { it.copy(title = event.title) } }
-            is TaskEditorEvent.DescriptionChanged -> { _state.update { it.copy(description = event.description) } }
+            is TaskEditorEvent.TitleChanged -> { 
+                _state.update { it.copy(title = event.title) } 
+                _saveTrigger.tryEmit(Unit)
+            }
+            is TaskEditorEvent.DescriptionChanged -> { 
+                _state.update { it.copy(description = event.description) } 
+                _saveTrigger.tryEmit(Unit)
+            }
             
             is TaskEditorEvent.OnDeadlinePickerVisibilityChanged -> _state.update { it.copy(isDeadlinePickerVisible = event.isVisible) }
-            is TaskEditorEvent.OnDeadlineSelected -> { _state.update { it.copy(deadlineDateMs = event.dateMs, isDeadlinePickerVisible = false) } }
+            is TaskEditorEvent.OnDeadlineSelected -> { 
+                _state.update { it.copy(deadlineDateMs = event.dateMs, isDeadlinePickerVisible = false) } 
+                _saveTrigger.tryEmit(Unit)
+            }
             
-            is TaskEditorEvent.OnIsRecurringChanged -> { _state.update { it.copy(isRecurring = event.isRecurring) } }
+            is TaskEditorEvent.OnIsRecurringChanged -> { 
+                _state.update { it.copy(isRecurring = event.isRecurring) } 
+                _saveTrigger.tryEmit(Unit)
+            }
             is TaskEditorEvent.OnRepeatPickerVisibilityChanged -> _state.update { it.copy(isRepeatPickerVisible = event.isVisible) }
             is TaskEditorEvent.OnRecurrenceRuleChanged -> {
                 _state.update {
                     it.copy(recurrenceRule = event.rule, isRecurring = event.rule != null)
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             
-            is TaskEditorEvent.OnIsOptionalChanged -> { _state.update { it.copy(isOptional = event.isOptional) } }
+            is TaskEditorEvent.OnIsOptionalChanged -> { 
+                _state.update { it.copy(isOptional = event.isOptional) } 
+                _saveTrigger.tryEmit(Unit)
+            }
             is TaskEditorEvent.OnReminderPickerVisibilityChanged -> _state.update { it.copy(isReminderPickerVisible = event.isVisible) }
             is TaskEditorEvent.OnReminderToggled -> {
                 _state.update {
@@ -93,11 +126,13 @@ class TaskEditorViewModel(
                     }
                     it.copy(reminders = newReminders)
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             is TaskEditorEvent.StatusChanged -> {
                 _state.update { 
                     it.copy(status = if (event.isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING) 
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             
             is TaskEditorEvent.OnParticipantPickerVisibilityChanged -> _state.update { it.copy(isParticipantPickerVisible = event.isVisible) }
@@ -108,6 +143,7 @@ class TaskEditorViewModel(
                     if (currentMap.size > 1) {
                         currentMap.remove(event.userId)
                         _state.update { it.copy(participants = currentMap) }
+                        _saveTrigger.tryEmit(Unit)
                     } else {
                         setEffect(TaskEditorEffect.ShowSnackbar("En az 1 katılımcı olmalıdır."))
                     }
@@ -116,6 +152,7 @@ class TaskEditorViewModel(
                     if (user != null) {
                         currentMap[event.userId] = user.name
                         _state.update { it.copy(participants = currentMap) }
+                        _saveTrigger.tryEmit(Unit)
                     }
                 }
             }
@@ -281,6 +318,31 @@ class TaskEditorViewModel(
     }
 
     /**
+     * Sadece yerel veritabanına kaydeder (debounce sonrası). API isteği atılmaz.
+     */
+    private fun autoSaveTask() {
+        if (isDeleted) return
+        val currentState = _state.value
+        if (currentState.isDeleted || currentState.isLoading || currentState.title.isBlank()) return
+
+        val request = buildCreateTaskRequest(currentState)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            if (currentState.id != null) {
+                planRepository.updateTask(currentState.id, request, triggerSync = false)
+            } else {
+                val result = planRepository.createTask(request, triggerSync = false)
+                if (result.isSuccess) {
+                    val newId = result.getOrNull()?.id
+                    if (newId != null) {
+                        _state.update { it.copy(id = newId) }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Görevi yerel veritabanına kaydeder ve arka planda sunucu senkronizasyonunu tetikler.
      */
     @OptIn(DelicateCoroutinesApi::class)
@@ -299,18 +361,16 @@ class TaskEditorViewModel(
 
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true) }
-            val result = if (currentState.id != null) {
-                planRepository.updateTask(currentState.id, request)
+            val isSuccess = if (currentState.id != null) {
+                planRepository.updateTask(currentState.id, request, triggerSync = true).isSuccess
             } else {
-                planRepository.createTask(request)
+                planRepository.createTask(request, triggerSync = true).isSuccess
             }
             _state.update { it.copy(isLoading = false) }
             
-            if (result.isSuccess) {
+            if (isSuccess) {
                 setEffect(TaskEditorEffect.NavigateBack)
             } else {
-                val error = result.exceptionOrNull()
-                Napier.e(error) { "TaskEditorViewModel.saveTask FAILED: ${error?.message}" }
                 setEffect(TaskEditorEffect.ShowSnackbar("Görev güncellenemedi, lütfen tekrar deneyin."))
             }
         }

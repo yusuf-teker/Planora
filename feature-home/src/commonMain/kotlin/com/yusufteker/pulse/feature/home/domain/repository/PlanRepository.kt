@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface PlanRepository {
     // --- TASKS ---
-    suspend fun createTask(request: CreateTaskRequest): Result<TaskDto>
-    suspend fun updateTask(taskId: String, request: CreateTaskRequest): Result<Unit>
+    suspend fun createTask(request: CreateTaskRequest, triggerSync: Boolean = true): Result<TaskDto>
+    suspend fun updateTask(taskId: String, request: CreateTaskRequest, triggerSync: Boolean = true): Result<Unit>
     suspend fun deleteTask(taskId: String): Result<Unit>
     suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit>
     suspend fun joinTask(taskId: String, roomId: String): Result<Unit>

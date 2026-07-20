@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import io.github.aakira.napier.Napier
 
@@ -32,9 +35,17 @@ class NoteEditorViewModel(
     private val _effect = MutableSharedFlow<NoteEditorEffect>()
     val effect = _effect.asSharedFlow()
 
+    private val _saveTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
     private var isDeleted = false
 
     init {
+        @OptIn(kotlinx.coroutines.FlowPreview::class)
+        _saveTrigger
+            .debounce(1000L)
+            .onEach { autoSaveNote() }
+            .launchIn(viewModelScope)
+        
         loadNote(noteId, planRoomId, parentId)
     }
 
@@ -47,8 +58,14 @@ class NoteEditorViewModel(
                 sharedNote = event.sharedNote,
                 sharedSender = event.sharedSender
             )
-            is NoteEditorEvent.OnTitleChange -> _state.update { it.copy(title = event.title) }
-            is NoteEditorEvent.OnContentChange -> _state.update { it.copy(content = event.content) }
+            is NoteEditorEvent.OnTitleChange -> { 
+                _state.update { it.copy(title = event.title) } 
+                _saveTrigger.tryEmit(Unit)
+            }
+            is NoteEditorEvent.OnContentChange -> { 
+                _state.update { it.copy(content = event.content) } 
+                _saveTrigger.tryEmit(Unit)
+            }
             NoteEditorEvent.OnSaveClick -> saveNote()
             NoteEditorEvent.OnDeleteClick -> deleteNote()
             NoteEditorEvent.OnBackClick -> setEffect(NoteEditorEffect.NavigateBack)
@@ -75,6 +92,7 @@ class NoteEditorViewModel(
             NoteEditorEvent.OnAiPreviewReject -> rejectAiPreview()
             is NoteEditorEvent.OnFolderSelected -> {
                 _state.update { it.copy(parentId = event.folderId) }
+                _saveTrigger.tryEmit(Unit)
             }
             is NoteEditorEvent.OnCreateFolderClick -> createFolder(event.folderName)
             is NoteEditorEvent.OnAddChecklistItem -> {
@@ -84,6 +102,7 @@ class NoteEditorViewModel(
                     isDone = false
                 )
                 _state.update { it.copy(checklist = it.checklist + newItem) }
+                _saveTrigger.tryEmit(Unit)
             }
             is NoteEditorEvent.OnToggleChecklistItem -> {
                 _state.update { state ->
@@ -91,11 +110,13 @@ class NoteEditorViewModel(
                         if (item.id == event.itemId) item.copy(isDone = !item.isDone) else item
                     })
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             is NoteEditorEvent.OnDeleteChecklistItem -> {
                 _state.update { state ->
                     state.copy(checklist = state.checklist.filter { item -> item.id != event.itemId })
                 }
+                _saveTrigger.tryEmit(Unit)
             }
             is NoteEditorEvent.OnUpdateChecklistItem -> {
                 _state.update { state ->
@@ -103,6 +124,7 @@ class NoteEditorViewModel(
                         if (item.id == event.itemId) item.copy(title = event.newTitle) else item
                     })
                 }
+                _saveTrigger.tryEmit(Unit)
             }
         }
     }
@@ -173,6 +195,7 @@ class NoteEditorViewModel(
                     aiPreviewContent = null
                 )
             }
+            _saveTrigger.tryEmit(Unit)
         }
     }
 
@@ -284,6 +307,54 @@ class NoteEditorViewModel(
         }
     }
 
+    private fun autoSaveNote() {
+        if (isDeleted) return
+        val currentState = _state.value
+        if (currentState.isLoading || (currentState.title.isBlank() && currentState.content.isBlank())) return
+
+        val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+        val request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
+            title = currentState.title.ifBlank { "İsimsiz Not" },
+            description = currentState.content,
+            startTime = currentState.originalTask?.startTime ?: now,
+            endTime = currentState.originalTask?.endTime ?: now,
+            type = currentState.originalTask?.type ?: TaskType.NOTE,
+            status = currentState.originalTask?.status ?: TaskStatus.PENDING,
+            visibility = if (currentState.planRoomId != null) TaskVisibility.ROOM_SHARED else (currentState.originalTask?.visibility ?: TaskVisibility.PRIVATE),
+            sharedRoomIds = currentState.planRoomId?.let { listOf(it) } ?: emptyList(),
+            isRecurring = currentState.originalTask?.isRecurring ?: false,
+            recurrenceRule = currentState.originalTask?.recurrenceRule,
+            isFlexible = currentState.originalTask?.isFlexible ?: true,
+            isOptional = currentState.originalTask?.isOptional ?: true,
+            isPostponable = currentState.originalTask?.isPostponable ?: false,
+            isAllDay = currentState.originalTask?.isAllDay ?: false,
+            parentId = currentState.parentId,
+            reminders = currentState.originalTask?.reminders ?: emptyList(),
+            specificDetails = ItemDetails.Note(
+                content = currentState.content,
+                attachments = (currentState.originalTask?.specificDetails as? ItemDetails.Note)?.attachments ?: emptyList(),
+                checklist = currentState.checklist
+            ),
+            tags = currentState.originalTask?.tags ?: emptyList(),
+            color = currentState.originalTask?.color,
+            isPinned = currentState.originalTask?.isPinned ?: false
+        )
+
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            if (currentState.id != null) {
+                planRepository.updateTask(currentState.id, request, triggerSync = false)
+            } else {
+                val result = planRepository.createTask(request, triggerSync = false)
+                if (result.isSuccess) {
+                    val newId = result.getOrNull()?.id
+                    if (newId != null) {
+                        _state.update { it.copy(id = newId) }
+                    }
+                }
+            }
+        }
+    }
+
     private fun saveNote() {
         if (isDeleted) return
         val currentState = _state.value
@@ -320,21 +391,20 @@ class NoteEditorViewModel(
 
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _state.update { it.copy(isLoading = true) }
-            val result = if (currentState.id != null) {
+            val isSuccess = if (currentState.id != null) {
                 Napier.d { "NoteEditorViewModel.saveNote: calling updateTask for ${currentState.id}" }
-                planRepository.updateTask(currentState.id, request)
+                planRepository.updateTask(currentState.id, request, triggerSync = true).isSuccess
             } else {
                 Napier.d { "NoteEditorViewModel.saveNote: calling createTask" }
-                planRepository.createTask(request)
+                planRepository.createTask(request, triggerSync = true).isSuccess
             }
             _state.update { it.copy(isLoading = false) }
             
-            if (result.isSuccess) {
+            if (isSuccess) {
                 Napier.d { "NoteEditorViewModel.saveNote SUCCESS, navigating back" }
                 setEffect(NoteEditorEffect.NavigateBack)
             } else {
-                val error = result.exceptionOrNull()
-                Napier.e(error) { "NoteEditorViewModel.saveNote FAILED: ${error?.message}" }
+                Napier.e { "NoteEditorViewModel.saveNote FAILED" }
                 setEffect(NoteEditorEffect.ShowToast("Not güncellenemedi, lütfen tekrar deneyin."))
             }
         }

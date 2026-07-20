@@ -135,7 +135,7 @@ class HomeViewModel(
 
         // Trigger a background fetch
         launch {
-            val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+            val now = getCurrentTimeMs()
             planRepository.syncPendingChanges()
             val oneYear = 86400000L * 365
             planRepository.fetchMyTasks(fromTime = now - oneYear, toTime = now + oneYear)
@@ -193,7 +193,7 @@ class HomeViewModel(
                 fetchedMonths.add(currentMonthStart)
                 
                 launch {
-                    val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
+                    val now = getCurrentTimeMs()
                     val oneYear = 86400000L * 365
                     planRepository.syncPendingChanges()
                     planRepository.fetchMyTasks(fromTime = now - oneYear, toTime = now + oneYear)
