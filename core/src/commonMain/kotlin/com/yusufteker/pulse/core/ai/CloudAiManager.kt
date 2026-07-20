@@ -13,6 +13,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -40,9 +41,21 @@ import kotlinx.coroutines.sync.withLock
  * kolaylığı; production'a çıkarken bunu BuildConfig / local.properties / remote config
  * gibi bir yere taşımanı öneririm ki anahtar repo'ya sızmasın.
  */
-class CloudAiManager(
-    private val httpClient: HttpClient
-) {
+class CloudAiManager {
+    private val aiClient = HttpClient {
+        install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                prettyPrint = true
+            })
+        }
+        install(io.ktor.client.plugins.HttpTimeout) {
+            requestTimeoutMillis = 60000L
+            connectTimeoutMillis = 60000L
+            socketTimeoutMillis = 60000L
+        }
+    }
+
     private val apiKey = "AQ.Ab8RN6LKIQM4eTpJELREuE6re4VTL2nJt5WvSiCxvsHfptebpQ"
     private val model = "gemini-2.5-flash"
     private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
@@ -162,7 +175,7 @@ class CloudAiManager(
                 })
             }
 
-            val response = httpClient.post(apiUrl) {
+            val response = aiClient.post(apiUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
             }
@@ -420,7 +433,7 @@ class CloudAiManager(
                 })
             }
 
-            val response = httpClient.post(apiUrl) {
+            val response = aiClient.post(apiUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
             }

@@ -47,5 +47,5 @@ val coreModule = module {
     singleOf(::AnalyticsManager)
     
     // Cloud AI
-    single { com.yusufteker.pulse.core.ai.CloudAiManager(get()) }
+    single { com.yusufteker.pulse.core.ai.CloudAiManager() }
 }
