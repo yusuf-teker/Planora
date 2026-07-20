@@ -13,6 +13,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.yusufteker.pulse.core.domain.usecase.RegisterFcmTokenUseCase
@@ -175,9 +178,16 @@ fun App() {
         }
 
         CompositionLocalProvider(LocalNavigator provides navigator) {
+            val focusManager = LocalFocusManager.current
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            focusManager.clearFocus()
+                        })
+                    }
             ) { _ -> // paddingValues kullanılmıyor, iç sayfalarda insets kendileri hesaplanıyor
                 NavDisplay(
                     modifier = Modifier.fillMaxSize(),

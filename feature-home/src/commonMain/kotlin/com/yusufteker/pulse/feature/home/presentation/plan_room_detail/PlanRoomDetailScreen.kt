@@ -1,6 +1,7 @@
 package com.yusufteker.pulse.feature.home.presentation.plan_room_detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +42,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.lazy.LazyRow
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
+import com.yusufteker.pulse.core.ui.components.AvatarImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,30 +190,16 @@ fun PlanRoomDetailScreen(
                     } else {
                         LazyRow(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy((-16).dp)
                         ) {
                             items(state.memberProfiles.values.toList(), key = { it.id }) { user ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primaryContainer),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = user.name.take(1).uppercase(),
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = user.name.split(" ").first(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 1
-                                    )
-                                }
+                                AvatarImage(
+                                    avatarId = user.avatarId,
+                                    profileImageUrl = user.profileImageUrl,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
+                                )
                             }
                         }
                     }
