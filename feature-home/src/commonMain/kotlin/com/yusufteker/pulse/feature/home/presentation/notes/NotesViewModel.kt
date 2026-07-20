@@ -83,35 +83,14 @@ class NotesViewModel(
             is NotesEvent.TogglePin -> {
                 val task = allTasks.find { it.id == event.noteId }
                 if (task != null) {
+                    val updatedTask = task.copy(isPinned = !task.isPinned)
+                    allTasks = allTasks.map { if (it.id == task.id) updatedTask else it }
+                    updateStateWithTasks()
+                    
                     launch {
-                        planRepository.updateTask(
+                        planRepository.toggleTaskPinLocal(
                             taskId = task.id,
-                            request = com.yusufteker.pulse.shared.api.CreateTaskRequest(
-                                title = task.title,
-                                description = task.description,
-                                startTime = task.startTime,
-                                endTime = task.endTime,
-                                type = task.type,
-                                status = task.status,
-                                visibility = task.visibility,
-                                sharedRoomIds = task.sharedRoomIds,
-                                isRecurring = task.isRecurring,
-                                recurrenceRule = task.recurrenceRule,
-                                isFlexible = task.isFlexible,
-                                isOptional = task.isOptional,
-                                isPostponable = task.isPostponable,
-                                isAllDay = task.isAllDay,
-                                parentId = task.parentId,
-                                aiMetadata = task.aiMetadata,
-                                reminders = task.reminders,
-                                specificDetails = task.specificDetails,
-                                tags = task.tags,
-                                color = task.color,
-                                participants = task.participants.associate { it.userId to it.name },
-                                isPinned = !task.isPinned,
-                                isSynced = task.isSynced,
-                                localId = task.id
-                            )
+                            isPinned = !task.isPinned
                         )
                     }
                 }

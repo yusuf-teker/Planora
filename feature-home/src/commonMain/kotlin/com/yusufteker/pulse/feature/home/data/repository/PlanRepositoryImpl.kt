@@ -172,6 +172,20 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun toggleTaskPinLocal(taskId: String, isPinned: Boolean): Result<Unit> {
+        return try {
+            val actualTaskId = getActualTaskId(taskId)
+            database.pulsyDatabaseQueries.updateTaskPin(
+                isPinned = if (isPinned) 1L else 0L,
+                id = actualTaskId
+            )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.toggleTaskPinLocal FAILED: taskId=$taskId, message=${e.message}" }
+            Result.failure(e)
+        }
+    }
+
     /**
      * Bir görevi önce yerel DB'den, ardından arka planda sunucudan siler.
      *
@@ -309,7 +323,8 @@ class PlanRepositoryImpl(
                 )
             } else {
                 // Değişiklik yoksa sunucudan gelen DTO'yu direkt kaydet (isSynced = 1)
-                database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+                val finalTask = remoteTask.copy(isPinned = currentLocal?.isPinned == 1L)
+                database.pulsyDatabaseQueries.insertTaskFromDto(finalTask, isSynced = 1L)
             }
 
             // Alt görevlerin parentId'sini eski yerel ID'den yeni sunucu ID'sine güncelle
@@ -464,7 +479,8 @@ class PlanRepositoryImpl(
                     if (existingTask != null && existingTask.isSynced == 0L) {
                         return@forEach // Senkronize edilmemiş yerel değişikliği koru
                     }
-                    database.pulsyDatabaseQueries.insertTaskFromDto(task, isSynced = 1L)
+                    val finalTask = if (existingTask != null) task.copy(isPinned = existingTask.isPinned == 1L) else task
+                    database.pulsyDatabaseQueries.insertTaskFromDto(finalTask, isSynced = 1L)
                     database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(task.id)
                     task.sharedRoomIds.forEach { roomId ->
                         database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = roomId)
@@ -510,7 +526,8 @@ class PlanRepositoryImpl(
                     if (existingTask != null && existingTask.isSynced == 0L) {
                         return@forEach // Senkronize edilmemiş yerel değişikliği koru
                     }
-                    database.pulsyDatabaseQueries.insertTaskFromDto(task, isSynced = 1L)
+                    val finalTask = if (existingTask != null) task.copy(isPinned = existingTask.isPinned == 1L) else task
+                    database.pulsyDatabaseQueries.insertTaskFromDto(finalTask, isSynced = 1L)
                     database.pulsyDatabaseQueries.deleteTaskSharedRoomsForTask(task.id)
                     task.sharedRoomIds.forEach { room ->
                         database.pulsyDatabaseQueries.insertTaskSharedRoom(taskId = task.id, roomId = room)

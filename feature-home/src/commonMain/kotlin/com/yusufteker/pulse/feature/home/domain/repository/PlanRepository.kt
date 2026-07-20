@@ -11,6 +11,7 @@ interface PlanRepository {
     // --- TASKS ---
     suspend fun createTask(request: CreateTaskRequest, triggerSync: Boolean = true): Result<TaskDto>
     suspend fun updateTask(taskId: String, request: CreateTaskRequest, triggerSync: Boolean = true): Result<Unit>
+    suspend fun toggleTaskPinLocal(taskId: String, isPinned: Boolean): Result<Unit>
     suspend fun deleteTask(taskId: String): Result<Unit>
     suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit>
     suspend fun joinTask(taskId: String, roomId: String): Result<Unit>

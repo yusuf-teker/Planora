@@ -225,6 +225,9 @@ SELECT * FROM taskEntity WHERE id = :id;
 updateTaskStatus:
 UPDATE taskEntity SET status = :status, isSynced = :isSynced WHERE id = :id;
 
+updateTaskPin:
+UPDATE taskEntity SET isPinned = :isPinned WHERE id = :id;
+
 -- TaskSharedRoom Sorguları
 insertTaskSharedRoom:
 INSERT OR REPLACE INTO taskSharedRoomEntity(taskId, roomId)

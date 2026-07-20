@@ -178,6 +178,12 @@ fun NotesScreen(
                             items(state.pinnedNotes, key = { it.id }) { note ->
                                 NoteCard(note = note, viewModel = viewModel, isGrid = true)
                             }
+                            
+                            // Workaround for LazyVerticalStaggeredGrid bug: An odd number of items before a FullLine item causes the last item to be hidden.
+                            if (state.pinnedNotes.size % 2 != 0) {
+                                item { Spacer(modifier = Modifier) }
+                            }
+
                             if (state.unpinnedNotes.isNotEmpty()) {
                                 item(span = androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan.FullLine) {
                                     Text(
