@@ -20,7 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalMainNavigator
 import com.yusufteker.pulse.core.navigation.Screen
@@ -45,7 +45,7 @@ fun HomeScreen(
 ) {
     val mainNavigator = LocalMainNavigator.current
     val rootNavigator = com.yusufteker.pulse.core.navigation.LocalNavigator.current
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
@@ -137,6 +137,9 @@ fun HomeScreen(
                         },
                         onTaskDelete = { taskId ->
                             viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
+                        },
+                        onLoadMore = {
+                            viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
                         },
                         modifier = Modifier.weight(1f).fillMaxWidth()
                     )

@@ -327,4 +327,6 @@
     <string name="action_next_month">Next Month</string>
     <string name="empty_events_today">No events for today.</string>
     <string name="shared">Shared</string>
+    <string name="load_more_future_tasks">Load More Future Tasks</string>
+    <string name="no_more_future_tasks">No more future tasks or events found.</string>
 </resources>

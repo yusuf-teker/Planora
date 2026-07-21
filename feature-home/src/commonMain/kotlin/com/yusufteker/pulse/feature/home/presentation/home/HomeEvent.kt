@@ -24,4 +24,5 @@ sealed interface HomeEvent : UiEvent {
     data class CalendarMonthChanged(val monthStart: kotlinx.datetime.LocalDate) : HomeEvent
     data class ToggleSharedUser(val userId: Int) : HomeEvent
     data object DismissSharedTaskDetail : HomeEvent
+    data object LoadMoreFutureTasks : HomeEvent
 }

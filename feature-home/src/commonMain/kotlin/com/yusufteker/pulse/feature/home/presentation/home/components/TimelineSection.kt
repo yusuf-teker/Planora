@@ -27,6 +27,7 @@ import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.no_tasks
 import pulsy.core.generated.resources.today
 import pulsy.core.generated.resources.tomorrow
+import pulsy.core.generated.resources.load_more_future_tasks
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -45,41 +46,52 @@ import kotlinx.coroutines.launch
 import com.yusufteker.pulse.core.ui.components.SwipeToDeleteWrapper
 import androidx.compose.foundation.shape.RoundedCornerShape
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+
 @Composable
 fun TimelineSection(
     state: HomeState,
     onTaskClick: (TaskDto) -> Unit,
     onTaskDelete: (String) -> Unit = {},
+    onLoadMore: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // Performans: groupBy sonucunu remember ile sarıp her frame'de tekrar hesaplamayı önle
+    val todayLabel = stringResource(Res.string.today)
+    val tomorrowLabel = stringResource(Res.string.tomorrow)
 
-    val grouped = state.upcomingTasks.groupBy<TaskDto, String> { task ->
+    val grouped = remember(state.upcomingTasks, state.viewOption, state.selectedCalendarDate) {
+        state.upcomingTasks.groupBy<TaskDto, String> { task ->
 
-        val time =
-            (task.specificDetails as? ItemDetails.Task)?.deadline
-                ?: task.endTime
-                ?: task.startTime
+            val time =
+                (task.specificDetails as? ItemDetails.Task)?.deadline
+                    ?: task.endTime
+                    ?: task.startTime
 
-        when (state.viewOption) {
+            when (state.viewOption) {
 
-            TimelineViewOption.DATE -> {
-                when {
-                    isToday(time) -> stringResource(Res.string.today)
-                    isTomorrow(time) -> stringResource(Res.string.tomorrow)
-                    else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+                TimelineViewOption.DATE -> {
+                    when {
+                        isToday(time) -> todayLabel
+                        isTomorrow(time) -> tomorrowLabel
+                        else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+                    }
                 }
-            }
 
-            TimelineViewOption.CALENDAR -> {
-                if (state.selectedCalendarDate != null) {
-                    formatShortDate(time)
-                } else {
-                    "${formatDayName(time)}, ${formatShortDate(time)}"
+                TimelineViewOption.CALENDAR -> {
+                    if (state.selectedCalendarDate != null) {
+                        formatShortDate(time)
+                    } else {
+                        "${formatDayName(time)}, ${formatShortDate(time)}"
+                    }
                 }
-            }
 
-            TimelineViewOption.RELATIVE -> {
-                getRelativeTimeBucket(time)
+                TimelineViewOption.RELATIVE -> {
+                    getRelativeTimeBucket(time)
+                }
             }
         }
     }
@@ -101,19 +113,26 @@ fun TimelineSection(
         return
     }
 
-    var firstTodayIndex = -1
-    var currentIndex = 0
-    for ((_, tasks) in grouped) {
-        val hasTodayTask = tasks.any { task ->
-            val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
-            isToday(time)
+    // Performans: firstTodayIndex hesaplamasını remember ile sar
+    val firstTodayIndex = remember(grouped) {
+        var index = -1
+        var currentIndex = 0
+        for ((_, tasks) in grouped) {
+            val hasTodayTask = tasks.any { task ->
+                val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+                isToday(time)
+            }
+            if (hasTodayTask && index == -1) {
+                index = currentIndex
+            }
+            currentIndex += 1 // Header
+            currentIndex += tasks.size // Items
         }
-        if (hasTodayTask && firstTodayIndex == -1) {
-            firstTodayIndex = currentIndex
-        }
-        currentIndex += 1 // Header
-        currentIndex += tasks.size // Items
+        index
     }
+
+    // Performans: O(n) any{} arama yerine O(1) Set lookup kullan
+    val myTaskIds = remember(state.allFetchedTasks) { state.allFetchedTasks.map { it.id }.toHashSet() }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -161,7 +180,7 @@ fun TimelineSection(
                 items = tasks,
                 key = { it.id }
             ) { task ->
-                val isMine = state.allFetchedTasks.any { it.id == task.id }
+                val isMine = myTaskIds.contains(task.id)
                 val creatorUser = if (!isMine) state.accessibleUsers.find { it.userId == task.creatorId } else null
                 val creatorColor = creatorUser?.color?.let { 
                     try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (e: Exception) { null } 
@@ -190,6 +209,46 @@ fun TimelineSection(
                         sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
                         onClick = { onTaskClick(task) }
                     )
+                }
+            }
+        }
+
+        if (onLoadMore != null) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = onLoadMore,
+                        enabled = !state.isLoadingMoreFutureTasks,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        if (state.isLoadingMoreFutureTasks) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(
+                            text = stringResource(Res.string.load_more_future_tasks),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
         }

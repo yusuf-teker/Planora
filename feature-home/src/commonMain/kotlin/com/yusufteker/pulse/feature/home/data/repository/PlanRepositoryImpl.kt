@@ -250,12 +250,12 @@ class PlanRepositoryImpl(
                             syncExistingTask(entity, request)
                         }
                     } catch (e: Exception) {
-                        println("Failed to sync task ${entity.id}: ${e.message}")
+                        Napier.w("Failed to sync task ${entity.id}: ${e.message}")
                     }
                 }
                 Result.success(Unit)
             } catch (e: Exception) {
-                println("Sync pending changes failed: ${e.message}")
+                Napier.w("Sync pending changes failed: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -593,7 +593,7 @@ class PlanRepositoryImpl(
                         planApi.updateTask(actualTaskId, request)
                         database.pulsyDatabaseQueries.updateTaskStatus(newStatus, 1L, actualTaskId)
                     } catch (e: Exception) {
-                        println("Failed to sync task status completion: ${e.message}")
+                        Napier.w("Failed to sync task status completion: ${e.message}")
                     }
                 }
             } else if (task != null) {
@@ -645,14 +645,19 @@ class PlanRepositoryImpl(
      *   varsa o tekrarın durumu buna göre ayarlanır.
      */
     override fun observeTasksForRange(fromTimeMs: Long, toTimeMs: Long): Flow<List<TaskDto>> {
-        val tasksFlow = database.pulsyDatabaseQueries.getAllTasks().asFlow().mapToList(Dispatchers.IO)
+        // Performans: getAllTasks() yerine tarih filtreli sorgu kullanılır.
+        // Recurring görevler her zaman dahil edilir çünkü occurrence'ları aralık içine düşebilir.
+        val tasksFlow = database.pulsyDatabaseQueries.getTasksForRangeOrRecurring(fromTime = fromTimeMs, toTime = toTimeMs).asFlow().mapToList(Dispatchers.IO)
         val exceptionsFlow = database.pulsyDatabaseQueries.getAllTaskExceptions().asFlow().mapToList(Dispatchers.IO)
 
         return combine(tasksFlow, exceptionsFlow) { taskEntities, exceptionEntities ->
+            // Performans: Tüm shared room eşlemelerini tek sorguda al (N+1 sorgu çözümü)
+            val allSharedRooms = database.pulsyDatabaseQueries.getAllTaskSharedRooms().executeAsList()
+            val sharedRoomsByTaskId = allSharedRooms.groupBy({ it.taskId }, { it.roomId })
             val result = mutableListOf<TaskDto>()
 
             taskEntities.forEach { entity ->
-                val baseTaskDto = mapTaskEntityToDto(entity)
+                val baseTaskDto = mapTaskEntityToDto(entity, sharedRoomsByTaskId)
                 val ruleStr = baseTaskDto.recurrenceRule
 
                 if (baseTaskDto.isRecurring && ruleStr != null) {
@@ -742,16 +747,26 @@ class PlanRepositoryImpl(
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { entities ->
-                entities.map { entity -> mapTaskEntityToDto(entity) }
+                // Performans: Tüm shared room eşlemelerini tek sorguda al (N+1 sorgu çözümü)
+                val allSharedRooms = database.pulsyDatabaseQueries.getAllTaskSharedRooms().executeAsList()
+                val sharedRoomsByTaskId = allSharedRooms.groupBy({ it.taskId }, { it.roomId })
+                entities.map { entity -> mapTaskEntityToDto(entity, sharedRoomsByTaskId) }
             }
     }
 
     /**
      * DB entity'sini sunucu DTO'suna dönüştüren yardımcı fonksiyon.
      * JSON alanlarını parse ederken olası hataları güvenli şekilde yakalar.
+     *
+     * @param entity Dönüştürülecek veritabanı entity'si
+     * @param sharedRoomsByTaskId Batch olarak alınmış shared room eşlemeleri haritası.
+     *   Verilmezse per-task sorgu kullanılır (geriye uyumluluk).
      */
-    private fun mapTaskEntityToDto(entity: com.yusufteker.pulse.core.database.TaskEntity): TaskDto {
-        val sharedRooms = database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
+    private fun mapTaskEntityToDto(
+        entity: com.yusufteker.pulse.core.database.TaskEntity,
+        sharedRoomsByTaskId: Map<String, List<String>>? = null
+    ): TaskDto {
+        val sharedRooms = sharedRoomsByTaskId?.get(entity.id) ?: database.pulsyDatabaseQueries.getSharedRoomsForTask(taskId = entity.id).executeAsList()
         return TaskDto(
             id = entity.id,
             creatorId = entity.creatorId.toInt(),

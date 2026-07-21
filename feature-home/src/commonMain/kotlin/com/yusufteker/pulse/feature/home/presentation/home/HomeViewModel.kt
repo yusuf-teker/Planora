@@ -94,37 +94,60 @@ class HomeViewModel(
             }
         }
 
-        // Observe tasks range dynamically. We observe 1 year back and 1 year forward.
+        // Observe tasks range dynamically. Base range: 1 year back and 1 year forward.
+        // Takvimde ileri/geri gidildikçe aralık otomatik olarak genişler.
         launch {
             try {
                 state
                     .map { s ->
                         val now = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
                         val oneYear = 86400000L * 365
-                        Pair(now - oneYear, now + oneYear)
+                        var from = now - oneYear
+                        var to = now + (oneYear * s.yearsAhead)
+
+                        // Takvimde görüntülenen ay baz aralığın dışındaysa, aralığı genişlet
+                        val visibleMonth = s.visibleCalendarMonth
+                        if (visibleMonth != null) {
+                            val zone = TimeZone.currentSystemDefault()
+                            val monthStartMs = visibleMonth.atStartOfDayIn(zone).toEpochMilliseconds()
+                            val monthEndMs = monthStartMs + 86400000L * 45
+                            from = minOf(from, monthStartMs - 86400000L * 15)
+                            to = maxOf(to, monthEndMs)
+                        }
+                        Pair(from, to)
                     }
                     .distinctUntilChanged()
                     .flatMapLatest { range ->
                         planRepository.observeTasksForRange(fromTimeMs = range.first, toTimeMs = range.second)
                     }
                     .retryWhen { cause, attempt ->
-                        println("observeTasksForRange ERROR: ${cause.message}")
-                        cause.printStackTrace()
+                        Napier.w("observeTasksForRange ERROR: ${cause.message}")
                         kotlinx.coroutines.delay(500)
                         true
                     }
                     .collect { tasks ->
-                        println("observeTasksForRange COLLECT: size=${tasks.size}")
+                        Napier.d("observeTasksForRange COLLECT: size=${tasks.size}")
                         val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE && it.type != com.yusufteker.pulse.shared.api.TaskType.FOLDER && it.parentId == null }
                             .sortedBy { task ->
                                 (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
                             }
+                        val wasLoadingMore = state.value.isLoadingMoreFutureTasks
+                        val previousCount = state.value.allFetchedTasks.size
+
+                        if (wasLoadingMore) {
+                            kotlinx.coroutines.delay(1000)
+                        }
+
                         setState {
                             copy(
                                 allFetchedTasks = filteredTasks,
                                 upcomingTasks = getFilteredTasks(myTasks = filteredTasks),
-                                hasLoadedTasks = true
+                                hasLoadedTasks = true,
+                                isLoadingMoreFutureTasks = false
                             )
+                        }
+                        if (wasLoadingMore && filteredTasks.size <= previousCount) {
+                            showSnackbar("Daha ileri tarihli başka görev veya etkinlik bulunamadı.", com.yusufteker.pulse.core.snackbar.SnackbarType.INFO)
                         }
                     }
             } catch (e: Exception) {
@@ -183,6 +206,12 @@ class HomeViewModel(
 
             is HomeEvent.SettingsClicked -> {
                 setEffect(HomeEffect.NavigateToSettings)
+            }
+
+            is HomeEvent.LoadMoreFutureTasks -> {
+                if (!state.value.isLoadingMoreFutureTasks) {
+                    setState { copy(yearsAhead = yearsAhead + 2, isLoadingMoreFutureTasks = true) }
+                }
             }
 
             is HomeEvent.RefreshRequested -> {

@@ -213,6 +213,17 @@ SELECT * FROM taskEntity
 WHERE startTime >= :fromTime AND startTime <= :toTime 
 ORDER BY startTime ASC;
 
+-- Performans: Tarih aralığına düşen VEYA tekrarlı olan görevleri getirir.
+-- Bu sorgu, getAllTasks() yerine kullanılarak tam tablo taramasını önler.
+-- Recurring görevler her zaman dahil edilir çünkü startTime aralık dışında olsa bile
+-- occurrence'ları aralık içine düşebilir.
+getTasksForRangeOrRecurring:
+SELECT * FROM taskEntity
+WHERE isRecurring = 1
+   OR status != 'COMPLETED'
+   OR (COALESCE(endTime, startTime) >= :fromTime AND startTime <= :toTime)
+ORDER BY startTime ASC;
+
 deleteTaskById:
 DELETE FROM taskEntity WHERE id = :id;
 
@@ -235,6 +246,10 @@ VALUES (?, ?);
 
 getSharedRoomsForTask:
 SELECT roomId FROM taskSharedRoomEntity WHERE taskId = :taskId;
+
+-- Performans: Tüm task-room eşlemelerini tek sorguda getirir (N+1 sorgu sorununu önler).
+getAllTaskSharedRooms:
+SELECT taskId, roomId FROM taskSharedRoomEntity;
 
 getTaskIdsForRoom:
 SELECT taskId FROM taskSharedRoomEntity WHERE roomId = :roomId;

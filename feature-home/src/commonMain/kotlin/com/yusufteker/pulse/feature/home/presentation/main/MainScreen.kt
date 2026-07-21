@@ -94,7 +94,7 @@ fun MainScreen() {
 
     LaunchedEffect(currentDestination) {
         val screenName = currentDestination::class.simpleName ?: "UnknownScreen"
-        println("SCREEN: $screenName açıldı")
+        io.github.aakira.napier.Napier.d("SCREEN: $screenName açıldı")
     }
 
     val isDark = LocalIsDarkTheme.current

@@ -327,4 +327,6 @@
     <string name="action_next_month">Sonraki Ay</string>
     <string name="empty_events_today">Bugün etkinlik yok.</string>
     <string name="shared">Ortak</string>
+    <string name="load_more_future_tasks">Daha İleri Tarihli Görevleri Yükle</string>
+    <string name="no_more_future_tasks">Daha ileri tarihli başka görev veya etkinlik bulunamadı.</string>
 </resources>

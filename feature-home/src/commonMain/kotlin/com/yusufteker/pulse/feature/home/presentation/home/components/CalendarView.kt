@@ -53,7 +53,8 @@ fun CalendarView(
     
     // LazyColumn state for infinite scrolling (virtually)
     // We'll set a large item count and start in the middle
-    val initialPage = 5000
+    // Performans: 10000 yerine 2400 item (100 yıl ileri/geri, yeterli)
+    val initialPage = 1200
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialPage)
     val coroutineScope = rememberCoroutineScope()
 
@@ -163,7 +164,7 @@ fun CalendarView(
                 state = listState,
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(10000) { page ->
+                items(2400) { page ->
                 val monthOffset = page - initialPage
                 val monthDate = getMonthDateWithOffset(initialMonth, monthOffset)
                 

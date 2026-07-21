@@ -26,9 +26,13 @@ actual fun formatTime(epochMs: Long): String {
 }
 
 actual fun formatShortDate(epochMs: Long): String {
+    val date = dateFromMs(epochMs)
+    val calendar = NSCalendar.currentCalendar
+    val nowYear = calendar.component(NSCalendarUnitYear, fromDate = NSDate.date())
+    val targetYear = calendar.component(NSCalendarUnitYear, fromDate = date)
     val formatter = NSDateFormatter()
-    formatter.dateFormat = "d MMM"
-    return formatter.stringFromDate(dateFromMs(epochMs))
+    formatter.dateFormat = if (nowYear == targetYear) "d MMM" else "d MMM yyyy"
+    return formatter.stringFromDate(date)
 }
 
 actual fun formatDayName(epochMs: Long): String {

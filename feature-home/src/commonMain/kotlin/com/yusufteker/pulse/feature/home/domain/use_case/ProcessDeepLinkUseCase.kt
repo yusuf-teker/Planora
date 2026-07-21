@@ -73,7 +73,7 @@ class ProcessDeepLinkUseCase(
                         try {
                             planRepository.joinTask(taskId = eventId, roomId = roomId)
                         } catch (e: Exception) {
-                            println("Failed to join task via deep link: ${e.message}")
+                            io.github.aakira.napier.Napier.w("Failed to join task via deep link: ${e.message}")
                             // If joining fails (e.g. not in room), we might not want to navigate 
                             // but let's just proceed so the user can see it or handle it.
                         }
@@ -101,7 +101,7 @@ class ProcessDeepLinkUseCase(
                 else -> DeepLinkResult.InvalidOrIgnored
             }
         } catch (e: Exception) {
-            println("Error parsing deep link in UseCase: ${e.message}")
+            io.github.aakira.napier.Napier.w("Error parsing deep link in UseCase: ${e.message}")
             return DeepLinkResult.InvalidOrIgnored
         }
     }

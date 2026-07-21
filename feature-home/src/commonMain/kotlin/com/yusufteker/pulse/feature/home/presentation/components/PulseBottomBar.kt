@@ -52,16 +52,6 @@ fun PulseBottomBar(
     val pulseGlowColor = MaterialTheme.colorScheme.primary
     val surfaceColor = if (isDark) Color(0xCC000000) else Color(0xE6FFFFFF) // Glassmorphism opacity
 
-    val infiniteTransition = rememberInfiniteTransition()
-    val buttonScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
     Box(
         contentAlignment = Alignment.BottomCenter,
         modifier = Modifier.fillMaxWidth()
@@ -149,10 +139,6 @@ fun PulseBottomBar(
             modifier = Modifier
                 .padding(bottom = 40.dp) // 64.dp'lik çubuğun üzerine taşması için
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .graphicsLayer {
-                    scaleX = buttonScale
-                    scaleY = buttonScale
-                }
                 .size(48.dp)
                 .shadow(
                     elevation = 8.dp, // Derinliği biraz artırarak daha iyi bir süzülme efekti verebiliriz

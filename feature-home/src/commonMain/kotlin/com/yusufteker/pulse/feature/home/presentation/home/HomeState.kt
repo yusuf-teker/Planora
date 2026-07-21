@@ -26,7 +26,9 @@ data class HomeState(
     val sharedTasksByUser: Map<Int, List<TaskDto>> = emptyMap(),
     val selectedSharedTask: TaskDto? = null,
     val currentUserAvatarId: String? = null,
-    val currentUserProfileImageUrl: String? = null
+    val currentUserProfileImageUrl: String? = null,
+    val yearsAhead: Int = 3,
+    val isLoadingMoreFutureTasks: Boolean = false
 ) : UiState
 
 data class AccessibleUser(

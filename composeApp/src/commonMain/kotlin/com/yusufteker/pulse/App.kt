@@ -14,6 +14,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation3.runtime.entryProvider
@@ -63,6 +66,7 @@ import org.koin.core.parameter.parametersOf
  * - Navigation 3 (NavDisplay with user-owned back stack)
  * - Screen routing to feature composables
  */
+@OptIn(FlowPreview::class)
 @Composable
 fun App() {
     val themePreferences = koinInject<ThemePreferences>()
@@ -93,7 +97,7 @@ fun App() {
             val currentScreen = navigator.backStack.lastOrNull()
             if (currentScreen != null) {
                 var screenName = currentScreen::class.simpleName ?: "UnknownScreen"
-                println("SCREEN: $screenName açıldı")
+                Napier.d("SCREEN: $screenName açıldı")
             }
         }
 
@@ -120,9 +124,13 @@ fun App() {
         // Observe all tasks and reschedule alarms whenever the task list changes
         LaunchedEffect(userId) {
             if (userId != null) {
-                planRepository.observeAllTasks().collect { tasks ->
-                    reminderManager.scheduleAllReminders(tasks)
-                }
+                // Performans: debounce ile hızlı ardışık DB değişikliklerinde
+                // gereksiz cancel+reschedule döngüsünü önle
+                planRepository.observeAllTasks()
+                    .debounce(1000L)
+                    .collect { tasks ->
+                        reminderManager.scheduleAllReminders(tasks)
+                    }
             } else {
                 // Logged out — cancel all reminders
                 reminderManager.cancelAllReminders()
@@ -132,9 +140,9 @@ fun App() {
         val deepLinkUrl by DeepLinkManager.deepLinkFlow.collectAsStateWithLifecycle(initialValue = "")
         val currentScreen = navigator.backStack.lastOrNull()
         LaunchedEffect(deepLinkUrl, userId, currentScreen) {
-            println("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
+            Napier.d("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
             if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen == Screen.Main) { // Only handle if logged in
-                println("DEEPLINK DEBUG: Conditions met! Parsing URL with UseCase...")
+                Napier.d("DEEPLINK DEBUG: Conditions met! Parsing URL with UseCase...")
                 val result = processDeepLinkUseCase(deepLinkUrl)
                 when (result) {
                     is com.yusufteker.pulse.feature.home.domain.use_case.DeepLinkResult.NavigateToEvent -> {
@@ -170,7 +178,7 @@ fun App() {
                         )
                     }
                     com.yusufteker.pulse.feature.home.domain.use_case.DeepLinkResult.InvalidOrIgnored -> {
-                        println("DEEPLINK DEBUG: Invalid or Ignored deep link")
+                        Napier.d("DEEPLINK DEBUG: Invalid or Ignored deep link")
                     }
                 }
                 DeepLinkManager.consumeLink()

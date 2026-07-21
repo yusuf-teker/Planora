@@ -15,7 +15,10 @@ actual fun formatTime(epochMs: Long): String {
 }
 
 actual fun formatShortDate(epochMs: Long): String {
-    val sdf = SimpleDateFormat("d MMM", Locale.getDefault())
+    val now = Calendar.getInstance()
+    val target = Calendar.getInstance().apply { timeInMillis = epochMs }
+    val pattern = if (now.get(Calendar.YEAR) == target.get(Calendar.YEAR)) "d MMM" else "d MMM yyyy"
+    val sdf = SimpleDateFormat(pattern, Locale.getDefault())
     return sdf.format(Date(epochMs))
 }
 
