@@ -333,17 +333,9 @@ class EventDetailViewModel(
                 participants = currentState.participants
             )
 
-            if (currentState.id != null) {
-                planRepository.updateTask(currentState.id, request, triggerSync = false)
-            } else {
-                val result = planRepository.createTask(request, triggerSync = false)
-                if (result.isSuccess) {
-                    val newId = result.getOrNull()?.id
-                    if (newId != null) {
-                        _state.update { it.copy(id = newId) }
-                    }
-                }
-            }
+            if (currentState.id == null) return@launch // Yeni etkinlikler için (id null iken) otomatik kaydetmeyi devre dışı bırak
+            
+            planRepository.updateTask(currentState.id, request, triggerSync = false)
         }
     }
 

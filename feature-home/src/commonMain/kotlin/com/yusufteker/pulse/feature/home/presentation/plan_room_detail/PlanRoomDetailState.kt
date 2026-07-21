@@ -23,5 +23,6 @@ data class PlanRoomDetailState(
     val memberProfiles: Map<Int, UserProfileResponse> = emptyMap(),
     
     // Room Tasks State
-    val roomTasks: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList()
+    val roomTasks: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList(),
+    val myUserId: String = ""
 ) : com.yusufteker.pulse.core.base.UiState

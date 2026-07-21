@@ -108,7 +108,7 @@ fun NotesScreen(
             FloatingActionButton(
                 onClick = { viewModel.onEvent(NotesEvent.CreateNoteClicked) },
                 containerColor = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(16.dp)
+                shape = androidx.compose.foundation.shape.CircleShape
             ) {
                 Icon(Icons.Filled.Add, stringResource(Res.string.action_create_note))
             }

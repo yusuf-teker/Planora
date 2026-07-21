@@ -5,4 +5,7 @@ sealed interface PlanRoomDetailEffect : com.yusufteker.pulse.core.base.UiEffect 
     data class ShowToast(val message: String) : PlanRoomDetailEffect
     data class NavigateToCreateTask(val roomId: String) : PlanRoomDetailEffect
     data class NavigateToCreateEvent(val roomId: String) : PlanRoomDetailEffect
+    data class NavigateToTaskEditor(val taskId: String) : PlanRoomDetailEffect
+    data class NavigateToEventDetail(val eventId: String) : PlanRoomDetailEffect
+    data class NavigateToNoteEditor(val noteId: String) : PlanRoomDetailEffect
 }

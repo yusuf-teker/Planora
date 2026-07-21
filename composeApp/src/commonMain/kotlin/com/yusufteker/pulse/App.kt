@@ -294,7 +294,10 @@ fun App() {
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
                             onNavigateToCreateTask = { roomId -> navigator.navigate(Screen.TaskEditor(planRoomId = roomId)) },
-                            onNavigateToCreateEvent = { roomId -> navigator.navigate(Screen.EventDetail(planRoomId = roomId)) }
+                            onNavigateToCreateEvent = { roomId -> navigator.navigate(Screen.EventDetail(planRoomId = roomId)) },
+                            onNavigateToTaskEditor = { taskId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = screen.roomId)) },
+                            onNavigateToEventDetail = { eventId -> navigator.navigate(Screen.EventDetail(eventId = eventId, planRoomId = screen.roomId)) },
+                            onNavigateToNoteEditor = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.roomId)) }
                         )
                     }
 

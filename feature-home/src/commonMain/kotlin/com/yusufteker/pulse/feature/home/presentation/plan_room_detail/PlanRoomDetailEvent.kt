@@ -11,6 +11,7 @@ sealed interface PlanRoomDetailEvent : com.yusufteker.pulse.core.base.UiEvent {
     object OnCreateEventClick : PlanRoomDetailEvent
     data class OnSearchQueryChange(val query: String) : PlanRoomDetailEvent
     data class OnUserSelectToInvite(val userId: Int) : PlanRoomDetailEvent
+    data class OnTaskClick(val task: com.yusufteker.pulse.shared.api.TaskDto) : PlanRoomDetailEvent
     
     // Rename & Delete Room Events
     object OnEditRoomClick : PlanRoomDetailEvent

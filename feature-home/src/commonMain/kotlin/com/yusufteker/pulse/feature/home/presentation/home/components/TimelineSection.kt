@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Delete
 import com.yusufteker.pulse.core.utils.TimelineViewOption
 import com.yusufteker.pulse.core.utils.formatDayName
 import com.yusufteker.pulse.core.utils.formatShortDate
@@ -44,6 +46,7 @@ import kotlinx.coroutines.launch
 fun TimelineSection(
     state: HomeState,
     onTaskClick: (TaskDto) -> Unit,
+    onTaskDelete: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
 
@@ -161,16 +164,56 @@ fun TimelineSection(
                     try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (e: Exception) { null } 
                 }
 
-                TimelineTaskCard(
-                    task = task,
-                    showDate = state.viewOption == TimelineViewOption.RELATIVE,
-                    sharedUserAvatar = creatorUser?.avatarId,
-                    sharedUserColor = creatorColor,
-                    sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
-                    onClick = {
-                        onTaskClick(task)
+                if (isMine) {
+                    val dismissState = androidx.compose.material3.rememberSwipeToDismissBoxState(
+                        confirmValueChange = {
+                            if (it == androidx.compose.material3.SwipeToDismissBoxValue.EndToStart) {
+                                onTaskDelete(task.id)
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                    )
+    
+                    androidx.compose.material3.SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            val color = when (dismissState.targetValue) {
+                                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+                                else -> androidx.compose.ui.graphics.Color.Transparent
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(color, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                                    .padding(end = 16.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onError)
+                            }
+                        }
+                    ) {
+                        TimelineTaskCard(
+                            task = task,
+                            showDate = state.viewOption == TimelineViewOption.RELATIVE,
+                            sharedUserAvatar = creatorUser?.avatarId,
+                            sharedUserColor = creatorColor,
+                            sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
+                            onClick = { onTaskClick(task) }
+                        )
                     }
-                )
+                } else {
+                    TimelineTaskCard(
+                        task = task,
+                        showDate = state.viewOption == TimelineViewOption.RELATIVE,
+                        sharedUserAvatar = creatorUser?.avatarId,
+                        sharedUserColor = creatorColor,
+                        sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
+                        onClick = { onTaskClick(task) }
+                    )
+                }
             }
         }
     }
@@ -188,7 +231,8 @@ fun TimelineSection(
                 .align(Alignment.BottomEnd)
                 .padding(end = 88.dp, bottom = 16.dp),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = androidx.compose.foundation.shape.CircleShape
         ) {
             Icon(
                 imageVector = if (isTodayAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,

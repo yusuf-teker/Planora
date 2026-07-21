@@ -115,7 +115,7 @@ class HomeViewModel(
                     }
                     .collect { tasks ->
                         println("observeTasksForRange COLLECT: size=${tasks.size}")
-                        val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE && it.type != com.yusufteker.pulse.shared.api.TaskType.FOLDER }
+                        val filteredTasks = tasks.filter { it.type != com.yusufteker.pulse.shared.api.TaskType.NOTE && it.type != com.yusufteker.pulse.shared.api.TaskType.FOLDER && it.parentId == null }
                             .sortedBy { task ->
                                 (task.specificDetails as? com.yusufteker.pulse.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
                             }
@@ -380,6 +380,15 @@ class HomeViewModel(
                         copy(
                             upcomingTasks = getFilteredTasks(selectedUsers = newSelected)
                         )
+                    }
+                }
+            }
+            
+            is HomeEvent.OnDeleteTask -> {
+                launch {
+                    val result = planRepository.deleteTask(event.taskId)
+                    if (result.isFailure) {
+                        setState { copy(error = result.exceptionOrNull()?.message ?: "Görev silinemedi") }
                     }
                 }
             }

@@ -26,9 +26,12 @@ class GetFilteredTasksUseCase {
         val sharedTasks = selectedUsers.flatMap { userId ->
             sharedTasksMap[userId] ?: emptyList()
         }
-        var filtered = (myTasks + sharedTasks).distinctBy { it.id }.sortedBy { task ->
-            (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-        }
+        var filtered = (myTasks + sharedTasks)
+            .distinctBy { it.id }
+            .filter { it.parentId == null }
+            .sortedBy { task ->
+                (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            }
 
         // 2. Completed filter
         if (!options.showCompleted) {

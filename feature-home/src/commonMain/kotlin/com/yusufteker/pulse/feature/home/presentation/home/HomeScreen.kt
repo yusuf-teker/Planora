@@ -135,6 +135,9 @@ fun HomeScreen(
                         onTaskClick = {
                             viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
                         },
+                        onTaskDelete = { taskId ->
+                            viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
+                        },
                         modifier = Modifier.weight(1f).fillMaxWidth()
                     )
                 }

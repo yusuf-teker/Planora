@@ -282,7 +282,7 @@ fun TimelineTaskCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy((-8).dp)
                     ) {
-                        if (sharedUserAvatar != null) {
+                        if (sharedUserAvatar != null || sharedUserProfileImageUrl != null) {
                             com.yusufteker.pulse.core.ui.components.AvatarImage(
                                 avatarId = sharedUserAvatar,
                                 profileImageUrl = sharedUserProfileImageUrl,

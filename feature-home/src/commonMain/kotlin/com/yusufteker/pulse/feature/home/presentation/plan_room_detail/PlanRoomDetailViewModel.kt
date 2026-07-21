@@ -37,6 +37,8 @@ class PlanRoomDetailViewModel(
             PlanRoomDetailEvent.OnCreateEventClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateEvent(currentState.roomId))
             is PlanRoomDetailEvent.OnSearchQueryChange -> updateSearchQuery(event.query)
             is PlanRoomDetailEvent.OnUserSelectToInvite -> inviteUser(event.userId)
+            is PlanRoomDetailEvent.OnTaskClick -> handleTaskClick(event.task)
+            
             
             // Refresh is automatic
             // Rename & Delete Events
@@ -62,8 +64,9 @@ class PlanRoomDetailViewModel(
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == roomId }
                 if (room != null) {
-                    val isCreator = room.creatorId.toString() == sessionPreferences.getUserId()
-                    setState { copy(roomName = room.name, isRoomCreator = isCreator, isLoading = false) }
+                    val myUserId = sessionPreferences.getUserId() ?: ""
+                    val isCreator = room.creatorId.toString() == myUserId
+                    setState { copy(roomName = room.name, isRoomCreator = isCreator, myUserId = myUserId, isLoading = false) }
                     
                     // Fetch missing profiles for members
                     val currentProfiles = currentState.memberProfiles.toMutableMap()
@@ -88,10 +91,9 @@ class PlanRoomDetailViewModel(
                 }
             }
         }
-        // 2. Observe tasks
         viewModelScope.launch {
             planRepository.observeAllTasks().collect { tasks ->
-                val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) }
+                val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) && it.parentId == null }
                 setState { copy(roomTasks = roomTasks) }
             }
         }
@@ -153,6 +155,18 @@ class PlanRoomDetailViewModel(
             }.onFailure { e ->
                 setEffect(PlanRoomDetailEffect.ShowToast(e.message ?: "Kullanıcı davet edilemedi."))
             }
+        }
+    }
+
+    private fun handleTaskClick(task: com.yusufteker.pulse.shared.api.TaskDto) {
+        val isMine = task.creatorId.toString() == currentState.myUserId
+        // Wait, the user is the creator if task.creatorId == myUserId. Actually, if they are a member they can edit?
+        // Let's just always navigate to detail. The detail screen will handle if they can edit or not.
+        when (task.type) {
+            com.yusufteker.pulse.shared.api.TaskType.TASK -> setEffect(PlanRoomDetailEffect.NavigateToTaskEditor(task.id))
+            com.yusufteker.pulse.shared.api.TaskType.EVENT -> setEffect(PlanRoomDetailEffect.NavigateToEventDetail(task.id))
+            com.yusufteker.pulse.shared.api.TaskType.NOTE -> setEffect(PlanRoomDetailEffect.NavigateToNoteEditor(task.id))
+            com.yusufteker.pulse.shared.api.TaskType.FOLDER -> {}
         }
     }
 

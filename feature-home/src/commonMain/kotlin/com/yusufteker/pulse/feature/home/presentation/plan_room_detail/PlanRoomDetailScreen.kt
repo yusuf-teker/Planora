@@ -50,7 +50,10 @@ fun PlanRoomDetailScreen(
     viewModel: PlanRoomDetailViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToCreateTask: (String) -> Unit = {},
-    onNavigateToCreateEvent: (String) -> Unit = {}
+    onNavigateToCreateEvent: (String) -> Unit = {},
+    onNavigateToTaskEditor: (String) -> Unit = {},
+    onNavigateToEventDetail: (String) -> Unit = {},
+    onNavigateToNoteEditor: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,6 +65,9 @@ fun PlanRoomDetailScreen(
                 is PlanRoomDetailEffect.NavigateBack -> onNavigateBack()
                 is PlanRoomDetailEffect.NavigateToCreateTask -> onNavigateToCreateTask(effect.roomId)
                 is PlanRoomDetailEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.roomId)
+                is PlanRoomDetailEffect.NavigateToTaskEditor -> onNavigateToTaskEditor(effect.taskId)
+                is PlanRoomDetailEffect.NavigateToEventDetail -> onNavigateToEventDetail(effect.eventId)
+                is PlanRoomDetailEffect.NavigateToNoteEditor -> onNavigateToNoteEditor(effect.noteId)
                 is PlanRoomDetailEffect.ShowToast -> {
                     scope.launch {
                         snackbarHostState.showSnackbar(effect.message)
@@ -84,11 +90,10 @@ fun PlanRoomDetailScreen(
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnInviteUserClick) }) {
                         Icon(Icons.Default.PersonAdd, contentDescription = "Kişi Davet Et")
                     }
-                    if (state.isRoomCreator) {
-                        var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more_options))
-                        }
+                    var showMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more_options))
+                    }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
@@ -103,6 +108,7 @@ fun PlanRoomDetailScreen(
                                     Icon(Icons.Default.Edit, contentDescription = null)
                                 }
                             )
+                        if (state.isRoomCreator) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_delete_room), color = MaterialTheme.colorScheme.error) },
                                 onClick = {
@@ -121,7 +127,7 @@ fun PlanRoomDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             var isFabExpanded by remember { mutableStateOf(false) }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(bottom = 80.dp)) {
                 AnimatedVisibility(
                     visible = isFabExpanded,
                     enter = fadeIn() + slideInVertically { it / 2 },
@@ -135,7 +141,8 @@ fun PlanRoomDetailScreen(
                                     isFabExpanded = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick) 
                                 },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = androidx.compose.foundation.shape.CircleShape
                             ) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = stringResource(Res.string.action_add_task))
                             }
@@ -147,7 +154,8 @@ fun PlanRoomDetailScreen(
                                     isFabExpanded = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick) 
                                 },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = androidx.compose.foundation.shape.CircleShape
                             ) {
                                 Icon(Icons.Default.Event, contentDescription = stringResource(Res.string.action_add_event))
                             }
@@ -156,7 +164,8 @@ fun PlanRoomDetailScreen(
                 }
                 FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    shape = androidx.compose.foundation.shape.CircleShape
                 ) {
                     Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = "Expand")
                 }
@@ -224,7 +233,8 @@ fun PlanRoomDetailScreen(
                         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                             FeedTimelineComponent(
                                 tasks = state.roomTasks,
-                                memberProfiles = state.memberProfiles
+                                memberProfiles = state.memberProfiles,
+                                onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
                             )
                         }
                     }

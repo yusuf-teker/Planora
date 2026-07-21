@@ -55,7 +55,7 @@ fun getOptimizedCloudinaryUrl(url: String): String {
 }
 
 @Composable
-fun AvatarImage(avatarId: String, modifier: Modifier = Modifier, profileImageUrl: String? = null) {
+fun AvatarImage(avatarId: String? = null, modifier: Modifier = Modifier, profileImageUrl: String? = null) {
     if (profileImageUrl != null) {
         val optimizedUrl = getOptimizedCloudinaryUrl(profileImageUrl)
         AsyncImage(
@@ -65,7 +65,7 @@ fun AvatarImage(avatarId: String, modifier: Modifier = Modifier, profileImageUrl
             contentScale = ContentScale.Crop
         )
     } else {
-        val index = (avatarId.removePrefix("avatar_").toIntOrNull() ?: 1) - 1
+        val index = ((avatarId ?: "").removePrefix("avatar_").toIntOrNull() ?: 1) - 1
         val colorHex = avatarColors.getOrElse(index) { avatarColors[0] }
         val icon = avatarIcons.getOrElse(index) { avatarIcons[0] }
 

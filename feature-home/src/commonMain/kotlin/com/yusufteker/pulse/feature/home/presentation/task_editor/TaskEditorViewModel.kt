@@ -252,6 +252,11 @@ class TaskEditorViewModel(
                 val subItemsList = tasks.filter { it.parentId == baseId }
                 
                 if (task != null) {
+                    val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()
+                    if (actualPlanRoomId != null && _state.value.roomMembers.isEmpty()) {
+                        loadRoomMembers(actualPlanRoomId)
+                    }
+
                     val ruleObj = try {
                         task.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.pulse.shared.api.RecurrenceRule>(it) }
                     } catch (e: Exception) {
@@ -274,6 +279,7 @@ class TaskEditorViewModel(
                             description = newDescription,
                             originalStartTime = task.startTime,
                             deadlineDateMs = newDeadline,
+                            planRoomId = actualPlanRoomId,
                             status = task.status,
                             isRecurring = task.isRecurring,
                             recurrenceRule = ruleObj,
@@ -324,21 +330,14 @@ class TaskEditorViewModel(
         if (isDeleted) return
         val currentState = _state.value
         if (currentState.isDeleted || currentState.isLoading || currentState.title.isBlank()) return
+        
+        // Yeni görevler için (id null iken) otomatik kaydetmeyi devre dışı bırak
+        if (currentState.id == null) return
 
         val request = buildCreateTaskRequest(currentState)
 
         viewModelScope.launch(Dispatchers.IO) {
-            if (currentState.id != null) {
-                planRepository.updateTask(currentState.id, request, triggerSync = false)
-            } else {
-                val result = planRepository.createTask(request, triggerSync = false)
-                if (result.isSuccess) {
-                    val newId = result.getOrNull()?.id
-                    if (newId != null) {
-                        _state.update { it.copy(id = newId) }
-                    }
-                }
-            }
+            planRepository.updateTask(currentState.id, request, triggerSync = false)
         }
     }
 

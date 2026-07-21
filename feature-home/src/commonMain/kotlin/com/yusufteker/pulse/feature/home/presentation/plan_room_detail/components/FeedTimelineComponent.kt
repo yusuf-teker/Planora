@@ -20,11 +20,13 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.*
+import com.yusufteker.pulse.feature.home.presentation.home.components.TimelineTaskCard
 
 @Composable
 fun FeedTimelineComponent(
     tasks: List<TaskDto>,
-    memberProfiles: Map<Int, UserProfileResponse>
+    memberProfiles: Map<Int, UserProfileResponse>,
+    onTaskClick: (TaskDto) -> Unit = {}
 ) {
     var showPastTasks by remember { mutableStateOf(false) }
     
@@ -84,7 +86,17 @@ fun FeedTimelineComponent(
                 DateHeader(date = date, isToday = date == today)
             }
             items(tasksForDate, key = { it.id }) { task ->
-                TaskTimelineItem(task = task, profile = memberProfiles[task.creatorId])
+                val profile = memberProfiles[task.creatorId]
+                val hasParticipants = task.participants.isNotEmpty()
+                
+                TimelineTaskCard(
+                    task = task, 
+                    showDate = false,
+                    sharedUserAvatar = if (hasParticipants) null else profile?.avatarId,
+                    sharedUserColor = null,
+                    sharedUserProfileImageUrl = if (hasParticipants) null else profile?.profileImageUrl,
+                    onClick = { onTaskClick(task) }
+                )
             }
         }
     }

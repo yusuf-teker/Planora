@@ -72,7 +72,8 @@ fun HomeFabMenu(
                             onExpandedChange(false)
                             onCreateTask()
                         },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = androidx.compose.foundation.shape.CircleShape
                     ) {
                         Icon(
                             painter = painterResource(pulsy.core.generated.resources.Res.drawable.task_ic),
@@ -105,7 +106,8 @@ fun HomeFabMenu(
                             onExpandedChange(false)
                             onCreateEvent()
                         },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = androidx.compose.foundation.shape.CircleShape
                     ) {
                         Icon(
                             imageVector = Icons.Default.Event,
@@ -120,7 +122,8 @@ fun HomeFabMenu(
             onClick = {
                 onExpandedChange(!isExpanded)
             },
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = MaterialTheme.colorScheme.primary,
+            shape = androidx.compose.foundation.shape.CircleShape
         ) {
             Icon(
                 imageVector = if (isExpanded) {

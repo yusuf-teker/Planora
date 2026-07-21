@@ -81,7 +81,10 @@ fun PlanRoomsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) }) {
+            FloatingActionButton(
+                onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) },
+                shape = androidx.compose.foundation.shape.CircleShape
+            ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(Res.string.fab_new_room)
