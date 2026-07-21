@@ -26,6 +26,7 @@ data class TaskEditorState(
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
     val roomMembers: List<UserProfileResponse> = emptyList(),
+    val isRoomMembersLoading: Boolean = false,
     val subItems: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,

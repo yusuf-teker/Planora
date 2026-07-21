@@ -42,6 +42,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.launch
 
+import com.yusufteker.pulse.core.ui.components.SwipeToDeleteWrapper
+import androidx.compose.foundation.shape.RoundedCornerShape
+
 @Composable
 fun TimelineSection(
     state: HomeState,
@@ -165,35 +168,9 @@ fun TimelineSection(
                 }
 
                 if (isMine) {
-                    val dismissState = androidx.compose.material3.rememberSwipeToDismissBoxState(
-                        confirmValueChange = {
-                            if (it == androidx.compose.material3.SwipeToDismissBoxValue.EndToStart) {
-                                onTaskDelete(task.id)
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                    )
-    
-                    androidx.compose.material3.SwipeToDismissBox(
-                        state = dismissState,
-                        enableDismissFromStartToEnd = false,
-                        backgroundContent = {
-                            val color = when (dismissState.targetValue) {
-                                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                                else -> androidx.compose.ui.graphics.Color.Transparent
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(color, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                                    .padding(end = 16.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onError)
-                            }
-                        }
+                    SwipeToDeleteWrapper(
+                        shape = RoundedCornerShape(24.dp),
+                        onDelete = { onTaskDelete(task.id) }
                     ) {
                         TimelineTaskCard(
                             task = task,

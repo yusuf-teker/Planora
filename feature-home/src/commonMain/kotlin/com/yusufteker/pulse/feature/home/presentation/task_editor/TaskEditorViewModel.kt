@@ -307,6 +307,7 @@ class TaskEditorViewModel(
      */
     private fun CoroutineScope.loadRoomMembers(planRoomId: String) {
         launch {
+            _state.update { it.copy(isRoomMembersLoading = true) }
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == planRoomId }
                 if (room != null) {
@@ -317,7 +318,9 @@ class TaskEditorViewModel(
                             }
                         }.awaitAll().filterNotNull()
                     }
-                    _state.update { it.copy(roomMembers = profiles) }
+                    _state.update { it.copy(roomMembers = profiles, isRoomMembersLoading = false) }
+                } else {
+                    _state.update { it.copy(isRoomMembersLoading = false) }
                 }
             }
         }

@@ -17,12 +17,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 
+import com.yusufteker.pulse.core.ui.components.AvatarImage
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParticipantPickerSheet(
     title: String = "Kişi Seç",
     roomMembers: List<UserProfileResponse>,
     selectedParticipantIds: Set<Int>,
+    isLoading: Boolean = false,
     sheetState: SheetState,
     onDismissRequest: () -> Unit,
     onParticipantToggled: (Int) -> Unit
@@ -46,7 +49,14 @@ fun ParticipantPickerSheet(
             
             HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
 
-            if (roomMembers.isEmpty()) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (roomMembers.isEmpty()) {
                 Text(
                     text = "Bu odada henüz başka üye yok.",
                     modifier = Modifier.padding(16.dp),
@@ -67,20 +77,11 @@ fun ParticipantPickerSheet(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Avatar placeholder
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = member.name.take(1).uppercase(),
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                AvatarImage(
+                                    avatarId = member.avatarId,
+                                    profileImageUrl = member.profileImageUrl,
+                                    modifier = Modifier.size(40.dp).clip(CircleShape)
+                                )
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column {
                                     Text(

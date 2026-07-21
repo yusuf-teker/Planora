@@ -372,6 +372,7 @@ fun TaskEditorScreen(
             title = stringResource(Res.string.assignees_label),
             roomMembers = state.roomMembers,
             selectedParticipantIds = state.participants.keys,
+            isLoading = state.isRoomMembersLoading,
             sheetState = participantSheetState,
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(false)) },
             onParticipantToggled = { id -> viewModel.onEvent(TaskEditorEvent.OnParticipantToggled(id)) }
