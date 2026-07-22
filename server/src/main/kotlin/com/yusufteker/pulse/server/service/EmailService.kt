@@ -14,6 +14,7 @@ import javax.mail.internet.MimeMessage
 
 /**
  * Service for sending emails using SMTP (e.g., Gmail SMTP).
+ * Defaults to Port 465 (SSL/SMTPS) which is supported on cloud environments like Render.
  */
 object EmailService {
 
@@ -23,7 +24,7 @@ object EmailService {
         get() = System.getenv("SMTP_HOST") ?: dotenv["SMTP_HOST"] ?: "smtp.gmail.com"
 
     private val smtpPort: String
-        get() = System.getenv("SMTP_PORT") ?: dotenv["SMTP_PORT"] ?: "587"
+        get() = System.getenv("SMTP_PORT") ?: dotenv["SMTP_PORT"] ?: "465"
 
     private val username: String?
         get() = System.getenv("SMTP_USERNAME") 
@@ -55,12 +56,26 @@ object EmailService {
 
         return withContext(Dispatchers.IO) {
             try {
+                val port = smtpPort
+                val isSslPort = port == "465"
+
                 val props = Properties().apply {
                     put("mail.smtp.auth", "true")
-                    put("mail.smtp.starttls.enable", "true")
                     put("mail.smtp.host", smtpHost)
-                    put("mail.smtp.port", smtpPort)
-                    put("mail.smtp.ssl.protocols", "TLSv1.2")
+                    put("mail.smtp.port", port)
+                    put("mail.smtp.connectiontimeout", "10000") // 10 seconds timeout
+                    put("mail.smtp.timeout", "10000")
+                    put("mail.smtp.writetimeout", "10000")
+
+                    if (isSslPort) {
+                        put("mail.smtp.ssl.enable", "true")
+                        put("mail.smtp.socketFactory.port", port)
+                        put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
+                        put("mail.smtp.socketFactory.fallback", "false")
+                    } else {
+                        put("mail.smtp.starttls.enable", "true")
+                        put("mail.smtp.ssl.protocols", "TLSv1.2")
+                    }
                 }
 
                 val session = Session.getInstance(props, object : Authenticator() {
@@ -92,7 +107,7 @@ object EmailService {
                 }
 
                 Transport.send(message)
-                println("EmailService: Email successfully sent to $toEmail via SMTP")
+                println("EmailService: Email successfully sent to $toEmail via SMTP (Port $port)")
                 true
             } catch (e: Exception) {
                 System.err.println("EmailService: Exception while sending email via SMTP: ${e.message}")
