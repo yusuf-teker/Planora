@@ -328,5 +328,84 @@
     <string name="empty_events_today">Bugün etkinlik yok.</string>
     <string name="shared">Ortak</string>
     <string name="load_more_future_tasks">Daha İleri Tarihli Görevleri Yükle</string>
-    <string name="no_more_future_tasks">Daha ileri tarihli başka görev veya etkinlik bulunamadı.</string>
+    <string name="no_more_future_tasks">Daha fazla gelecek görev veya etkinlik bulunamadı.</string>
+
+    <!-- Plan Rooms Additions -->
+    <string name="action_leave_room">Odadan Ayrıl</string>
+    <string name="title_delete_room_confirm">Odayı Sil</string>
+    <string name="msg_delete_room_confirm">Bu odayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve odadaki tüm paylaşılan görevler silinir.</string>
+    <string name="title_leave_room_confirm">Odadan Ayrıl</string>
+    <string name="msg_leave_room_confirm">Bu odadan ayrılmak istediğinizden emin misiniz?</string>
+    <string name="action_confirm">Onayla</string>
+    <string name="room_deleted_success">Oda başarıyla silindi.</string>
+    <string name="room_left_success">Odadan başarıyla ayrılındı.</string>
+    <string name="room_renamed_success">Oda adı değiştirildi.</string>
+    <string name="room_user_invited_success">Kullanıcı davet edildi.</string>
+    <string name="error_leave_room_failed">Odadan ayrılma başarısız.</string>
+    <string name="error_delete_room_failed">Oda silinemedi.</string>
+    <string name="tab_feed">Akış</string>
+    <string name="tab_calendar">Takvim</string>
+    <string name="filter_all">Tümü</string>
+    <string name="filter_tasks">Görevler</string>
+    <string name="filter_events">Etkinlikler</string>
+    <string name="filter_notes">Notlar</string>
+    <string name="search_room_tasks_placeholder">Görev veya etkinlik ara...</string>
+    <string name="action_copy_invite_link">Davet Bağlantısını Kopyala</string>
+    <string name="invite_link_copied">Davet bağlantısı kopyalandı!</string>
+    <string name="room_progress_title">Oda İlerlemesi</string>
+    <string name="room_stat_completed">%1$s / %2$s Görev Tamamlandı (%%%3$s)</string>
+    <string name="room_stat_events">%1$s Yaklaşan Etkinlik</string>
+    <string name="filter_member_all">Tüm Üyeler</string>
+
+    <!-- Additional UI Localizations -->
+    <string name="profile_calendar_access_requests">Takvim Erişim İstekleri</string>
+    <string name="profile_calendar_viewers">Takvimimi Görenler</string>
+    <string name="profile_leave_calendar">Takvimi Görmeyi Bırak</string>
+    <string name="profile_calendar_request_sent">Takvim İstek Gönderildi</string>
+    <string name="profile_request_calendar_access">Takvim Erişim İsteği Gönder</string>
+    <string name="profile_guest_login_prompt">Pulse deneyimini başlatmak için giriş yapın</string>
+    <string name="notes_search_placeholder">Notlarda ara...</string>
+    <string name="notes_no_results">Sonuç bulunamadı.</string>
+    <string name="notes_section_pinned">SABİTLENENLER</string>
+    <string name="notes_section_other">DİĞER NOTLAR</string>
+    <string name="note_pinned">Sabitlendi</string>
+    <string name="title_new_folder">Yeni Klasör</string>
+    <string name="folder_name_label">Klasör Adı</string>
+    <string name="folder_none">Klasörsüz</string>
+    <string name="action_add_folder">Yeni Klasör Ekle</string>
+    <string name="add_checklist_item_placeholder">Yeni öğe ekle...</string>
+    <string name="ai_chip_summarize">Özetle</string>
+    <string name="ai_chip_fix_grammar">Yazım hatalarını düzelt</string>
+    <string name="ai_chip_bullet_points">Maddelere ayır</string>
+    <string name="ai_chip_professional">Daha profesyonel yaz</string>
+    <string name="ai_note_editing">Notunuz düzenleniyor...</string>
+    <string name="ai_suggestion_title">Yapay Zeka Önerisi</string>
+    <string name="action_complete_task">Görevi Tamamla</string>
+    <string name="focus_exit_title">Odak Sürecinden Çık</string>
+    <string name="focus_exit_desc">Odak süreci devam ediyor. Ne yapmak istersiniz?</string>
+    <string name="focus_exit_and_cancel">İptal Et ve Çık</string>
+    <string name="event_sub_items">Alt Öğeler</string>
+    <string name="event_no_sub_items">Henüz bir alt öğe eklenmemiş.</string>
+    <string name="search_no_user_found_desc">Aradığınız kullanıcı bulunamadı.</string>
+    <string name="search_user_title">Kullanıcı Ara</string>
+    <string name="search_user_prompt">Yeni arkadaşlar bulmak için isim veya kullanıcı adı yazın.</string>
+    <string name="action_select_people">Kişi Seç</string>
+    <string name="room_no_other_members">Bu odada henüz başka üye yok.</string>
+    <string name="shared_room_task_label">Ortak Oda Görevi</string>
+    <string name="connected_room_label">Bağlı Oda</string>
+    <string name="sub_notes_label">Alt Notlar</string>
+    <string name="no_sub_notes_added">Henüz bir alt not eklenmemiş.</string>
+    <string name="room_detail_default_title">Oda Detayı</string>
+    <string name="action_apply">Uygula</string>
+
+    <!-- Onboarding Mocks -->
+    <string name="onboarding_october_2026">Ekim 2026</string>
+    <string name="onboarding_today_wednesday">Bugün, 14 Çarşamba</string>
+    <string name="onboarding_design_meeting">Tasarım Toplantısı</string>
+    <string name="onboarding_pulsy_update">Pulsy Güncellemesi</string>
+    <string name="onboarding_design_team">Tasarım Ekibi</string>
+    <string name="onboarding_family">Aile</string>
+    <string name="onboarding_logo_revision">Logo Revizyonu</string>
+    <string name="onboarding_ui_review">UI İncelemesi</string>
+    <string name="onboarding_members_count">%1$s üye</string>
 </resources>

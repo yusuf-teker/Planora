@@ -96,14 +96,14 @@ fun SearchUsersScreen(
                 EmptyStateComponent(
                     icon = Icons.Rounded.Search,
                     title = stringResource(Res.string.search_no_results),
-                    description = "Aradığınız kullanıcı bulunamadı.",
+                    description = stringResource(Res.string.search_no_user_found_desc),
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else if (state.query.isBlank() && state.results.isEmpty() && !state.isLoading) {
                 EmptyStateComponent(
                     icon = Icons.Rounded.Search,
-                    title = "Kullanıcı Ara",
-                    description = "Yeni arkadaşlar bulmak için isim veya kullanıcı adı yazın.",
+                    title = stringResource(Res.string.search_user_title),
+                    description = stringResource(Res.string.search_user_prompt),
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {

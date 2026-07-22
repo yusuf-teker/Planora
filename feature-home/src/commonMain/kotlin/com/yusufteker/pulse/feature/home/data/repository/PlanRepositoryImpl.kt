@@ -927,6 +927,20 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun leaveRoom(roomId: String): Result<Unit> {
+        return try {
+            planApi.leaveRoom(roomId)
+            database.pulsyDatabaseQueries.transaction {
+                database.pulsyDatabaseQueries.deleteTaskSharedRoomsForRoom(roomId)
+                database.pulsyDatabaseQueries.deleteMembersForRoom(roomId)
+                database.pulsyDatabaseQueries.deletePlanRoom(roomId)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun observeAllPlanRooms(): Flow<List<PlanRoomDto>> {
         return database.pulsyDatabaseQueries.getAllPlanRooms()
             .asFlow()

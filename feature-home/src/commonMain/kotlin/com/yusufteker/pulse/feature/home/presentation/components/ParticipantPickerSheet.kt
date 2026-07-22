@@ -18,11 +18,14 @@ import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 
 import com.yusufteker.pulse.core.ui.components.AvatarImage
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParticipantPickerSheet(
-    title: String = "Kişi Seç",
+    title: String = stringResource(Res.string.action_select_people),
     roomMembers: List<UserProfileResponse>,
     selectedParticipantIds: Set<Int>,
     isLoading: Boolean = false,
@@ -58,7 +61,7 @@ fun ParticipantPickerSheet(
                 }
             } else if (roomMembers.isEmpty()) {
                 Text(
-                    text = "Bu odada henüz başka üye yok.",
+                    text = stringResource(Res.string.room_no_other_members),
                     modifier = Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

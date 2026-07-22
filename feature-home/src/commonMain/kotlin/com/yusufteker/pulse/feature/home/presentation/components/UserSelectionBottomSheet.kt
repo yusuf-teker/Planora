@@ -10,6 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.shared.api.UserProfileResponse
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +34,7 @@ fun UserSelectionBottomSheet(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Kişi Seç",
+                text = stringResource(Res.string.action_select_people),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )

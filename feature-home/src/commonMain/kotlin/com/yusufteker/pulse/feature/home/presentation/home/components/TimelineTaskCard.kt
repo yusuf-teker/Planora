@@ -228,6 +228,33 @@ fun TimelineTaskCard(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+
+                    if (task.sharedRoomIds.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.tertiaryContainer,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Group,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "ORTAK ODA",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
                 if (!task.isSynced) {

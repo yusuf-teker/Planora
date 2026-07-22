@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -149,6 +150,41 @@ fun EventDetailScreen(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // Shared Room Banner if event belongs to a plan room
+                if (state.planRoomId != null || !state.planRoomName.isNullOrBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Group,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Ortak Oda Etkinliği",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = state.planRoomName ?: "Bağlı Oda",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Title, Description, Location Section
                 FormSection {
                     TextField(
@@ -274,23 +310,23 @@ fun EventDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Alt Öğeler",
+                                text = stringResource(Res.string.event_sub_items),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Row {
                                 TextButton(onClick = { onNavigateToCreateTask(state.id!!) }) {
-                                    Text("Görev Ekle")
+                                    Text(stringResource(Res.string.action_add_task))
                                 }
                                 TextButton(onClick = { onNavigateToCreateNote(state.id!!) }) {
-                                    Text("Not Ekle")
+                                    Text(stringResource(Res.string.action_create_note))
                                 }
                             }
                         }
                         
                         if (state.subItems.isEmpty()) {
                             Text(
-                                text = "Henüz bir alt öğe eklenmemiş.",
+                                text = stringResource(Res.string.event_no_sub_items),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)

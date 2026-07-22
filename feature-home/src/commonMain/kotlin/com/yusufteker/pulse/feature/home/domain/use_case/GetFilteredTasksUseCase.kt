@@ -33,7 +33,12 @@ class GetFilteredTasksUseCase {
                 (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
             }
 
-        // 2. Completed filter
+        // 2. Room tasks filter
+        if (!options.showRoomTasks) {
+            filtered = filtered.filter { it.sharedRoomIds.isEmpty() }
+        }
+
+        // 3. Completed filter
         if (!options.showCompleted) {
             filtered = filtered.filter { it.status != TaskStatus.COMPLETED }
         }

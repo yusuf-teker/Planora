@@ -607,7 +607,7 @@ fun ProfileScreen(
                                 ) {
                                     Column {
                                         Text(
-                                            text = "Takvim Erişim İstekleri",
+                                            text = stringResource(Res.string.profile_calendar_access_requests),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onBackground
@@ -661,7 +661,7 @@ fun ProfileScreen(
                                                         )
                                                     ) {
                                                         Text(
-                                                            text = "Kabul Et",
+                                                            text = stringResource(Res.string.action_accept),
                                                             style = MaterialTheme.typography.labelMedium,
                                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                                         )
@@ -680,7 +680,7 @@ fun ProfileScreen(
                                                         )
                                                     ) {
                                                         Text(
-                                                            text = "Reddet",
+                                                            text = stringResource(Res.string.action_decline),
                                                             style = MaterialTheme.typography.labelMedium,
                                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                                         )
@@ -713,7 +713,7 @@ fun ProfileScreen(
                                 ) {
                                     Column {
                                         Text(
-                                            text = "Takvimimi Görenler",
+                                            text = stringResource(Res.string.profile_calendar_viewers),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onBackground
@@ -768,7 +768,7 @@ fun ProfileScreen(
                                                     )
                                                 ) {
                                                     Text(
-                                                        text = "İptal Et",
+                                                        text = stringResource(Res.string.cancel),
                                                         style = MaterialTheme.typography.labelMedium,
                                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                                     )
@@ -835,9 +835,9 @@ fun ProfileScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 val calendarButtonText = when {
-                                    state.calendarAccessStatus == "ACCEPTED" -> "Takvimi Görmeyi Bırak"
-                                    state.calendarAccessStatus == "PENDING" -> "Takvim İstek Gönderildi"
-                                    else -> "Takvim Erişim İsteği Gönder"
+                                    state.calendarAccessStatus == "ACCEPTED" -> stringResource(Res.string.profile_leave_calendar)
+                                    state.calendarAccessStatus == "PENDING" -> stringResource(Res.string.profile_calendar_request_sent)
+                                    else -> stringResource(Res.string.profile_request_calendar_access)
                                 }
 
                                 val isCalendarAccepted = state.calendarAccessStatus == "ACCEPTED"
@@ -925,7 +925,7 @@ fun ProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Pulse deneyimini başlatmak için giriş yapın",
+                                    text = stringResource(Res.string.profile_guest_login_prompt),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

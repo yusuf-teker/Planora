@@ -329,4 +329,83 @@
     <string name="shared">Shared</string>
     <string name="load_more_future_tasks">Load More Future Tasks</string>
     <string name="no_more_future_tasks">No more future tasks or events found.</string>
+
+    <!-- Plan Rooms Additions -->
+    <string name="action_leave_room">Leave Room</string>
+    <string name="title_delete_room_confirm">Delete Room</string>
+    <string name="msg_delete_room_confirm">Are you sure you want to delete this room? This action cannot be undone and all tasks in this room will be deleted.</string>
+    <string name="title_leave_room_confirm">Leave Room</string>
+    <string name="msg_leave_room_confirm">Are you sure you want to leave this room?</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="room_deleted_success">Room deleted successfully.</string>
+    <string name="room_left_success">Left the room successfully.</string>
+    <string name="room_renamed_success">Room name updated.</string>
+    <string name="room_user_invited_success">User invited successfully.</string>
+    <string name="error_leave_room_failed">Failed to leave room.</string>
+    <string name="error_delete_room_failed">Failed to delete room.</string>
+    <string name="tab_feed">Feed</string>
+    <string name="tab_calendar">Calendar</string>
+    <string name="filter_all">All</string>
+    <string name="filter_tasks">Tasks</string>
+    <string name="filter_events">Events</string>
+    <string name="filter_notes">Notes</string>
+    <string name="search_room_tasks_placeholder">Search tasks or events...</string>
+    <string name="action_copy_invite_link">Copy Invite Link</string>
+    <string name="invite_link_copied">Invite link copied to clipboard!</string>
+    <string name="room_progress_title">Room Progress</string>
+    <string name="room_stat_completed">%1$s / %2$s Tasks Completed (%3$s%%)</string>
+    <string name="room_stat_events">%1$s Upcoming Events</string>
+    <string name="filter_member_all">All Members</string>
+
+    <!-- Additional UI Localizations -->
+    <string name="profile_calendar_access_requests">Calendar Access Requests</string>
+    <string name="profile_calendar_viewers">People Who Can View My Calendar</string>
+    <string name="profile_leave_calendar">Stop Viewing Calendar</string>
+    <string name="profile_calendar_request_sent">Calendar Access Request Sent</string>
+    <string name="profile_request_calendar_access">Request Calendar Access</string>
+    <string name="profile_guest_login_prompt">Sign in to start your Pulse experience</string>
+    <string name="notes_search_placeholder">Search notes...</string>
+    <string name="notes_no_results">No results found.</string>
+    <string name="notes_section_pinned">PINNED</string>
+    <string name="notes_section_other">OTHER NOTES</string>
+    <string name="note_pinned">Pinned</string>
+    <string name="title_new_folder">New Folder</string>
+    <string name="folder_name_label">Folder Name</string>
+    <string name="folder_none">No Folder</string>
+    <string name="action_add_folder">Add New Folder</string>
+    <string name="add_checklist_item_placeholder">Add new item...</string>
+    <string name="ai_chip_summarize">Summarize</string>
+    <string name="ai_chip_fix_grammar">Fix grammar</string>
+    <string name="ai_chip_bullet_points">Make bullet points</string>
+    <string name="ai_chip_professional">Make professional</string>
+    <string name="ai_note_editing">Formatting your note...</string>
+    <string name="ai_suggestion_title">AI Suggestion</string>
+    <string name="action_complete_task">Complete Task</string>
+    <string name="focus_exit_title">Exit Focus Mode</string>
+    <string name="focus_exit_desc">Focus session is in progress. What would you like to do?</string>
+    <string name="focus_exit_and_cancel">Cancel and Exit</string>
+    <string name="event_sub_items">Sub-items</string>
+    <string name="event_no_sub_items">No sub-items added yet.</string>
+    <string name="search_no_user_found_desc">The user you searched for could not be found.</string>
+    <string name="search_user_title">Search Users</string>
+    <string name="search_user_prompt">Type a name or username to find new friends.</string>
+    <string name="action_select_people">Select People</string>
+    <string name="room_no_other_members">There are no other members in this room yet.</string>
+    <string name="shared_room_task_label">Shared Room Task</string>
+    <string name="connected_room_label">Connected Room</string>
+    <string name="sub_notes_label">Sub-notes</string>
+    <string name="no_sub_notes_added">No sub-notes added yet.</string>
+    <string name="room_detail_default_title">Room Details</string>
+    <string name="action_apply">Apply</string>
+
+    <!-- Onboarding Mocks -->
+    <string name="onboarding_october_2026">October 2026</string>
+    <string name="onboarding_today_wednesday">Today, Wed 14</string>
+    <string name="onboarding_design_meeting">Design Meeting</string>
+    <string name="onboarding_pulsy_update">Pulsy Update</string>
+    <string name="onboarding_design_team">Design Team</string>
+    <string name="onboarding_family">Family</string>
+    <string name="onboarding_logo_revision">Logo Revision</string>
+    <string name="onboarding_ui_review">UI Review</string>
+    <string name="onboarding_members_count">%1$s members</string>
 </resources>

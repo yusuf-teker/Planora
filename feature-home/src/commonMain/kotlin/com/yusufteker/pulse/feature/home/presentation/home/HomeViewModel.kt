@@ -69,15 +69,14 @@ class HomeViewModel(
             try {
                 val showOnlyNextRecurring = sessionPreferences.getShowOnlyNextRecurring()
                 val showCompleted = sessionPreferences.getShowCompleted()
+                val showRoomTasks = sessionPreferences.getShowRoomTasks()
                 val savedViewOption = sessionPreferences.getViewOption()
-                val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted)
+                val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted, showRoomTasks)
                 setState {
                     copy(
                         filterOptions = newFilterOptions,
                         viewOption = savedViewOption,
                         upcomingTasks = if (this.allFetchedTasks.isNotEmpty()) {
-                            // updated state'e göre (bu copy işlemi henüz _state'e yansımadı)
-                            // this.getFilteredTasks(...) kullanarak hesapla
                             this.getFilteredTasks(
                                 options = newFilterOptions,
                                 viewOpt = savedViewOption
@@ -330,7 +329,8 @@ class HomeViewModel(
                 launch {
                     sessionPreferences.saveFilterOptions(
                         showOnlyNextRecurring = event.filterOptions.showOnlyNextRecurring,
-                        showCompleted = event.filterOptions.showCompleted
+                        showCompleted = event.filterOptions.showCompleted,
+                        showRoomTasks = event.filterOptions.showRoomTasks
                     )
                 }
             }

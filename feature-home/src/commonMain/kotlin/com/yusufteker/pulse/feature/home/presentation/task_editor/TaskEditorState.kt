@@ -14,6 +14,7 @@ data class TaskEditorState(
     val originalStartTime: Long? = null,
     val deadlineDateMs: Long? = null,
     val planRoomId: String? = null,
+    val planRoomName: String? = null,
     val parentId: String? = null,
     val status: TaskStatus = TaskStatus.PENDING,
     val isRecurring: Boolean = false,

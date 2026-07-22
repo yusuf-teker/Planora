@@ -52,12 +52,12 @@ fun NoteEditorScreen(
     if (showFolderDialog) {
         AlertDialog(
             onDismissRequest = { showFolderDialog = false },
-            title = { Text("Yeni Klasör") },
+            title = { Text(stringResource(Res.string.title_new_folder)) },
             text = {
                 OutlinedTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
-                    label = { Text("Klasör Adı") },
+                    label = { Text(stringResource(Res.string.folder_name_label)) },
                     singleLine = true
                 )
             },
@@ -69,7 +69,7 @@ fun NoteEditorScreen(
                     showFolderDialog = false
                     newFolderName = ""
                 }) {
-                    Text("Oluştur")
+                    Text(stringResource(Res.string.action_create))
                 }
             },
             dismissButton = {
@@ -77,7 +77,7 @@ fun NoteEditorScreen(
                     showFolderDialog = false 
                     newFolderName = ""
                 }) {
-                    Text("İptal")
+                    Text(stringResource(Res.string.cancel))
                 }
             }
         )
@@ -136,7 +136,7 @@ fun NoteEditorScreen(
                             onDismissRequest = { showFolderDropdown = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Klasörsüz") },
+                                text = { Text(stringResource(Res.string.folder_none)) },
                                 onClick = { 
                                     viewModel.onEvent(NoteEditorEvent.OnFolderSelected(null))
                                     showFolderDropdown = false
@@ -156,7 +156,7 @@ fun NoteEditorScreen(
                             }
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Yeni Klasör Ekle") },
+                                text = { Text(stringResource(Res.string.action_add_folder)) },
                                 leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp)) },
                                 onClick = {
                                     showFolderDropdown = false
@@ -167,23 +167,23 @@ fun NoteEditorScreen(
                     }
                     if (state.id != null) {
                         IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnShareClick) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     
                     IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnSaveClick) }) {
-                        Icon(Icons.Default.Check, contentDescription = "Kaydet", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     }
 
                     if (state.id != null) {
                         var showNoteMenu by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { showNoteMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Daha Fazla", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Default.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             DropdownMenu(expanded = showNoteMenu, onDismissRequest = { showNoteMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Sil", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                                     onClick = { 
                                         showNoteMenu = false
@@ -336,7 +336,7 @@ fun NoteEditorScreen(
                         TextField(
                             value = newItemTitle,
                             onValueChange = { newItemTitle = it },
-                            placeholder = { Text("Yeni öğe ekle...") },
+                            placeholder = { Text(stringResource(Res.string.add_checklist_item_placeholder)) },
                             modifier = Modifier.weight(1f),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
@@ -350,7 +350,7 @@ fun NoteEditorScreen(
                                 viewModel.onEvent(NoteEditorEvent.OnAddChecklistItem(newItemTitle))
                                 newItemTitle = ""
                             }) {
-                                Icon(Icons.Default.Check, contentDescription = "Ekle", tint = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -364,11 +364,16 @@ fun NoteEditorScreen(
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     // AI Suggestion Chips
                     if (!state.isAiLoading) {
+                        val suggestions = listOf(
+                            stringResource(Res.string.ai_chip_summarize),
+                            stringResource(Res.string.ai_chip_fix_grammar),
+                            stringResource(Res.string.ai_chip_bullet_points),
+                            stringResource(Res.string.ai_chip_professional)
+                        )
                         LazyRow(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            val suggestions = listOf("Özetle", "Yazım hatalarını düzelt", "Maddelere ayır", "Daha profesyonel yaz")
                             items(suggestions) { suggestion ->
                                 SuggestionChip(
                                     onClick = { aiQuery = suggestion },
@@ -399,7 +404,7 @@ fun NoteEditorScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Notunuz düzenleniyor...",
+                                text = stringResource(Res.string.ai_note_editing),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                             )
@@ -435,7 +440,7 @@ fun NoteEditorScreen(
                                 ) {
                                     Icon(
                                         imageVector = if (state.isAiLoading) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, 
-                                        contentDescription = if (state.isAiLoading) "Durdur" else "Gönder"
+                                        contentDescription = null
                                     )
                                 }
                             },
@@ -474,7 +479,7 @@ fun NoteEditorScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Yapay Zeka Önerisi",
+                        text = stringResource(Res.string.ai_suggestion_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -499,11 +504,11 @@ fun NoteEditorScreen(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnAiPreviewReject) }) {
-                        Text("İptal")
+                        Text(stringResource(Res.string.cancel))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = { viewModel.onEvent(NoteEditorEvent.OnAiPreviewAccept) }) {
-                        Text("Uygula")
+                        Text(stringResource(Res.string.action_apply))
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))

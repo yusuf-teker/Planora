@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -166,6 +167,40 @@ fun TaskEditorScreen(
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // Shared Room Banner if task belongs to a plan room
+                if (state.planRoomId != null || !state.planRoomName.isNullOrBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Group,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(Res.string.shared_room_task_label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = state.planRoomName ?: stringResource(Res.string.connected_room_label),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+                    }
+                }
                 // Title and Description Section
                 FormSection {
                     TextField(
@@ -291,18 +326,18 @@ fun TaskEditorScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Alt Notlar",
+                                text = stringResource(Res.string.sub_notes_label),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             TextButton(onClick = { onNavigateToCreateNote(state.id!!) }) {
-                                Text("Not Ekle")
+                                Text(stringResource(Res.string.action_create_note))
                             }
                         }
                         
                         if (state.subItems.isEmpty()) {
                             Text(
-                                text = "Henüz bir alt not eklenmemiş.",
+                                text = stringResource(Res.string.no_sub_notes_added),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)

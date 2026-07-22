@@ -229,14 +229,21 @@ class SessionPreferences(
         return dataStore.data.map { it[filterShowOnlyNextRecurringKey] ?: true }.first()
     }
 
+    private val filterShowRoomTasksKey = booleanPreferencesKey("filter_show_room_tasks")
+
     suspend fun getShowCompleted(): Boolean {
         return dataStore.data.map { it[filterShowCompletedKey] ?: true }.first()
     }
 
-    suspend fun saveFilterOptions(showOnlyNextRecurring: Boolean, showCompleted: Boolean) {
+    suspend fun getShowRoomTasks(): Boolean {
+        return dataStore.data.map { it[filterShowRoomTasksKey] ?: true }.first()
+    }
+
+    suspend fun saveFilterOptions(showOnlyNextRecurring: Boolean, showCompleted: Boolean, showRoomTasks: Boolean = true) {
         dataStore.edit { prefs ->
             prefs[filterShowOnlyNextRecurringKey] = showOnlyNextRecurring
             prefs[filterShowCompletedKey] = showCompleted
+            prefs[filterShowRoomTasksKey] = showRoomTasks
         }
     }
 

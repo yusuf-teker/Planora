@@ -237,7 +237,7 @@ class EventDetailViewModel(
                                     membersList.add(profile)
                                 }
                             }
-                            _state.update { it.copy(roomMembers = membersList) }
+                            _state.update { it.copy(roomMembers = membersList, planRoomName = room.name) }
                         }
                     }
                 }
@@ -274,6 +274,18 @@ class EventDetailViewModel(
                 val subItemsList = tasks.filter { it.parentId == eventId }
                 
                 if (task != null) {
+                    val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()
+                    if (actualPlanRoomId != null) {
+                        viewModelScope.launch {
+                            planRepository.observeAllPlanRooms().collect { rooms ->
+                                val name = rooms.find { it.id == actualPlanRoomId }?.name
+                                if (name != null) {
+                                    _state.update { it.copy(planRoomId = actualPlanRoomId, planRoomName = name) }
+                                }
+                            }
+                        }
+                    }
+
                     val location = (task.specificDetails as? ItemDetails.Event)?.location ?: ""
                     val ruleObj = try {
                         task.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.pulse.shared.api.RecurrenceRule>(it) }
@@ -283,6 +295,7 @@ class EventDetailViewModel(
                     
                     _state.update { 
                         it.copy(
+                            planRoomId = actualPlanRoomId,
                             title = task.title,
                             description = task.description ?: "",
                             location = location,

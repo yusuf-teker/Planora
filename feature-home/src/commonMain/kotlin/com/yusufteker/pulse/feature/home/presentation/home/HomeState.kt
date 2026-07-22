@@ -42,6 +42,7 @@ data class AccessibleUser(
 
 data class TimelineFilterOptions(
     val showOnlyNextRecurring: Boolean = true,
-    val showCompleted: Boolean = true
+    val showCompleted: Boolean = true,
+    val showRoomTasks: Boolean = true
 )
 

@@ -32,6 +32,7 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.time.Instant
 import java.util.UUID
@@ -442,6 +443,38 @@ fun Route.planRoomRoutes() {
                 }
             }
 
+            // 5. Odadan ayrılma (Leave room)
+            post("/{roomId}/leave") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asInt()
+                val roomId = call.parameters["roomId"]
+                
+                if (userId == null || roomId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid request")
+                    return@post
+                }
+
+                val success = dbQuery {
+                    val room = PlanRoomEntity.findById(roomId) ?: return@dbQuery false
+                    // Odayı oluşturan kişi odadan ayrılamaz (odayı silmelidir)
+                    if (room.creator.id.value == userId) {
+                        return@dbQuery false
+                    }
+
+                    val deletedCount = PlanRoomMembersTable.deleteWhere {
+                        (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq userId)
+                    }
+                    deletedCount > 0
+                }
+
+                if (success) {
+                    call.respond(HttpStatusCode.OK, "Left room successfully")
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, "Cannot leave room (creator or not a member)")
+                }
+            }
+
         }
     }
 }
+

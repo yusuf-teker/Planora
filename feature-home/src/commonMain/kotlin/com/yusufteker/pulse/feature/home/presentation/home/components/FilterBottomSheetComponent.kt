@@ -107,6 +107,43 @@ fun FilterBottomSheetComponent(
                 )
             }
 
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Show Shared Room Tasks Switch
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Ortak Oda Planlarını Göster",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "Dahil olduğunuz plan odalarına ait görev ve etkinlikleri akışta gösterir.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = filterOptions.showRoomTasks,
+                    onCheckedChange = {
+                        onFilterOptionsChanged(filterOptions.copy(showRoomTasks = it))
+                    },
+                    colors = SwitchDefaults.colors(
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                        uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
             
             Button(

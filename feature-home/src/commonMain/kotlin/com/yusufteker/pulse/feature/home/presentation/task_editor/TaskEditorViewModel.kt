@@ -69,6 +69,18 @@ class TaskEditorViewModel(
             .debounce(1000L.milliseconds)
             .onEach { autoSaveTask() }
             .launchIn(viewModelScope)
+
+        var cachedRooms = emptyList<com.yusufteker.pulse.shared.api.PlanRoomDto>()
+        viewModelScope.launch {
+            planRepository.observeAllPlanRooms().collect { rooms ->
+                cachedRooms = rooms
+                _state.update { currentState ->
+                    val currentRoomId = currentState.planRoomId ?: currentState.originalTask?.sharedRoomIds?.firstOrNull()
+                    val roomName = rooms.find { it.id == currentRoomId }?.name
+                    currentState.copy(planRoomName = roomName ?: currentState.planRoomName)
+                }
+            }
+        }
     }
 
     /**
@@ -253,8 +265,18 @@ class TaskEditorViewModel(
                 
                 if (task != null) {
                     val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()
-                    if (actualPlanRoomId != null && _state.value.roomMembers.isEmpty()) {
-                        loadRoomMembers(actualPlanRoomId)
+                    if (actualPlanRoomId != null) {
+                        if (_state.value.roomMembers.isEmpty()) {
+                            loadRoomMembers(actualPlanRoomId)
+                        }
+                        viewModelScope.launch {
+                            planRepository.observeAllPlanRooms().collect { rooms ->
+                                val name = rooms.find { it.id == actualPlanRoomId }?.name
+                                if (name != null) {
+                                    _state.update { it.copy(planRoomName = name) }
+                                }
+                            }
+                        }
                     }
 
                     val ruleObj = try {

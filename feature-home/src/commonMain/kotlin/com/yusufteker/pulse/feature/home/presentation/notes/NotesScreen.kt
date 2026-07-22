@@ -81,12 +81,12 @@ fun NotesScreen(
                 OutlinedTextField(
                     value = state.searchQuery,
                     onValueChange = { viewModel.onEvent(NotesEvent.SearchQueryChanged(it)) },
-                    placeholder = { Text("Notlarda ara...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Ara") },
+                    placeholder = { Text(stringResource(Res.string.notes_search_placeholder)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (state.searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onEvent(NotesEvent.SearchQueryChanged("")) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Temizle")
+                                Icon(Icons.Default.Close, contentDescription = null)
                             }
                         }
                     },
@@ -130,7 +130,7 @@ fun NotesScreen(
                         FilterChip(
                             selected = state.selectedFolderId == null,
                             onClick = { viewModel.onEvent(NotesEvent.FolderSelected(null)) },
-                            label = { Text("Tümü", fontWeight = FontWeight.Bold) },
+                            label = { Text(stringResource(Res.string.filter_all), fontWeight = FontWeight.Bold) },
                             shape = RoundedCornerShape(16.dp)
                         )
                     }
@@ -155,7 +155,7 @@ fun NotesScreen(
                 )
             } else if (state.notes.isEmpty() && state.searchQuery.isNotEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Sonuç bulunamadı.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.notes_no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 if (state.isGridView) {
@@ -168,7 +168,7 @@ fun NotesScreen(
                         if (state.pinnedNotes.isNotEmpty()) {
                             item(span = androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan.FullLine) {
                                 Text(
-                                    text = "SABİTLENENLER",
+                                    text = stringResource(Res.string.notes_section_pinned),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold,
@@ -187,7 +187,7 @@ fun NotesScreen(
                             if (state.unpinnedNotes.isNotEmpty()) {
                                 item(span = androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan.FullLine) {
                                     Text(
-                                        text = "DİĞER NOTLAR",
+                                        text = stringResource(Res.string.notes_section_other),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold,
@@ -209,7 +209,7 @@ fun NotesScreen(
                         if (state.pinnedNotes.isNotEmpty()) {
                             item {
                                 Text(
-                                    text = "SABİTLENENLER",
+                                    text = stringResource(Res.string.notes_section_pinned),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold,
@@ -222,7 +222,7 @@ fun NotesScreen(
                             if (state.unpinnedNotes.isNotEmpty()) {
                                 item {
                                     Text(
-                                        text = "DİĞER NOTLAR",
+                                        text = stringResource(Res.string.notes_section_other),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold,
@@ -285,7 +285,7 @@ fun NoteCard(note: TaskDto, viewModel: NotesViewModel, isGrid: Boolean) {
                 ) {
                     Icon(
                         imageVector = if (note.isPinned) Icons.Filled.Star else Icons.Filled.StarBorder,
-                        contentDescription = "Sabitle",
+                        contentDescription = null,
                         tint = if (note.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(18.dp)
                     )
@@ -312,7 +312,7 @@ fun NoteCard(note: TaskDto, viewModel: NotesViewModel, isGrid: Boolean) {
             ) {
                 if (note.isPinned){
                     Text(
-                        text = "Sabitlendi",
+                        text = stringResource(Res.string.note_pinned),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
@@ -324,7 +324,7 @@ fun NoteCard(note: TaskDto, viewModel: NotesViewModel, isGrid: Boolean) {
                 if (!note.isSynced) {
                     Icon(
                         imageVector = Icons.Default.CloudOff,
-                        contentDescription = "Senkronize Edilmedi",
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                         modifier = Modifier.size(16.dp)
                     )

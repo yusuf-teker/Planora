@@ -42,6 +42,7 @@ interface PlanRepository {
     
     suspend fun renameRoom(roomId: String, name: String): Result<Unit>
     suspend fun deleteRoom(roomId: String): Result<Unit>
+    suspend fun leaveRoom(roomId: String): Result<Unit>
     
     fun observeAllPlanRooms(): Flow<List<PlanRoomDto>>
 

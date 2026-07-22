@@ -96,6 +96,10 @@ class PlanApi(private val httpClient: HttpClient) {
         httpClient.delete("rooms/$roomId")
     }
 
+    suspend fun leaveRoom(roomId: String) {
+        httpClient.post("rooms/$roomId/leave")
+    }
+
     suspend fun getMyPendingInvitations(): List<PlanRoomDto> {
         return httpClient.get("rooms/invitations").body()
     }

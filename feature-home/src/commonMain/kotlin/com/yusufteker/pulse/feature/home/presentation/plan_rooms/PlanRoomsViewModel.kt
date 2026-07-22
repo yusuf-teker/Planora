@@ -66,26 +66,29 @@ class PlanRoomsViewModel(
             PlanRoomsEvent.SubmitCreateRoom -> {
                 val name = state.value.createRoomNameInput
                 viewModelScope.launch {
+                    val emptyNameMsg = getString(Res.string.error_room_name_empty)
+                    val successMsg = getString(Res.string.room_created_success)
+                    val failureMsg = getString(Res.string.error_create_room_failed)
+
                     if (name.isBlank()) {
-                        snackbarManager.showMessage(getString(Res.string.error_room_name_empty), SnackbarType.ERROR)
+                        snackbarManager.showMessage(emptyNameMsg, SnackbarType.ERROR)
                         return@launch
                     }
                     
                     setState { copy(isLoading = true) }
                     val result = planRepository.createPlanRoom(CreatePlanRoomRequest(name))
-                    result.onSuccess {
-                        snackbarManager.showMessage(getString(Res.string.room_created_success), SnackbarType.SUCCESS)
+                    if (result.isSuccess) {
+                        snackbarManager.showMessage(successMsg, SnackbarType.SUCCESS)
                         setState { 
                             copy(
                                 isLoading = false, 
                                 isCreateRoomDialogVisible = false,
-                                createRoomNameInput = "",
-                                // Refresh rooms here (veya Flow tetiklenir)
+                                createRoomNameInput = ""
                             )
                         }
-                    }.onFailure {
+                    } else {
                         setState { copy(isLoading = false) }
-                        snackbarManager.showMessage(getString(Res.string.error_create_room_failed), SnackbarType.ERROR)
+                        snackbarManager.showMessage(failureMsg, SnackbarType.ERROR)
                     }
                 }
             }
@@ -108,19 +111,23 @@ class PlanRoomsViewModel(
                 val userId = state.value.inviteUserIdInput.toIntOrNull()
                 
                 viewModelScope.launch {
+                    val invalidUserMsg = getString(Res.string.error_invalid_user_id)
+                    val successMsg = getString(Res.string.invitation_sent_success)
+                    val failureMsg = getString(Res.string.error_send_invitation_failed)
+
                     if (userId == null) {
-                        snackbarManager.showMessage(getString(Res.string.error_invalid_user_id), SnackbarType.ERROR)
+                        snackbarManager.showMessage(invalidUserMsg, SnackbarType.ERROR)
                         return@launch
                     }
                     
                     setState { copy(isLoading = true) }
                     val result = planRepository.inviteUserToRoom(roomId, InviteUserRequest(userId))
-                    result.onSuccess {
+                    if (result.isSuccess) {
                         setState { copy(isLoading = false, isInviteDialogVisible = false) }
-                        snackbarManager.showMessage(getString(Res.string.invitation_sent_success), SnackbarType.SUCCESS)
-                    }.onFailure {
+                        snackbarManager.showMessage(successMsg, SnackbarType.SUCCESS)
+                    } else {
                         setState { copy(isLoading = false) }
-                        snackbarManager.showMessage(getString(Res.string.error_send_invitation_failed), SnackbarType.ERROR)
+                        snackbarManager.showMessage(failureMsg, SnackbarType.ERROR)
                     }
                 }
             }
@@ -135,9 +142,13 @@ class PlanRoomsViewModel(
             is PlanRoomsEvent.RespondToInvite -> {
                 setState { copy(isLoading = true) }
                 viewModelScope.launch {
+                    val joinedMsg = getString(Res.string.room_joined_success)
+                    val declinedMsg = getString(Res.string.invitation_declined)
+                    val failureMsg = getString(Res.string.error_operation_failed)
+
                     val result = planRepository.respondToInvite(event.roomId, event.accept)
-                    result.onSuccess {
-                        val msg = if (event.accept) getString(Res.string.room_joined_success) else getString(Res.string.invitation_declined)
+                    if (result.isSuccess) {
+                        val msg = if (event.accept) joinedMsg else declinedMsg
                         snackbarManager.showMessage(msg, SnackbarType.SUCCESS)
                         setState { copy(isLoading = false) }
                         onEvent(PlanRoomsEvent.LoadPendingInvitations)
@@ -148,9 +159,9 @@ class PlanRoomsViewModel(
                                 planRepository.fetchMyTasks()
                             }
                         }
-                    }.onFailure {
+                    } else {
                         setState { copy(isLoading = false) }
-                        snackbarManager.showMessage(getString(Res.string.error_operation_failed), SnackbarType.ERROR)
+                        snackbarManager.showMessage(failureMsg, SnackbarType.ERROR)
                     }
                 }
             }

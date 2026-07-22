@@ -22,6 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @Composable
 fun AnimatedCalendarFeature() {
@@ -103,8 +106,8 @@ fun AnimatedCalendarFeature() {
             // Top Bar
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("Ekim 2026", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                    Text("Bugün, 14 Çarşamba", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.onboarding_october_2026), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(Res.string.onboarding_today_wednesday), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
                     Icon(Icons.Outlined.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(20.dp))
@@ -114,7 +117,13 @@ fun AnimatedCalendarFeature() {
             
             // Calendar Days Row
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                val days = listOf("Pzt" to "12", "Sal" to "13", "Çar" to "14", "Per" to "15", "Cum" to "16")
+                val days = listOf(
+                    stringResource(Res.string.task_day_mo) to "12",
+                    stringResource(Res.string.task_day_tu) to "13",
+                    stringResource(Res.string.task_day_we) to "14",
+                    stringResource(Res.string.task_day_th) to "15",
+                    stringResource(Res.string.task_day_fr) to "16"
+                )
                 days.forEachIndexed { i, day ->
                     val isSelected = i == 2
                     Column(
@@ -142,7 +151,7 @@ fun AnimatedCalendarFeature() {
                     Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("Tasarım Toplantısı", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(stringResource(Res.string.onboarding_design_meeting), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         Text("10:00 - 11:30", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
                     }
                 }
@@ -155,7 +164,7 @@ fun AnimatedCalendarFeature() {
                     Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("Pulsy Güncellemesi", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(stringResource(Res.string.onboarding_pulsy_update), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         Text("14:00 - 15:00", fontSize = 10.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
                     }
                 }
@@ -188,11 +197,11 @@ fun AnimatedCalendarFeature() {
                 .padding(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Yeni Görev", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.title_new_task), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 
                 // Text Field Mock
                 Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.background).padding(12.dp)) {
-                    Text("Pulsy Güncellemesi", fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground)
+                    Text(stringResource(Res.string.onboarding_pulsy_update), fontSize = 12.sp, color = MaterialTheme.colorScheme.onBackground)
                 }
                 
                 // Time selector mock
@@ -215,7 +224,7 @@ fun AnimatedCalendarFeature() {
                         .padding(horizontal = 24.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Kaydet", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(stringResource(Res.string.save), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }

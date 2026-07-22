@@ -21,6 +21,7 @@ data class EventDetailState(
     
     // Context
     val planRoomId: String? = null,
+    val planRoomName: String? = null,
     val participants: Map<Int, String> = emptyMap(),
     
     // Recurrence

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -21,6 +22,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 
 @Composable
 fun AnimatedSharedRoomFeature() {
@@ -109,7 +113,7 @@ fun AnimatedSharedRoomFeature() {
             Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Top Bar
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Plan Odaları", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(Res.string.onboarding_title_2), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                     Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                 }
                 
@@ -124,8 +128,8 @@ fun AnimatedSharedRoomFeature() {
                 ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
-                            Text("Tasarım Ekibi", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("4 üye", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                            Text(stringResource(Res.string.onboarding_design_team), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(Res.string.onboarding_members_count, "4"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                         }
                     }
                 }
@@ -138,8 +142,8 @@ fun AnimatedSharedRoomFeature() {
                         .padding(16.dp)
                 ) {
                     Column {
-                        Text("Aile", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("3 üye", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                        Text(stringResource(Res.string.onboarding_family), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(Res.string.onboarding_members_count, "3"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                     }
                 }
             }
@@ -150,8 +154,8 @@ fun AnimatedSharedRoomFeature() {
              Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 // Top Bar
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
-                    Text("Tasarım Ekibi", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                    Text(stringResource(Res.string.onboarding_design_team), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
                 
                 // Avatars
@@ -174,7 +178,7 @@ fun AnimatedSharedRoomFeature() {
                               }
                               Spacer(modifier = Modifier.width(12.dp))
                               Column {
-                                  Text("Logo Revizyonu", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                  Text(stringResource(Res.string.onboarding_logo_revision), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                   Text("10:00 - Yusuf", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                               }
                          }
@@ -187,7 +191,7 @@ fun AnimatedSharedRoomFeature() {
                               }
                               Spacer(modifier = Modifier.width(12.dp))
                               Column {
-                                  Text("UI İncelemesi", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                  Text(stringResource(Res.string.onboarding_ui_review), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                   Text("14:00 - Ali", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                               }
                          }

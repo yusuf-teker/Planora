@@ -40,9 +40,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.foundation.lazy.LazyRow
 import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
+import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.components.CalendarComponent
 import com.yusufteker.pulse.core.ui.components.AvatarImage
+
+import androidx.compose.material.icons.filled.Share
+import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +63,41 @@ fun PlanRoomDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     
+    val filteredTasks = remember(state.roomTasks, state.selectedFilter, state.taskSearchQuery, state.selectedMemberUserIdFilter) {
+        state.roomTasks.filter { task ->
+            val matchesType = when (state.selectedFilter) {
+                RoomTaskFilter.ALL -> true
+                RoomTaskFilter.TASKS -> task.type == com.yusufteker.pulse.shared.api.TaskType.TASK
+                RoomTaskFilter.EVENTS -> task.type == com.yusufteker.pulse.shared.api.TaskType.EVENT
+                RoomTaskFilter.NOTES -> task.type == com.yusufteker.pulse.shared.api.TaskType.NOTE
+            }
+            val matchesQuery = state.taskSearchQuery.isBlank() ||
+                task.title.contains(state.taskSearchQuery, ignoreCase = true) ||
+                (task.description?.contains(state.taskSearchQuery, ignoreCase = true) == true)
+                
+            val matchesMember = state.selectedMemberUserIdFilter == null ||
+                task.creatorId == state.selectedMemberUserIdFilter ||
+                task.participants.any { it.userId == state.selectedMemberUserIdFilter }
+                
+            matchesType && matchesQuery && matchesMember
+        }
+    }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, state.roomId) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                if (state.roomId.isNotBlank()) {
+                    viewModel.onEvent(PlanRoomDetailEvent.LoadRoom(state.roomId))
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     LaunchedEffect(Unit) {
         val scope = this
         viewModel.effect.collect { effect ->
@@ -80,10 +120,10 @@ fun PlanRoomDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.roomName.ifBlank { "Oda Detayı" }) },
+                title = { Text(state.roomName.ifBlank { stringResource(Res.string.room_detail_default_title) }) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = null)
                     }
                 },
                 actions = {
@@ -94,29 +134,40 @@ fun PlanRoomDetailScreen(
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more_options))
                     }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.action_edit_room)) },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick)
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                }
-                            )
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.action_edit_room)) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick)
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                            }
+                        )
                         if (state.isRoomCreator) {
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.action_delete_room), color = MaterialTheme.colorScheme.error) },
+                                text = { Text(stringResource(Res.string.title_delete_room_confirm), color = MaterialTheme.colorScheme.error) },
                                 onClick = {
                                     showMenu = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnDeleteRoomClick)
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                }
+                            )
+                        } else {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_leave_room), color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(PlanRoomDetailEvent.OnLeaveRoomClick)
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                 }
                             )
                         }
@@ -187,10 +238,24 @@ fun PlanRoomDetailScreen(
                         text = "Oda Üyeleri",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 8.dp)
                     )
                     
-                    if (state.memberProfiles.isEmpty()) {
+                    if (state.isMembersLoading) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(4) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                )
+                            }
+                        }
+                    } else if (state.memberProfiles.isEmpty()) {
                         Text(
                             text = "Bu odada henüz üye bulunmuyor.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -199,50 +264,183 @@ fun PlanRoomDetailScreen(
                     } else {
                         LazyRow(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy((-16).dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            item {
+                                FilterChip(
+                                    selected = state.selectedMemberUserIdFilter == null,
+                                    onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(null)) },
+                                    label = { Text(stringResource(Res.string.filter_member_all)) }
+                                )
+                            }
                             items(state.memberProfiles.values.toList(), key = { it.id }) { user ->
+                                val isSelected = state.selectedMemberUserIdFilter == user.id
                                 AvatarImage(
                                     avatarId = user.avatarId,
                                     profileImageUrl = user.profileImageUrl,
                                     modifier = Modifier
-                                        .size(48.dp)
-                                        .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
+                                        .size(44.dp)
+                                        .border(
+                                            width = if (isSelected) 3.dp else 1.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = CircleShape
+                                        )
+                                        .clickable { viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id)) }
                                 )
                             }
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     
-                    Text(
-                        text = "Görevler ve Etkinlikler",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                    )
-                    
-                    if (state.roomTasks.isEmpty()) {
-                        com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent(
-                            icon = androidx.compose.material.icons.Icons.Default.DateRange,
-                            title = "Henüz bir görev veya etkinlik yok",
-                            description = "Bu odada henüz paylaşılan bir plan bulunmuyor.",
-                            modifier = Modifier.weight(1f)
+                    // --- TAB BAR (FEED / CALENDAR) ---
+                    SecondaryTabRow(
+                        selectedTabIndex = state.selectedTab.ordinal,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    ) {
+                        Tab(
+                            selected = state.selectedTab == RoomDetailTab.FEED,
+                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.FEED)) },
+                            text = { Text(stringResource(Res.string.tab_feed)) }
                         )
-                    } else {
-                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                            FeedTimelineComponent(
-                                tasks = state.roomTasks,
-                                memberProfiles = state.memberProfiles,
-                                onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
+                        Tab(
+                            selected = state.selectedTab == RoomDetailTab.CALENDAR,
+                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.CALENDAR)) },
+                            text = { Text(stringResource(Res.string.tab_calendar)) }
+                        )
+                    }
+                    
+                    // --- FILTER CHIPS & SEARCH BAR ---
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = state.taskSearchQuery,
+                            onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnTaskSearchQueryChange(it)) },
+                            placeholder = { Text(stringResource(Res.string.search_room_tasks_placeholder), style = MaterialTheme.typography.bodySmall) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = state.selectedFilter == RoomTaskFilter.ALL,
+                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) },
+                                label = { Text(stringResource(Res.string.filter_all)) }
                             )
+                        }
+                        item {
+                            FilterChip(
+                                selected = state.selectedFilter == RoomTaskFilter.TASKS,
+                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) },
+                                label = { Text(stringResource(Res.string.filter_tasks)) }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = state.selectedFilter == RoomTaskFilter.EVENTS,
+                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) },
+                                label = { Text(stringResource(Res.string.filter_events)) }
+                            )
+                        }
+                        item {
+                            FilterChip(
+                                selected = state.selectedFilter == RoomTaskFilter.NOTES,
+                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) },
+                                label = { Text(stringResource(Res.string.filter_notes)) }
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // --- TAB CONTENT ---
+                    if (state.selectedTab == RoomDetailTab.FEED) {
+                        if (filteredTasks.isEmpty()) {
+                            com.yusufteker.pulse.feature.home.presentation.components.EmptyStateComponent(
+                                icon = Icons.Default.DateRange,
+                                title = "Henüz bir görev veya etkinlik yok",
+                                description = "Bu odada filtrenize uygun bir plan bulunmuyor.",
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                FeedTimelineComponent(
+                                    tasks = filteredTasks,
+                                    memberProfiles = state.memberProfiles,
+                                    onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
+                                )
+                            }
+                        }
+                    } else {
+                        // CALENDAR TAB
+                        val month = state.calendarCurrentMonth ?: kotlinx.datetime.LocalDate(2026, 7, 1)
+                        Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            CalendarComponent(
+                                currentMonth = month,
+                                selectedDate = state.calendarSelectedDate,
+                                tasks = filteredTasks,
+                                memberProfiles = state.memberProfiles,
+                                onDateSelected = { date -> viewModel.onEvent(PlanRoomDetailEvent.OnCalendarDateSelected(date)) },
+                                onPreviousMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnCalendarPreviousMonth) },
+                                onNextMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnCalendarNextMonth) }
+                            )
+                            
+                            val selectedDate = state.calendarSelectedDate
+                            if (selectedDate != null) {
+                                val dayTasks = filteredTasks.filter { task ->
+                                    val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime)
+                                        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                                    taskDate == selectedDate
+                                }
+                                Text(
+                                    text = "${selectedDate.dayOfMonth} ${selectedDate.month.name}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                )
+                                if (dayTasks.isEmpty()) {
+                                    Text(
+                                        text = stringResource(Res.string.empty_events_today),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        items(dayTasks, key = { it.id }) { task ->
+                                            val profile = state.memberProfiles[task.creatorId]
+                                            val hasParticipants = task.participants.isNotEmpty()
+                                            com.yusufteker.pulse.feature.home.presentation.home.components.TimelineTaskCard(
+                                                task = task,
+                                                showDate = false,
+                                                sharedUserAvatar = if (hasParticipants) null else profile?.avatarId,
+                                                sharedUserColor = null,
+                                                sharedUserProfileImageUrl = if (hasParticipants) null else profile?.profileImageUrl,
+                                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-    
+
     if (state.isInviteDialogOpen) {
         Dialog(onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissInviteDialog) }) {
             Card(
@@ -259,6 +457,16 @@ fun PlanRoomDetailScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                     
+                    OutlinedButton(
+                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnCopyInviteLinkClick) },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(Res.string.action_copy_invite_link))
+                    }
+                    
                     OutlinedTextField(
                         value = state.searchQuery,
                         onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnSearchQueryChange(it)) },
@@ -266,6 +474,7 @@ fun PlanRoomDetailScreen(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         singleLine = true
                     )
+
                     
                     if (state.isFollowingLoading) {
                         Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
@@ -383,3 +592,5 @@ fun PlanRoomDetailScreen(
         }
     }
 }
+
+

@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.ui.components.ParticleBurstEffect
+import org.jetbrains.compose.resources.stringResource
+import pulsy.core.generated.resources.Res
+import pulsy.core.generated.resources.*
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -220,12 +223,12 @@ fun FocusScreen(
                 } else {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Complete",
+                        contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Görevi Tamamla",
+                        text = stringResource(Res.string.action_complete_task),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -238,8 +241,8 @@ fun FocusScreen(
         if (showExitDialog) {
             AlertDialog(
                 onDismissRequest = { showExitDialog = false },
-                title = { Text("Odak Sürecinden Çık") },
-                text = { Text("Odak süreci devam ediyor. Ne yapmak istersiniz?") },
+                title = { Text(stringResource(Res.string.focus_exit_title)) },
+                text = { Text(stringResource(Res.string.focus_exit_desc)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -247,7 +250,7 @@ fun FocusScreen(
                             viewModel.completeTask()
                         }
                     ) {
-                        Text("Tamamla")
+                        Text(stringResource(Res.string.action_confirm))
                     }
                 },
                 dismissButton = {
@@ -258,7 +261,7 @@ fun FocusScreen(
                             onNavigateBack()
                         }
                     ) {
-                        Text("İptal Et ve Çık")
+                        Text(stringResource(Res.string.focus_exit_and_cancel))
                     }
                 }
             )
