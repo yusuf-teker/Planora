@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.yusufteker.pulse.core.base.BaseViewModel
 import com.yusufteker.pulse.feature.home.domain.repository.PlanRepository
 import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+import com.yusufteker.pulse.feature.home.domain.use_case.getEarliestEventDateInMonth
 import com.yusufteker.pulse.shared.api.InviteUserRequest
 import com.yusufteker.pulse.shared.api.UserProfileResponse
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -95,12 +96,14 @@ class PlanRoomDetailViewModel(
             PlanRoomDetailEvent.OnCalendarPreviousMonth -> {
                 val current = currentState.calendarCurrentMonth ?: return
                 val prev = current.minus(1, DateTimeUnit.MONTH)
-                setState { copy(calendarCurrentMonth = prev) }
+                val earliest = getEarliestEventDateInMonth(currentState.roomTasks, prev)
+                setState { copy(calendarCurrentMonth = prev, calendarSelectedDate = earliest) }
             }
             PlanRoomDetailEvent.OnCalendarNextMonth -> {
                 val current = currentState.calendarCurrentMonth ?: return
                 val next = current.plus(1, DateTimeUnit.MONTH)
-                setState { copy(calendarCurrentMonth = next) }
+                val earliest = getEarliestEventDateInMonth(currentState.roomTasks, next)
+                setState { copy(calendarCurrentMonth = next, calendarSelectedDate = earliest) }
             }
             PlanRoomDetailEvent.OnCopyInviteLinkClick -> {
                 viewModelScope.launch {
@@ -118,7 +121,9 @@ class PlanRoomDetailViewModel(
             val nowMs = com.yusufteker.pulse.core.utils.getCurrentTimeMs()
             val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs)
                 .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-            setState { copy(calendarCurrentMonth = today, calendarSelectedDate = today) }
+            val monthStart = kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
+            val earliest = getEarliestEventDateInMonth(currentState.roomTasks, monthStart)
+            setState { copy(calendarCurrentMonth = monthStart, calendarSelectedDate = earliest) }
         }
         
         // 1. Observe all rooms to get this room's details (name, members)
@@ -158,7 +163,9 @@ class PlanRoomDetailViewModel(
         viewModelScope.launch {
             planRepository.observeAllTasks().collect { tasks ->
                 val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) && it.parentId == null }
-                setState { copy(roomTasks = roomTasks) }
+                val month = currentState.calendarCurrentMonth ?: kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.pulse.core.utils.getCurrentTimeMs()).toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                val earliest = getEarliestEventDateInMonth(roomTasks, month)
+                setState { copy(roomTasks = roomTasks, calendarSelectedDate = currentState.calendarSelectedDate ?: earliest) }
             }
         }
         

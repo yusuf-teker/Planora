@@ -357,6 +357,11 @@
     <string name="room_stat_events">%1$s Yaklaşan Etkinlik</string>
     <string name="filter_member_all">Tüm Üyeler</string>
 
+    <!-- Timeline View Options -->
+    <string name="timeline_option_date">Tarih</string>
+    <string name="timeline_option_period">Periyot</string>
+    <string name="timeline_option_calendar">Takvim</string>
+
     <!-- Additional UI Localizations -->
     <string name="profile_calendar_access_requests">Takvim Erişim İstekleri</string>
     <string name="profile_calendar_viewers">Takvimimi Görenler</string>

@@ -90,3 +90,50 @@ class GetFilteredTasksUseCase {
         return filtered
     }
 }
+
+/**
+ * Calculates the earliest date within the given [monthDate] that contains at least one event/task.
+ *
+ * Iterates through [tasks], determines the effective date range for each task (considering start time
+ * and deadline/end time), and checks if it falls within the specified target month. Returns the earliest
+ * date in that month with a task, or null if no tasks exist in that month.
+ *
+ * @param tasks List of [TaskDto] to inspect for dates.
+ * @param monthDate A [LocalDate] representing the target month (e.g., year and monthNumber).
+ * @return The earliest [LocalDate] in [monthDate] with an event, or null if none.
+ */
+fun getEarliestEventDateInMonth(
+    tasks: List<TaskDto>,
+    monthDate: LocalDate
+): LocalDate? {
+    val monthStart = LocalDate(monthDate.year, monthDate.monthNumber, 1)
+    val targetYearMonth = monthDate.year * 12 + monthDate.monthNumber
+
+    var earliest: LocalDate? = null
+
+    for (task in tasks) {
+        val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+        val taskStartDate = Instant.fromEpochMilliseconds(effectiveTime)
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+        val taskEndDate = task.endTime?.let {
+            Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        } ?: taskStartDate
+
+        val startYearMonth = taskStartDate.year * 12 + taskStartDate.monthNumber
+        val endYearMonth = taskEndDate.year * 12 + taskEndDate.monthNumber
+
+        if (targetYearMonth in startYearMonth..endYearMonth) {
+            val taskEarliestInMonth = if (startYearMonth == targetYearMonth) {
+                taskStartDate
+            } else {
+                monthStart
+            }
+            if (earliest == null || taskEarliestInMonth < earliest) {
+                earliest = taskEarliestInMonth
+            }
+        }
+    }
+    return earliest
+}
+

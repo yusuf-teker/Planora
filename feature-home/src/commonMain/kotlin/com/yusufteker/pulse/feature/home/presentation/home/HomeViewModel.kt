@@ -24,6 +24,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.atStartOfDayIn
 import com.yusufteker.pulse.core.utils.getCurrentTimeMs
 import com.yusufteker.pulse.feature.home.domain.use_case.GetFilteredTasksUseCase
+import com.yusufteker.pulse.feature.home.domain.use_case.getEarliestEventDateInMonth
 import com.yusufteker.pulse.feature.home.domain.use_case.SubmitSmartInputUseCase
 import com.yusufteker.pulse.feature.home.presentation.home.HomeEffect.*
 import com.yusufteker.pulse.shared.api.TaskDto
@@ -138,9 +139,15 @@ class HomeViewModel(
                         }
 
                         setState {
+                            val nowMs = getCurrentTimeMs()
+                            val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            val visibleMonth = visibleCalendarMonth ?: LocalDate(todayDate.year, todayDate.monthNumber, 1)
+                            val monthTasks = getFilteredTasks(myTasks = filteredTasks, calendarMonth = visibleMonth, calendarDate = null)
+                            val selectedDate = selectedCalendarDate ?: getEarliestEventDateInMonth(monthTasks, visibleMonth)
                             copy(
                                 allFetchedTasks = filteredTasks,
-                                upcomingTasks = getFilteredTasks(myTasks = filteredTasks),
+                                selectedCalendarDate = selectedDate,
+                                upcomingTasks = getFilteredTasks(myTasks = filteredTasks, calendarDate = selectedDate),
                                 hasLoadedTasks = true,
                                 isLoadingMoreFutureTasks = false
                             )
@@ -253,9 +260,19 @@ class HomeViewModel(
             
             is HomeEvent.ViewOptionChanged -> {
                 setState {
+                    val nowMs = getCurrentTimeMs()
+                    val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val visibleMonth = visibleCalendarMonth ?: LocalDate(todayDate.year, todayDate.monthNumber, 1)
+                    val monthTasks = getFilteredTasks(myTasks = allFetchedTasks, viewOpt = event.option, calendarMonth = visibleMonth, calendarDate = null)
+                    val selectedDate = if (event.option == TimelineViewOption.CALENDAR && selectedCalendarDate == null) {
+                        getEarliestEventDateInMonth(monthTasks, visibleMonth)
+                    } else {
+                        selectedCalendarDate
+                    }
                     copy(
                         viewOption = event.option,
-                        upcomingTasks = getFilteredTasks(viewOpt = event.option)
+                        selectedCalendarDate = selectedDate,
+                        upcomingTasks = getFilteredTasks(viewOpt = event.option, calendarDate = selectedDate)
                     )
                 }
                 // Persist selected view option
@@ -276,9 +293,12 @@ class HomeViewModel(
             
             is HomeEvent.CalendarMonthChanged -> {
                 setState {
+                    val monthTasks = getFilteredTasks(calendarMonth = event.monthStart, calendarDate = null)
+                    val earliestDate = getEarliestEventDateInMonth(monthTasks, event.monthStart)
                     copy(
                         visibleCalendarMonth = event.monthStart,
-                        upcomingTasks = getFilteredTasks(calendarMonth = event.monthStart)
+                        selectedCalendarDate = earliestDate,
+                        upcomingTasks = getFilteredTasks(calendarMonth = event.monthStart, calendarDate = earliestDate)
                     )
                 }
                 // Sadece bu ay daha önce sunucudan çekilmediyse istek at (mükerrer istekleri önler)
