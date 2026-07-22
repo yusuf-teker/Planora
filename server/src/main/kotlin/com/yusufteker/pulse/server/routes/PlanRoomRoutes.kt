@@ -34,6 +34,11 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import io.ktor.server.request.receiveMultipart
+import io.ktor.http.content.PartData
+import io.ktor.http.content.streamProvider
+import io.ktor.http.content.forEachPart
+import com.yusufteker.pulse.server.service.CloudinaryService
 import java.time.Instant
 import java.util.UUID
 
@@ -117,6 +122,7 @@ fun Route.planRoomRoutes() {
                             name = roomEntity.name,
                             creatorId = roomEntity.creator.id.value,
                             createdAt = roomEntity.createdAt,
+                            imageUrl = roomEntity.imageUrl,
                             members = roomMembers
                         )
                     }
@@ -171,6 +177,7 @@ fun Route.planRoomRoutes() {
                         name = room.name,
                         creatorId = user.id.value,
                         createdAt = room.createdAt,
+                        imageUrl = room.imageUrl,
                         members = listOf(
                             PlanRoomMemberDto(
                                 roomId = roomId,
@@ -381,6 +388,7 @@ fun Route.planRoomRoutes() {
                             name = roomEntity?.name ?: "Unknown Room",
                             creatorId = roomEntity?.creator?.id?.value ?: 0,
                             createdAt = roomEntity?.createdAt ?: 0L,
+                            imageUrl = roomEntity?.imageUrl,
                             members = PlanRoomMembersTable.selectAll().where {
                                 PlanRoomMembersTable.roomId eq roomId
                             }.map { memberRow ->
@@ -472,6 +480,121 @@ fun Route.planRoomRoutes() {
                 } else {
                     call.respond(HttpStatusCode.BadRequest, "Cannot leave room (creator or not a member)")
                 }
+            }
+
+            // 6. Odadan üye çıkarma (Sadece kurucu/admin)
+            delete("/{roomId}/members/{targetUserId}") {
+                val principal = call.principal<JWTPrincipal>()
+                val currentUserId = principal?.payload?.getClaim("userId")?.asInt()
+                val roomId = call.parameters["roomId"]
+                val targetUserId = call.parameters["targetUserId"]?.toIntOrNull()
+
+                if (currentUserId == null || roomId == null || targetUserId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid parameters")
+                    return@delete
+                }
+
+                val result = dbQuery {
+                    val room = PlanRoomEntity.findById(roomId) ?: return@dbQuery "ROOM_NOT_FOUND"
+
+                    // Sadece odanın kurucusu veya ADMIN yetkisi olanlar üye çıkarabilir
+                    val isCreator = room.creator.id.value == currentUserId
+                    val callerMember = PlanRoomMembersTable.selectAll().where {
+                        (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq currentUserId)
+                    }.singleOrNull()
+
+                    val isAdmin = callerMember?.get(PlanRoomMembersTable.role) == RoomMemberRole.ADMIN &&
+                                  callerMember.get(PlanRoomMembersTable.status) == RoomMemberStatus.ACCEPTED
+
+                    if (!isCreator && !isAdmin) {
+                        return@dbQuery "FORBIDDEN"
+                    }
+
+                    // Odayı kuran kişi odadan çıkarılamaz
+                    if (targetUserId == room.creator.id.value) {
+                        return@dbQuery "CANNOT_REMOVE_CREATOR"
+                    }
+
+                    val deletedCount = PlanRoomMembersTable.deleteWhere {
+                        (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq targetUserId)
+                    }
+
+                    if (deletedCount > 0) "SUCCESS" else "MEMBER_NOT_FOUND"
+                }
+
+                when (result) {
+                    "SUCCESS" -> call.respond(HttpStatusCode.OK, "Member removed successfully")
+                    "FORBIDDEN" -> call.respond(HttpStatusCode.Forbidden, "You do not have permission to remove members")
+                    "CANNOT_REMOVE_CREATOR" -> call.respond(HttpStatusCode.BadRequest, "Cannot remove the room creator")
+                    "ROOM_NOT_FOUND" -> call.respond(HttpStatusCode.NotFound, "Room not found")
+                    else -> call.respond(HttpStatusCode.NotFound, "Member not found in room")
+                }
+            }
+
+            // 7. Oda resmi yükleme / değiştirme (Cloudinary) - Herhangi bir üye yapabilir
+            post("/{roomId}/image") {
+                val principal = call.principal<JWTPrincipal>()
+                val currentUserId = principal?.payload?.getClaim("userId")?.asInt()
+                val roomId = call.parameters["roomId"]
+
+                if (currentUserId == null || roomId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@post
+                }
+
+                // Kullanıcının odada aktif üye olduğunu kontrol et
+                val isMember = dbQuery {
+                    PlanRoomMembersTable.selectAll().where {
+                        (PlanRoomMembersTable.roomId eq roomId) and 
+                        (PlanRoomMembersTable.userId eq currentUserId) and 
+                        (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED)
+                    }.count() > 0
+                }
+
+                if (!isMember) {
+                    call.respond(HttpStatusCode.Forbidden, "You must be an accepted member of this room")
+                    return@post
+                }
+
+                val multipartData = call.receiveMultipart()
+                var imageBytes: ByteArray? = null
+
+                multipartData.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        imageBytes = part.streamProvider().readBytes()
+                    }
+                    part.dispose()
+                }
+
+                if (imageBytes == null) {
+                    call.respond(HttpStatusCode.BadRequest, "No image file provided")
+                    return@post
+                }
+
+                var oldImageUrl: String? = null
+                dbQuery {
+                    val room = PlanRoomEntity.findById(roomId)
+                    oldImageUrl = room?.imageUrl
+                }
+
+                val secureUrl = try {
+                    CloudinaryService.uploadRoomImage(imageBytes!!, roomId)
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to upload room image: ${e.message}")
+                    return@post
+                }
+
+                // Eski resim varsa Cloudinary'den sil
+                if (!oldImageUrl.isNullOrBlank()) {
+                    CloudinaryService.deleteImageByUrl(oldImageUrl!!)
+                }
+
+                dbQuery {
+                    val room = PlanRoomEntity.findById(roomId)
+                    room?.imageUrl = secureUrl
+                }
+
+                call.respond(HttpStatusCode.OK, mapOf("imageUrl" to secureUrl))
             }
 
         }

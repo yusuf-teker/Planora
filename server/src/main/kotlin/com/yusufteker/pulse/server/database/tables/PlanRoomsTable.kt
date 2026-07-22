@@ -21,6 +21,9 @@ object PlanRoomsTable : IdTable<String>("plan_rooms") {
     // Odanın oluşturulma tarihi (Unix timestamp formatında). Sıralama ve geçmiş verileri çekerken kullanılır.
     val createdAt = long("created_at")
 
+    // Odaya ait kapak/profil resmi URL'si (Cloudinary)
+    val imageUrl = varchar("image_url", 500).nullable()
+
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -30,4 +33,5 @@ class PlanRoomEntity(id: org.jetbrains.exposed.dao.id.EntityID<String>) : org.je
     var name by PlanRoomsTable.name
     var creator by UserEntity referencedOn PlanRoomsTable.creatorId
     var createdAt by PlanRoomsTable.createdAt
+    var imageUrl by PlanRoomsTable.imageUrl
 }

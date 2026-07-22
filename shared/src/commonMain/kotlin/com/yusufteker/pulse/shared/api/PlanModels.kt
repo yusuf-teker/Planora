@@ -153,6 +153,7 @@ data class PlanRoomDto(
     val name: String,
     val creatorId: Int,
     val createdAt: Long,
+    val imageUrl: String? = null,
     val members: List<PlanRoomMemberDto> = emptyList()
 )
 

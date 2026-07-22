@@ -45,6 +45,26 @@ object CloudinaryService {
         }
     }
     /**
+     * Uploads an image byte array to Cloudinary for a Plan Room and returns the secure URL.
+     */
+    suspend fun uploadRoomImage(imageBytes: ByteArray, roomId: String): String {
+        return withContext(Dispatchers.IO) {
+            val publicId = "pulse_room_${roomId}_${UUID.randomUUID()}"
+            val uploadResult = cloudinary.uploader().upload(
+                imageBytes,
+                ObjectUtils.asMap(
+                    "public_id", publicId,
+                    "folder", "room_pictures",
+                    "overwrite", true,
+                    "resource_type", "image"
+                )
+            )
+            val secureUrl = uploadResult["secure_url"] as? String
+            secureUrl ?: throw Exception("Cloudinary did not return a secure_url")
+        }
+    }
+
+    /**
      * Extracts public_id from secure URL and deletes it from Cloudinary.
      */
     suspend fun deleteImageByUrl(url: String) {
