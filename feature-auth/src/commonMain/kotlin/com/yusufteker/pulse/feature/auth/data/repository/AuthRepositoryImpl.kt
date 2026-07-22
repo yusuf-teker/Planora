@@ -137,4 +137,29 @@ class AuthRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun forgotPassword(email: String): Result<Unit> {
+        return try {
+            httpClient.post("auth/forgot-password") {
+                setBody(com.yusufteker.pulse.shared.api.ForgotPasswordRequest(email))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e("ForgotPassword request failed: ${e.message}", e, tag = "HTTP_LOG")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit> {
+        return try {
+            httpClient.post("auth/reset-password") {
+                setBody(com.yusufteker.pulse.shared.api.ResetPasswordRequest(email, code, newPassword))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e("ResetPassword request failed: ${e.message}", e, tag = "HTTP_LOG")
+            Result.failure(e)
+        }
+    }
 }
+

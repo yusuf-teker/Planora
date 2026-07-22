@@ -3,6 +3,7 @@ package com.yusufteker.pulse.feature.auth.di
 import com.yusufteker.pulse.feature.auth.data.repository.AuthRepositoryImpl
 import com.yusufteker.pulse.feature.auth.domain.repository.AuthRepository
 import com.yusufteker.pulse.feature.auth.domain.usecase.*
+import com.yusufteker.pulse.feature.auth.presentation.forgot_password.ForgotPasswordViewModel
 import com.yusufteker.pulse.feature.auth.presentation.login.LoginViewModel
 import com.yusufteker.pulse.feature.auth.presentation.onboarding.OnboardingViewModel
 import com.yusufteker.pulse.feature.auth.presentation.register.RegisterViewModel
@@ -29,4 +30,7 @@ val authModule = module {
     viewModelOf(::OnboardingViewModel)
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
+    viewModelOf(::ForgotPasswordViewModel)
 }
+
+

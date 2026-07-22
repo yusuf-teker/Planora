@@ -43,4 +43,15 @@ interface AuthRepository {
      * Registers the FCM token with the backend.
      */
     suspend fun registerFcmToken(token: String): Result<Unit>
+
+    /**
+     * Requests a password reset OTP code to be sent to the user's email.
+     */
+    suspend fun forgotPassword(email: String): Result<Unit>
+
+    /**
+     * Resets the user's password using the received OTP code.
+     */
+    suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit>
 }
+

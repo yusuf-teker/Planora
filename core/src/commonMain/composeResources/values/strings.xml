@@ -422,4 +422,19 @@
     <string name="toast_room_image_updated_success">Room image updated successfully</string>
     <string name="room_members_title">Room Members</string>
     <string name="action_manage_members">Manage Members</string>
+
+    <!-- Forgot Password -->
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="forgot_password_subtitle">Enter your registered email address to receive a 6-digit reset code.</string>
+    <string name="forgot_password_link">Forgot Password?</string>
+    <string name="forgot_password_step2_subtitle">Enter the 6-digit code sent to your email and choose a new password.</string>
+    <string name="action_send_code">Send Reset Code</string>
+    <string name="action_reset_password">Reset Password</string>
+    <string name="reset_code_label">Verification Code</string>
+    <string name="new_password_label">New Password</string>
+    <string name="code_sent_success">A 6-digit reset code has been sent to your email.</string>
+    <string name="password_reset_success">Your password has been reset successfully. You can now login.</string>
+    <string name="error_enter_valid_email">Please enter a valid email address.</string>
+    <string name="error_enter_code">Please enter the 6-digit verification code.</string>
 </resources>
+

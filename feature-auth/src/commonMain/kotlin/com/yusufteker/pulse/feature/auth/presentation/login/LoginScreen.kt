@@ -154,9 +154,26 @@ fun LoginScreen(
             shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        // Forgot password link
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(
+                onClick = { navigator.navigate(Screen.ForgotPassword) }
+            ) {
+                Text(
+                    text = stringResource(Res.string.forgot_password_link),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Login button
+
         Button(
             onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
             enabled = !state.isLoading,

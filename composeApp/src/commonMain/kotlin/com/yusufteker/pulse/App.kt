@@ -232,7 +232,15 @@ fun App() {
                         )
                     }
 
+                    entry<Screen.ForgotPassword> {
+                        val viewModel = koinViewModel<com.yusufteker.pulse.feature.auth.presentation.forgot_password.ForgotPasswordViewModel>()
+                        com.yusufteker.pulse.feature.auth.presentation.forgot_password.ForgotPasswordScreen(
+                            viewModel = viewModel
+                        )
+                    }
+
                     // ── Main Graph (Container for Bottom Navigation) ─────────
+
                     entry<Screen.Main> {
                         MainScreen()
                     }
@@ -330,7 +338,8 @@ fun App() {
                             onNavigateBack = { navigator.pop() },
                             onNavigateToFocus = { id -> navigator.navigate(Screen.Focus(taskId = id)) },
                             onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
-                            onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) }
+                            onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },
+                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
                         )
                     }
 
@@ -375,7 +384,8 @@ fun App() {
                             onNavigateToCreateTask = { parentId -> navigator.navigate(Screen.TaskEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
                             onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
                             onNavigateToEditTask = { taskId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = screen.planRoomId)) },
-                            onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) }
+                            onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },
+                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
                         )
                     }
 

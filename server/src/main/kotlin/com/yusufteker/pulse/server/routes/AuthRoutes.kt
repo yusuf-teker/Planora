@@ -19,7 +19,9 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.or
+import org.jetbrains.exposed.sql.and
 import java.time.Instant
+
 
 /**
  * Defines all Authentication endpoints.
@@ -147,7 +149,104 @@ fun Route.authRoutes() {
             call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.avatarId, user.profileImageUrl))
         }
 
-        // --- 4. PROTECTED ENDPOINT (Sadece giriş yapmış kullanıcılar girebilir) ---
+        // --- 4. FORGOT PASSWORD ENDPOINT ---
+        post("/forgot-password") {
+            val request = call.receive<com.yusufteker.pulse.shared.api.ForgotPasswordRequest>()
+            val user = dbQuery {
+                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+            }
+
+            // Güvenlik: Kullanıcı bulunamazsa da aynı mesajı dönerek e-posta keşfini (enumeration) engelliyoruz.
+            if (user != null) {
+                // 6 haneli rastgele OTP kodu üret
+                val resetCode = (100000..999999).random().toString()
+                val expiresAt = Instant.now().plus(java.time.Duration.ofMinutes(15))
+
+                dbQuery {
+                    // Kullanıcının daha önceki aktif reset token'larını temizle
+                    com.yusufteker.pulse.server.database.tables.PasswordResetTokenEntity.find {
+                        com.yusufteker.pulse.server.database.tables.PasswordResetTokensTable.userId eq user.id.value
+                    }.forEach { it.delete() }
+
+                    // Yeni token kaydet
+                    com.yusufteker.pulse.server.database.tables.PasswordResetTokenEntity.new {
+                        this.user = user
+                        this.token = resetCode
+                        this.expiresAt = expiresAt
+                        this.createdAt = Instant.now()
+                    }
+                }
+
+                // Resend e-posta servisi ile doğrulama kodunu gönder
+                com.yusufteker.pulse.server.service.ResendEmailService.sendPasswordResetEmail(user.email, resetCode)
+            }
+
+            call.respond(HttpStatusCode.OK, mapOf("message" to "If an account with this email exists, a password reset code has been sent."))
+        }
+
+        // --- 5. VERIFY RESET CODE ENDPOINT ---
+        post("/verify-reset-code") {
+            val request = call.receive<com.yusufteker.pulse.shared.api.VerifyResetCodeRequest>()
+            val user = dbQuery {
+                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+            }
+
+            if (user == null) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid reset code or email")
+                return@post
+            }
+
+            val resetTokenEntity = dbQuery {
+                com.yusufteker.pulse.server.database.tables.PasswordResetTokenEntity.find {
+                    (com.yusufteker.pulse.server.database.tables.PasswordResetTokensTable.userId eq user.id.value) and
+                    (com.yusufteker.pulse.server.database.tables.PasswordResetTokensTable.token eq request.code)
+                }.firstOrNull()
+            }
+
+            if (resetTokenEntity == null || resetTokenEntity.expiresAt.isBefore(Instant.now())) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid or expired reset code")
+                return@post
+            }
+
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Code verified successfully"))
+        }
+
+        // --- 6. RESET PASSWORD ENDPOINT ---
+        post("/reset-password") {
+            val request = call.receive<com.yusufteker.pulse.shared.api.ResetPasswordRequest>()
+            val user = dbQuery {
+                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+            }
+
+            if (user == null) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid reset code or email")
+                return@post
+            }
+
+            val resetTokenEntity = dbQuery {
+                com.yusufteker.pulse.server.database.tables.PasswordResetTokenEntity.find {
+                    (com.yusufteker.pulse.server.database.tables.PasswordResetTokensTable.userId eq user.id.value) and
+                    (com.yusufteker.pulse.server.database.tables.PasswordResetTokensTable.token eq request.code)
+                }.firstOrNull()
+            }
+
+            if (resetTokenEntity == null || resetTokenEntity.expiresAt.isBefore(Instant.now())) {
+                call.respond(HttpStatusCode.BadRequest, "Invalid or expired reset code")
+                return@post
+            }
+
+            // Yeni şifreyi BCrypt ile hashle ve güncelle
+            val newHashedPassword = HashingService.hashPassword(request.newPassword)
+            dbQuery {
+                user.passwordHash = newHashedPassword
+                resetTokenEntity.delete() // Kullanılan token'ı sil
+            }
+
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Password reset successfully"))
+        }
+
+        // --- 7. PROTECTED ENDPOINT (Sadece giriş yapmış kullanıcılar girebilir) ---
+
         // `authenticate("auth-jwt")` bloğu, Security.kt içerisinde ayarladığımız kuralı çalıştırır.
         // Gelen Header'da "Bearer <token>" yoksa Ktor otomatik olarak 401 Unauthorized döner, aşağıdaki kod hiç çalışmaz.
         authenticate("auth-jwt") {

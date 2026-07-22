@@ -96,3 +96,31 @@ data class FollowRequestResponse(
 data class SearchUsersResponse(
     val users: List<UserProfileResponse>
 )
+
+/**
+ * Request payload sent by client to request a password reset email/code.
+ */
+@Serializable
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+/**
+ * Request payload sent by client to verify a password reset code.
+ */
+@Serializable
+data class VerifyResetCodeRequest(
+    val email: String,
+    val code: String
+)
+
+/**
+ * Request payload sent by client to reset password using verified code.
+ */
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)
+

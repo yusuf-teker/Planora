@@ -32,6 +32,10 @@ sealed interface Screen {
     @Serializable
     data object Register : Screen
 
+    /** Forgot password screen */
+    @Serializable
+    data object ForgotPassword : Screen
+
     // ── Main Graph (Container for Bottom Navigation) ─────────
     
     /** Main container screen holding the Bottom Navigation */

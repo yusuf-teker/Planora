@@ -422,4 +422,19 @@
     <string name="toast_room_image_updated_success">Oda resmi güncellendi</string>
     <string name="room_members_title">Oda Üyeleri</string>
     <string name="action_manage_members">Üyeleri Yönet</string>
+
+    <!-- Forgot Password -->
+    <string name="forgot_password_title">Şifremi Unuttum</string>
+    <string name="forgot_password_subtitle">6 haneli şifre sıfırlama kodunu almak için kayıtlı e-posta adresinizi girin.</string>
+    <string name="forgot_password_link">Şifrenizi mi unuttunuz?</string>
+    <string name="forgot_password_step2_subtitle">E-posta adresinize gönderilen 6 haneli kodu ve yeni şifrenizi girin.</string>
+    <string name="action_send_code">Kod Gönder</string>
+    <string name="action_reset_password">Şifreyi Sıfırla</string>
+    <string name="reset_code_label">Doğrulama Kodu</string>
+    <string name="new_password_label">Yeni Şifre</string>
+    <string name="code_sent_success">6 haneli doğrulama kodu e-postanıza gönderildi.</string>
+    <string name="password_reset_success">Şifreniz başarıyla sıfırlandı. Giriş yapabilirsiniz.</string>
+    <string name="error_enter_valid_email">Lütfen geçerli bir e-posta adresi girin.</string>
+    <string name="error_enter_code">Lütfen 6 haneli doğrulama kodunu girin.</string>
 </resources>
+
