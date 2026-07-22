@@ -51,9 +51,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PersonRemove
 import coil3.compose.AsyncImage
 import com.yusufteker.pulse.core.ui.components.getOptimizedCloudinaryUrl
-import com.preat.peekaboo.image.picker.SelectionMode
-import com.preat.peekaboo.image.picker.ResizeOptions
-import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
+import com.yusufteker.pulse.core.ui.components.rememberAppImagePickerLauncher
 import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,13 +122,9 @@ fun PlanRoomDetailScreen(
         }
     }
     
-    val coroutineScope = rememberCoroutineScope()
-    val roomImagePickerLauncher = rememberImagePickerLauncher(
-        selectionMode = SelectionMode.Single,
-        scope = coroutineScope,
-        resizeOptions = ResizeOptions(width = 500, height = 500, compressionQuality = 0.8),
-        onResult = { byteArrays ->
-            byteArrays.firstOrNull()?.let { bytes ->
+    val roomImagePickerLauncher = rememberAppImagePickerLauncher(
+        onResult = { bytes ->
+            if (bytes != null) {
                 viewModel.onEvent(PlanRoomDetailEvent.OnRoomImageSelected(bytes))
             }
         }

@@ -44,8 +44,8 @@ import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.*
 import androidx.compose.foundation.Image
-import kotlin.collections.getOrNull
 import com.yusufteker.pulse.core.ui.components.AvatarImage
+import com.yusufteker.pulse.core.ui.components.rememberAppImagePickerLauncher
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
@@ -54,8 +54,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import com.yusufteker.pulse.core.navigation.Screen.MainDestination
 import androidx.compose.ui.graphics.Brush
-import com.preat.peekaboo.image.picker.SelectionMode
-import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
@@ -108,16 +106,9 @@ fun ProfileScreen(
                 .padding(paddingValues)
                 .safeContentPadding()
         ) {
-            val imagePickerLauncher = rememberImagePickerLauncher(
-                selectionMode = SelectionMode.Single,
-                scope = coroutineScope,
-                resizeOptions = com.preat.peekaboo.image.picker.ResizeOptions(
-                    width = 400,
-                    height = 400,
-                    compressionQuality = 0.7
-                ),
-                onResult = { byteArrays ->
-                    byteArrays.firstOrNull()?.let { imageBytes ->
+            val imagePickerLauncher = rememberAppImagePickerLauncher(
+                onResult = { imageBytes ->
+                    if (imageBytes != null) {
                         viewModel.onEvent(ProfileEvent.ProfileImageSelected(imageBytes))
                     }
                 }

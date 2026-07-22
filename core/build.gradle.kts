@@ -86,10 +86,14 @@ kotlin {
             api(libs.coil.compose)
             api(libs.coil.network.ktor)
 
+            // Peekaboo Image Picker
+            api(libs.peekaboo.image.picker)
+
             implementation(project(":shared"))
         }
 
         androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
             implementation(libs.sqldelight.android.driver)
