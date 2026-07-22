@@ -20,8 +20,13 @@ import pulsy.core.generated.resources.invitation_sent_success
 import pulsy.core.generated.resources.room_created_success
 import pulsy.core.generated.resources.room_joined_success
 
+import com.yusufteker.pulse.feature.home.domain.repository.ProfileRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+
 class PlanRoomsViewModel(
     private val planRepository: PlanRepository,
+    private val profileRepository: ProfileRepository,
     private val snackbarManager: SnackbarManager
 ) : BaseViewModel<PlanRoomsState, PlanRoomsEvent, PlanRoomsEffect>(PlanRoomsState()) {
 
@@ -30,14 +35,36 @@ class PlanRoomsViewModel(
         viewModelScope.launch {
             planRepository.observeAllPlanRooms().collect { rooms ->
                 setState { copy(rooms = rooms) }
+                loadMissingMemberProfiles(rooms)
             }
-            // üye sayıs
         }
 
-        
         // ViewModel başlatıldığında odaları ve davetleri sunucudan yükle
         onEvent(PlanRoomsEvent.LoadRooms)
         onEvent(PlanRoomsEvent.LoadPendingInvitations)
+    }
+
+    private fun loadMissingMemberProfiles(rooms: List<com.yusufteker.pulse.shared.api.PlanRoomDto>) {
+        val currentProfiles = state.value.memberProfiles.toMutableMap()
+        val allMemberUserIds = rooms.flatMap { room -> room.members.map { it.userId } }.distinct()
+        val missingUserIds = allMemberUserIds.filter { !currentProfiles.containsKey(it) }
+
+        if (missingUserIds.isEmpty()) return
+
+        viewModelScope.launch {
+            val deferred = missingUserIds.map { userId ->
+                async {
+                    userId to profileRepository.getProfile(userId.toString())
+                }
+            }
+            val results = deferred.awaitAll()
+            results.forEach { (userId, result) ->
+                result.onSuccess { profile ->
+                    currentProfiles[userId] = profile
+                }
+            }
+            setState { copy(memberProfiles = currentProfiles.toMap()) }
+        }
     }
 
     override fun onEvent(event: PlanRoomsEvent) {

@@ -48,6 +48,14 @@ data class PlanRoomDetailState(
     val selectedMemberUserIdFilter: Int? = null,
     val roomColor: String? = null,
     
+    // Room Details & Image
+    val roomImageUrl: String? = null,
+    val isUploadingImage: Boolean = false,
+    
+    // Member Removal
+    val memberToRemove: UserProfileResponse? = null,
+    val isRemoveMemberDialogOpen: Boolean = false,
+    
     // Room Tasks State
     val roomTasks: List<com.yusufteker.pulse.shared.api.TaskDto> = emptyList(),
     val myUserId: String = ""

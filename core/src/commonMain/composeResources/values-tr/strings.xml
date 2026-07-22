@@ -413,4 +413,13 @@
     <string name="onboarding_logo_revision">Logo Revizyonu</string>
     <string name="onboarding_ui_review">UI İncelemesi</string>
     <string name="onboarding_members_count">%1$s üye</string>
+
+    <string name="action_remove_member">Üyeyi Çıkar</string>
+    <string name="confirm_remove_member_title">Üyeyi Çıkar</string>
+    <string name="confirm_remove_member_msg">%1$s kişisini bu plan odasından çıkarmak istediğinizden emin misiniz?</string>
+    <string name="action_change_room_image">Oda Resmini Değiştir</string>
+    <string name="toast_member_removed_success">Üye odadan çıkarıldı</string>
+    <string name="toast_room_image_updated_success">Oda resmi güncellendi</string>
+    <string name="room_members_title">Oda Üyeleri</string>
+    <string name="action_manage_members">Üyeleri Yönet</string>
 </resources>

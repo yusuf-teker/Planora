@@ -36,5 +36,11 @@ sealed interface PlanRoomDetailEvent : com.yusufteker.pulse.core.base.UiEvent {
     object OnCalendarPreviousMonth : PlanRoomDetailEvent
     object OnCalendarNextMonth : PlanRoomDetailEvent
     object OnCopyInviteLinkClick : PlanRoomDetailEvent
+
+    // Room Image & Member Removal Events
+    data class OnRoomImageSelected(val imageBytes: ByteArray) : PlanRoomDetailEvent
+    data class OnRemoveMemberClick(val user: com.yusufteker.pulse.shared.api.UserProfileResponse) : PlanRoomDetailEvent
+    object OnConfirmRemoveMember : PlanRoomDetailEvent
+    object OnDismissRemoveMemberDialog : PlanRoomDetailEvent
 }
 

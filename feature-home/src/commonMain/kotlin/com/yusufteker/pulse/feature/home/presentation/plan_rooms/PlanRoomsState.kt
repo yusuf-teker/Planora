@@ -8,6 +8,7 @@ import com.yusufteker.pulse.shared.api.PlanRoomDto
 data class PlanRoomsState(
     val isLoading: Boolean = false,
     val rooms: List<PlanRoomDto> = emptyList(), // Local DB'den veya API'den çekilecek odalar
+    val memberProfiles: Map<Int, com.yusufteker.pulse.shared.api.UserProfileResponse> = emptyMap(),
     val pendingInvitations: List<PlanRoomDto> = emptyList(),
     
     // UI State for Dialogs/BottomSheets

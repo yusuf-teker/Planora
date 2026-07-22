@@ -827,6 +827,7 @@ class PlanRepositoryImpl(
                         name = room.name,
                         creatorId = room.creatorId.toLong(),
                         createdAt = room.createdAt,
+                        imageUrl = room.imageUrl,
                         isSynced = 1L
                     )
                     room.members.forEach { member ->
@@ -855,6 +856,7 @@ class PlanRepositoryImpl(
                     name = room.name,
                     creatorId = room.creatorId.toLong(),
                     createdAt = room.createdAt,
+                    imageUrl = room.imageUrl,
                     isSynced = 1L
                 )
                 room.members.forEach { member ->
@@ -941,6 +943,27 @@ class PlanRepositoryImpl(
         }
     }
 
+    override suspend fun removeMemberFromRoom(roomId: String, targetUserId: Int): Result<Unit> {
+        return try {
+            planApi.removeMemberFromRoom(roomId, targetUserId)
+            database.pulsyDatabaseQueries.deleteMemberFromRoom(roomId = roomId, userId = targetUserId.toLong())
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun uploadRoomImage(roomId: String, imageBytes: ByteArray): Result<String> {
+        return try {
+            val response = planApi.uploadRoomImage(roomId, imageBytes)
+            val secureUrl = response["imageUrl"] ?: throw Exception("No imageUrl in upload response")
+            database.pulsyDatabaseQueries.updatePlanRoomImage(imageUrl = secureUrl, id = roomId)
+            Result.success(secureUrl)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun observeAllPlanRooms(): Flow<List<PlanRoomDto>> {
         return database.pulsyDatabaseQueries.getAllPlanRooms()
             .asFlow()
@@ -961,6 +984,7 @@ class PlanRepositoryImpl(
                         name = entity.name,
                         creatorId = entity.creatorId.toInt(),
                         createdAt = entity.createdAt,
+                        imageUrl = entity.imageUrl,
                         members = members
                     )
                 }

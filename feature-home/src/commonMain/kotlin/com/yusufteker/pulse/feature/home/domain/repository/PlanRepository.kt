@@ -43,6 +43,8 @@ interface PlanRepository {
     suspend fun renameRoom(roomId: String, name: String): Result<Unit>
     suspend fun deleteRoom(roomId: String): Result<Unit>
     suspend fun leaveRoom(roomId: String): Result<Unit>
+    suspend fun removeMemberFromRoom(roomId: String, targetUserId: Int): Result<Unit>
+    suspend fun uploadRoomImage(roomId: String, imageBytes: ByteArray): Result<String>
     
     fun observeAllPlanRooms(): Flow<List<PlanRoomDto>>
 

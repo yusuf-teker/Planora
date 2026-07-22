@@ -109,6 +109,7 @@ CREATE TABLE planRoomEntity (
     name TEXT NOT NULL,
     creatorId INTEGER NOT NULL,
     createdAt INTEGER NOT NULL,
+    imageUrl TEXT,
     isSynced INTEGER NOT NULL DEFAULT 1
 );
 
@@ -158,8 +159,8 @@ CREATE TABLE taskSharedRoomEntity (
 
 -- PlanRoom Sorguları
 insertPlanRoom:
-INSERT OR REPLACE INTO planRoomEntity(id, name, creatorId, createdAt, isSynced)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO planRoomEntity(id, name, creatorId, createdAt, imageUrl, isSynced)
+VALUES (?, ?, ?, ?, ?, ?);
 
 getAllPlanRooms:
 SELECT * FROM planRoomEntity;
@@ -170,6 +171,9 @@ DELETE FROM planRoomEntity;
 updatePlanRoomName:
 UPDATE planRoomEntity SET name = :name WHERE id = :id;
 
+updatePlanRoomImage:
+UPDATE planRoomEntity SET imageUrl = :imageUrl WHERE id = :id;
+
 deletePlanRoom:
 DELETE FROM planRoomEntity WHERE id = :id;
 
@@ -177,6 +181,9 @@ DELETE FROM planRoomEntity WHERE id = :id;
 insertPlanRoomMember:
 INSERT OR REPLACE INTO planRoomMemberEntity(roomId, userId, status, role, joinedAt)
 VALUES (?, ?, ?, ?, ?);
+
+deleteMemberFromRoom:
+DELETE FROM planRoomMemberEntity WHERE roomId = :roomId AND userId = :userId;
 
 getMembersForRoom:
 SELECT * FROM planRoomMemberEntity WHERE roomId = :roomId;

@@ -110,6 +110,20 @@ class PlanRoomDetailViewModel(
                     setEffect(PlanRoomDetailEffect.ShowToast(getString(Res.string.invite_link_copied)))
                 }
             }
+            is PlanRoomDetailEvent.OnRoomImageSelected -> uploadRoomImage(event.imageBytes)
+            is PlanRoomDetailEvent.OnRemoveMemberClick -> {
+                setState { copy(memberToRemove = event.user, isRemoveMemberDialogOpen = true) }
+            }
+            PlanRoomDetailEvent.OnConfirmRemoveMember -> {
+                val member = currentState.memberToRemove
+                setState { copy(isRemoveMemberDialogOpen = false, memberToRemove = null) }
+                if (member != null) {
+                    removeMember(member.id)
+                }
+            }
+            PlanRoomDetailEvent.OnDismissRemoveMemberDialog -> {
+                setState { copy(isRemoveMemberDialogOpen = false, memberToRemove = null) }
+            }
         }
     }
     
@@ -133,7 +147,7 @@ class PlanRoomDetailViewModel(
                 if (room != null) {
                     val myUserId = sessionPreferences.getUserId() ?: ""
                     val isCreator = room.creatorId.toString() == myUserId
-                    setState { copy(roomName = room.name, isRoomCreator = isCreator, myUserId = myUserId, isLoading = false) }
+                    setState { copy(roomName = room.name, roomImageUrl = room.imageUrl, isRoomCreator = isCreator, myUserId = myUserId, isLoading = false) }
                     
                     // Fetch missing profiles for members concurrently
                     val currentProfiles = currentState.memberProfiles.toMutableMap()
@@ -302,6 +316,56 @@ class PlanRoomDetailViewModel(
                 setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
                 kotlinx.coroutines.delay(100)
                 setEffect(PlanRoomDetailEffect.NavigateBack)
+            } else {
+                val e = result.exceptionOrNull()
+                setEffect(PlanRoomDetailEffect.ShowToast(e?.message ?: failureMsg))
+            }
+        }
+    }
+
+    private fun uploadRoomImage(imageBytes: ByteArray) {
+        val roomId = currentState.roomId
+        if (roomId.isBlank()) return
+
+        viewModelScope.launch {
+            val successMsg = getString(Res.string.toast_room_image_updated_success)
+            val failureMsg = getString(Res.string.error_operation_failed)
+
+            setState { copy(isUploadingImage = true) }
+            val result = planRepository.uploadRoomImage(roomId, imageBytes)
+            setState { copy(isUploadingImage = false) }
+
+            if (result.isSuccess) {
+                val imageUrl = result.getOrNull()
+                setState { copy(roomImageUrl = imageUrl) }
+                setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
+            } else {
+                val e = result.exceptionOrNull()
+                setEffect(PlanRoomDetailEffect.ShowToast(e?.message ?: failureMsg))
+            }
+        }
+    }
+
+    private fun removeMember(targetUserId: Int) {
+        val roomId = currentState.roomId
+        if (roomId.isBlank()) return
+
+        viewModelScope.launch {
+            val successMsg = getString(Res.string.toast_member_removed_success)
+            val failureMsg = getString(Res.string.error_operation_failed)
+
+            setState { copy(isLoading = true) }
+            val result = planRepository.removeMemberFromRoom(roomId, targetUserId)
+            setState { copy(isLoading = false) }
+
+            if (result.isSuccess) {
+                val updatedProfiles = currentState.memberProfiles.toMutableMap().apply {
+                    remove(targetUserId)
+                }
+                val currentFilter = currentState.selectedMemberUserIdFilter
+                val nextFilter = if (currentFilter == targetUserId) null else currentFilter
+                setState { copy(memberProfiles = updatedProfiles.toMap(), selectedMemberUserIdFilter = nextFilter) }
+                setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
             } else {
                 val e = result.exceptionOrNull()
                 setEffect(PlanRoomDetailEffect.ShowToast(e?.message ?: failureMsg))

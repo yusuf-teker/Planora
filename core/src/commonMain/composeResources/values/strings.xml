@@ -413,4 +413,13 @@
     <string name="onboarding_logo_revision">Logo Revision</string>
     <string name="onboarding_ui_review">UI Review</string>
     <string name="onboarding_members_count">%1$s members</string>
+
+    <string name="action_remove_member">Remove Member</string>
+    <string name="confirm_remove_member_title">Remove Member</string>
+    <string name="confirm_remove_member_msg">Are you sure you want to remove %1$s from this plan room?</string>
+    <string name="action_change_room_image">Change Room Cover</string>
+    <string name="toast_member_removed_success">Member removed successfully</string>
+    <string name="toast_room_image_updated_success">Room image updated successfully</string>
+    <string name="room_members_title">Room Members</string>
+    <string name="action_manage_members">Manage Members</string>
 </resources>

@@ -15,6 +15,11 @@ import io.ktor.client.request.put
 import io.ktor.client.request.delete
 import io.ktor.client.request.setBody
 
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
+
 class PlanApi(private val httpClient: HttpClient) {
 
     // --- TASK ENDPOINTS ---
@@ -98,6 +103,23 @@ class PlanApi(private val httpClient: HttpClient) {
 
     suspend fun leaveRoom(roomId: String) {
         httpClient.post("rooms/$roomId/leave")
+    }
+
+    suspend fun removeMemberFromRoom(roomId: String, targetUserId: Int) {
+        httpClient.delete("rooms/$roomId/members/$targetUserId")
+    }
+
+    suspend fun uploadRoomImage(roomId: String, imageBytes: ByteArray): Map<String, String> {
+        return httpClient.post("rooms/$roomId/image") {
+            setBody(MultiPartFormDataContent(
+                formData {
+                    append("image", imageBytes, Headers.build {
+                        append(HttpHeaders.ContentType, "image/jpeg")
+                        append(HttpHeaders.ContentDisposition, "filename=\"room.jpg\"")
+                    })
+                }
+            ))
+        }.body()
     }
 
     suspend fun getMyPendingInvitations(): List<PlanRoomDto> {

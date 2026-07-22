@@ -47,6 +47,13 @@ import com.yusufteker.pulse.feature.home.presentation.plan_room_detail.component
 import com.yusufteker.pulse.core.ui.components.AvatarImage
 
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PersonRemove
+import coil3.compose.AsyncImage
+import com.yusufteker.pulse.core.ui.components.getOptimizedCloudinaryUrl
+import com.preat.peekaboo.image.picker.SelectionMode
+import com.preat.peekaboo.image.picker.ResizeOptions
+import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
 import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,10 +124,70 @@ fun PlanRoomDetailScreen(
         }
     }
     
+    val coroutineScope = rememberCoroutineScope()
+    val roomImagePickerLauncher = rememberImagePickerLauncher(
+        selectionMode = SelectionMode.Single,
+        scope = coroutineScope,
+        resizeOptions = ResizeOptions(width = 500, height = 500, compressionQuality = 0.8),
+        onResult = { byteArrays ->
+            byteArrays.firstOrNull()?.let { bytes ->
+                viewModel.onEvent(PlanRoomDetailEvent.OnRoomImageSelected(bytes))
+            }
+        }
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.roomName.ifBlank { stringResource(Res.string.room_detail_default_title) }) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .clickable { roomImagePickerLauncher.launch() }
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (!state.roomImageUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = getOptimizedCloudinaryUrl(state.roomImageUrl!!),
+                                    contentDescription = "Oda Resmi",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = stringResource(Res.string.action_change_room_image),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            if (state.isUploadingImage) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                        .background(Color.Black.copy(alpha = 0.4f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = state.roomName.ifBlank { stringResource(Res.string.room_detail_default_title) },
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnBackClick) }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null)
@@ -138,6 +205,16 @@ fun PlanRoomDetailScreen(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.action_change_room_image)) },
+                            onClick = {
+                                showMenu = false
+                                roomImagePickerLauncher.launch()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.CameraAlt, contentDescription = null)
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.action_edit_room)) },
                             onClick = {
@@ -276,18 +353,53 @@ fun PlanRoomDetailScreen(
                             }
                             items(state.memberProfiles.values.toList(), key = { it.id }) { user ->
                                 val isSelected = state.selectedMemberUserIdFilter == user.id
-                                AvatarImage(
-                                    avatarId = user.avatarId,
-                                    profileImageUrl = user.profileImageUrl,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .border(
-                                            width = if (isSelected) 3.dp else 1.dp,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                            shape = CircleShape
+                                var showMemberMenu by remember { mutableStateOf(false) }
+
+                                Box {
+                                    AvatarImage(
+                                        avatarId = user.avatarId,
+                                        profileImageUrl = user.profileImageUrl,
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .border(
+                                                width = if (isSelected) 3.dp else 1.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                                shape = CircleShape
+                                            )
+                                            .clickable { 
+                                                if (state.isRoomCreator && user.id.toString() != state.myUserId) {
+                                                    showMemberMenu = true
+                                                } else {
+                                                    viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id))
+                                                }
+                                            }
+                                    )
+
+                                    DropdownMenu(
+                                        expanded = showMemberMenu,
+                                        onDismissRequest = { showMemberMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(user.name, fontWeight = FontWeight.Bold) },
+                                            onClick = {
+                                                showMemberMenu = false
+                                                viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id))
+                                            }
                                         )
-                                        .clickable { viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id)) }
-                                )
+                                        if (state.isRoomCreator && user.id.toString() != state.myUserId) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.action_remove_member), color = MaterialTheme.colorScheme.error) },
+                                                onClick = {
+                                                    showMemberMenu = false
+                                                    viewModel.onEvent(PlanRoomDetailEvent.OnRemoveMemberClick(user))
+                                                },
+                                                leadingIcon = {
+                                                    Icon(Icons.Default.PersonRemove, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -590,6 +702,27 @@ fun PlanRoomDetailScreen(
                 }
             }
         }
+    }
+
+    if (state.isRemoveMemberDialogOpen && state.memberToRemove != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRemoveMemberDialog) },
+            title = { Text(stringResource(Res.string.confirm_remove_member_title)) },
+            text = { Text(stringResource(Res.string.confirm_remove_member_msg, state.memberToRemove?.name ?: "")) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnConfirmRemoveMember) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.action_remove_member))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRemoveMemberDialog) }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
     }
 }
 

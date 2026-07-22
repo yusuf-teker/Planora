@@ -22,6 +22,19 @@ import androidx.compose.ui.unit.dp
 import com.yusufteker.pulse.shared.api.PlanRoomDto
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import coil3.compose.AsyncImage
+import com.yusufteker.pulse.core.ui.components.AvatarImage
+import com.yusufteker.pulse.core.ui.components.getOptimizedCloudinaryUrl
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,6 +118,7 @@ fun PlanRoomsScreen(
                     items(state.rooms, key = { it.id }) { room ->
                         RoomItem(
                             room = room,
+                            memberProfiles = state.memberProfiles,
                             onClick = { onEvent(PlanRoomsEvent.OnRoomClick(room.id)) }
                         )
                     }
@@ -228,41 +242,145 @@ fun PlanRoomsScreen(
 @Composable
 fun RoomItem(
     room: PlanRoomDto,
+    memberProfiles: Map<Int, com.yusufteker.pulse.shared.api.UserProfileResponse>,
     onClick: () -> Unit
 ) {
-    OutlinedCard(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(20.dp))
             .clickable { onClick() },
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         ),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = room.name, 
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${room.members.size} üye",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Room Image / Cover Avatar
+            val imageUrl = room.imageUrl
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.tertiaryContainer
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = getOptimizedCloudinaryUrl(imageUrl),
+                        contentDescription = room.name,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = room.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Room Title & Overlapping Member Avatars
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = room.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.onboarding_members_count, room.members.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    if (room.members.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Overlapping Member Avatars Row (up to 3 members)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val maxVisible = 3
+                            val displayedMembers = room.members.take(maxVisible)
+                            val remainingCount = room.members.size - displayedMembers.size
+
+                            displayedMembers.forEachIndexed { index, member ->
+                                val profile = memberProfiles[member.userId]
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = (-8 * index).dp)
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AvatarImage(
+                                        avatarId = profile?.avatarId ?: "avatar_1",
+                                        profileImageUrl = profile?.profileImageUrl,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+
+                            if (remainingCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = (-8 * displayedMembers.size).dp)
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+$remainingCount",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             Icon(
                 imageVector = Icons.Default.ArrowForward,
                 contentDescription = "Detay",
