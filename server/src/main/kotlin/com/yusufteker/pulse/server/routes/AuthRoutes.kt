@@ -7,6 +7,7 @@ import com.yusufteker.pulse.server.database.tables.UserEntity
 import com.yusufteker.pulse.server.database.tables.UsersTable
 import com.yusufteker.pulse.server.security.HashingService
 import com.yusufteker.pulse.server.security.TokenService
+import com.yusufteker.pulse.server.service.EmailService
 import com.yusufteker.pulse.shared.api.AuthRequest
 import com.yusufteker.pulse.shared.api.AuthResponse
 import com.yusufteker.pulse.shared.api.RefreshTokenRequest
@@ -177,8 +178,8 @@ fun Route.authRoutes() {
                     }
                 }
 
-                // Resend e-posta servisi ile doğrulama kodunu gönder
-                com.yusufteker.pulse.server.service.ResendEmailService.sendPasswordResetEmail(user.email, resetCode)
+                // E-posta servisi (Gmail SMTP) ile doğrulama kodunu gönder
+                EmailService.sendPasswordResetEmail(user.email, resetCode)
             }
 
             call.respond(HttpStatusCode.OK, mapOf("message" to "If an account with this email exists, a password reset code has been sent."))

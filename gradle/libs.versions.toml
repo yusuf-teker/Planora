@@ -8,6 +8,7 @@ androidx-appcompat = "1.7.1"
 androidx-core = "1.19.0"
 androidx-lifecycle = "2.11.0-beta01"
 composeMultiplatform = "1.11.1"
+javaxMail = "1.6.2"
 kotlin = "2.4.0"
 mediapipe-tasks-genai = "0.10.35"
 
@@ -69,6 +70,7 @@ google-ai-edge = "0.9.0"
 
 [libraries]
 # Kotlin
+javax-mail = { module = "com.sun.mail:javax.mail", version.ref = "javaxMail" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
 # Compose

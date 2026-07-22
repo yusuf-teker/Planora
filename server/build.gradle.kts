@@ -44,4 +44,7 @@ dependencies {
 
     // Cloudinary
     implementation("com.cloudinary:cloudinary-http44:1.36.0")
+
+    // JavaMail for SMTP Email sending
+    implementation(libs.javax.mail)
 }

@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.pulse.core.base.CollectEffect
 import com.yusufteker.pulse.core.navigation.LocalNavigator
 import com.yusufteker.pulse.core.navigation.Screen
+import com.yusufteker.pulse.core.theme.PulsyTheme
 import org.jetbrains.compose.resources.stringResource
 import pulsy.core.generated.resources.Res
 import pulsy.core.generated.resources.action_reset_password
@@ -70,6 +71,17 @@ fun ForgotPasswordScreen(
         }
     }
 
+    ForgotPasswordContent(
+        state = state,
+        onEvent = viewModel::onEvent
+    )
+}
+
+@Composable
+private fun ForgotPasswordContent(
+    state: ForgotPasswordState,
+    onEvent: (ForgotPasswordEvent) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -85,9 +97,9 @@ fun ForgotPasswordScreen(
             IconButton(
                 onClick = {
                     if (state.isCodeSent) {
-                        viewModel.onEvent(ForgotPasswordEvent.BackToEmailClicked)
+                        onEvent(ForgotPasswordEvent.BackToEmailClicked)
                     } else {
-                        viewModel.onEvent(ForgotPasswordEvent.BackToLoginClicked)
+                        onEvent(ForgotPasswordEvent.BackToLoginClicked)
                     }
                 }
             ) {
@@ -126,7 +138,7 @@ fun ForgotPasswordScreen(
             // STEP 1: Enter Email
             OutlinedTextField(
                 value = state.email,
-                onValueChange = { viewModel.onEvent(ForgotPasswordEvent.EmailChanged(it)) },
+                onValueChange = { onEvent(ForgotPasswordEvent.EmailChanged(it)) },
                 label = { Text(stringResource(Res.string.email)) },
                 isError = state.emailError != null,
                 supportingText = state.emailError?.let { error ->
@@ -144,7 +156,7 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { viewModel.onEvent(ForgotPasswordEvent.SendCodeClicked) },
+                onClick = { onEvent(ForgotPasswordEvent.SendCodeClicked) },
                 enabled = !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -166,7 +178,7 @@ fun ForgotPasswordScreen(
             // STEP 2: Enter 6-digit Code & New Password
             OutlinedTextField(
                 value = state.code,
-                onValueChange = { if (it.length <= 6) viewModel.onEvent(ForgotPasswordEvent.CodeChanged(it)) },
+                onValueChange = { if (it.length <= 6) onEvent(ForgotPasswordEvent.CodeChanged(it)) },
                 label = { Text(stringResource(Res.string.reset_code_label)) },
                 isError = state.codeError != null,
                 supportingText = state.codeError?.let { error ->
@@ -185,7 +197,7 @@ fun ForgotPasswordScreen(
 
             OutlinedTextField(
                 value = state.newPassword,
-                onValueChange = { viewModel.onEvent(ForgotPasswordEvent.NewPasswordChanged(it)) },
+                onValueChange = { onEvent(ForgotPasswordEvent.NewPasswordChanged(it)) },
                 label = { Text(stringResource(Res.string.new_password_label)) },
                 isError = state.passwordError != null,
                 supportingText = state.passwordError?.let { error ->
@@ -198,7 +210,7 @@ fun ForgotPasswordScreen(
                 },
                 trailingIcon = {
                     IconButton(
-                        onClick = { viewModel.onEvent(ForgotPasswordEvent.TogglePasswordVisibility) }
+                        onClick = { onEvent(ForgotPasswordEvent.TogglePasswordVisibility) }
                     ) {
                         Icon(
                             imageVector = if (state.isPasswordVisible) {
@@ -226,7 +238,7 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { viewModel.onEvent(ForgotPasswordEvent.ResetPasswordClicked) },
+                onClick = { onEvent(ForgotPasswordEvent.ResetPasswordClicked) },
                 enabled = !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -248,7 +260,7 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(
-                onClick = { viewModel.onEvent(ForgotPasswordEvent.BackToEmailClicked) },
+                onClick = { onEvent(ForgotPasswordEvent.BackToEmailClicked) },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text(
@@ -260,3 +272,5 @@ fun ForgotPasswordScreen(
         }
     }
 }
+
+
