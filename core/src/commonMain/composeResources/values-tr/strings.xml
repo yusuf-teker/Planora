@@ -238,7 +238,7 @@
     <string name="ai_chip_add_task_label">📋 Görev ekle</string>
     <string name="ai_chip_add_task_value">yapmam lazım: </string>
     <string name="ai_chip_plan_meeting_label">📅 Toplantı planla</string>
-    <string name="ai_chip_plan_meeting_value">yarın saat \'te toplantı </string>
+    <string name="ai_chip_plan_meeting_value">yarın saat 'te toplantı </string>
     <string name="ai_chip_take_note_label">📝 Not al</string>
     <string name="ai_chip_take_note_value">not al: </string>
     <string name="info_login_required_social">Sosyal ağı görmek için giriş yapmalısınız.</string>

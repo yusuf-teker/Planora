@@ -16,7 +16,7 @@
     <string name="action_login">Log in</string>
     <string name="action_register">Sign up</string>
     <string name="login_subtitle">Sign into your account</string>
-    <string name="no_account_prompt">Don\'t have an account?</string>
+    <string name="no_account_prompt">Don't have an account?</string>
     <string name="register_subtitle">Create a new account</string>
     <string name="already_have_account_prompt">Already have an account?</string>
     
@@ -36,7 +36,7 @@
     <string name="onboarding_title_2">Plan Rooms</string>
     <string name="onboarding_desc_2">Create shared rooms with your friends and collaborate on tasks together.</string>
     <string name="onboarding_title_3">Social Calendars</string>
-    <string name="onboarding_desc_3">View your friends\' calendars and discover their upcoming plans easily.</string>
+    <string name="onboarding_desc_3">View your friends' calendars and discover their upcoming plans easily.</string>
     <string name="onboarding_title_4">Pulsy AI</string>
     <string name="onboarding_desc_4">Let the AI organize your life. Just tell it what you need to do.</string>
     <string name="action_skip">Skip</string>
@@ -148,7 +148,7 @@
     <string name="action_save_draft">Save Draft</string>
     <string name="action_show_more">+ More</string>
     <string name="action_hide">- Hide</string>
-    <string name="create_post_placeholder">What\'s on your mind? (Select to format)</string>
+    <string name="create_post_placeholder">What's on your mind? (Select to format)</string>
     <string name="action_edit_room">Edit Room</string>
     <string name="action_delete_room">Delete Room</string>
     <string name="action_add_task">Add Task</string>
@@ -322,7 +322,7 @@
     <string name="reminder_1_week">1 week before</string>
     <string name="post_draft_label">Draft</string>
     <string name="post_pending_label">Pending Send</string>
-    <string name="empty_pending_posts_desc">You don\'t have any pending posts in the queue yet.</string>
+    <string name="empty_pending_posts_desc">You don't have any pending posts in the queue yet.</string>
     <string name="action_prev_month">Previous Month</string>
     <string name="action_next_month">Next Month</string>
     <string name="empty_events_today">No events for today.</string>
