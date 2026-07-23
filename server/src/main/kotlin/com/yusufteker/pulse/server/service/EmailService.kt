@@ -3,117 +3,136 @@ package com.yusufteker.pulse.server.service
 import io.github.cdimascio.dotenv.Dotenv
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.Properties
-import javax.mail.Authenticator
-import javax.mail.Message
-import javax.mail.PasswordAuthentication
-import javax.mail.Session
-import javax.mail.Transport
-import javax.mail.internet.InternetAddress
-import javax.mail.internet.MimeMessage
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 
 /**
- * Service for sending emails using SMTP (e.g., Gmail SMTP).
- * Defaults to Port 465 (SSL/SMTPS) which is supported on cloud environments like Render.
+ * Service for sending emails using Google Apps Script Web App (HTTPS Proxy over Port 443).
+ *
+ * Bypasses cloud provider (Render, etc.) SMTP port blocks completely.
  */
 object EmailService {
 
     private val dotenv = Dotenv.configure().ignoreIfMissing().load()
 
-    private val smtpHost: String
-        get() = System.getenv("SMTP_HOST") ?: dotenv["SMTP_HOST"] ?: "smtp.gmail.com"
+    private val scriptUrl: String?
+        get() = System.getenv("GMAIL_SCRIPT_URL") ?: dotenv["GMAIL_SCRIPT_URL"]
 
-    private val smtpPort: String
-        get() = System.getenv("SMTP_PORT") ?: dotenv["SMTP_PORT"] ?: "465"
-
-    private val username: String?
-        get() = System.getenv("SMTP_USERNAME") 
-            ?: System.getenv("GMAIL_USERNAME") 
-            ?: dotenv["SMTP_USERNAME"] 
-            ?: dotenv["GMAIL_USERNAME"]
-
-    private val password: String?
-        get() = System.getenv("SMTP_PASSWORD") 
-            ?: System.getenv("GMAIL_PASSWORD") 
-            ?: dotenv["SMTP_PASSWORD"] 
-            ?: dotenv["GMAIL_PASSWORD"]
+    // Google Apps Script redirects HTTP POST (302), so ALWAYS follow redirects.
+    private val httpClient = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.ALWAYS)
+        .connectTimeout(Duration.ofSeconds(15))
+        .build()
 
     /**
-     * Sends a password reset OTP code email to the specified recipient using SMTP.
+     * Sends a custom email to the specified recipient.
+     *
+     * @param toEmail Recipient email address.
+     * @param subject Email subject line.
+     * @param htmlContent HTML body content of the email.
+     * @return `true` if email request was dispatched successfully, `false` otherwise.
+     */
+    suspend fun sendEmail(toEmail: String, subject: String, htmlContent: String): Boolean {
+        val url = scriptUrl
+        if (url.isNullOrEmpty()) {
+            System.err.println("EmailService: GMAIL_SCRIPT_URL is not set in environment or .env file.")
+            return false
+        }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val escapedHtml = htmlContent
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "")
+
+                val escapedSubject = subject
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+
+                val jsonPayload = """
+                    {
+                        "secret": "pulse_mail_secret_123",
+                        "to": "$toEmail",
+                        "subject": "$escapedSubject",
+                        "html": "$escapedHtml"
+                    }
+                """.trimIndent()
+
+                val request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(20))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build()
+
+                val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+                if (response.statusCode() in 200..299) {
+                    println("EmailService: Email successfully sent to $toEmail. Response: ${response.body()}")
+                    true
+                } else {
+                    System.err.println("EmailService: Failed to send email. Code: ${response.statusCode()}, Body: ${response.body()}")
+                    false
+                }
+            } catch (e: Exception) {
+                System.err.println("EmailService: Exception while sending email via Google Script: ${e.message}")
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    /**
+     * Sends a password reset OTP code email to the specified recipient.
      *
      * @param toEmail Recipient email address.
      * @param resetCode 6-digit OTP code generated for password reset.
      * @return `true` if email was dispatched successfully, `false` otherwise.
      */
     suspend fun sendPasswordResetEmail(toEmail: String, resetCode: String): Boolean {
-        val user = username
-        val pass = password
+        val subject = "Pulse - Şifre Sıfırlama Kodu / Password Reset Code"
+        val htmlContent = """
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                <h2 style="color: #6200EE; text-align: center;">Pulse App</h2>
+                <p>Merhaba,</p>
+                <p>Pulse hesabınız için bir şifre sıfırlama talebinde bulundunuz. Şifrenizi değiştirmek için aşağıdaki 6 haneli doğrulama kodunu kullanabilirsiniz:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; text-align: center; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">
+                    $resetCode
+                </div>
+                <p style="margin-top: 20px;">Bu kod <strong>15 dakika</strong> boyunca geçerlidir. Eğer şifre sıfırlama talebinde bulunmadıysanız bu e-postayı dikkate almayınız.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="font-size: 12px; color: #888; text-align: center;">Pulse Team</p>
+            </div>
+        """.trimIndent()
 
-        if (user.isNullOrEmpty() || pass.isNullOrEmpty()) {
-            System.err.println("EmailService: SMTP_USERNAME or SMTP_PASSWORD is not set. Cannot send password reset email.")
-            return false
-        }
+        return sendEmail(toEmail, subject, htmlContent)
+    }
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val port = smtpPort
-                val isSslPort = port == "465"
+    /**
+     * Sends an account welcome / verification email to a newly registered user.
+     *
+     * @param toEmail Recipient email address.
+     * @param userName Name of the user.
+     * @return `true` if email was dispatched successfully, `false` otherwise.
+     */
+    suspend fun sendWelcomeEmail(toEmail: String, userName: String): Boolean {
+        val subject = "Pulse'a Hoş Geldiniz! / Welcome to Pulse!"
+        val htmlContent = """
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                <h2 style="color: #6200EE; text-align: center;">Pulse App</h2>
+                <p>Merhaba <strong>$userName</strong>,</p>
+                <p>Pulse ailesine katıldığınız için teşekkür ederiz! Hesabınız başarıyla oluşturuldu.</p>
+                <p>Artık görevlerinizi yönetebilir, oda oluşturabilir ve ekibinizle senkronize çalışabilirsiniz.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="font-size: 12px; color: #888; text-align: center;">Pulse Team</p>
+            </div>
+        """.trimIndent()
 
-                val props = Properties().apply {
-                    put("mail.smtp.auth", "true")
-                    put("mail.smtp.host", smtpHost)
-                    put("mail.smtp.port", port)
-                    put("mail.smtp.connectiontimeout", "10000") // 10 seconds timeout
-                    put("mail.smtp.timeout", "10000")
-                    put("mail.smtp.writetimeout", "10000")
-
-                    if (isSslPort) {
-                        put("mail.smtp.ssl.enable", "true")
-                        put("mail.smtp.socketFactory.port", port)
-                        put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
-                        put("mail.smtp.socketFactory.fallback", "false")
-                    } else {
-                        put("mail.smtp.starttls.enable", "true")
-                        put("mail.smtp.ssl.protocols", "TLSv1.2")
-                    }
-                }
-
-                val session = Session.getInstance(props, object : Authenticator() {
-                    override fun getPasswordAuthentication(): PasswordAuthentication {
-                        return PasswordAuthentication(user, pass)
-                    }
-                })
-
-                val subject = "Pulse - Şifre Sıfırlama Kodu / Password Reset Code"
-                val htmlContent = """
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                        <h2 style="color: #6200EE; text-align: center;">Pulse App</h2>
-                        <p>Merhaba,</p>
-                        <p>Pulse hesabınız için bir şifre sıfırlama talebinde bulundunuz. Şifrenizi değiştirmek için aşağıdaki 6 haneli doğrulama kodunu kullanabilirsiniz:</p>
-                        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">
-                            $resetCode
-                        </div>
-                        <p style="margin-top: 20px;">Bu kod <strong>15 dakika</strong> boyunca geçerlidir. Eğer şifre sıfırlama talebinde bulunmadıysanız bu e-postayı dikkate almayınız.</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <p style="font-size: 12px; color: #888; text-align: center;">Pulse Team</p>
-                    </div>
-                """.trimIndent()
-
-                val message = MimeMessage(session).apply {
-                    setFrom(InternetAddress(user, "Pulse App"))
-                    setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail))
-                    setSubject(subject, "UTF-8")
-                    setContent(htmlContent, "text/html; charset=UTF-8")
-                }
-
-                Transport.send(message)
-                println("EmailService: Email successfully sent to $toEmail via SMTP (Port $port)")
-                true
-            } catch (e: Exception) {
-                System.err.println("EmailService: Exception while sending email via SMTP: ${e.message}")
-                e.printStackTrace()
-                false
-            }
-        }
+        return sendEmail(toEmail, subject, htmlContent)
     }
 }

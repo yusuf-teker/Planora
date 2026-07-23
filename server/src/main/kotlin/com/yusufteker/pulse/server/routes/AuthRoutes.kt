@@ -22,6 +22,9 @@ import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.and
 import java.time.Instant
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 /**
@@ -77,6 +80,11 @@ fun Route.authRoutes() {
                     expiresAt = Instant.now().plusMillis(TokenService.REFRESH_TOKEN_EXPIRATION)
                     createdAt = Instant.now()
                 }
+            }
+
+            // Kayıt olan kullanıcıya hoş geldin e-postasını arka planda gönderiyoruz.
+            CoroutineScope(Dispatchers.IO).launch {
+                EmailService.sendWelcomeEmail(newUser.email, newUser.name)
             }
 
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
@@ -178,8 +186,10 @@ fun Route.authRoutes() {
                     }
                 }
 
-                // E-posta servisi (Gmail SMTP) ile doğrulama kodunu gönder
-                EmailService.sendPasswordResetEmail(user.email, resetCode)
+                // E-posta gönderimini arka planda (asenkron) yapıyoruz ki mobil uygulama beklemede (loading) kalmasın
+                CoroutineScope(Dispatchers.IO).launch {
+                    EmailService.sendPasswordResetEmail(user.email, resetCode)
+                }
             }
 
             call.respond(HttpStatusCode.OK, mapOf("message" to "If an account with this email exists, a password reset code has been sent."))
