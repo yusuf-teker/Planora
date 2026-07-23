@@ -422,6 +422,9 @@
     <string name="toast_room_image_updated_success">Oda resmi güncellendi</string>
     <string name="room_members_title">Oda Üyeleri</string>
     <string name="action_manage_members">Üyeleri Yönet</string>
+    <string name="title_room_settings">Oda Ayarları</string>
+    <string name="role_creator">Kurucu</string>
+    <string name="section_add_members">Kişi Ekle</string>
 
     <!-- Forgot Password -->
     <string name="forgot_password_title">Şifremi Unuttum</string>

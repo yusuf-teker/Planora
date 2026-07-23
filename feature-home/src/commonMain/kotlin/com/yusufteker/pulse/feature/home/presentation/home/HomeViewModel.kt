@@ -45,6 +45,7 @@ class HomeViewModel(
     initialState = HomeState()
 ) {
     private val fetchedMonths = mutableSetOf<LocalDate>()
+    private var isInitialFetchCompleted = false
 
     override fun onCleared() {
         Napier.d ("HomeViewModel CLEARED: ${this.hashCode()}")
@@ -138,6 +139,10 @@ class HomeViewModel(
                             kotlinx.coroutines.delay(1000)
                         }
 
+                        // Determine whether initial task load has finished:
+                        // If DB already has tasks (cached/offline data) OR initial network fetch completed.
+                        val shouldMarkLoaded = filteredTasks.isNotEmpty() || isInitialFetchCompleted
+
                         setState {
                             val nowMs = getCurrentTimeMs()
                             val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -148,7 +153,7 @@ class HomeViewModel(
                                 allFetchedTasks = filteredTasks,
                                 selectedCalendarDate = selectedDate,
                                 upcomingTasks = getFilteredTasks(myTasks = filteredTasks, calendarDate = selectedDate),
-                                hasLoadedTasks = true,
+                                hasLoadedTasks = shouldMarkLoaded,
                                 isLoadingMoreFutureTasks = false
                             )
                         }
@@ -162,12 +167,17 @@ class HomeViewModel(
             }
         }
 
-        // Trigger a background fetch
+        // Trigger initial network background fetch
         launch {
-            val now = getCurrentTimeMs()
-            planRepository.syncPendingChanges()
-            val oneYear = 86400000L * 365
-            planRepository.fetchMyTasks(fromTime = now - oneYear, toTime = now + oneYear)
+            try {
+                val now = getCurrentTimeMs()
+                planRepository.syncPendingChanges()
+                val oneYear = 86400000L * 365
+                planRepository.fetchMyTasks(fromTime = now - oneYear, toTime = now + oneYear)
+            } finally {
+                isInitialFetchCompleted = true
+                setState { copy(hasLoadedTasks = true) }
+            }
         }
 
         // Load accessible users for shared calendar

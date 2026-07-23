@@ -422,6 +422,9 @@
     <string name="toast_room_image_updated_success">Room image updated successfully</string>
     <string name="room_members_title">Room Members</string>
     <string name="action_manage_members">Manage Members</string>
+    <string name="title_room_settings">Room Settings</string>
+    <string name="role_creator">Creator</string>
+    <string name="section_add_members">Add Members</string>
 
     <!-- Forgot Password -->
     <string name="forgot_password_title">Forgot Password</string>

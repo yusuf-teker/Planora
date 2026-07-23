@@ -49,6 +49,10 @@ import com.yusufteker.pulse.core.ui.components.AvatarImage
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import coil3.compose.AsyncImage
 import com.yusufteker.pulse.core.ui.components.getOptimizedCloudinaryUrl
 import com.yusufteker.pulse.core.ui.components.rememberAppImagePickerLauncher
@@ -68,7 +72,7 @@ fun PlanRoomDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     
-    val filteredTasks = remember(state.roomTasks, state.selectedFilter, state.taskSearchQuery, state.selectedMemberUserIdFilter) {
+    val filteredTasks = remember(state.roomTasks, state.selectedFilter, state.taskSearchQuery, state.selectedMemberUserIdsFilter) {
         state.roomTasks.filter { task ->
             val matchesType = when (state.selectedFilter) {
                 RoomTaskFilter.ALL -> true
@@ -80,9 +84,9 @@ fun PlanRoomDetailScreen(
                 task.title.contains(state.taskSearchQuery, ignoreCase = true) ||
                 (task.description?.contains(state.taskSearchQuery, ignoreCase = true) == true)
                 
-            val matchesMember = state.selectedMemberUserIdFilter == null ||
-                task.creatorId == state.selectedMemberUserIdFilter ||
-                task.participants.any { it.userId == state.selectedMemberUserIdFilter }
+            val matchesMember = state.selectedMemberUserIdsFilter.isEmpty() ||
+                state.selectedMemberUserIdsFilter.contains(task.creatorId) ||
+                task.participants.any { state.selectedMemberUserIdsFilter.contains(it.userId) }
                 
             matchesType && matchesQuery && matchesMember
         }
@@ -340,13 +344,13 @@ fun PlanRoomDetailScreen(
                         ) {
                             item {
                                 FilterChip(
-                                    selected = state.selectedMemberUserIdFilter == null,
+                                    selected = state.selectedMemberUserIdsFilter.isEmpty(),
                                     onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(null)) },
                                     label = { Text(stringResource(Res.string.filter_member_all)) }
                                 )
                             }
                             items(state.memberProfiles.values.toList(), key = { it.id }) { user ->
-                                val isSelected = state.selectedMemberUserIdFilter == user.id
+                                val isSelected = state.selectedMemberUserIdsFilter.contains(user.id)
                                 var showMemberMenu by remember { mutableStateOf(false) }
 
                                 Box {
@@ -547,155 +551,26 @@ fun PlanRoomDetailScreen(
         }
     }
 
-    if (state.isInviteDialogOpen) {
-        Dialog(onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissInviteDialog) }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(Res.string.action_invite_person),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    OutlinedButton(
-                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnCopyInviteLinkClick) },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(Res.string.action_copy_invite_link))
-                    }
-                    
-                    OutlinedTextField(
-                        value = state.searchQuery,
-                        onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnSearchQueryChange(it)) },
-                        placeholder = { Text(stringResource(Res.string.search_following_placeholder)) },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        singleLine = true
-                    )
-
-                    
-                    if (state.isFollowingLoading) {
-                        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    } else if (state.inviteError != null) {
-                        Text(
-                            text = state.inviteError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                    } else if (state.followingUsers.isEmpty()) {
-                        Text(
-                            text = stringResource(Res.string.error_no_users_found),
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = 300.dp)
-                        ) {
-                            items(state.followingUsers, key = { it.id }) { user ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { viewModel.onEvent(PlanRoomDetailEvent.OnUserSelectToInvite(user.id)) }
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primaryContainer),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = user.name.take(1).uppercase(),
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    
-                                    Column {
-                                        Text(
-                                            text = user.name,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = "@${user.username}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    TextButton(
-                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissInviteDialog) },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text(stringResource(Res.string.action_close))
-                    }
-                }
+    if (state.isEditRoomBottomSheetOpen) {
+        EditRoomBottomSheet(
+            state = state,
+            onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissEditRoomBottomSheet) },
+            onRenameNameChange = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomNameChange(it)) },
+            onRenameSubmit = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomSubmit) },
+            onRoomImageClick = { roomImagePickerLauncher.launch() },
+            onSearchQueryChange = { viewModel.onEvent(PlanRoomDetailEvent.OnSearchQueryChange(it)) },
+            onUserSelectToInvite = { viewModel.onEvent(PlanRoomDetailEvent.OnUserSelectToInvite(it)) },
+            onCopyInviteLinkClick = { viewModel.onEvent(PlanRoomDetailEvent.OnCopyInviteLinkClick) },
+            onRemoveMemberClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRemoveMemberClick(it)) },
+            onDeleteRoomClick = {
+                viewModel.onEvent(PlanRoomDetailEvent.OnDismissEditRoomBottomSheet)
+                viewModel.onEvent(PlanRoomDetailEvent.OnDeleteRoomClick)
+            },
+            onLeaveRoomClick = {
+                viewModel.onEvent(PlanRoomDetailEvent.OnDismissEditRoomBottomSheet)
+                viewModel.onEvent(PlanRoomDetailEvent.OnLeaveRoomClick)
             }
-        }
-    }
-    
-    if (state.isRenameDialogOpen) {
-        Dialog(onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRenameDialog) }) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(Res.string.action_rename_room),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    OutlinedTextField(
-                        value = state.renameRoomName,
-                        onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomNameChange(it)) },
-                        label = { Text(stringResource(Res.string.room_name_label)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissRenameDialog) }) {
-                            Text(stringResource(Res.string.cancel))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRenameRoomSubmit) },
-                            enabled = state.renameRoomName.isNotBlank() && !state.isLoading
-                        ) {
-                            Text(stringResource(Res.string.save))
-                        }
-                    }
-                }
-            }
-        }
+        )
     }
 
     if (state.isRemoveMemberDialogOpen && state.memberToRemove != null) {
@@ -717,6 +592,345 @@ fun PlanRoomDetailScreen(
                 }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditRoomBottomSheet(
+    state: PlanRoomDetailState,
+    onDismissRequest: () -> Unit,
+    onRenameNameChange: (String) -> Unit,
+    onRenameSubmit: () -> Unit,
+    onRoomImageClick: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
+    onUserSelectToInvite: (Int) -> Unit,
+    onCopyInviteLinkClick: () -> Unit,
+    onRemoveMemberClick: (UserProfileResponse) -> Unit,
+    onDeleteRoomClick: () -> Unit,
+    onLeaveRoomClick: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            // Title Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(Res.string.title_room_settings),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismissRequest) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.action_close))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Room Image with Camera Icon Badge
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(84.dp)
+            ) {
+                AvatarImage(
+                    avatarId = null,
+                    profileImageUrl = state.roomImageUrl,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                )
+                Surface(
+                    onClick = onRoomImageClick,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .size(30.dp)
+                        .align(Alignment.BottomEnd)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = stringResource(Res.string.action_change_room_image),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 1. Rename Room Section
+            Text(
+                text = stringResource(Res.string.room_name_label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.renameRoomName,
+                    onValueChange = onRenameNameChange,
+                    placeholder = { Text(stringResource(Res.string.room_name_label)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    onClick = onRenameSubmit,
+                    enabled = state.renameRoomName.isNotBlank() && state.renameRoomName != state.roomName && !state.isLoading,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(stringResource(Res.string.save))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 2. Room Members Section
+            Text(
+                text = stringResource(Res.string.room_members_title) + " (${state.memberProfiles.size})",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                state.memberProfiles.values.forEach { user ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AvatarImage(
+                            avatarId = user.avatarId,
+                            profileImageUrl = user.profileImageUrl,
+                            modifier = Modifier.size(40.dp).clip(CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = user.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                if (user.id.toString() == state.myUserId && state.isRoomCreator) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.role_creator),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "@${user.username}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (state.isRoomCreator && user.id.toString() != state.myUserId) {
+                            IconButton(onClick = { onRemoveMemberClick(user) }) {
+                                Icon(
+                                    Icons.Default.PersonRemove,
+                                    contentDescription = stringResource(Res.string.action_remove_member),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 3. Add / Invite People Section
+            Text(
+                text = stringResource(Res.string.section_add_members),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onCopyInviteLinkClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(Res.string.action_copy_invite_link))
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text(stringResource(Res.string.search_following_placeholder)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (state.isFollowingLoading) {
+                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.inviteError != null) {
+                Text(
+                    text = state.inviteError,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else if (state.followingUsers.isEmpty()) {
+                Text(
+                    text = stringResource(Res.string.error_no_users_found),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    state.followingUsers.forEach { user ->
+                        val isAlreadyMember = state.memberProfiles.containsKey(user.id)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AvatarImage(
+                                avatarId = user.avatarId,
+                                profileImageUrl = user.profileImageUrl,
+                                modifier = Modifier.size(36.dp).clip(CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = user.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "@${user.username}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (isAlreadyMember) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.room_members_title),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            } else {
+                                FilledTonalButton(
+                                    onClick = { onUserSelectToInvite(user.id) },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(stringResource(Res.string.action_invite_person), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Danger Zone
+            if (state.isRoomCreator) {
+                OutlinedButton(
+                    onClick = onDeleteRoomClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(Res.string.action_delete_room))
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onLeaveRoomClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(Res.string.action_leave_room))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
 

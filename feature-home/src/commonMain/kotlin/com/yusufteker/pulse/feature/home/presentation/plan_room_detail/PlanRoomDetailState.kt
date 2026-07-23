@@ -26,7 +26,8 @@ data class PlanRoomDetailState(
     val searchQuery: String = "",
     val inviteError: String? = null,
     
-    // Rename & Dialog States
+    // Rename & Dialog & BottomSheet States
+    val isEditRoomBottomSheetOpen: Boolean = false,
     val isRenameDialogOpen: Boolean = false,
     val renameRoomName: String = "",
     val isRoomCreator: Boolean = false,
@@ -45,7 +46,7 @@ data class PlanRoomDetailState(
     // Room Members State
     val memberProfiles: Map<Int, UserProfileResponse> = emptyMap(),
     val isMembersLoading: Boolean = true,
-    val selectedMemberUserIdFilter: Int? = null,
+    val selectedMemberUserIdsFilter: Set<Int> = emptySet(),
     val roomColor: String? = null,
     
     // Room Details & Image

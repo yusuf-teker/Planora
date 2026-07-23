@@ -15,6 +15,7 @@ sealed interface PlanRoomDetailEvent : com.yusufteker.pulse.core.base.UiEvent {
     
     // Rename, Delete & Leave Room Events
     object OnEditRoomClick : PlanRoomDetailEvent
+    object OnDismissEditRoomBottomSheet : PlanRoomDetailEvent
     object OnDismissRenameDialog : PlanRoomDetailEvent
     data class OnRenameRoomNameChange(val name: String) : PlanRoomDetailEvent
     object OnRenameRoomSubmit : PlanRoomDetailEvent

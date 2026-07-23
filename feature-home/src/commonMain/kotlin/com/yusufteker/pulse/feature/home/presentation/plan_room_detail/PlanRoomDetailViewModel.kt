@@ -39,7 +39,10 @@ class PlanRoomDetailViewModel(
         when (event) {
             is PlanRoomDetailEvent.LoadRoom -> loadRoom(event.roomId)
             PlanRoomDetailEvent.OnBackClick -> setEffect(PlanRoomDetailEffect.NavigateBack)
-            PlanRoomDetailEvent.OnInviteUserClick -> openInviteDialog()
+            PlanRoomDetailEvent.OnInviteUserClick -> {
+                setState { copy(isEditRoomBottomSheetOpen = true, renameRoomName = currentState.roomName) }
+                openInviteDialog()
+            }
             PlanRoomDetailEvent.OnDismissInviteDialog -> setState { copy(isInviteDialogOpen = false) }
             PlanRoomDetailEvent.OnCreateTaskClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateTask(currentState.roomId))
             PlanRoomDetailEvent.OnCreateEventClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateEvent(currentState.roomId))
@@ -47,9 +50,13 @@ class PlanRoomDetailViewModel(
             is PlanRoomDetailEvent.OnUserSelectToInvite -> inviteUser(event.userId)
             is PlanRoomDetailEvent.OnTaskClick -> handleTaskClick(event.task)
             
-            // Rename Events
+            // Edit Room & Rename Events
             PlanRoomDetailEvent.OnEditRoomClick -> {
-                setState { copy(isRenameDialogOpen = true, renameRoomName = currentState.roomName) }
+                setState { copy(isEditRoomBottomSheetOpen = true, renameRoomName = currentState.roomName) }
+                openInviteDialog()
+            }
+            PlanRoomDetailEvent.OnDismissEditRoomBottomSheet -> {
+                setState { copy(isEditRoomBottomSheetOpen = false) }
             }
             PlanRoomDetailEvent.OnDismissRenameDialog -> {
                 setState { copy(isRenameDialogOpen = false) }
@@ -87,9 +94,15 @@ class PlanRoomDetailViewModel(
             is PlanRoomDetailEvent.OnTabSelected -> setState { copy(selectedTab = event.tab) }
             is PlanRoomDetailEvent.OnFilterSelected -> setState { copy(selectedFilter = event.filter) }
             is PlanRoomDetailEvent.OnMemberFilterSelected -> {
-                val current = currentState.selectedMemberUserIdFilter
-                val next = if (current == event.userId) null else event.userId
-                setState { copy(selectedMemberUserIdFilter = next) }
+                val current = currentState.selectedMemberUserIdsFilter
+                val next = if (event.userId == null) {
+                    emptySet()
+                } else if (current.contains(event.userId)) {
+                    current - event.userId
+                } else {
+                    current + event.userId
+                }
+                setState { copy(selectedMemberUserIdsFilter = next) }
             }
             is PlanRoomDetailEvent.OnTaskSearchQueryChange -> setState { copy(taskSearchQuery = event.query) }
             is PlanRoomDetailEvent.OnCalendarDateSelected -> setState { copy(calendarSelectedDate = event.date) }
@@ -271,6 +284,7 @@ class PlanRoomDetailViewModel(
             setState { copy(isLoading = false, isRenameDialogOpen = false) }
             
             if (result.isSuccess) {
+                setState { copy(roomName = newName) }
                 setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
             } else {
                 val e = result.exceptionOrNull()
@@ -362,9 +376,9 @@ class PlanRoomDetailViewModel(
                 val updatedProfiles = currentState.memberProfiles.toMutableMap().apply {
                     remove(targetUserId)
                 }
-                val currentFilter = currentState.selectedMemberUserIdFilter
-                val nextFilter = if (currentFilter == targetUserId) null else currentFilter
-                setState { copy(memberProfiles = updatedProfiles.toMap(), selectedMemberUserIdFilter = nextFilter) }
+                val currentFilter = currentState.selectedMemberUserIdsFilter
+                val nextFilter = currentFilter - targetUserId
+                setState { copy(memberProfiles = updatedProfiles.toMap(), selectedMemberUserIdsFilter = nextFilter) }
                 setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
             } else {
                 val e = result.exceptionOrNull()
