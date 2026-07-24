@@ -52,12 +52,28 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        let userInfo = notification.request.content.userInfo
+        if let type = userInfo["type"] as? String {
+            IosNotificationBridge.shared.handlePushData(type: type)
+        }
         completionHandler([[.banner, .list, .sound]])
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+        if let type = userInfo["type"] as? String {
+            IosNotificationBridge.shared.handlePushData(type: type)
+        }
+        completionHandler()
     }
 }
 
 @main
-struct PulseApp: App {
+struct PlanoraApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     init() {

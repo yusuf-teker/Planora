@@ -20,7 +20,7 @@ kotlin {
     }
 
     androidLibrary {
-        namespace = "com.yusufteker.pulse.feature.home"
+        namespace = "com.yusufteker.planora.feature.home"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

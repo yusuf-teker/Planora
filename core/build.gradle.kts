@@ -22,7 +22,7 @@ kotlin {
     }
 
     androidLibrary {
-        namespace = "com.yusufteker.pulse.core"
+        namespace = "com.yusufteker.planora.core"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
@@ -122,8 +122,8 @@ compose.resources {
 
 sqldelight {
     databases {
-        create("PulsyDatabase") {
-            packageName.set("com.yusufteker.pulse.core.database")
+        create("PlanoraDatabase") {
+            packageName.set("com.yusufteker.planora.core.database")
         }
     }
 }

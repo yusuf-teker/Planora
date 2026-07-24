@@ -1,0 +1,7 @@
+package com.yusufteker.planora.feature.home.presentation.event_detail
+
+sealed interface EventDetailEffect {
+    object NavigateBack : EventDetailEffect
+    data class ShowToast(val message: String) : EventDetailEffect
+    data class ShareItem(val url: String) : EventDetailEffect
+}

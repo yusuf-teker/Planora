@@ -10,7 +10,7 @@ The project follows a feature-based multi-module approach. This ensures separati
 - **`androidApp`**: The pure Android application entry point. It depends on `composeApp` and provides the Android `Application` class and configuration needed for Android build tools (AGP 9+ compatibility).
 - **`core`**: Contains base classes and utilities shared across all modules. This includes:
     - **Base Architecture**: `BaseViewModel`, `UiState`, `UiEvent`, `UiEffect` for the MVI pattern.
-    - **Theme**: `PulsyTheme`, colors, typography, shapes.
+    - **Theme**: `PlanoraTheme`, colors, typography, shapes.
     - **Navigation Definitions**: Type-safe screen definitions (e.g., `Screen.Home`) used by Navigation 3.
 - **`shared`**: General cross-platform business logic, utility functions, and platform expect/actual implementations (e.g., `getPlatformName()`).
 - **`server`**: A placeholder for the Ktor-based backend application. This module will house REST APIs, WebSockets, and database interactions (PostgreSQL via Exposed).
@@ -64,4 +64,4 @@ Navigation is handled centrally in `App.kt` using Navigation 3's `NavDisplay`.
 Koin is used for dependency injection across all platforms.
 - **Module Registration**: Each feature module provides its own Koin module (e.g., `authModule`, `homeModule`).
 - **Central Initialization**: `initKoin()` is defined in `composeApp` and calls all feature modules.
-- **Platform Context**: Platform-specific setups (like Android Context) are injected at the platform entry points (`PulsyApplication.kt` for Android, `MainViewController.kt` for iOS).
+- **Platform Context**: Platform-specific setups (like Android Context) are injected at the platform entry points (`PlanoraApplication.kt` for Android, `MainViewController.kt` for iOS).

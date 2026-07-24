@@ -8,10 +8,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.yusufteker.pulse</string>
+			<string>com.yusufteker.planora</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>pulsy</string>
+				<string>planora</string>
 			</array>
 		</dict>
 	</array>

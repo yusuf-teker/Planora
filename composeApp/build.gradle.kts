@@ -22,7 +22,7 @@ kotlin {
     }
 
     androidLibrary {
-        namespace = "com.yusufteker.pulse.app"
+        namespace = "com.yusufteker.planora.app"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

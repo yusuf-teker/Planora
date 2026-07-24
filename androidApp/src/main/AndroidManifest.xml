@@ -10,14 +10,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
-        android:name=".PulsyApplication"
+        android:name=".PlanoraApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.Pulsy">
+        android:theme="@style/Theme.Planora">
         <activity
             android:exported="true"
             android:name=".MainActivity"
@@ -33,7 +33,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="pulsy" android:host="share" />
+                <data android:scheme="planora" android:host="share" />
             </intent-filter>
             
             <!-- HTTP/HTTPS Deep link to make URLs clickable in SMS -->
@@ -41,13 +41,15 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" android:host="planora.yusufteker.com" android:pathPrefix="/share" />
+                <data android:scheme="https" android:host="planora.yusufteker.com" android:pathPrefix="/share" />
                 <data android:scheme="http" android:host="pulse.yusufteker.com" android:pathPrefix="/share" />
                 <data android:scheme="https" android:host="pulse.yusufteker.com" android:pathPrefix="/share" />
             </intent-filter>
         </activity>
 
         <service
-            android:name=".PulsyFcmService"
+            android:name=".PlanoraFcmService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -61,7 +63,7 @@
             android:name=".reminder.ReminderAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.yusufteker.pulse.ACTION_REMINDER" />
+                <action android:name="com.yusufteker.planora.ACTION_REMINDER" />
             </intent-filter>
         </receiver>
 

@@ -1,6 +1,6 @@
 import re
 
-with open("feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/task_editor/TaskEditorViewModel.kt", "r") as f:
+with open("feature-home/src/commonMain/kotlin/com/yusufteker/planora/feature/home/presentation/task_editor/TaskEditorViewModel.kt", "r") as f:
     content = f.read()
 
 # Make sure kotlinx.coroutines.async and awaitAll are imported
@@ -22,5 +22,5 @@ new_code = """                        val deferredProfiles = room.members.map { 
 
 content = content.replace(old_code, new_code)
 
-with open("feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/presentation/task_editor/TaskEditorViewModel.kt", "w") as f:
+with open("feature-home/src/commonMain/kotlin/com/yusufteker/planora/feature/home/presentation/task_editor/TaskEditorViewModel.kt", "w") as f:
     f.write(content)

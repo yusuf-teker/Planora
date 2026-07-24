@@ -20,7 +20,7 @@ kotlin {
     jvm()
 
     androidLibrary {
-        namespace = "com.yusufteker.pulse.shared"
+        namespace = "com.yusufteker.planora.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

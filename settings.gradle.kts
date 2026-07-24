@@ -1,4 +1,4 @@
-rootProject.name = "Pulsy"
+rootProject.name = "Planora"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

@@ -11,7 +11,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		15346AA37086A34DCFB1938C /* Pulsy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulsy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		15346AA37086A34DCFB1938C /* Planora.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Planora.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3ED29D959F413B820CFB45D /* Pods_iosApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_iosApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C2C014AC6D583981D1EB87E3 /* Pods-iosApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.release.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.release.xcconfig"; sourceTree = "<group>"; };
 		EBA05507FD0987388FADD26B /* Pods-iosApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iosApp.debug.xcconfig"; path = "Target Support Files/Pods-iosApp/Pods-iosApp.debug.xcconfig"; sourceTree = "<group>"; };
@@ -58,7 +58,7 @@
 		2FD84D828EAF0673041F6EAE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				15346AA37086A34DCFB1938C /* Pulsy.app */,
+				15346AA37086A34DCFB1938C /* Planora.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -114,7 +114,7 @@
 			);
 			name = iosApp;
 			productName = iosApp;
-			productReference = 15346AA37086A34DCFB1938C /* Pulsy.app */;
+			productReference = 15346AA37086A34DCFB1938C /* Planora.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

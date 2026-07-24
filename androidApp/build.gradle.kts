@@ -26,7 +26,7 @@ dependencies {
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 
-    // Koin Android (for androidContext in PulsyApplication)
+    // Koin Android (for androidContext in PlanoraApplication)
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.napier)
@@ -34,11 +34,11 @@ dependencies {
 }
 
 android {
-    namespace = "com.yusufteker.pulse"
+    namespace = "com.yusufteker.planora"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.yusufteker.pulse"
+        applicationId = "com.yusufteker.planora"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

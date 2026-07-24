@@ -28,7 +28,7 @@ Uygulamanın en kritik özelliği internet yokken bile tam teşekküllü çalı�
 
 Uygulama temel modüllere ayrılmıştır:
 
-- **`core` Modülü:** Uygulamanın kalbidir. Veritabanı yapılandırması (`PulsyDatabase.sq`), ağ (`HttpClientProvider`), yapılandırmalar (Preferences/DataStore) ve utility (yardımcı) sınıfları barındırır.
+- **`core` Modülü:** Uygulamanın kalbidir. Veritabanı yapılandırması (`PlanoraDatabase.sq`), ağ (`HttpClientProvider`), yapılandırmalar (Preferences/DataStore) ve utility (yardımcı) sınıfları barındırır.
 - **`shared` Modülü:** Sunucu (Backend) ve Mobil İstemci (Client) tarafından ortak paylaşılan modelleri içerir. API İstek/Cevap objeleri (DTO'lar), Enum'lar (`TaskStatus`, `TaskType`) burada yer alır.
 - **`feature-auth` Modülü:** Kullanıcı girişi, kayıt ve şifre işlemleri.
 - **`feature-home` Modülü:** Ana uygulama işlevleri, görevler, takvim yönetimi, plan odaları (Plan Rooms).
@@ -41,7 +41,7 @@ Ktor'un standart `Auth` plugin'indeki `loadTokens` (cache) mekanizması **KULLAN
 Bunun yerine her istekte token `SessionPreferences` üzerinden anlık olarak okunur:
 
 ```kotlin
-// core/src/commonMain/kotlin/com/yusufteker/pulse/core/network/HttpClientProvider.kt
+// core/src/commonMain/kotlin/com/yusufteker/planora/core/network/HttpClientProvider.kt
 client.requestPipeline.intercept(io.ktor.client.request.HttpRequestPipeline.State) {
     val requestBuilder = context
     val path = requestBuilder.url.buildString()
@@ -68,21 +68,21 @@ Aşağıdaki örnekte verilerin nasıl çekilip veritabanına yazıldığı (ve 
 val remoteTasks = planApi.getMyTasks(fromTime, toTime)
 
 // 2. Tüm işlemler transaction içinde yapılarak veri bütünlüğü korunur
-database.pulsyDatabaseQueries.transaction {
+database.planoraDatabaseQueries.transaction {
     val remoteTaskIds = remoteTasks.map { it.id }.toSet()
-    val localTasks = database.pulsyDatabaseQueries.getAllTasks().executeAsList()
+    val localTasks = database.planoraDatabaseQueries.getAllTasks().executeAsList()
 
     // 3. Sunucuda artık olmayan ama lokalde isSynced = 1 (zaten senkronlanmış) olanları SİL
     // Bu, sunucudan silinen verilerin lokalden de düşmesini sağlar.
     localTasks.forEach { localTask ->
         if (!remoteTaskIds.contains(localTask.id) && localTask.isSynced == 1L) {
-            database.pulsyDatabaseQueries.deleteTaskById(localTask.id)
+            database.planoraDatabaseQueries.deleteTaskById(localTask.id)
         }
     }
 
     // 4. Sunucudan gelen verileri lokal DB'ye ekle/güncelle
     remoteTasks.forEach { remoteTask ->
-        val existingTask = database.pulsyDatabaseQueries.getTaskById(remoteTask.id).executeAsOneOrNull()
+        val existingTask = database.planoraDatabaseQueries.getTaskById(remoteTask.id).executeAsOneOrNull()
         
         // KRİTİK: Eğer görev lokalde değiştirilmiş ve henüz sunucuya gönderilmemişse (isSynced=0),
         // sunucudan gelen eski veri ile lokaldeki değişikliği EZME!
@@ -91,7 +91,7 @@ database.pulsyDatabaseQueries.transaction {
         }
         
         // Değişiklik yoksa güvenle veritabanına kaydet
-        database.pulsyDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
+        database.planoraDatabaseQueries.insertTaskFromDto(remoteTask, isSynced = 1L)
     }
 }
 ```
@@ -100,9 +100,9 @@ database.pulsyDatabaseQueries.transaction {
 
 ### 4.1. Veritabanı Değişiklikleri ve Temizlik (Data Leaks Önlemi)
 Yeni bir tablo (Entity) oluşturduğunuzda KESİNLİKLE ilgili temizlik kodunu yazmalısınız. Aksi halde bir kullanıcı çıkış yapıp, yeni bir kullanıcı girdiğinde önceki kullanıcının verilerini görecektir!
-1. `PulsyDatabase.sq` dosyasına tablonuzu ekleyin.
-2. `PulsyDatabase.sq` dosyasına silme sorgusunu ekleyin: `deleteAllMyNewTable: DELETE FROM myNewTableEntity;`
-3. `core/src/commonMain/kotlin/com/yusufteker/pulse/core/database/PulsyDatabaseExt.kt` dosyasındaki `PulsyDatabase.clearAll()` fonksiyonunun içine `deleteAllMyNewTable()` çağrısını ekleyin.
+1. `PlanoraDatabase.sq` dosyasına tablonuzu ekleyin.
+2. `PlanoraDatabase.sq` dosyasına silme sorgusunu ekleyin: `deleteAllMyNewTable: DELETE FROM myNewTableEntity;`
+3. `core/src/commonMain/kotlin/com/yusufteker/planora/core/database/PlanoraDatabaseExt.kt` dosyasındaki `PlanoraDatabase.clearAll()` fonksiyonunun içine `deleteAllMyNewTable()` çağrısını ekleyin.
 
 ### 4.2. ViewModel ve Dependency Injection (Koin)
 ViewModel sınıfları Koin modüllerinde `single` (singleton) olarak **TANIMLANMAMALIDIR**. Tüm ViewModeller `factory` veya `viewModel` (Compose için) olmalıdır. Eğer singleton yaparsanız, ekran değiştirildiğinde state sıfırlanmaz ve önceki veriler (veya önceki hesabın verileri) ekranda asılı kalır. Repository ve UseCase'ler `single` olabilir.
@@ -114,7 +114,7 @@ Kullanıcı deneyimi bizim için önemlidir. Görev listesi, plan odaları liste
 Kullanıcı `Logout` (Çıkış) işlemi yaptığında, `navController.navigate("login") { popUpTo(0) }` (veya denk gelen yapı) kullanılarak tüm "back-stack" temizlenmelidir. Cihazın "Geri" tuşuna basıldığında uygulamanın önceki şifreli alanlarına geri dönülmesi kesinlikle engellenmelidir.
 
 ### 4.5. Mapper Güncellemeleri
-`TaskEntity` (veritabanı), `TaskDto` (API yanıtı) or `CreateTaskRequest` objelerinden birine yeni bir parametre (örn: `location`) eklerseniz, bu parametreyi **KESİNLİKLE** `feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/data/mapper/TaskMapper.kt` dosyasındaki dönüştürme fonksiyonlarına dahil edin. Aksi takdirde, veriler okunurken veya yazılırken bu alanlar kaybolur!
+`TaskEntity` (veritabanı), `TaskDto` (API yanıtı) or `CreateTaskRequest` objelerinden birine yeni bir parametre (örn: `location`) eklerseniz, bu parametreyi **KESİNLİKLE** `feature-home/src/commonMain/kotlin/com/yusufteker/planora/feature/home/data/mapper/TaskMapper.kt` dosyasındaki dönüştürme fonksiyonlarına dahil edin. Aksi takdirde, veriler okunurken veya yazılırken bu alanlar kaybolur!
 
 ### 4.6. Dil Desteği ve Yerelleştirme (Localization - TR & EN)
 Planora, çok dilli bir yapıya sahiptir. Compose Multiplatform'un kendi kaynak yönetim sistemi kullanılmaktadır.

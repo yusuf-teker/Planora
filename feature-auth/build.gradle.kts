@@ -20,7 +20,7 @@ kotlin {
     }
 
     androidLibrary {
-        namespace = "com.yusufteker.pulse.feature.auth"
+        namespace = "com.yusufteker.planora.feature.auth"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

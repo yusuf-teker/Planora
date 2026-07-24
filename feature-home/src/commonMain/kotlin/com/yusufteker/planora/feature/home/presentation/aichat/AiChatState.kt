@@ -1,0 +1,25 @@
+package com.yusufteker.planora.feature.home.presentation.aichat
+
+import com.yusufteker.planora.core.base.UiState
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
+
+import kotlin.random.Random
+
+data class AiChatMessage(
+    val id: String = "${getCurrentTimeMs()}_${Random.nextInt()}",
+    val text: String,
+    val isUser: Boolean,
+    val isLoading: Boolean = false
+)
+
+data class AiChatState(
+    val messages: List<AiChatMessage> = listOf(
+        AiChatMessage(
+            text = "Merhaba! Sana nasıl yardımcı olabilirim? Görev ekleyebilir veya not alabilirsin.",
+            isUser = false
+        )
+    ),
+    val inputText: String = "",
+    val isLoading: Boolean = false,
+
+) : UiState

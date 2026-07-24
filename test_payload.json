@@ -15,7 +15,7 @@
   "isAllDay": false,
   "reminders": [],
   "specificDetails": {
-    "type": "com.yusufteker.pulse.shared.api.ItemDetails.Event",
+    "type": "com.yusufteker.planora.shared.api.ItemDetails.Event",
     "location": "Office",
     "meetingUrl": null
   },

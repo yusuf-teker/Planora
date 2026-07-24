@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("com.yusufteker.pulse.server.ApplicationKt")
+    mainClass.set("com.yusufteker.planora.server.ApplicationKt")
 }
 
 dependencies {

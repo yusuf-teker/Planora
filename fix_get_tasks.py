@@ -1,6 +1,6 @@
 import re
 
-with open("server/src/main/kotlin/com/yusufteker/pulse/server/routes/TaskRoutes.kt", "r") as f:
+with open("server/src/main/kotlin/com/yusufteker/planora/server/routes/TaskRoutes.kt", "r") as f:
     content = f.read()
 
 # Replace TaskDto mapping in GET
@@ -14,5 +14,5 @@ get_mapping_new = """                            reminders = TaskParticipantsTab
 
 content = content.replace(get_mapping_old, get_mapping_new)
 
-with open("server/src/main/kotlin/com/yusufteker/pulse/server/routes/TaskRoutes.kt", "w") as f:
+with open("server/src/main/kotlin/com/yusufteker/planora/server/routes/TaskRoutes.kt", "w") as f:
     f.write(content)

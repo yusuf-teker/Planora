@@ -3,8 +3,8 @@
 When working on this workspace, please follow these guidelines carefully. They are essential for maintaining the application's Offline-First architecture, code quality, and preventing data leaks.
 
 1. **Database Schema & Data Leak Prevention**: 
-   - Whenever you add a new table to `PulsyDatabase.sq`, you MUST create a delete query for it (e.g., `deleteAllMyTable: DELETE FROM myTableEntity;`) in the `.sq` file.
-   - You MUST then add this delete query to the `PulsyDatabaseExt.clearAll()` extension function located in `core/src/commonMain/kotlin/com/yusufteker/pulse/core/database/PulsyDatabaseExt.kt`.
+   - Whenever you add a new table to `PlanoraDatabase.sq`, you MUST create a delete query for it (e.g., `deleteAllMyTable: DELETE FROM myTableEntity;`) in the `.sq` file.
+   - You MUST then add this delete query to the `PlanoraDatabaseExt.clearAll()` extension function located in `core/src/commonMain/kotlin/com/yusufteker/planora/core/database/PlanoraDatabaseExt.kt`.
    - Failing to do so will cause data leaks between accounts because the database won't clear correctly on logout.
 
 2. **Ktor Token Management & Networking**:
@@ -21,7 +21,7 @@ When working on this workspace, please follow these guidelines carefully. They a
    - When creating or updating entities locally before syncing, set their `isSynced` flag to `0L` and use a temporary local ID if creating (e.g., `local_uuid`). Only overwrite existing database entries from remote fetches if the local entry's `isSynced` is `1L` (already synced).
 
 5. **Task Mapper Updates**:
-   - Whenever you add a new field to `TaskEntity`, `TaskDto`, or `CreateTaskRequest`, you MUST update the mapping functions inside `feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/data/mapper/TaskMapper.kt`.
+   - Whenever you add a new field to `TaskEntity`, `TaskDto`, or `CreateTaskRequest`, you MUST update the mapping functions inside `feature-home/src/commonMain/kotlin/com/yusufteker/planora/feature/home/data/mapper/TaskMapper.kt`.
    - Failing to do so will result in data loss during local database saves or remote syncs.
 
 6. **UI Localization (TR & EN support)**:

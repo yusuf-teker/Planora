@@ -1,6 +1,6 @@
 import re
 
-with open("server/src/main/kotlin/com/yusufteker/pulse/server/routes/TaskRoutes.kt", "r") as f:
+with open("server/src/main/kotlin/com/yusufteker/planora/server/routes/TaskRoutes.kt", "r") as f:
     content = f.read()
 
 # 1. Update POST route for participants and push notification
@@ -30,7 +30,7 @@ post_sync_old = """                    // Trigger FCM sync for room members if s
                     if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
                         request.sharedRoomIds.forEach { roomId ->
                             routeScope.launch {
-                                com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                                com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
                             }
                         }
                     }"""
@@ -39,7 +39,7 @@ post_sync_new = """                    // Trigger FCM sync for room members if s
                     if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
                         request.sharedRoomIds.forEach { roomId ->
                             routeScope.launch {
-                                com.yusufteker.pulse.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                                com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
                             }
                         }
                     }
@@ -48,11 +48,11 @@ post_sync_new = """                    // Trigger FCM sync for room members if s
                     val toAdd = request.participants.keys.filter { it != userId }
                     if (toAdd.isNotEmpty()) {
                         val creatorName = org.jetbrains.exposed.sql.transactions.transaction {
-                            com.yusufteker.pulse.server.database.tables.UsersTable.selectAll().where { com.yusufteker.pulse.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.pulse.server.database.tables.UsersTable.name) ?: "Birisi"
+                            com.yusufteker.planora.server.database.tables.UsersTable.selectAll().where { com.yusufteker.planora.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.planora.server.database.tables.UsersTable.name) ?: "Birisi"
                         }
                         toAdd.forEach { addedUserId ->
                             routeScope.launch {
-                                com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                                com.yusufteker.planora.server.service.FcmService.sendPushToUser(
                                     userId = addedUserId,
                                     title = "Yeni Görev",
                                     body = "$creatorName seni '${request.title}' planına ekledi."
@@ -109,7 +109,7 @@ put_participants_new = """                            // Update participants saf
                                 toAdd.forEach { addedUserId ->
                                     if (addedUserId != userId) {
                                         routeScope.launch {
-                                            com.yusufteker.pulse.server.service.FcmService.sendPushToUser(
+                                            com.yusufteker.planora.server.service.FcmService.sendPushToUser(
                                                 userId = addedUserId,
                                                 title = "Yeni Görev",
                                                 body = "$creatorName seni '${request.title}' planına ekledi."
@@ -120,5 +120,5 @@ put_participants_new = """                            // Update participants saf
                             }"""
 content = content.replace(put_participants_old, put_participants_new)
 
-with open("server/src/main/kotlin/com/yusufteker/pulse/server/routes/TaskRoutes.kt", "w") as f:
+with open("server/src/main/kotlin/com/yusufteker/planora/server/routes/TaskRoutes.kt", "w") as f:
     f.write(content)
