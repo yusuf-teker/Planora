@@ -191,6 +191,7 @@ fun UserListItem(
                 containerColor = containerColor,
                 contentColor = contentColor
             ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             shape = CircleShape
         ) {
             Text(buttonText)

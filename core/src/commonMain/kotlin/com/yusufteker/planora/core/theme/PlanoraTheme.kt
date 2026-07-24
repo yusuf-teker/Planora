@@ -7,6 +7,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import com.yusufteker.planora.core.preferences.ThemeColor
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.material3.ColorScheme
 
 import androidx.compose.runtime.CompositionLocalProvider
@@ -99,14 +100,18 @@ fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
     }
 
     // We tint the primary and container colors so that FABs, navigation, and themed components tint correctly.
+    val containerBg = baseScheme.background
+    val primaryContainerColor = if (darkTheme) primaryColor.copy(alpha = 0.3f).compositeOver(containerBg) else primaryColor.copy(alpha = 0.15f).compositeOver(containerBg)
+    val secondaryContainerColor = if (darkTheme) primaryColor.copy(alpha = 0.3f).compositeOver(containerBg) else primaryColor.copy(alpha = 0.15f).compositeOver(containerBg)
+
     return baseScheme.copy(
         primary = primaryColor,
         onPrimary = Color.White,
-        primaryContainer = if (darkTheme) primaryColor.copy(alpha = 0.3f) else primaryColor.copy(alpha = 0.15f),
+        primaryContainer = primaryContainerColor,
         onPrimaryContainer = if (darkTheme) Color.White else primaryColor,
         secondary = primaryColor.copy(alpha = 0.8f),
         onSecondary = Color.White,
-        secondaryContainer = if (darkTheme) primaryColor.copy(alpha = 0.3f) else primaryColor.copy(alpha = 0.15f),
+        secondaryContainer = secondaryContainerColor,
         onSecondaryContainer = if (darkTheme) Color.White else primaryColor
     )
 }

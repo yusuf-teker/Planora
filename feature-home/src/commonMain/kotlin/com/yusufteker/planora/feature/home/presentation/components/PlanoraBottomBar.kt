@@ -3,6 +3,7 @@ package com.yusufteker.planora.feature.home.presentation.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -23,10 +24,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathMeasure
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -36,9 +33,15 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-// KMP resource import'unuzu eklemeyi unutmayın
-// import org.jetbrains.compose.resources.painterResource
-// import com.yusufteker.planora.core.navigation.Screen
+private val BottomBarRowHeight = 64.dp
+private val AiButtonSize = 52.dp
+
+/**
+ * Bottom padding for the floating AI button to ensure its vertical center aligns
+ * exactly on the top edge border of the bottom bar.
+ * (RowHeight - half of ButtonSize = 64.dp - 26.dp = 38.dp)
+ */
+private val AiButtonBottomPadding = BottomBarRowHeight - (AiButtonSize / 2)
 
 @Composable
 fun PlanoraBottomBar(
@@ -68,7 +71,7 @@ fun PlanoraBottomBar(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(1.dp)
+                        .height(2.dp)
                         .background(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
@@ -84,7 +87,7 @@ fun PlanoraBottomBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars)
-                        .height(64.dp),
+                        .height(BottomBarRowHeight),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -135,19 +138,35 @@ fun PlanoraBottomBar(
             }
         }
 
+        val aiButtonBgColor = if (isDark) {
+            Color(0xFF18171E)
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+
         Box(
             modifier = Modifier
-                .padding(bottom = 40.dp) // 64.dp'lik çubuğun üzerine taşması için
+                .padding(bottom = AiButtonBottomPadding)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .size(48.dp)
+                .size(AiButtonSize)
                 .shadow(
-                    elevation = 8.dp, // Derinliği biraz artırarak daha iyi bir süzülme efekti verebiliriz
+                    elevation = 6.dp,
                     shape = CircleShape,
-                    spotColor = planoraGlowColor,
-                    ambientColor = planoraGlowColor
+                    spotColor = planoraGlowColor.copy(alpha = 0.4f),
+                    ambientColor = planoraGlowColor.copy(alpha = 0.2f)
                 )
                 .background(
-                    color = surfaceColor,
+                    color = aiButtonBgColor,
+                    shape = CircleShape
+                )
+                .border(
+                    width = 2.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary
+                        )
+                    ),
                     shape = CircleShape
                 )
                 .bounceClick()
@@ -158,7 +177,15 @@ fun PlanoraBottomBar(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            PlanoraActionIcon()
+            PlanoraActionIcon(
+                modifier = Modifier.size(36.dp),
+                strokeWidth = 2.dp,
+                drawOuterRing = false,
+                gradientColors = listOf(
+                    MaterialTheme.colorScheme.primary,
+                    MaterialTheme.colorScheme.tertiary
+                )
+            )
         }
     }
 }
@@ -218,7 +245,8 @@ private fun PlanoraBottomNavItem(
 @Composable
 fun PlanoraActionIcon(
     modifier: Modifier = Modifier,
-    strokeWidth: Dp = 2.dp, // Kalınlık parametresi eklendi (İstediğiniz gibi inceltebilirsiniz)
+    strokeWidth: Dp = 2.dp,
+    drawOuterRing: Boolean = false,
     gradientColors: List<Color> = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
@@ -226,27 +254,27 @@ fun PlanoraActionIcon(
 ) {
     val infiniteTransition = rememberInfiniteTransition()
 
-    // 0f'den 1f'e kadar path çizimi
-    val pathProgress by infiniteTransition.animateFloat(
+    // 0f - 1f döngüsel animasyon süresi (2400 ms)
+    val animProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         )
     )
 
-    // Çember ve çizgi için yavaş yanıp sönen bir beyaz parlama
+    // Yıldızlar için yumuşak parıldama
     val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 0.5f,
+        initialValue = 0.2f,
+        targetValue = 0.6f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1500, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         )
     )
 
-    // Gradient'in de yavaşça dönmesi için açı animasyonu
+    // Gradient dönme açısı animasyonu
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -256,14 +284,10 @@ fun PlanoraActionIcon(
         )
     )
 
-    val pathMeasure = remember { PathMeasure() }
-    val animatedPath = remember { Path() }
-
-    Canvas(modifier = modifier.size(48.dp)) {
+    Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
 
-        // Dp değerini Canvas'ın anlayacağı piksel (Px) değerine çeviriyoruz
         val strokePx = strokeWidth.toPx()
         val radius = (canvasWidth / 2) - (strokePx / 2)
         val centerOffset = Offset(canvasWidth / 2, canvasHeight / 2)
@@ -280,62 +304,108 @@ fun PlanoraActionIcon(
             end = Offset(endX, endY)
         )
 
-        // 1. Dış Çemberi Çiz
-        drawCircle(
-            brush = brush,
-            radius = radius,
-            style = Stroke(width = strokePx) // Parametreden gelen kalınlık kullanılıyor
-        )
-        
-        // 1.1 Çember üzerinde animasyonlu beyaz parıldama efekti
-        drawCircle(
-            color = Color.White.copy(alpha = glowAlpha),
-            radius = radius,
-            style = Stroke(width = strokePx)
-        )
+        // 1. İstenirse Dış Çemberi Çiz
+        if (drawOuterRing) {
+            drawCircle(
+                brush = brush,
+                radius = radius,
+                style = Stroke(width = strokePx)
+            )
 
-        // 2. İçteki Nabız (Planora) Çizgisini Çiz
-        val basePath = Path().apply {
-            val midY = canvasHeight * 0.5f
-
-            moveTo(canvasWidth * 0.25f, midY)
-            lineTo(canvasWidth * 0.38f, midY)
-            lineTo(canvasWidth * 0.45f, canvasHeight * 0.30f)
-            lineTo(canvasWidth * 0.52f, canvasHeight * 0.70f)
-            lineTo(canvasWidth * 0.58f, canvasHeight * 0.40f)
-            lineTo(canvasWidth * 0.62f, midY)
-            lineTo(canvasWidth * 0.75f, midY)
+            drawCircle(
+                color = Color.White.copy(alpha = glowAlpha * 0.4f),
+                radius = radius,
+                style = Stroke(width = strokePx)
+            )
         }
 
-        pathMeasure.setPath(basePath, false)
-        animatedPath.reset()
-        pathMeasure.getSegment(
-            startDistance = 0f,
-            stopDistance = pathMeasure.length * pathProgress,
-            destination = animatedPath,
-            startWithMoveTo = true
+        // 2. 3 Adet Animasyonlu AI Yıldızı (Sparkle)
+        // Her yıldız sırayla belirecek: 1. -> 2. -> 3. ve ardından sönecekler.
+        val stars = listOf(
+            // Yıldız 1: Ana büyük yıldız (merkez)
+            StarConfig(
+                cx = canvasWidth * 0.50f,
+                cy = canvasHeight * 0.54f,
+                baseRadius = canvasWidth * 0.16f,
+                appearStart = 0.00f,
+                appearEnd = 0.20f
+            ),
+            // Yıldız 2: Orta boy yıldız (sağ üst)
+            StarConfig(
+                cx = canvasWidth * 0.66f,
+                cy = canvasHeight * 0.32f,
+                baseRadius = canvasWidth * 0.095f,
+                appearStart = 0.20f,
+                appearEnd = 0.40f
+            ),
+            // Yıldız 3: Küçük yıldız (sol üst)
+            StarConfig(
+                cx = canvasWidth * 0.34f,
+                cy = canvasHeight * 0.36f,
+                baseRadius = canvasWidth * 0.06f,
+                appearStart = 0.40f,
+                appearEnd = 0.60f
+            )
         )
 
-        drawPath(
-            path = animatedPath,
-            brush = brush,
-            style = Stroke(
-                width = strokePx, // Parametreden gelen kalınlık kullanılıyor
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-        
-        // 2.1 İç çizgi üzerinde animasyonlu beyaz parıldama efekti
-        drawPath(
-            path = animatedPath,
-            color = Color.White.copy(alpha = glowAlpha * 0.5f), // İç parıldama dışarıya göre biraz daha hafif
-            style = Stroke(
-                width = strokePx,
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
+        for (star in stars) {
+            val p = animProgress
+            val alpha = when {
+                p < star.appearStart -> 0f
+                p in star.appearStart..star.appearEnd -> (p - star.appearStart) / (star.appearEnd - star.appearStart)
+                p in star.appearEnd..star.fadeStart -> 1f
+                p in star.fadeStart..star.fadeEnd -> 1f - (p - star.fadeStart) / (star.fadeEnd - star.fadeStart)
+                else -> 0f
+            }
+
+            val scale = when {
+                p < star.appearStart -> 0.3f
+                p in star.appearStart..star.appearEnd -> 0.3f + 0.7f * ((p - star.appearStart) / (star.appearEnd - star.appearStart))
+                p in star.appearEnd..star.fadeStart -> 1f
+                p in star.fadeStart..star.fadeEnd -> 1f - 0.3f * ((p - star.fadeStart) / (star.fadeEnd - star.fadeStart))
+                else -> 0.3f
+            }
+
+            if (alpha > 0f) {
+                val currentRadius = star.baseRadius * scale
+                val sparklePath = Path().apply {
+                    val cx = star.cx
+                    val cy = star.cy
+                    val r = currentRadius
+                    moveTo(cx, cy - r)
+                    quadraticTo(cx, cy, cx + r, cy)
+                    quadraticTo(cx, cy, cx, cy + r)
+                    quadraticTo(cx, cy, cx - r, cy)
+                    quadraticTo(cx, cy, cx, cy - r)
+                    close()
+                }
+
+                // Yıldız Dolgusu (Fill)
+                drawPath(
+                    path = sparklePath,
+                    brush = brush,
+                    alpha = alpha
+                )
+
+                // Yıldız Vurgu Çizgisi (White glow highlight)
+                drawPath(
+                    path = sparklePath,
+                    color = Color.White.copy(alpha = alpha * glowAlpha),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+            }
+        }
     }
 }
+
+private data class StarConfig(
+    val cx: Float,
+    val cy: Float,
+    val baseRadius: Float,
+    val appearStart: Float,
+    val appearEnd: Float,
+    val fadeStart: Float = 0.75f,
+    val fadeEnd: Float = 0.95f
+)
+
 

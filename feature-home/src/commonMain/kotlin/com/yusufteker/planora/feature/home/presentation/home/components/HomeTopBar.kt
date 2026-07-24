@@ -57,15 +57,16 @@ fun HomeTopBar(
         }
 
         // Filter button on the right
+        val isFilterActive = !state.filterOptions.showCompleted ||
+                !state.filterOptions.showRoomTasks ||
+                !state.filterOptions.showOnlyNextRecurring
+
         IconButton(
             onClick = { onEvent(HomeEvent.ToggleFilterSheet(true)) },
             modifier = Modifier
                 .clip(CircleShape)
                 .background(
-                    if (
-                        state.filterOptions.showOnlyNextRecurring ||
-                        state.filterOptions.showCompleted
-                    ) {
+                    if (isFilterActive) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant
@@ -76,11 +77,8 @@ fun HomeTopBar(
             Icon(
                 imageVector = Icons.Default.FilterList,
                 contentDescription = "Filtreler",
-                tint = if (
-                    state.filterOptions.showOnlyNextRecurring ||
-                    !state.filterOptions.showCompleted
-                ) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
+                tint = if (isFilterActive) {
+                    MaterialTheme.colorScheme.onPrimary
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },

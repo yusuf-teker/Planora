@@ -360,10 +360,10 @@ fun ProfileScreen(
                                         .height(50.dp),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
                                     ),
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                 ) {
                                     Icon(
                                         Icons.Filled.PersonAdd,
@@ -807,7 +807,7 @@ fun ProfileScreen(
                                             contentColor = MaterialTheme.colorScheme.onPrimary
                                         )
                                     },
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                 ) {
                                     Text(
                                         text = buttonText,
@@ -850,11 +850,11 @@ fun ProfileScreen(
                                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         else -> ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
                                         )
                                     },
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                 ) {
                                     Text(
                                         text = calendarButtonText,
