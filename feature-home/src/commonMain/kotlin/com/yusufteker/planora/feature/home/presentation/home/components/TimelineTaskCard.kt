@@ -43,10 +43,10 @@ import androidx.compose.ui.zIndex
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskStatus
-import com.yusufteker.planora.shared.api.TaskType
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
-import planora.core.generated.resources.shared
+import planora.core.generated.resources.*
+import com.yusufteker.planora.shared.api.TaskType
 
 @Composable
 fun TimelineTaskCard(
@@ -203,7 +203,7 @@ fun TimelineTaskCard(
                     if (isCompleted) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "TAMAMLANDI",
+                            text = stringResource(Res.string.task_status_completed_upper),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF10B981), // Emerald
                             fontWeight = FontWeight.Bold,
@@ -248,7 +248,7 @@ fun TimelineTaskCard(
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "ORTAK ODA",
+                                text = stringResource(Res.string.shared_room_task_upper),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 fontWeight = FontWeight.Bold

@@ -23,6 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yusufteker.planora.core.utils.TimelineViewOption
 import com.yusufteker.planora.feature.home.presentation.home.HomeEvent
+import org.jetbrains.compose.resources.stringResource
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
 import com.yusufteker.planora.feature.home.presentation.home.HomeState
 
 @Composable
@@ -76,7 +79,7 @@ fun HomeTopBar(
         ) {
             Icon(
                 imageVector = Icons.Default.FilterList,
-                contentDescription = "Filtreler",
+                contentDescription = stringResource(Res.string.filter_title),
                 tint = if (isFilterActive) {
                     MaterialTheme.colorScheme.onPrimary
                 } else {

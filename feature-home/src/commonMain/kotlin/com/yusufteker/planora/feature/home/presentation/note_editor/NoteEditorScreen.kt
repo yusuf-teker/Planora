@@ -126,7 +126,7 @@ fun NoteEditorScreen(
                         IconButton(onClick = { showFolderDropdown = true }) {
                             Icon(
                                 Icons.Default.Folder, 
-                                contentDescription = "Klasör", 
+                                contentDescription = stringResource(Res.string.folder), 
                                 tint = if (state.parentId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -227,7 +227,7 @@ fun NoteEditorScreen(
                         onValueChange = { viewModel.onEvent(NoteEditorEvent.OnTitleChange(it)) },
                         placeholder = { 
                             Text(
-                                "Başlık", 
+                                stringResource(Res.string.note_title_placeholder), 
                                 style = MaterialTheme.typography.displaySmall.copy(
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
                                     fontWeight = FontWeight.Bold
@@ -265,7 +265,7 @@ fun NoteEditorScreen(
                         onValueChange = { viewModel.onEvent(NoteEditorEvent.OnContentChange(it)) },
                         placeholder = { 
                             Text(
-                                "Yazmaya başla", 
+                                stringResource(Res.string.note_content_placeholder), 
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
                                 )
@@ -317,7 +317,7 @@ fun NoteEditorScreen(
                             )
                             
                             IconButton(onClick = { viewModel.onEvent(NoteEditorEvent.OnDeleteChecklistItem(item.id)) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Sil", modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.action_delete), modifier = Modifier.size(16.dp))
                             }
                         }
                     }

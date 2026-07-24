@@ -3,6 +3,7 @@ package com.yusufteker.planora.feature.home.presentation.aichat
 import com.yusufteker.planora.core.ai.OfflineAiManager
 import com.yusufteker.planora.core.base.BaseViewModel
 import com.yusufteker.planora.core.preferences.SessionPreferences
+import com.yusufteker.planora.core.ui.text.UiText
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
@@ -60,7 +61,7 @@ class AiChatViewModel(
         val input = state.value.inputText.trim()
         if (input.isEmpty()) return
 
-        val userMessage = AiChatMessage(text = input, isUser = true)
+        val userMessage = AiChatMessage(text = UiText.DynamicString(input), isUser = true)
 
         setState {
             copy(
@@ -90,7 +91,7 @@ class AiChatViewModel(
 
                 // AI yanıtını göster
                 val responseMessage = AiChatMessage(
-                    text = result.replyText,
+                    text = UiText.DynamicString(result.replyText),
                     isUser = false,
                     isLoading = false
                 )
@@ -123,7 +124,8 @@ class AiChatViewModel(
                                 copy(
                                     messages = messages.map { msg ->
                                         if (msg.id == responseMessage.id) {
-                                            msg.copy(text = msg.text + successSuffix)
+                                            val currentText = if (msg.text is UiText.DynamicString) msg.text.value else ""
+                                            msg.copy(text = UiText.DynamicString(currentText + successSuffix))
                                         } else msg
                                     }
                                 )
@@ -135,7 +137,8 @@ class AiChatViewModel(
                                 copy(
                                     messages = messages.map { msg ->
                                         if (msg.id == responseMessage.id) {
-                                            msg.copy(text = msg.text + errorSuffix)
+                                            val currentText = if (msg.text is UiText.DynamicString) msg.text.value else ""
+                                            msg.copy(text = UiText.DynamicString(currentText + errorSuffix))
                                         } else msg
                                     }
                                 )
@@ -149,7 +152,7 @@ class AiChatViewModel(
                 throw e
             } catch (e: Exception) {
                 val errorMessage = AiChatMessage(
-                    text = getString(Res.string.ai_chat_error_occurred, e.message ?: ""),
+                    text = UiText.DynamicString(getString(Res.string.ai_chat_error_occurred, e.message ?: "")),
                     isUser = false,
                     isLoading = false
                 )
@@ -179,7 +182,7 @@ class AiChatViewModel(
         val recentMessages = state.value.messages
             .filter { !it.isLoading }
             .takeLast(4)
-            .map { it.text }
+            .map { if (it.text is UiText.DynamicString) it.text.value else "" }
 
         return AiChatContext(
             currentUserId = currentUserId,

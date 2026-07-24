@@ -17,6 +17,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.yusufteker.planora.core.ui.components.AvatarImage
 import com.yusufteker.planora.feature.home.presentation.home.AccessibleUser
+import org.jetbrains.compose.resources.stringResource
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
 
 private fun String.toColorOrNull(): Color? {
     return try {
@@ -45,7 +48,7 @@ fun SharedUserChipRow(
         item {
             // "Me" Chip
             UserChip(
-                name = "Ben",
+                name = stringResource(Res.string.user_me),
                 avatarId = currentUserAvatarId ?: "avatar_1",
                 profileImageUrl = currentUserProfileImageUrl,
                 color = MaterialTheme.colorScheme.primary,

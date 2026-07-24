@@ -147,7 +147,7 @@ data class TaskDto(
 data class TaskParticipantDto(
     val userId: Int,
     val name: String,
-    val avatarId: String,
+    val avatarId: String? = null,
     val profileImageUrl: String? = null
 )
 

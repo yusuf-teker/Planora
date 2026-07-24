@@ -27,8 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
-import planora.core.generated.resources.task_ic
-import planora.feature_home.generated.resources.Res
+import org.jetbrains.compose.resources.stringResource
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
 
 @Composable
 fun HomeFabMenu(
@@ -58,7 +59,7 @@ fun HomeFabMenu(
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
-                            text = "Task Ekle",
+                            text = stringResource(planora.core.generated.resources.Res.string.action_add_task),
                             modifier = Modifier.padding(
                                 horizontal = 8.dp,
                                 vertical = 4.dp
@@ -77,7 +78,7 @@ fun HomeFabMenu(
                     ) {
                         Icon(
                             painter = painterResource(planora.core.generated.resources.Res.drawable.task_ic),
-                            contentDescription = "Add Task"
+                            contentDescription = stringResource(planora.core.generated.resources.Res.string.action_add_task)
                         )
                     }
                 }
@@ -92,7 +93,7 @@ fun HomeFabMenu(
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
-                            text = "Etkinlik Ekle",
+                            text = stringResource(planora.core.generated.resources.Res.string.action_add_event),
                             modifier = Modifier.padding(
                                 horizontal = 8.dp,
                                 vertical = 4.dp
@@ -111,7 +112,7 @@ fun HomeFabMenu(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Event,
-                            contentDescription = "Add Event"
+                            contentDescription = stringResource(planora.core.generated.resources.Res.string.action_add_event)
                         )
                     }
                 }

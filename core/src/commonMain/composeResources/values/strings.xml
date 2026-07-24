@@ -439,5 +439,45 @@
     <string name="password_reset_success">Your password has been reset successfully. You can now login.</string>
     <string name="error_enter_valid_email">Please enter a valid email address.</string>
     <string name="error_enter_code">Please enter the 6-digit verification code.</string>
+
+    <!-- AI Chat Welcome -->
+    <string name="ai_chat_welcome_message">Hello! How can I help you today? You can add tasks or take notes.</string>
+
+    <!-- Plan Rooms Screen -->
+    <string name="title_plan_rooms">Plan Rooms</string>
+    <string name="invitations">Invitations</string>
+    <string name="no_plan_rooms">No Plan Rooms</string>
+    <string name="no_plan_rooms_desc">You are not in any plan room yet.\nCreate a new room or check invitations.</string>
+    <string name="room_detail">Room Detail</string>
+
+    <!-- Note Editor -->
+    <string name="note_title_placeholder">Title</string>
+    <string name="note_content_placeholder">Start writing...</string>
+    <string name="folder">Folder</string>
+
+    <!-- Home Filters & Timeline -->
+    <string name="filter_title">Filters</string>
+    <string name="filter_show_only_next_recurring_title">Upcoming Recurrences Only</string>
+    <string name="filter_show_only_next_recurring_desc">Keep your list clean by displaying only the next upcoming instance of recurring tasks.</string>
+    <string name="filter_show_completed_title">Show Completed</string>
+    <string name="filter_show_completed_desc">Keep completed tasks and events visible in your timeline.</string>
+    <string name="filter_show_room_tasks_title">Show Room Plans</string>
+    <string name="filter_show_room_tasks_desc">Include tasks and events from your plan rooms in your feed.</string>
+    <string name="user_me">Me</string>
+    <string name="task_status_completed_upper">COMPLETED</string>
+    <string name="shared_room_task_upper">SHARED ROOM</string>
+    <string name="task_details_title">Details</string>
+    <string name="note">Note</string>
+    <string name="date">Date</string>
+    <string name="time">Time</string>
+    <string name="type">Type</string>
+
+    <string name="room_members">Room Members</string>
+    <string name="room_no_members_yet">There are no members in this room yet.</string>
+    <string name="empty_room_tasks_title">No tasks or events yet</string>
+    <string name="empty_room_tasks_desc">There are no plans matching your filter in this room.</string>
+    <string name="room_image_desc">Room cover image</string>
+    <string name="action_expand">Expand</string>
 </resources>
+
 

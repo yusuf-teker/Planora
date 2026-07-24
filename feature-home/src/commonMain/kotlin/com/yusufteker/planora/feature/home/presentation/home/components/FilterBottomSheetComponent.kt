@@ -29,7 +29,7 @@ fun FilterBottomSheetComponent(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             Text(
-                text = "Filtreler",
+                text = stringResource(Res.string.filter_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -45,12 +45,12 @@ fun FilterBottomSheetComponent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Sadece Yaklaşan Tekrarlar",
+                        text = stringResource(Res.string.filter_show_only_next_recurring_title),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Tekrarlayan görevlerin sadece sıradaki kopyasını göstererek listeyi temiz tutar.",
+                        text = stringResource(Res.string.filter_show_only_next_recurring_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -82,12 +82,12 @@ fun FilterBottomSheetComponent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Tamamlananları Göster",
+                        text = stringResource(Res.string.filter_show_completed_title),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Tamamlanmış olan görev ve etkinlikleri listede göstermeye devam eder.",
+                        text = stringResource(Res.string.filter_show_completed_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -119,12 +119,12 @@ fun FilterBottomSheetComponent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Ortak Oda Planlarını Göster",
+                        text = stringResource(Res.string.filter_show_room_tasks_title),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Dahil olduğunuz plan odalarına ait görev ve etkinlikleri akışta gösterir.",
+                        text = stringResource(Res.string.filter_show_room_tasks_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

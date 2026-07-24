@@ -11,6 +11,9 @@ import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskDto
+import org.jetbrains.compose.resources.stringResource
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +32,7 @@ fun SharedTaskDetailDialog(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Detaylar",
+                text = stringResource(Res.string.task_details_title),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
@@ -47,7 +50,7 @@ fun SharedTaskDetailDialog(
             if (!task.description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Not",
+                    text = stringResource(Res.string.note),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -67,7 +70,7 @@ fun SharedTaskDetailDialog(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text(
-                        text = "Tarih",
+                        text = stringResource(Res.string.date),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -81,7 +84,7 @@ fun SharedTaskDetailDialog(
 
                 Column {
                     Text(
-                        text = "Saat",
+                        text = stringResource(Res.string.time),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -95,7 +98,7 @@ fun SharedTaskDetailDialog(
                 
                 Column {
                     Text(
-                        text = "Tür",
+                        text = stringResource(Res.string.type),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -115,7 +118,7 @@ fun SharedTaskDetailDialog(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Kapat")
+                Text(stringResource(Res.string.action_close))
             }
         }
     }

@@ -64,7 +64,7 @@ fun PlanRoomsScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "Plan Odaları", 
+                        text = stringResource(Res.string.title_plan_rooms), 
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
@@ -83,7 +83,7 @@ fun PlanRoomsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
-                            contentDescription = "Davetler"
+                            contentDescription = stringResource(Res.string.invitations)
                         )
                     }
                 },
@@ -111,8 +111,8 @@ fun PlanRoomsScreen(
             if (state.rooms.isEmpty() && !state.isLoading) {
                 com.yusufteker.planora.feature.home.presentation.components.EmptyStateComponent(
                     icon = androidx.compose.material.icons.Icons.Default.DateRange,
-                    title = "Plan Odası Yok",
-                    description = "Henüz bir plan odasında değilsiniz.\nYeni bir oda kurun veya davetleri kontrol edin.",
+                    title = stringResource(Res.string.no_plan_rooms),
+                    description = stringResource(Res.string.no_plan_rooms_desc),
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
@@ -385,7 +385,7 @@ fun RoomItem(
 
             Icon(
                 imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Detay",
+                contentDescription = stringResource(Res.string.room_detail),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }

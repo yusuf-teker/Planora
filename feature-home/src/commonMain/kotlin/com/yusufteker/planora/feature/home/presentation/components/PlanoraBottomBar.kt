@@ -330,23 +330,23 @@ fun PlanoraActionIcon(
             StarConfig(
                 cx = canvasWidth * 0.50f,
                 cy = canvasHeight * 0.54f,
-                baseRadius = canvasWidth * 0.16f,
+                baseRadius = canvasWidth * 0.22f,
                 appearStart = 0.00f,
                 appearEnd = 0.20f
             ),
             // Yıldız 2: Orta boy yıldız (sağ üst)
             StarConfig(
-                cx = canvasWidth * 0.66f,
-                cy = canvasHeight * 0.32f,
-                baseRadius = canvasWidth * 0.095f,
+                cx = canvasWidth * 0.68f,
+                cy = canvasHeight * 0.30f,
+                baseRadius = canvasWidth * 0.13f,
                 appearStart = 0.20f,
                 appearEnd = 0.40f
             ),
             // Yıldız 3: Küçük yıldız (sol üst)
             StarConfig(
-                cx = canvasWidth * 0.34f,
-                cy = canvasHeight * 0.36f,
-                baseRadius = canvasWidth * 0.06f,
+                cx = canvasWidth * 0.32f,
+                cy = canvasHeight * 0.34f,
+                baseRadius = canvasWidth * 0.09f,
                 appearStart = 0.40f,
                 appearEnd = 0.60f
             )

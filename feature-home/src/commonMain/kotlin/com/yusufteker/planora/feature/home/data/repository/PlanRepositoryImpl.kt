@@ -387,7 +387,8 @@ class PlanRepositoryImpl(
             current.endTime != original.endTime ||
             current.status != original.status ||
             current.specificDetails != original.specificDetails ||
-            current.isPinned != original.isPinned
+            current.isPinned != original.isPinned ||
+            current.participants != original.participants
     }
 
     /**
@@ -878,6 +879,7 @@ class PlanRepositoryImpl(
     override suspend fun inviteUserToRoom(roomId: String, request: InviteUserRequest): Result<Unit> {
         return try {
             planApi.inviteUserToRoom(roomId, request)
+            fetchMyRooms()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -895,6 +897,11 @@ class PlanRepositoryImpl(
     override suspend fun respondToInvite(roomId: String, accept: Boolean): Result<Unit> {
         return try {
             planApi.respondToInvite(roomId, accept)
+            fetchMyRooms()
+            if (accept) {
+                fetchRoomTasks(roomId)
+                fetchMyTasks()
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

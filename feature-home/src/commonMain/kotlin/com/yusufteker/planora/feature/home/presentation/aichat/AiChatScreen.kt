@@ -300,7 +300,7 @@ fun MessageBubble(message: AiChatMessage) {
                 }
             } else {
                 Text(
-                    text = message.text,
+                    text = message.text.asString(),
                     color = textColor,
                     style = MaterialTheme.typography.bodyMedium
                 )

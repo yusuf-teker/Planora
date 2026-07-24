@@ -150,7 +150,7 @@ fun PlanRoomDetailScreen(
                             if (!state.roomImageUrl.isNullOrBlank()) {
                                 AsyncImage(
                                     model = getOptimizedCloudinaryUrl(state.roomImageUrl!!),
-                                    contentDescription = "Oda Resmi",
+                                    contentDescription = stringResource(Res.string.room_image_desc),
                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
                                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                 )
@@ -193,7 +193,7 @@ fun PlanRoomDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnInviteUserClick) }) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = "Kişi Davet Et")
+                        Icon(Icons.Default.PersonAdd, contentDescription = stringResource(Res.string.action_invite_person))
                     }
                     var showMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showMenu = true }) {
@@ -296,7 +296,7 @@ fun PlanRoomDetailScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = androidx.compose.foundation.shape.CircleShape
                 ) {
-                    Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = "Expand")
+                    Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = stringResource(Res.string.action_expand))
                 }
             }
         }
@@ -313,7 +313,7 @@ fun PlanRoomDetailScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     Text(
-                        text = "Oda Üyeleri",
+                        text = stringResource(Res.string.room_members),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 8.dp)
@@ -335,7 +335,7 @@ fun PlanRoomDetailScreen(
                         }
                     } else if (state.memberProfiles.isEmpty()) {
                         Text(
-                            text = "Bu odada henüz üye bulunmuyor.",
+                            text = stringResource(Res.string.room_no_members_yet),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -480,8 +480,8 @@ fun PlanRoomDetailScreen(
                         if (filteredTasks.isEmpty()) {
                             com.yusufteker.planora.feature.home.presentation.components.EmptyStateComponent(
                                 icon = Icons.Default.DateRange,
-                                title = "Henüz bir görev veya etkinlik yok",
-                                description = "Bu odada filtrenize uygun bir plan bulunmuyor.",
+                                title = stringResource(Res.string.empty_room_tasks_title),
+                                description = stringResource(Res.string.empty_room_tasks_desc),
                                 modifier = Modifier.weight(1f)
                             )
                         } else {
@@ -515,7 +515,7 @@ fun PlanRoomDetailScreen(
                                     taskDate == selectedDate
                                 }
                                 Text(
-                                    text = "${selectedDate.dayOfMonth} ${selectedDate.month.name}",
+                                    text = "${selectedDate.dayOfMonth} ${getMonthNameRes(selectedDate.monthNumber)}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -939,6 +939,25 @@ private fun EditRoomBottomSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun getMonthNameRes(month: Int): String {
+    return when(month) {
+        1 -> stringResource(Res.string.month_jan)
+        2 -> stringResource(Res.string.month_feb)
+        3 -> stringResource(Res.string.month_mar)
+        4 -> stringResource(Res.string.month_apr)
+        5 -> stringResource(Res.string.month_may)
+        6 -> stringResource(Res.string.month_jun)
+        7 -> stringResource(Res.string.month_jul)
+        8 -> stringResource(Res.string.month_aug)
+        9 -> stringResource(Res.string.month_sep)
+        10 -> stringResource(Res.string.month_oct)
+        11 -> stringResource(Res.string.month_nov)
+        12 -> stringResource(Res.string.month_dec)
+        else -> ""
     }
 }
 

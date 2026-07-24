@@ -104,7 +104,7 @@ fun FeedTimelineComponent(
 
 @Composable
 private fun DateHeader(date: LocalDate, isToday: Boolean) {
-    val dateText = if (isToday) "Bugün" else "${date.dayOfMonth} ${monthName(date.monthNumber)} ${date.year}"
+    val dateText = if (isToday) stringResource(Res.string.today) else "${date.dayOfMonth} ${monthName(date.monthNumber)} ${date.year}"
     
     Box(
         modifier = Modifier
@@ -120,10 +120,21 @@ private fun DateHeader(date: LocalDate, isToday: Boolean) {
     }
 }
 
+@Composable
 private fun monthName(month: Int): String {
     return when(month) {
-        1 -> "Ocak" 2 -> "Şubat" 3 -> "Mart" 4 -> "Nisan" 5 -> "Mayıs" 6 -> "Haziran"
-        7 -> "Temmuz" 8 -> "Ağustos" 9 -> "Eylül" 10 -> "Ekim" 11 -> "Kasım" 12 -> "Aralık"
+        1 -> stringResource(Res.string.month_jan)
+        2 -> stringResource(Res.string.month_feb)
+        3 -> stringResource(Res.string.month_mar)
+        4 -> stringResource(Res.string.month_apr)
+        5 -> stringResource(Res.string.month_may)
+        6 -> stringResource(Res.string.month_jun)
+        7 -> stringResource(Res.string.month_jul)
+        8 -> stringResource(Res.string.month_aug)
+        9 -> stringResource(Res.string.month_sep)
+        10 -> stringResource(Res.string.month_oct)
+        11 -> stringResource(Res.string.month_nov)
+        12 -> stringResource(Res.string.month_dec)
         else -> ""
     }
 }

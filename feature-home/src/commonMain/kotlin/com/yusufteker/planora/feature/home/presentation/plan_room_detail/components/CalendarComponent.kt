@@ -53,17 +53,17 @@ fun CalendarComponent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onPreviousMonth) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Previous Month")
+                Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(Res.string.action_prev_month))
             }
             
             Text(
-                text = "${currentMonth.month.name} ${currentMonth.year}",
+                text = "${getCalendarMonthName(currentMonth.monthNumber)} ${currentMonth.year}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             
             IconButton(onClick = onNextMonth) {
-                Icon(Icons.Default.ChevronRight, contentDescription = "Next Month")
+                Icon(Icons.Default.ChevronRight, contentDescription = stringResource(Res.string.action_next_month))
             }
         }
         
@@ -258,4 +258,23 @@ fun getCalendarDays(month: LocalDate): List<LocalDate?> {
     }
     
     return days
+}
+
+@Composable
+private fun getCalendarMonthName(month: Int): String {
+    return when(month) {
+        1 -> stringResource(Res.string.month_jan)
+        2 -> stringResource(Res.string.month_feb)
+        3 -> stringResource(Res.string.month_mar)
+        4 -> stringResource(Res.string.month_apr)
+        5 -> stringResource(Res.string.month_may)
+        6 -> stringResource(Res.string.month_jun)
+        7 -> stringResource(Res.string.month_jul)
+        8 -> stringResource(Res.string.month_aug)
+        9 -> stringResource(Res.string.month_sep)
+        10 -> stringResource(Res.string.month_oct)
+        11 -> stringResource(Res.string.month_nov)
+        12 -> stringResource(Res.string.month_dec)
+        else -> ""
+    }
 }

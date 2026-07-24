@@ -39,6 +39,7 @@ import io.ktor.http.content.PartData
 import io.ktor.http.content.streamProvider
 import io.ktor.http.content.forEachPart
 import com.yusufteker.planora.server.service.CloudinaryService
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
 
@@ -465,6 +466,9 @@ fun Route.planRoomRoutes() {
                             body = if (isAccepted) "$pushUserName, '$pushRoomName' oda davetini kabul etti." else "$pushUserName, '$pushRoomName' oda davetini reddetti.",
                             data = mapOf("type" to "room_invite_response", "roomId" to roomId)
                         )
+                    }
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
                     }
                     call.respond(HttpStatusCode.OK, "Invitation responded successfully")
                 } else {

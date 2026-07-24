@@ -439,5 +439,42 @@
     <string name="password_reset_success">Şifreniz başarıyla sıfırlandı. Giriş yapabilirsiniz.</string>
     <string name="error_enter_valid_email">Lütfen geçerli bir e-posta adresi girin.</string>
     <string name="error_enter_code">Lütfen 6 haneli doğrulama kodunu girin.</string>
-</resources>
 
+    <!-- AI Chat Welcome -->
+    <string name="ai_chat_welcome_message">Merhaba! Sana nasıl yardımcı olabilirim? Görev ekleyebilir veya not alabilirsin.</string>
+
+    <!-- Plan Rooms Screen -->
+    <string name="title_plan_rooms">Plan Odaları</string>
+    <string name="invitations">Davetler</string>
+    <string name="no_plan_rooms">Plan Odası Yok</string>
+    <string name="no_plan_rooms_desc">Henüz bir plan odasında değilsiniz.\nYeni bir oda kurun veya davetleri kontrol edin.</string>
+    <string name="room_detail">Oda Detayı</string>
+
+    <!-- Note Editor -->
+    <string name="note_title_placeholder">Başlık</string>
+    <string name="note_content_placeholder">Yazmaya başla...</string>
+    <string name="folder">Klasör</string>
+
+    <!-- Home Filters & Timeline -->
+    <string name="filter_title">Filtreler</string>
+    <string name="filter_show_only_next_recurring_title">Sadece Yaklaşan Tekrarlar</string>
+    <string name="filter_show_only_next_recurring_desc">Tekrarlayan görevlerin sadece sıradaki kopyasını göstererek listeyi temiz tutar.</string>
+    <string name="filter_show_completed_title">Tamamlananları Göster</string>
+    <string name="filter_show_completed_desc">Tamamlanmış olan görev ve etkinlikleri listede göstermeye devam eder.</string>
+    <string name="filter_show_room_tasks_title">Ortak Oda Planlarını Göster</string>
+    <string name="filter_show_room_tasks_desc">Dahil olduğunuz plan odalarına ait görev ve etkinlikleri akışta gösterir.</string>
+    <string name="user_me">Ben</string>
+    <string name="task_status_completed_upper">TAMAMLANDI</string>
+    <string name="shared_room_task_upper">ORTAK ODA</string>
+    <string name="task_details_title">Detaylar</string>
+    <string name="note">Not</string>
+    <string name="date">Tarih</string>
+    <string name="time">Saat</string>
+    <string name="type">Tür</string>
+    <string name="room_members">Oda Üyeleri</string>
+    <string name="room_no_members_yet">Bu odada henüz üye bulunmuyor.</string>
+    <string name="empty_room_tasks_title">Henüz bir görev veya etkinlik yok</string>
+    <string name="empty_room_tasks_desc">Bu odada filtrenize uygun bir plan bulunmuyor.</string>
+    <string name="room_image_desc">Oda resmi</string>
+    <string name="action_expand">Genişlet</string>
+</resources>
