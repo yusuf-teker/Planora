@@ -18,6 +18,9 @@ object EmailService {
 
     private val dotenv = Dotenv.configure().ignoreIfMissing().load()
 
+    private val resendApiKey: String?
+        get() = System.getenv("RESEND_API_KEY") ?: dotenv["RESEND_API_KEY"]
+
     private val scriptUrl: String?
         get() = System.getenv("GMAIL_SCRIPT_URL") ?: dotenv["GMAIL_SCRIPT_URL"]
 
@@ -28,7 +31,7 @@ object EmailService {
         .build()
 
     /**
-     * Sends a custom email to the specified recipient.
+     * Sends a custom email to the specified recipient using Resend API or Google Script.
      *
      * @param toEmail Recipient email address.
      * @param subject Email subject line.
@@ -36,9 +39,14 @@ object EmailService {
      * @return `true` if email request was dispatched successfully, `false` otherwise.
      */
     suspend fun sendEmail(toEmail: String, subject: String, htmlContent: String): Boolean {
+        val apiKey = resendApiKey
+        if (!apiKey.isNullOrEmpty()) {
+            return sendViaResend(toEmail, subject, htmlContent, apiKey)
+        }
+
         val url = scriptUrl
         if (url.isNullOrEmpty()) {
-            System.err.println("EmailService: GMAIL_SCRIPT_URL is not set in environment or .env file.")
+            System.err.println("EmailService: Neither RESEND_API_KEY nor GMAIL_SCRIPT_URL is set.")
             return false
         }
 
@@ -72,15 +80,62 @@ object EmailService {
 
                 val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
-                if (response.statusCode() in 200..299) {
-                    println("EmailService: Email successfully sent to $toEmail. Response: ${response.body()}")
+                if (response.statusCode() in 200..299 && !response.body().contains("Sayfa Bulunamadı")) {
+                    println("EmailService: Email successfully sent to $toEmail via Script. Response: ${response.body()}")
                     true
                 } else {
-                    System.err.println("EmailService: Failed to send email. Code: ${response.statusCode()}, Body: ${response.body()}")
+                    System.err.println("EmailService: Failed to send email via Script. Code: ${response.statusCode()}, Body: ${response.body()}")
                     false
                 }
             } catch (e: Exception) {
                 System.err.println("EmailService: Exception while sending email via Google Script: ${e.message}")
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    private suspend fun sendViaResend(toEmail: String, subject: String, htmlContent: String, apiKey: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val escapedHtml = htmlContent
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "")
+
+                val escapedSubject = subject
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+
+                val jsonPayload = """
+                    {
+                        "from": "Planora <onboarding@resend.dev>",
+                        "to": ["$toEmail"],
+                        "subject": "$escapedSubject",
+                        "html": "$escapedHtml"
+                    }
+                """.trimIndent()
+
+                val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer $apiKey")
+                    .timeout(Duration.ofSeconds(20))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build()
+
+                val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+                if (response.statusCode() in 200..299) {
+                    println("EmailService: Email successfully sent to $toEmail via Resend. Response: ${response.body()}")
+                    true
+                } else {
+                    System.err.println("EmailService: Resend API error. Code: ${response.statusCode()}, Body: ${response.body()}")
+                    false
+                }
+            } catch (e: Exception) {
+                System.err.println("EmailService: Exception while sending email via Resend: ${e.message}")
                 e.printStackTrace()
                 false
             }

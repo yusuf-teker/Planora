@@ -14,7 +14,7 @@ object DatabaseSeeder {
             println("Users: ${UserEntity.count()}")
             println("Posts: ${PostEntity.count()}")
             
-            var dummyUser = UserEntity.all().find { it.email == "dummy@planora.com" }
+            var dummyUser = UserEntity.all().find { it.email == "dummy@planora.com" || it.username == "dummy_user" }
             if (dummyUser == null) {
                 dummyUser = UserEntity.new {
                     name = "Dummy User"
@@ -25,7 +25,7 @@ object DatabaseSeeder {
                 }
             }
 
-            var secondaryUser = UserEntity.all().find { it.email == "test@planora.com" }
+            var secondaryUser = UserEntity.all().find { it.email == "test@planora.com" || it.username == "test_user" }
             if (secondaryUser == null) {
                 secondaryUser = UserEntity.new {
                     name = "Test User"

@@ -50,9 +50,9 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = 60000L
-            connectTimeoutMillis = 60000L
-            socketTimeoutMillis = 60000L
+            requestTimeoutMillis = 90000L
+            connectTimeoutMillis = 90000L
+            socketTimeoutMillis = 90000L
         }
 
         install(Logging) {

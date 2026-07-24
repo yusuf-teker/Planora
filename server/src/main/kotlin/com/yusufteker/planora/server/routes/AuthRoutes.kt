@@ -21,6 +21,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.lowerCase
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -161,8 +162,10 @@ fun Route.authRoutes() {
         // --- 4. FORGOT PASSWORD ENDPOINT ---
         post("/forgot-password") {
             val request = call.receive<com.yusufteker.planora.shared.api.ForgotPasswordRequest>()
+            val cleanEmail = request.email.trim().lowercase()
+            
             val user = dbQuery {
-                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+                UserEntity.find { UsersTable.email.lowerCase() eq cleanEmail }.firstOrNull()
             }
 
             // Güvenlik: Kullanıcı bulunamazsa da aynı mesajı dönerek e-posta keşfini (enumeration) engelliyoruz.
@@ -198,8 +201,10 @@ fun Route.authRoutes() {
         // --- 5. VERIFY RESET CODE ENDPOINT ---
         post("/verify-reset-code") {
             val request = call.receive<com.yusufteker.planora.shared.api.VerifyResetCodeRequest>()
+            val cleanEmail = request.email.trim().lowercase()
+            
             val user = dbQuery {
-                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+                UserEntity.find { UsersTable.email.lowerCase() eq cleanEmail }.firstOrNull()
             }
 
             if (user == null) {
@@ -225,8 +230,10 @@ fun Route.authRoutes() {
         // --- 6. RESET PASSWORD ENDPOINT ---
         post("/reset-password") {
             val request = call.receive<com.yusufteker.planora.shared.api.ResetPasswordRequest>()
+            val cleanEmail = request.email.trim().lowercase()
+
             val user = dbQuery {
-                UserEntity.find { UsersTable.email eq request.email }.firstOrNull()
+                UserEntity.find { UsersTable.email.lowerCase() eq cleanEmail }.firstOrNull()
             }
 
             if (user == null) {
