@@ -96,6 +96,8 @@ fun PlanRoomsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = androidx.compose.foundation.shape.CircleShape
             ) {
                 Icon(

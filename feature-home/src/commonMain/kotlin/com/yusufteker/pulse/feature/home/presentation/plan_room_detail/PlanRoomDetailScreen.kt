@@ -268,6 +268,7 @@ fun PlanRoomDetailScreen(
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick) 
                                 },
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 shape = androidx.compose.foundation.shape.CircleShape
                             ) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = stringResource(Res.string.action_add_task))
@@ -281,6 +282,7 @@ fun PlanRoomDetailScreen(
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick) 
                                 },
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 shape = androidx.compose.foundation.shape.CircleShape
                             ) {
                                 Icon(Icons.Default.Event, contentDescription = stringResource(Res.string.action_add_event))
@@ -291,6 +293,7 @@ fun PlanRoomDetailScreen(
                 FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
                     containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = androidx.compose.foundation.shape.CircleShape
                 ) {
                     Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = "Expand")
@@ -552,6 +555,7 @@ fun PlanRoomDetailScreen(
     }
 
     if (state.isEditRoomBottomSheetOpen) {
+        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
         EditRoomBottomSheet(
             state = state,
             onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissEditRoomBottomSheet) },
@@ -560,7 +564,11 @@ fun PlanRoomDetailScreen(
             onRoomImageClick = { roomImagePickerLauncher.launch() },
             onSearchQueryChange = { viewModel.onEvent(PlanRoomDetailEvent.OnSearchQueryChange(it)) },
             onUserSelectToInvite = { viewModel.onEvent(PlanRoomDetailEvent.OnUserSelectToInvite(it)) },
-            onCopyInviteLinkClick = { viewModel.onEvent(PlanRoomDetailEvent.OnCopyInviteLinkClick) },
+            onCopyInviteLinkClick = {
+                val inviteUrl = "https://planora.app/room/join?roomId=${state.roomId}"
+                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(inviteUrl))
+                viewModel.onEvent(PlanRoomDetailEvent.OnCopyInviteLinkClick)
+            },
             onRemoveMemberClick = { viewModel.onEvent(PlanRoomDetailEvent.OnRemoveMemberClick(it)) },
             onDeleteRoomClick = {
                 viewModel.onEvent(PlanRoomDetailEvent.OnDismissEditRoomBottomSheet)

@@ -118,7 +118,7 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
     private fun handleGeneralNotification(message: RemoteMessage) {
         val title = message.notification?.title
             ?: message.data["title"]
-            ?: "Pulsy"
+            ?: "Planora"
 
         val body = message.notification?.body
             ?: message.data["body"]
@@ -221,7 +221,7 @@ class PulsyFcmService : FirebaseMessagingService(), KoinComponent {
                 NotificationCompat.BigTextStyle()
                     .setBigContentTitle(title)
                     .bigText(body)
-                    .setSummaryText("Pulsy")
+                    .setSummaryText("Planora")
             )
             .setCategory(category)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

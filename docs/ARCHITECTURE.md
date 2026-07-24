@@ -1,6 +1,6 @@
-# Pulsy Architecture
+# Planora Architecture
 
-This document describes the architectural patterns and module structure used in the **Pulsy** Kotlin Multiplatform (KMP) project. The architecture is designed to be highly scalable, modular, and maintainable, ready for production use.
+This document describes the architectural patterns and module structure used in the **Planora** Kotlin Multiplatform (KMP) project. The architecture is designed to be highly scalable, modular, and maintainable, ready for production use.
 
 ## Module Structure
 

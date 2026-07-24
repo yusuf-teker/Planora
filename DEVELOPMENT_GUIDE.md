@@ -1,10 +1,10 @@
-# Pulse Uygulaması Geliştirici Kılavuzu (Development Guide)
+# Planora Uygulaması Geliştirici Kılavuzu (Development Guide)
 
-Pulse, **Kotlin Multiplatform (KMP)** kullanılarak geliştirilen, Android ve iOS için ortak iş mantığına sahip olan ve "Offline-First" (Çevrimdışı Öncelikli) mimariyi benimseyen bir uygulamadır. Bu kılavuz, projeye yeni dahil olan veya sistemin nasıl çalıştığını anlamak isteyen geliştiriciler (ve yapay zeka ajanları) için hazırlanmıştır.
+Planora, **Kotlin Multiplatform (KMP)** kullanılarak geliştirilen, Android ve iOS için ortak iş mantığına sahip olan ve "Offline-First" (Çevrimdışı Öncelikli) mimariyi benimseyen bir uygulamadır. Bu kılavuz, projeye yeni dahil olan veya sistemin nasıl çalıştığını anlamak isteyen geliştiriciler (ve yapay zeka ajanları) için hazırlanmıştır.
 
 ## 1. Mimari Genel Bakış (Architecture Overview)
 
-Pulse, modern mobil uygulama standartlarına göre inşa edilmiştir:
+Planora, modern mobil uygulama standartlarına göre inşa edilmiştir:
 - **UI:** Jetpack Compose (Compose Multiplatform)
 - **Veritabanı:** SQLDelight (`core` modülü içinde)
 - **Ağ (Network):** Ktor Client
@@ -117,7 +117,7 @@ Kullanıcı `Logout` (Çıkış) işlemi yaptığında, `navController.navigate(
 `TaskEntity` (veritabanı), `TaskDto` (API yanıtı) or `CreateTaskRequest` objelerinden birine yeni bir parametre (örn: `location`) eklerseniz, bu parametreyi **KESİNLİKLE** `feature-home/src/commonMain/kotlin/com/yusufteker/pulse/feature/home/data/mapper/TaskMapper.kt` dosyasındaki dönüştürme fonksiyonlarına dahil edin. Aksi takdirde, veriler okunurken veya yazılırken bu alanlar kaybolur!
 
 ### 4.6. Dil Desteği ve Yerelleştirme (Localization - TR & EN)
-Pulse, çok dilli bir yapıya sahiptir. Compose Multiplatform'un kendi kaynak yönetim sistemi kullanılmaktadır.
+Planora, çok dilli bir yapıya sahiptir. Compose Multiplatform'un kendi kaynak yönetim sistemi kullanılmaktadır.
 - UI ekranlarındaki hiçbir metin, başlık, uyarı veya buton etiketi **sabit (hardcoded) String** olarak kod içine yazılmamalıdır.
 - İngilizce (varsayılan) dil metinleri: `core/src/commonMain/composeResources/values/strings.xml` dosyasında yer almalıdır.
 - Türkçe dil metinleri: `core/src/commonMain/composeResources/values-tr/strings.xml` dosyasında yer almalıdır.

@@ -98,13 +98,16 @@ fun getAppColorScheme(themeColor: ThemeColor, darkTheme: Boolean): ColorScheme {
         ThemeColor.BROWN -> Color(0xFF7F4F24)
     }
 
-    // We tint the primary color. In a full production app, we could generate all tonal palettes.
+    // We tint the primary and container colors so that FABs, navigation, and themed components tint correctly.
     return baseScheme.copy(
         primary = primaryColor,
-        // Match secondary and secondaryContainer to the theme color so that Bottom Navigation and other components tint correctly
+        onPrimary = Color.White,
+        primaryContainer = if (darkTheme) primaryColor.copy(alpha = 0.3f) else primaryColor.copy(alpha = 0.15f),
+        onPrimaryContainer = if (darkTheme) Color.White else primaryColor,
         secondary = primaryColor.copy(alpha = 0.8f),
-        secondaryContainer = primaryColor.copy(alpha = 0.2f),
-        onSecondaryContainer = primaryColor
+        onSecondary = Color.White,
+        secondaryContainer = if (darkTheme) primaryColor.copy(alpha = 0.3f) else primaryColor.copy(alpha = 0.15f),
+        onSecondaryContainer = if (darkTheme) Color.White else primaryColor
     )
 }
 

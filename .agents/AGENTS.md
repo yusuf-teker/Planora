@@ -1,4 +1,4 @@
-# Agent Workspace Rules for Pulse Project
+# Agent Workspace Rules for Planora Project
 
 When working on this workspace, please follow these guidelines carefully. They are essential for maintaining the application's Offline-First architecture, code quality, and preventing data leaks.
 

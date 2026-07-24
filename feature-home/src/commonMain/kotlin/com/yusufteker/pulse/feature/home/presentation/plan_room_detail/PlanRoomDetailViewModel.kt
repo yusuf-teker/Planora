@@ -202,10 +202,11 @@ class PlanRoomDetailViewModel(
         }
     }
     
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     private fun openInviteDialog() {
         setState { copy(isInviteDialogOpen = true, isFollowingLoading = true, inviteError = null) }
         viewModelScope.launch {
-            val defaultErrorMsg = getString(Res.string.error_operation_failed)
             val result = profileRepository.getFollowingUsers()
             if (result.isSuccess) {
                 val users = result.getOrThrow()
@@ -216,10 +217,10 @@ class PlanRoomDetailViewModel(
                     ) 
                 }
             } else {
-                val e = result.exceptionOrNull()
                 setState { copy(
                         isFollowingLoading = false,
-                        inviteError = e?.message ?: defaultErrorMsg
+                        followingUsers = emptyList(),
+                        inviteError = null
                     ) 
                 }
             }
@@ -227,10 +228,30 @@ class PlanRoomDetailViewModel(
     }
     
     private fun updateSearchQuery(query: String) {
-        setState { copy(
-                searchQuery = query,
-                followingUsers = filterUsers(query)
-            ) 
+        setState { copy(searchQuery = query) }
+        searchJob?.cancel()
+        
+        if (query.isBlank()) {
+            setState { copy(followingUsers = allFollowingUsers, isFollowingLoading = false, inviteError = null) }
+            return
+        }
+        
+        val localFiltered = filterUsers(query)
+        setState { copy(followingUsers = localFiltered) }
+        
+        searchJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(300)
+            if (localFiltered.isEmpty()) {
+                setState { copy(isFollowingLoading = true, inviteError = null) }
+            }
+            val result = profileRepository.searchUsers(query)
+            if (result.isSuccess) {
+                val remoteUsers = result.getOrThrow()
+                val combined = (localFiltered + remoteUsers).distinctBy { it.id }
+                setState { copy(followingUsers = combined, isFollowingLoading = false, inviteError = null) }
+            } else {
+                setState { copy(isFollowingLoading = false) }
+            }
         }
     }
     
@@ -251,13 +272,15 @@ class PlanRoomDetailViewModel(
             val request = InviteUserRequest(userId = userId)
             val result = planRepository.inviteUserToRoom(roomId, request)
             
-            setState { copy(isLoading = false, isInviteDialogOpen = false) }
+            setState { copy(isLoading = false) }
             
             if (result.isSuccess) {
                 setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
+                loadRoom(roomId)
             } else {
                 val e = result.exceptionOrNull()
-                setEffect(PlanRoomDetailEffect.ShowToast(e?.message ?: failureMsg))
+                val errorMsg = e?.message?.takeIf { it.isNotBlank() } ?: failureMsg
+                setEffect(PlanRoomDetailEffect.ShowToast(errorMsg))
             }
         }
     }

@@ -37,7 +37,7 @@
     <string name="onboarding_desc_2">Create shared rooms with your friends and collaborate on tasks together.</string>
     <string name="onboarding_title_3">Social Calendars</string>
     <string name="onboarding_desc_3">View your friends' calendars and discover their upcoming plans easily.</string>
-    <string name="onboarding_title_4">Pulsy AI</string>
+    <string name="onboarding_title_4">Planora AI</string>
     <string name="onboarding_desc_4">Let the AI organize your life. Just tell it what you need to do.</string>
     <string name="action_skip">Skip</string>
     <string name="action_next">Next</string>
@@ -142,7 +142,7 @@
     <string name="action_decline">Decline</string>
     <string name="action_accept">Accept</string>
     <string name="action_close">Close</string>
-    <string name="note_ai_placeholder">Edit your note magically with Pulsy AI…</string>
+    <string name="note_ai_placeholder">Edit your note magically with Planora AI…</string>
     <string name="action_share">Share</string>
     <string name="title_my_drafts">My Drafts</string>
     <string name="action_save_draft">Save Draft</string>
@@ -368,7 +368,7 @@
     <string name="profile_leave_calendar">Stop Viewing Calendar</string>
     <string name="profile_calendar_request_sent">Calendar Access Request Sent</string>
     <string name="profile_request_calendar_access">Request Calendar Access</string>
-    <string name="profile_guest_login_prompt">Sign in to start your Pulse experience</string>
+    <string name="profile_guest_login_prompt">Sign in to start your Planora experience</string>
     <string name="notes_search_placeholder">Search notes...</string>
     <string name="notes_no_results">No results found.</string>
     <string name="notes_section_pinned">PINNED</string>
@@ -407,7 +407,7 @@
     <string name="onboarding_october_2026">October 2026</string>
     <string name="onboarding_today_wednesday">Today, Wed 14</string>
     <string name="onboarding_design_meeting">Design Meeting</string>
-    <string name="onboarding_pulsy_update">Pulsy Update</string>
+    <string name="onboarding_pulsy_update">Planora Update</string>
     <string name="onboarding_design_team">Design Team</string>
     <string name="onboarding_family">Family</string>
     <string name="onboarding_logo_revision">Logo Revision</string>

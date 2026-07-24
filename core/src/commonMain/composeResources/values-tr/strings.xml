@@ -37,7 +37,7 @@
     <string name="onboarding_desc_2">Arkadaşlarınla ortak odalar oluştur ve görevleri birlikte tamamla.</string>
     <string name="onboarding_title_3">Sosyal Takvimler</string>
     <string name="onboarding_desc_3">Arkadaşlarının takvimlerini görüntüle ve planlarını kolayca keşfet.</string>
-    <string name="onboarding_title_4">Pulsy AI</string>
+    <string name="onboarding_title_4">Planora AI</string>
     <string name="onboarding_desc_4">Bırak hayatını yapay zeka planlasın. Sadece ne yapman gerektiğini söyle.</string>
     <string name="action_skip">Atla</string>
     <string name="action_next">İleri</string>
@@ -141,7 +141,7 @@
     <string name="action_decline">Reddet</string>
     <string name="action_accept">Kabul Et</string>
     <string name="action_close">Kapat</string>
-    <string name="note_ai_placeholder">Pulsy AI ile notunuzu sihirli bir şekilde düzenleyin...</string>
+    <string name="note_ai_placeholder">Planora AI ile notunuzu sihirli bir şekilde düzenleyin...</string>
     <string name="action_share">Paylaş</string>
     <string name="title_my_drafts">Taslaklarım</string>
     <string name="action_save_draft">Taslak Kaydet</string>
@@ -368,7 +368,7 @@
     <string name="profile_leave_calendar">Takvimi Görmeyi Bırak</string>
     <string name="profile_calendar_request_sent">Takvim İstek Gönderildi</string>
     <string name="profile_request_calendar_access">Takvim Erişim İsteği Gönder</string>
-    <string name="profile_guest_login_prompt">Pulse deneyimini başlatmak için giriş yapın</string>
+    <string name="profile_guest_login_prompt">Planora deneyimini başlatmak için giriş yapın</string>
     <string name="notes_search_placeholder">Notlarda ara...</string>
     <string name="notes_no_results">Sonuç bulunamadı.</string>
     <string name="notes_section_pinned">SABİTLENENLER</string>
@@ -407,7 +407,7 @@
     <string name="onboarding_october_2026">Ekim 2026</string>
     <string name="onboarding_today_wednesday">Bugün, 14 Çarşamba</string>
     <string name="onboarding_design_meeting">Tasarım Toplantısı</string>
-    <string name="onboarding_pulsy_update">Pulsy Güncellemesi</string>
+    <string name="onboarding_pulsy_update">Planora Güncellemesi</string>
     <string name="onboarding_design_team">Tasarım Ekibi</string>
     <string name="onboarding_family">Aile</string>
     <string name="onboarding_logo_revision">Logo Revizyonu</string>

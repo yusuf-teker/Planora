@@ -40,6 +40,13 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.yusufteker.pulse.core.utils.getCurrentTimeMs
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.launch
 
@@ -113,22 +120,47 @@ fun TimelineSection(
         return
     }
 
-    // Performans: firstTodayIndex hesaplamasını remember ile sar
-    val firstTodayIndex = remember(grouped) {
-        var index = -1
+    // Performans: targetTodayIndex hesaplamasını remember ile sar
+    val targetTodayIndex = remember(grouped) {
+        val nowMs = getCurrentTimeMs()
+        val timeZone = TimeZone.currentSystemDefault()
+        val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
+
+        var todayIndex = -1
+        var firstUpcomingIndex = -1
         var currentIndex = 0
+
         for ((_, tasks) in grouped) {
-            val hasTodayTask = tasks.any { task ->
+            var groupHasToday = false
+            var groupHasUpcoming = false
+
+            for (task in tasks) {
                 val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
-                isToday(time)
+                if (isToday(time)) {
+                    groupHasToday = true
+                }
+                try {
+                    val taskDate = Instant.fromEpochMilliseconds(time).toLocalDateTime(timeZone).date
+                    if (taskDate >= todayDate) {
+                        groupHasUpcoming = true
+                    }
+                } catch (e: Exception) {
+                    // ignore
+                }
             }
-            if (hasTodayTask && index == -1) {
-                index = currentIndex
+
+            if (groupHasToday && todayIndex == -1) {
+                todayIndex = currentIndex
             }
+            if (groupHasUpcoming && firstUpcomingIndex == -1) {
+                firstUpcomingIndex = currentIndex
+            }
+
             currentIndex += 1 // Header
             currentIndex += tasks.size // Items
         }
-        index
+
+        if (todayIndex != -1) todayIndex else firstUpcomingIndex
     }
 
     // Performans: O(n) any{} arama yerine O(1) Set lookup kullan
@@ -137,27 +169,36 @@ fun TimelineSection(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    val showFab by remember(firstTodayIndex) {
+    var hasScrolledToToday by remember(state.viewOption) { mutableStateOf(false) }
+
+    LaunchedEffect(targetTodayIndex, state.hasLoadedTasks) {
+        if (!hasScrolledToToday && state.hasLoadedTasks && targetTodayIndex > 0) {
+            listState.scrollToItem(targetTodayIndex)
+            hasScrolledToToday = true
+        }
+    }
+
+    val showFab by remember(targetTodayIndex) {
         derivedStateOf {
-            if (firstTodayIndex == -1) return@derivedStateOf false
+            if (targetTodayIndex == -1) return@derivedStateOf false
             val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
             
             val firstVisible = visibleItemsInfo.first().index
             val lastVisible = visibleItemsInfo.last().index
             
-            firstTodayIndex < firstVisible || firstTodayIndex > lastVisible
+            targetTodayIndex < firstVisible || targetTodayIndex > lastVisible
         }
     }
 
-    val isTodayAbove by remember(firstTodayIndex) {
+    val isTodayAbove by remember(targetTodayIndex) {
         derivedStateOf {
-            if (firstTodayIndex == -1) return@derivedStateOf false
+            if (targetTodayIndex == -1) return@derivedStateOf false
             val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
             
             val firstVisible = visibleItemsInfo.first().index
-            firstTodayIndex < firstVisible
+            targetTodayIndex < firstVisible
         }
     }
 
@@ -258,8 +299,8 @@ fun TimelineSection(
         FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
-                    if (firstTodayIndex != -1) {
-                        listState.animateScrollToItem(firstTodayIndex)
+                    if (targetTodayIndex != -1) {
+                        listState.animateScrollToItem(targetTodayIndex)
                     }
                 }
             },

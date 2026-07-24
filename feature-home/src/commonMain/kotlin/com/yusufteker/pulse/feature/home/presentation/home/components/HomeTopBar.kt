@@ -37,7 +37,7 @@ fun HomeTopBar(
     ) {
         // Title on the left
         Text(
-            text = "Pulsy",
+            text = "Planora",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary
