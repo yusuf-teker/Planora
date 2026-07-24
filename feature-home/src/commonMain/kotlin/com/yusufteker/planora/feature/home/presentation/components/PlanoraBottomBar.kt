@@ -51,8 +51,9 @@ fun PlanoraBottomBar(
     onAiButtonClick: () -> Unit,
     pendingRequestsCount: Int = 0
 ) {
-    // Temanın ana rengini alarak Planora efektine uyguluyoruz
-    val planoraGlowColor = MaterialTheme.colorScheme.primary
+    // Temanın ana ve üçüncül renklerini alarak Planora gradient efektine uyguluyoruz
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceColor = if (isDark) Color(0xCC000000) else Color(0xE6FFFFFF) // Glassmorphism opacity
 
     Box(
@@ -67,7 +68,7 @@ fun PlanoraBottomBar(
         ) {
             Column {
                 // TEMA UYUMLU CUSTOM BORDER
-                // Kenarlarda görünmez, ortada AI butonunun altında parlayan Planora efekti
+                // Kenarlarda transparan, ortada AI butonu ile aynı 2.dp kalınlıkta ve mor-pembe (primary-tertiary) gradient efekti
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -76,7 +77,10 @@ fun PlanoraBottomBar(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    planoraGlowColor.copy(alpha = 0.6f),
+                                    primaryColor.copy(alpha = 0.6f),
+                                    tertiaryColor.copy(alpha = 0.6f),
+                                    tertiaryColor.copy(alpha = 0.6f),
+                                    primaryColor.copy(alpha = 0.6f),
                                     Color.Transparent
                                 )
                             )
@@ -152,8 +156,8 @@ fun PlanoraBottomBar(
                 .shadow(
                     elevation = 6.dp,
                     shape = CircleShape,
-                    spotColor = planoraGlowColor.copy(alpha = 0.4f),
-                    ambientColor = planoraGlowColor.copy(alpha = 0.2f)
+                    spotColor = primaryColor.copy(alpha = 0.4f),
+                    ambientColor = primaryColor.copy(alpha = 0.2f)
                 )
                 .background(
                     color = aiButtonBgColor,
