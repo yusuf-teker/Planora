@@ -60,7 +60,10 @@ object FcmService {
             FcmTokenEntity.find { FcmTokensTable.userId eq userId }.map { it.token }
         }
 
-        if (tokens.isEmpty()) return
+        if (tokens.isEmpty()) {
+            logger.warn("No FCM token registered for user $userId. Push notification '$title' skipped.")
+            return
+        }
 
         tokens.forEach { token ->
             sendToToken(token, title, body, data, userId)
@@ -94,6 +97,11 @@ object FcmService {
                 FcmTokenEntity.find { FcmTokensTable.userId eq memberId }
                     .map { it.token to memberId }
             }
+        }
+
+        if (allTokens.isEmpty()) {
+            logger.warn("No FCM tokens found for accepted members in room $roomId to send sync trigger")
+            return
         }
 
         logger.info("Sending sync_tasks trigger to ${allTokens.size} devices in room $roomId")

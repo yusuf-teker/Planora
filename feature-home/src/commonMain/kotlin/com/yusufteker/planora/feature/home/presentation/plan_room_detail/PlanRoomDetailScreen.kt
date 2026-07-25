@@ -605,6 +605,48 @@ fun PlanRoomDetailScreen(
             }
         )
     }
+
+    if (state.isDeleteConfirmationOpen) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissDeleteDialog) },
+            title = { Text(stringResource(Res.string.title_delete_room_confirm)) },
+            text = { Text(stringResource(Res.string.msg_delete_room_confirm)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnConfirmDeleteRoom) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissDeleteDialog) }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (state.isLeaveConfirmationOpen) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissLeaveDialog) },
+            title = { Text(stringResource(Res.string.title_leave_room_confirm)) },
+            text = { Text(stringResource(Res.string.msg_leave_room_confirm)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnConfirmLeaveRoom) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.action_leave_room))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnDismissLeaveDialog) }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

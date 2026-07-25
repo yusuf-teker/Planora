@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.*
 import androidx.compose.ui.Alignment
@@ -318,17 +319,21 @@ fun RoomItem(
                 
                 Spacer(modifier = Modifier.height(6.dp))
 
+                val acceptedMembers = remember(room.members) {
+                    room.members.filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(Res.string.onboarding_members_count, room.members.size),
+                        text = stringResource(Res.string.onboarding_members_count, acceptedMembers.size),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    if (room.members.isNotEmpty()) {
+                    if (acceptedMembers.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(12.dp))
 
                         // Overlapping Member Avatars Row (up to 3 members)
@@ -336,8 +341,8 @@ fun RoomItem(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val maxVisible = 3
-                            val displayedMembers = room.members.take(maxVisible)
-                            val remainingCount = room.members.size - displayedMembers.size
+                            val displayedMembers = acceptedMembers.take(maxVisible)
+                            val remainingCount = acceptedMembers.size - displayedMembers.size
 
                             displayedMembers.forEachIndexed { index, member ->
                                 val profile = memberProfiles[member.userId]
