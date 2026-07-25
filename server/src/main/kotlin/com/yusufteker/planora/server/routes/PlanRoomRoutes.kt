@@ -275,19 +275,33 @@ fun Route.planRoomRoutes() {
                         .where { TaskSharedRoomsTable.roomId eq roomId }
                         .map { it[TaskSharedRoomsTable.taskId] }
                     
-                    // Bu görevleri sil (CASCADE task_shared_rooms ve task_participants'ı da temizler)
+                    // 1. TaskSharedRoomsTable tablosundan bu odanın kayıtlarını temizle
+                    TaskSharedRoomsTable.deleteWhere { TaskSharedRoomsTable.roomId eq roomId }
+                    
+                    // 2. Başka odalarda kalmayan görevleri tamamen veritabanından sil
                     if (taskIdsInRoom.isNotEmpty()) {
                         taskIdsInRoom.forEach { taskId ->
-                            TaskEntity.findById(taskId)?.delete()
+                            val remainingSharedRoomsCount = TaskSharedRoomsTable.selectAll()
+                                .where { TaskSharedRoomsTable.taskId eq taskId }
+                                .count()
+                            if (remainingSharedRoomsCount == 0L) {
+                                TaskEntity.findById(taskId)?.delete()
+                            }
                         }
                     }
                     
-                    // Artık odayı sil. CASCADE sayesinde plan_room_members temizlenir.
+                    // 3. PlanRoomMembersTable tablosundan odadaki tüm üyeleri temizle
+                    PlanRoomMembersTable.deleteWhere { PlanRoomMembersTable.roomId eq roomId }
+
+                    // 4. Odayı sil
                     room.delete()
                     true
                 }
                 
                 if (deleted) {
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                    }
                     call.respond(HttpStatusCode.OK)
                 } else {
                     call.respond(HttpStatusCode.Forbidden, "Room not found or you don't have permission to delete")

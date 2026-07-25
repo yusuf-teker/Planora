@@ -160,7 +160,17 @@ class PlanRoomDetailViewModel(
                 if (room != null) {
                     val myUserId = sessionPreferences.getUserId() ?: ""
                     val isCreator = room.creatorId.toString() == myUserId
-                    setState { copy(roomName = room.name, roomImageUrl = room.imageUrl, isRoomCreator = isCreator, myUserId = myUserId, isLoading = false) }
+                    setState { 
+                        copy(
+                            roomName = room.name, 
+                            roomImageUrl = room.imageUrl, 
+                            isRoomCreator = isCreator, 
+                            myUserId = myUserId,
+                            creatorId = room.creatorId,
+                            roomMembers = room.members,
+                            isLoading = false
+                        ) 
+                    }
                     
                     // Fetch missing profiles for members concurrently
                     val currentProfiles = currentState.memberProfiles.toMutableMap()

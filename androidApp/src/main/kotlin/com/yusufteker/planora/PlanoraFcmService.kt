@@ -66,6 +66,27 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
 
         when (type) {
             "sync_tasks" -> handleSyncTasksTrigger()
+            "room_invite" -> {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        planRepository.getMyPendingInvitations()
+                        planRepository.fetchMyRooms()
+                    } catch (e: Exception) {
+                        Napier.e("Failed to handle room_invite trigger", e, tag = "PlanoraFcmService")
+                    }
+                }
+                handleGeneralNotification(message)
+            }
+            "room_invite_response", "room_member_removed" -> {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        planRepository.fetchMyRooms()
+                    } catch (e: Exception) {
+                        Napier.e("Failed to handle $type trigger", e, tag = "PlanoraFcmService")
+                    }
+                }
+                handleGeneralNotification(message)
+            }
             "follow_request" -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {

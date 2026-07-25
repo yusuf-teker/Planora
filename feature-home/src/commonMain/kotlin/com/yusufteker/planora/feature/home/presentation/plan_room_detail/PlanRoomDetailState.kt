@@ -59,6 +59,8 @@ data class PlanRoomDetailState(
     
     // Room Tasks State
     val roomTasks: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),
-    val myUserId: String = ""
+    val myUserId: String = "",
+    val creatorId: Int = 0,
+    val roomMembers: List<com.yusufteker.planora.shared.api.PlanRoomMemberDto> = emptyList()
 ) : com.yusufteker.planora.core.base.UiState
 

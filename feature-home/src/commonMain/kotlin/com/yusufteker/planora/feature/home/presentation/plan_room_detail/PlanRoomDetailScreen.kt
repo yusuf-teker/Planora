@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -340,6 +341,18 @@ fun PlanRoomDetailScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     } else {
+                        val acceptedMembers = remember(state.memberProfiles, state.roomMembers) {
+                            if (state.roomMembers.isEmpty()) {
+                                state.memberProfiles.values.toList()
+                            } else {
+                                val acceptedUserIds = state.roomMembers
+                                    .filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
+                                    .map { it.userId }
+                                    .toSet()
+                                state.memberProfiles.values.filter { acceptedUserIds.contains(it.id) }
+                            }
+                        }
+
                         LazyRow(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -352,11 +365,15 @@ fun PlanRoomDetailScreen(
                                     label = { Text(stringResource(Res.string.filter_member_all)) }
                                 )
                             }
-                            items(state.memberProfiles.values.toList(), key = { it.id }) { user ->
+                            items(acceptedMembers, key = { it.id }) { user ->
                                 val isSelected = state.selectedMemberUserIdsFilter.contains(user.id)
-                                var showMemberMenu by remember { mutableStateOf(false) }
+                                val isCreator = user.id == state.creatorId
 
-                                Box {
+                                Box(
+                                    modifier = Modifier.clickable { 
+                                        viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id))
+                                    }
+                                ) {
                                     AvatarImage(
                                         avatarId = user.avatarId,
                                         profileImageUrl = user.profileImageUrl,
@@ -367,37 +384,24 @@ fun PlanRoomDetailScreen(
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                                                 shape = CircleShape
                                             )
-                                            .clickable { 
-                                                if (state.isRoomCreator && user.id.toString() != state.myUserId) {
-                                                    showMemberMenu = true
-                                                } else {
-                                                    viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id))
-                                                }
-                                            }
                                     )
 
-                                    DropdownMenu(
-                                        expanded = showMemberMenu,
-                                        onDismissRequest = { showMemberMenu = false }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text(user.name, fontWeight = FontWeight.Bold) },
-                                            onClick = {
-                                                showMemberMenu = false
-                                                viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id))
+                                    if (isCreator) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .align(Alignment.TopEnd)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Star,
+                                                    contentDescription = stringResource(Res.string.role_creator),
+                                                    modifier = Modifier.size(10.dp)
+                                                )
                                             }
-                                        )
-                                        if (state.isRoomCreator && user.id.toString() != state.myUserId) {
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(Res.string.action_remove_member), color = MaterialTheme.colorScheme.error) },
-                                                onClick = {
-                                                    showMemberMenu = false
-                                                    viewModel.onEvent(PlanRoomDetailEvent.OnRemoveMemberClick(user))
-                                                },
-                                                leadingIcon = {
-                                                    Icon(Icons.Default.PersonRemove, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                                                }
-                                            )
                                         }
                                     }
                                 }
@@ -734,7 +738,20 @@ private fun EditRoomBottomSheet(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                state.memberProfiles.values.forEach { user ->
+                val acceptedMembers = remember(state.memberProfiles, state.roomMembers) {
+                    if (state.roomMembers.isEmpty()) {
+                        state.memberProfiles.values.toList()
+                    } else {
+                        val acceptedUserIds = state.roomMembers
+                            .filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
+                            .map { it.userId }
+                            .toSet()
+                        state.memberProfiles.values.filter { acceptedUserIds.contains(it.id) }
+                    }
+                }
+
+                acceptedMembers.forEach { user ->
+                    val isCreator = user.id == state.creatorId
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -756,7 +773,7 @@ private fun EditRoomBottomSheet(
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
-                                if (user.id.toString() == state.myUserId && state.isRoomCreator) {
+                                if (isCreator) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
@@ -778,7 +795,7 @@ private fun EditRoomBottomSheet(
                             )
                         }
 
-                        if (state.isRoomCreator && user.id.toString() != state.myUserId) {
+                        if (state.isRoomCreator && !isCreator) {
                             IconButton(onClick = { onRemoveMemberClick(user) }) {
                                 Icon(
                                     Icons.Default.PersonRemove,

@@ -925,7 +925,12 @@ class PlanRepositoryImpl(
                 val taskIds = database.planoraDatabaseQueries.getTaskIdsForRoom(roomId).executeAsList()
                 database.planoraDatabaseQueries.deleteTaskSharedRoomsForRoom(roomId)
                 if (taskIds.isNotEmpty()) {
-                    database.planoraDatabaseQueries.deleteTasksById(taskIds)
+                    val unsharedTaskIds = taskIds.filter { taskId ->
+                        database.planoraDatabaseQueries.getSharedRoomsForTask(taskId).executeAsList().isEmpty()
+                    }
+                    if (unsharedTaskIds.isNotEmpty()) {
+                        database.planoraDatabaseQueries.deleteTasksById(unsharedTaskIds)
+                    }
                 }
                 database.planoraDatabaseQueries.deleteMembersForRoom(roomId)
                 database.planoraDatabaseQueries.deletePlanRoom(roomId)
