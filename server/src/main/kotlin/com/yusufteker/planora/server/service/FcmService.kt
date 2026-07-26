@@ -27,59 +27,11 @@ object FcmService {
 
     fun init() {
         try {
-            var inputStream: InputStream? = null
-            var sourceInfo = ""
-
-            // 1. Environment variable: Base64 encoded JSON string (Recommended for Render Env Vars)
-            val base64Env = System.getenv("FIREBASE_SERVICE_ACCOUNT_BASE64")
-                ?: System.getenv("FIREBASE_CREDENTIALS_BASE64")
-            if (!base64Env.isNullOrBlank()) {
-                val cleanBase64 = base64Env.trim().replace("\\s".toRegex(), "")
-                val decodedBytes = Base64.getDecoder().decode(cleanBase64)
-                inputStream = ByteArrayInputStream(decodedBytes)
-                sourceInfo = "FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable"
-            }
-
-            // 2. Environment variable: Raw JSON string
-            if (inputStream == null) {
-                val rawJsonEnv = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
-                    ?: System.getenv("FIREBASE_CREDENTIALS_JSON")
-                if (!rawJsonEnv.isNullOrBlank()) {
-                    inputStream = ByteArrayInputStream(rawJsonEnv.toByteArray(Charsets.UTF_8))
-                    sourceInfo = "FIREBASE_SERVICE_ACCOUNT_JSON environment variable"
-                }
-            }
-
-            // 3. Environment variable: File path
-            if (inputStream == null) {
-                val filePathEnv = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
-                    ?: System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-                if (!filePathEnv.isNullOrBlank()) {
-                    val file = File(filePathEnv)
-                    if (file.exists()) {
-                        inputStream = FileInputStream(file)
-                        sourceInfo = "file at ${file.absolutePath} (from env)"
-                    }
-                }
-            }
-
-            // 4. Fallback: Local or Render Secret Files (/etc/secrets/firebase-service-account.json)
-            if (inputStream == null) {
-                val possibleFiles = listOf(
-                    File("firebase-service-account.json"),
-                    File("server/firebase-service-account.json"),
-                    File("/etc/secrets/firebase-service-account.json")
-                )
-                val existingFile = possibleFiles.firstOrNull { it.exists() }
-                if (existingFile != null) {
-                    inputStream = FileInputStream(existingFile)
-                    sourceInfo = "file at ${existingFile.path}"
-                }
-            }
-
-            if (inputStream != null) {
+            val result = loadCredentials()
+            if (result != null) {
+                val (credentials, sourceInfo) = result
                 val options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(inputStream))
+                    .setCredentials(credentials)
                     .build()
 
                 if (FirebaseApp.getApps().isEmpty()) {
@@ -87,10 +39,130 @@ object FcmService {
                     logger.info("Firebase Admin initialized successfully from $sourceInfo.")
                 }
             } else {
-                logger.warn("Firebase service account credentials not found in environment variables (FIREBASE_SERVICE_ACCOUNT_BASE64/JSON/PATH), Render secret files (/etc/secrets/firebase-service-account.json), or root/server directory. Push notifications will be disabled.")
+                logger.warn("Firebase service account credentials not found or invalid across all sources (ENV Base64/JSON/PATH, Render secrets /etc/secrets/firebase-service-account.json, or local root/server). Push notifications will be disabled.")
             }
         } catch (e: Exception) {
             logger.error("Failed to initialize Firebase Admin: ${e.message}", e)
+        }
+    }
+
+    private fun loadCredentials(): Pair<GoogleCredentials, String>? {
+        // 1. Environment variable: Base64 string
+        val base64Env = System.getenv("FIREBASE_SERVICE_ACCOUNT_BASE64")
+            ?: System.getenv("FIREBASE_CREDENTIALS_BASE64")
+        if (!base64Env.isNullOrBlank()) {
+            val creds = tryDecodeBase64Credentials(base64Env)
+            if (creds != null) {
+                return creds to "FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable"
+            } else {
+                logger.warn("Could not decode valid credentials from FIREBASE_SERVICE_ACCOUNT_BASE64. Trying next fallbacks...")
+            }
+        }
+
+        // 2. Environment variable: Raw JSON string
+        val rawJsonEnv = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+            ?: System.getenv("FIREBASE_CREDENTIALS_JSON")
+        if (!rawJsonEnv.isNullOrBlank()) {
+            val creds = tryLoadJsonCredentials(rawJsonEnv)
+            if (creds != null) {
+                return creds to "FIREBASE_SERVICE_ACCOUNT_JSON environment variable"
+            } else {
+                logger.warn("Could not decode valid credentials from FIREBASE_SERVICE_ACCOUNT_JSON. Trying next fallbacks...")
+            }
+        }
+
+        // 3. Environment variable: File path
+        val filePathEnv = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+            ?: System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if (!filePathEnv.isNullOrBlank()) {
+            val file = File(filePathEnv)
+            if (file.exists()) {
+                val creds = tryLoadFileCredentials(file)
+                if (creds != null) {
+                    return creds to "file at ${file.absolutePath} (from env)"
+                }
+            }
+        }
+
+        // 4. Fallback: Render Secret Files or Local files
+        val possibleFiles = listOf(
+            File("/etc/secrets/firebase-service-account.json"),
+            File("firebase-service-account.json"),
+            File("server/firebase-service-account.json")
+        )
+        for (file in possibleFiles) {
+            if (file.exists()) {
+                val creds = tryLoadFileCredentials(file)
+                if (creds != null) {
+                    return creds to "file at ${file.path}"
+                }
+            }
+        }
+
+        return null
+    }
+
+    private fun tryDecodeBase64Credentials(rawInput: String): GoogleCredentials? {
+        val trimmed = rawInput.trim()
+
+        // If user accidentally pasted raw JSON into the BASE64 variable
+        if (trimmed.startsWith("{")) {
+            return tryLoadJsonCredentials(trimmed)
+        }
+
+        // Try multiple decoding strategies to handle whitespace, mangled '+' characters, line breaks, etc.
+        val strategies = listOf(
+            // 1. Standard Base64 with spaces converted back to '+' (Fixes web form encoding issue)
+            { Base64.getDecoder().decode(trimmed.replace(" ", "+").replace("\r", "").replace("\n", "")) },
+            // 2. MIME Decoder (handles arbitrary line breaks and whitespace)
+            { Base64.getMimeDecoder().decode(trimmed) },
+            // 3. URL-safe Decoder
+            { Base64.getUrlDecoder().decode(trimmed.replace(" ", "+").replace("\r", "").replace("\n", "")) },
+            // 4. Standard Decoder directly
+            { Base64.getDecoder().decode(trimmed) }
+        )
+
+        for (strategy in strategies) {
+            try {
+                val decodedBytes = strategy()
+                val jsonStr = String(decodedBytes, Charsets.UTF_8)
+                if (jsonStr.contains("service_account") || jsonStr.contains("private_key")) {
+                    val creds = tryLoadJsonCredentials(jsonStr)
+                    if (creds != null) return creds
+                }
+            } catch (ignored: Exception) {
+                // Try next strategy
+            }
+        }
+        return null
+    }
+
+    private fun tryLoadJsonCredentials(jsonStr: String): GoogleCredentials? {
+        // Strategy A: Direct UTF-8 stream
+        try {
+            val stream = ByteArrayInputStream(jsonStr.toByteArray(Charsets.UTF_8))
+            return GoogleCredentials.fromStream(stream)
+        } catch (ignored: Exception) {
+        }
+
+        // Strategy B: Replace escaped newlines \\n with \n or fix json formatting
+        try {
+            val sanitized = jsonStr.replace("\\\\n", "\\n")
+            val stream = ByteArrayInputStream(sanitized.toByteArray(Charsets.UTF_8))
+            return GoogleCredentials.fromStream(stream)
+        } catch (ignored: Exception) {
+        }
+
+        return null
+    }
+
+    private fun tryLoadFileCredentials(file: File): GoogleCredentials? {
+        return try {
+            val content = file.readText(Charsets.UTF_8)
+            tryLoadJsonCredentials(content) ?: FileInputStream(file).use { GoogleCredentials.fromStream(it) }
+        } catch (e: Exception) {
+            logger.warn("Failed to load credentials from file ${file.path}: ${e.message}")
+            null
         }
     }
 
