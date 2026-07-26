@@ -28,22 +28,27 @@ import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
 import com.yusufteker.planora.feature.home.presentation.home.HomeState
 
+import com.yusufteker.planora.core.ui.components.bounceClick
+
 @Composable
 fun HomeTopBar(
     state: HomeState,
     onEvent: (HomeEvent) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Title on the left
-        Text(
+        // Title on the left with ultra gradient text
+        com.yusufteker.planora.core.ui.components.GradientText(
             text = "Planora",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
+            colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Black
+            )
         )
 
         // Centered Timeline toggle
@@ -67,15 +72,16 @@ fun HomeTopBar(
         IconButton(
             onClick = { onEvent(HomeEvent.ToggleFilterSheet(true)) },
             modifier = Modifier
+                .bounceClick()
                 .clip(CircleShape)
                 .background(
                     if (isFilterActive) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                     }
                 )
-                .size(36.dp)
+                .size(40.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.FilterList,

@@ -188,6 +188,9 @@ DELETE FROM planRoomMemberEntity WHERE roomId = :roomId AND userId = :userId;
 getMembersForRoom:
 SELECT * FROM planRoomMemberEntity WHERE roomId = :roomId;
 
+getAllPlanRoomMembers:
+SELECT * FROM planRoomMemberEntity;
+
 clearAllPosts:
 DELETE FROM postEntity;
 

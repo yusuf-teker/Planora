@@ -16,30 +16,78 @@ import com.yusufteker.planora.shared.api.RoomMemberStatus
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.InputStream
+import java.util.Base64
 
 object FcmService {
     private val logger = LoggerFactory.getLogger(FcmService::class.java)
 
     fun init() {
         try {
-            val serviceAccount = listOf(
-                File("firebase-service-account.json"),
-                File("server/firebase-service-account.json")
-            ).firstOrNull { it.exists() }
+            var inputStream: InputStream? = null
+            var sourceInfo = ""
 
-            if (serviceAccount != null) {
+            // 1. Environment variable: Base64 encoded JSON string (Recommended for Render Env Vars)
+            val base64Env = System.getenv("FIREBASE_SERVICE_ACCOUNT_BASE64")
+                ?: System.getenv("FIREBASE_CREDENTIALS_BASE64")
+            if (!base64Env.isNullOrBlank()) {
+                val cleanBase64 = base64Env.trim().replace("\\s".toRegex(), "")
+                val decodedBytes = Base64.getDecoder().decode(cleanBase64)
+                inputStream = ByteArrayInputStream(decodedBytes)
+                sourceInfo = "FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable"
+            }
+
+            // 2. Environment variable: Raw JSON string
+            if (inputStream == null) {
+                val rawJsonEnv = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+                    ?: System.getenv("FIREBASE_CREDENTIALS_JSON")
+                if (!rawJsonEnv.isNullOrBlank()) {
+                    inputStream = ByteArrayInputStream(rawJsonEnv.toByteArray(Charsets.UTF_8))
+                    sourceInfo = "FIREBASE_SERVICE_ACCOUNT_JSON environment variable"
+                }
+            }
+
+            // 3. Environment variable: File path
+            if (inputStream == null) {
+                val filePathEnv = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+                    ?: System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+                if (!filePathEnv.isNullOrBlank()) {
+                    val file = File(filePathEnv)
+                    if (file.exists()) {
+                        inputStream = FileInputStream(file)
+                        sourceInfo = "file at ${file.absolutePath} (from env)"
+                    }
+                }
+            }
+
+            // 4. Fallback: Local or Render Secret Files (/etc/secrets/firebase-service-account.json)
+            if (inputStream == null) {
+                val possibleFiles = listOf(
+                    File("firebase-service-account.json"),
+                    File("server/firebase-service-account.json"),
+                    File("/etc/secrets/firebase-service-account.json")
+                )
+                val existingFile = possibleFiles.firstOrNull { it.exists() }
+                if (existingFile != null) {
+                    inputStream = FileInputStream(existingFile)
+                    sourceInfo = "file at ${existingFile.path}"
+                }
+            }
+
+            if (inputStream != null) {
                 val options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(FileInputStream(serviceAccount)))
+                    .setCredentials(GoogleCredentials.fromStream(inputStream))
                     .build()
 
                 if (FirebaseApp.getApps().isEmpty()) {
                     FirebaseApp.initializeApp(options)
-                    logger.info("Firebase Admin initialized successfully from ${serviceAccount.path}.")
+                    logger.info("Firebase Admin initialized successfully from $sourceInfo.")
                 }
             } else {
-                logger.warn("firebase-service-account.json not found in root or server/ directory. Push notifications will be disabled.")
+                logger.warn("Firebase service account credentials not found in environment variables (FIREBASE_SERVICE_ACCOUNT_BASE64/JSON/PATH), Render secret files (/etc/secrets/firebase-service-account.json), or root/server directory. Push notifications will be disabled.")
             }
         } catch (e: Exception) {
             logger.error("Failed to initialize Firebase Admin: ${e.message}", e)

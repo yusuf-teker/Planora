@@ -213,14 +213,13 @@ fun ProfileScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Name & Username
-                                Text(
-                                    text = state.name,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                // Name & Username with Gradient
+                                com.yusufteker.planora.core.ui.components.GradientText(
+                                    text = state.name.ifBlank { "User" },
+                                    colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                                    )
                                 )
 
                                 if (state.username.isNotBlank()) {

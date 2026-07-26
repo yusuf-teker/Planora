@@ -57,10 +57,10 @@ fun NotesScreen(
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
                 TopAppBar(
                     title = {
-                        Text(
+                        com.yusufteker.planora.core.ui.components.GradientText(
                             text = stringResource(Res.string.title_notes),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
+                            colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black)
                         )
                     },
                     actions = {
@@ -77,7 +77,7 @@ fun NotesScreen(
                     )
                 )
                 
-                // Modern Search Bar
+                // Modern Glass Search Bar
                 OutlinedTextField(
                     value = state.searchQuery,
                     onValueChange = { viewModel.onEvent(NotesEvent.SearchQueryChanged(it)) },
@@ -120,27 +120,25 @@ fun NotesScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Folders List
+            // Folders List with GlassChip
             if (state.folders.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
-                        FilterChip(
-                            selected = state.selectedFolderId == null,
-                            onClick = { viewModel.onEvent(NotesEvent.FolderSelected(null)) },
-                            label = { Text(stringResource(Res.string.filter_all), fontWeight = FontWeight.Bold) },
-                            shape = RoundedCornerShape(16.dp)
+                        com.yusufteker.planora.core.ui.components.GlassChip(
+                            text = stringResource(Res.string.filter_all),
+                            isSelected = state.selectedFolderId == null,
+                            onClick = { viewModel.onEvent(NotesEvent.FolderSelected(null)) }
                         )
                     }
                     items(state.folders, key = { it.id }) { folder ->
-                        FilterChip(
-                            selected = state.selectedFolderId == folder.id,
+                        com.yusufteker.planora.core.ui.components.GlassChip(
+                            text = folder.title,
+                            isSelected = state.selectedFolderId == folder.id,
                             onClick = { viewModel.onEvent(NotesEvent.FolderSelected(folder.id)) },
-                            label = { Text(folder.title, fontWeight = FontWeight.Medium) },
-                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                            shape = RoundedCornerShape(16.dp)
+                            icon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         )
                     }
                 }
@@ -244,30 +242,27 @@ fun NotesScreen(
 
 @Composable
 fun NoteCard(note: TaskDto, viewModel: NotesViewModel, isGrid: Boolean) {
-    val cardColor = MaterialTheme.colorScheme.surfaceVariant
-    val containerModifier = if (note.isPinned) {
-        Modifier.background(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                    MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
+    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+
+    val borderGradient = if (note.isPinned) {
+        listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
         )
     } else {
-        Modifier.background(cardColor)
+        listOf(
+            if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            if (isDark) Color.White.copy(alpha = 0.03f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+        )
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { viewModel.onEvent(NotesEvent.NoteClicked(note.id)) },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    com.yusufteker.planora.core.ui.components.GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        borderGradient = borderGradient,
+        onClick = { viewModel.onEvent(NotesEvent.NoteClicked(note.id)) }
     ) {
-        Column(modifier = containerModifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Text(
                     text = note.title.ifBlank { stringResource(Res.string.untitled_note_label) },
@@ -314,13 +309,13 @@ fun NoteCard(note: TaskDto, viewModel: NotesViewModel, isGrid: Boolean) {
                     Text(
                         text = stringResource(Res.string.note_pinned),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
-                }else{
+                } else {
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                
                 if (!note.isSynced) {
                     Icon(
                         imageVector = Icons.Default.CloudOff,

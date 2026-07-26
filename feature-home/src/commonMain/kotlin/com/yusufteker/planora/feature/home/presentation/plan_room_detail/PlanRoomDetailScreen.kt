@@ -785,6 +785,7 @@ private fun EditRoomBottomSheet(
                         state.memberProfiles.values.map { user -> user to com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
                     } else {
                         state.roomMembers.mapNotNull { memberDto ->
+                            if (memberDto.status == com.yusufteker.planora.shared.api.RoomMemberStatus.DECLINED) return@mapNotNull null
                             val profile = state.memberProfiles[memberDto.userId]
                             if (profile != null) profile to memberDto.status else null
                         }

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.planora.core.ui.components.ParticleBurstEffect
+import com.yusufteker.planora.core.ui.components.bounceClick
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -115,7 +116,7 @@ fun FocusScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Duration Selector
+            // Duration Selector with GlassChip
             AnimatedVisibility(visible = !state.isRunning && !state.isFinished) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -124,15 +125,11 @@ fun FocusScreen(
                     val durations = listOf(15, 25, 45, 60)
                     durations.forEach { minutes ->
                         val isSelected = state.selectedDurationMinutes == minutes
-                        FilterChip(
-                            selected = isSelected,
+                        com.yusufteker.planora.core.ui.components.GlassChip(
+                            text = "${minutes}dk",
+                            isSelected = isSelected,
                             onClick = { viewModel.setFocusDuration(minutes) },
-                            label = { Text("${minutes}dk") },
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
                     }
                 }
@@ -182,6 +179,7 @@ fun FocusScreen(
                         .size(80.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
+                        .bounceClick()
                         .clickable(onClick = { viewModel.toggleTimer() }),
                     contentAlignment = Alignment.Center
                 ) {
@@ -201,39 +199,24 @@ fun FocusScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Complete Task Button
-            Button(
+            // Complete Task Button with GlowButton
+            com.yusufteker.planora.core.ui.components.GlowButton(
+                text = stringResource(Res.string.action_complete_task),
                 onClick = { viewModel.completeTask() },
+                isLoading = state.isCompleting,
+                gradientColors = com.yusufteker.planora.core.theme.PlanoraColors.GradientEmeraldTeal,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
                     .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                )
-            ) {
-                if (state.isCompleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onSecondary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
+                icon = {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(Res.string.action_complete_task),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        tint = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-            }
+            )
             
             Spacer(modifier = Modifier.height(16.dp))
         }

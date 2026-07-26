@@ -84,8 +84,21 @@ fun HomeScreen(
     var isFabExpanded by remember { mutableStateOf(false) }
 
     if (state.isPreferencesLoading || !state.hasLoadedTasks) {
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            com.yusufteker.planora.core.ui.components.ShimmerLoadingItem(height = 48.dp)
+            Spacer(modifier = Modifier.height(20.dp))
+            com.yusufteker.planora.core.ui.components.ShimmerLoadingItem(height = 100.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+            repeat(4) {
+                com.yusufteker.planora.core.ui.components.ShimmerLoadingItem(height = 84.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
         return
     }

@@ -174,6 +174,9 @@ class PlanRoomDetailViewModel(
                     
                     // Fetch missing profiles for members concurrently
                     val currentProfiles = currentState.memberProfiles.toMutableMap()
+                    val validMemberUserIds = room.members.map { it.userId }.toSet()
+                    currentProfiles.keys.retainAll(validMemberUserIds)
+
                     val missingMemberIds = room.members.map { it.userId }.filter { !currentProfiles.containsKey(it) }
                     
                     if (missingMemberIds.isNotEmpty()) {
@@ -190,7 +193,7 @@ class PlanRoomDetailViewModel(
                         }
                         setState { copy(memberProfiles = currentProfiles.toMap(), isMembersLoading = false) }
                     } else {
-                        setState { copy(isMembersLoading = false) }
+                        setState { copy(memberProfiles = currentProfiles.toMap(), isMembersLoading = false) }
                     }
                 } else {
                     setState { copy(isLoading = false, isMembersLoading = false) }
@@ -409,9 +412,16 @@ class PlanRoomDetailViewModel(
                 val updatedProfiles = currentState.memberProfiles.toMutableMap().apply {
                     remove(targetUserId)
                 }
+                val updatedRoomMembers = currentState.roomMembers.filter { it.userId != targetUserId }
                 val currentFilter = currentState.selectedMemberUserIdsFilter
                 val nextFilter = currentFilter - targetUserId
-                setState { copy(memberProfiles = updatedProfiles.toMap(), selectedMemberUserIdsFilter = nextFilter) }
+                setState {
+                    copy(
+                        memberProfiles = updatedProfiles.toMap(),
+                        roomMembers = updatedRoomMembers,
+                        selectedMemberUserIdsFilter = nextFilter
+                    )
+                }
                 setEffect(PlanRoomDetailEffect.ShowToast(successMsg))
             } else {
                 val e = result.exceptionOrNull()

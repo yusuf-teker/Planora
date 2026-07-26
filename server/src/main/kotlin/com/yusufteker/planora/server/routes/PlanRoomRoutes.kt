@@ -106,7 +106,10 @@ fun Route.planRoomRoutes() {
                         // 4.2: Adım 3'te çektiğimiz torba halindeki "tüm üyeler" listesinden,
                         // sadece "şu an işlem yaptığımız odaya (roomId) ait olanları" filtreleyip ayıklıyoruz.
                         // Ayıkladığımız verileri (satırları), mobil uygulamanın anlayabileceği veri paketine (PlanRoomMemberDto) çeviriyoruz.
-                        val roomMembers = allMembers.filter { it[PlanRoomMembersTable.roomId] == roomId }.map { memberRow ->
+                        val roomMembers = allMembers.filter { 
+                            it[PlanRoomMembersTable.roomId] == roomId && 
+                            it[PlanRoomMembersTable.status] != RoomMemberStatus.DECLINED 
+                        }.map { memberRow ->
                             PlanRoomMemberDto(
                                 roomId = memberRow[PlanRoomMembersTable.roomId],
                                 userId = memberRow[PlanRoomMembersTable.userId],
@@ -343,13 +346,19 @@ fun Route.planRoomRoutes() {
 
                     if (!isAdmin) return@dbQuery false
 
-                    // Check if target user is already in the room (pending, accepted, etc.)
+                    // Check if target user is already in the room (pending or accepted)
                     val alreadyMember = PlanRoomMembersTable.selectAll().where {
                         (PlanRoomMembersTable.roomId eq roomId) and 
-                        (PlanRoomMembersTable.userId eq targetUser.id.value)
+                        (PlanRoomMembersTable.userId eq targetUser.id.value) and
+                        (PlanRoomMembersTable.status neq RoomMemberStatus.DECLINED)
                     }.count() > 0
 
                     if (alreadyMember) return@dbQuery false
+
+                    // If user was previously DECLINED, delete old record first before re-inviting
+                    PlanRoomMembersTable.deleteWhere {
+                        (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq targetUser.id.value)
+                    }
 
                     // Insert as PENDING
                     PlanRoomMembersTable.insert {
@@ -460,12 +469,16 @@ fun Route.planRoomRoutes() {
                         pushUserName = respondingUser.name
                     }
 
-                    PlanRoomMembersTable.update({
-                        (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq userId)
-                    }) {
-                        it[status] = if (request.accept) RoomMemberStatus.ACCEPTED else RoomMemberStatus.DECLINED
-                        if (request.accept) {
+                    if (request.accept) {
+                        PlanRoomMembersTable.update({
+                            (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq userId)
+                        }) {
+                            it[status] = RoomMemberStatus.ACCEPTED
                             it[joinedAt] = Instant.now().toEpochMilli()
+                        }
+                    } else {
+                        PlanRoomMembersTable.deleteWhere {
+                            (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq userId)
                         }
                     }
                     true
@@ -515,6 +528,9 @@ fun Route.planRoomRoutes() {
                 }
 
                 if (success) {
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+                    }
                     call.respond(HttpStatusCode.OK, "Left room successfully")
                 } else {
                     call.respond(HttpStatusCode.BadRequest, "Cannot leave room (creator or not a member)")
@@ -559,6 +575,12 @@ fun Route.planRoomRoutes() {
                     }
 
                     if (deletedCount > 0) "SUCCESS" else "MEMBER_NOT_FOUND"
+                }
+
+                if (result == "SUCCESS") {
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = currentUserId)
+                    }
                 }
 
                 when (result) {

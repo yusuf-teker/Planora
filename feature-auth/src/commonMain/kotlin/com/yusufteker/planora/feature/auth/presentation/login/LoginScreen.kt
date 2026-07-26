@@ -2,6 +2,7 @@ package com.yusufteker.planora.feature.auth.presentation.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -67,150 +68,163 @@ fun LoginScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .safeContentPadding()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .safeContentPadding(),
+        contentAlignment = Alignment.Center
     ) {
-        // Header
-        Text(
-            text = stringResource(Res.string.action_login),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = stringResource(Res.string.login_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Email field
-        OutlinedTextField(
-            value = state.identifier,
-            onValueChange = { viewModel.onEvent(LoginEvent.IdentifierChanged(it)) },
-            label = { Text(stringResource(Res.string.login_email_or_username)) },
-            isError = state.identifierError != null,
-            supportingText = state.identifierError?.let { error ->
-                { Text(error.asString()) }
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password field
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
-            label = { Text(stringResource(Res.string.password)) },
-            isError = state.passwordError != null,
-            supportingText = state.passwordError?.let { error ->
-                { Text(error.asString()) }
-            },
-            visualTransformation = if (state.isPasswordVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-            trailingIcon = {
-                IconButton(
-                    onClick = { viewModel.onEvent(LoginEvent.TogglePasswordVisibility) }
-                ) {
-                    Icon(
-                        imageVector = if (state.isPasswordVisible) {
-                            Icons.Rounded.VisibilityOff
-                        } else {
-                            Icons.Rounded.Visibility
-                        },
-                        contentDescription = if (state.isPasswordVisible) {
-                            stringResource(Res.string.hide_password)
-                        } else {
-                            stringResource(Res.string.show_password)
-                        }
-                    )
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium
-        )
-
-        // Forgot password link
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            TextButton(
-                onClick = { navigator.navigate(Screen.ForgotPassword) }
-            ) {
-                Text(
-                    text = stringResource(Res.string.forgot_password_link),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Login button
-
-        Button(
-            onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
-            enabled = !state.isLoading,
+        com.yusufteker.planora.core.ui.components.GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            shape = MaterialTheme.shapes.medium
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
+            elevation = 16.dp
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Brand Header with Gradient
+                com.yusufteker.planora.core.ui.components.GradientText(
+                    text = "Planora",
+                    colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                    )
                 )
-            } else {
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
                     text = stringResource(Res.string.action_login),
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-            }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-        // Register link
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(Res.string.no_account_prompt),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            TextButton(onClick = { viewModel.onEvent(LoginEvent.RegisterClicked) }) {
                 Text(
-                    text = stringResource(Res.string.action_register),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    text = stringResource(Res.string.login_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Email field
+                OutlinedTextField(
+                    value = state.identifier,
+                    onValueChange = { viewModel.onEvent(LoginEvent.IdentifierChanged(it)) },
+                    label = { Text(stringResource(Res.string.login_email_or_username)) },
+                    isError = state.identifierError != null,
+                    supportingText = state.identifierError?.let { error ->
+                        { Text(error.asString()) }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Password field
+                OutlinedTextField(
+                    value = state.password,
+                    onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
+                    label = { Text(stringResource(Res.string.password)) },
+                    isError = state.passwordError != null,
+                    supportingText = state.passwordError?.let { error ->
+                        { Text(error.asString()) }
+                    },
+                    visualTransformation = if (state.isPasswordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { viewModel.onEvent(LoginEvent.TogglePasswordVisibility) }
+                        ) {
+                            Icon(
+                                imageVector = if (state.isPasswordVisible) {
+                                    Icons.Rounded.VisibilityOff
+                                } else {
+                                    Icons.Rounded.Visibility
+                                },
+                                contentDescription = if (state.isPasswordVisible) {
+                                    stringResource(Res.string.hide_password)
+                                } else {
+                                    stringResource(Res.string.show_password)
+                                }
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                )
+
+                // Forgot password link
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { navigator.navigate(Screen.ForgotPassword) }
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.forgot_password_link),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Login button with GlowButton
+                com.yusufteker.planora.core.ui.components.GlowButton(
+                    text = stringResource(Res.string.action_login),
+                    onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
+                    enabled = !state.isLoading,
+                    isLoading = state.isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Register link
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.no_account_prompt),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(onClick = { viewModel.onEvent(LoginEvent.RegisterClicked) }) {
+                        Text(
+                            text = stringResource(Res.string.action_register),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }

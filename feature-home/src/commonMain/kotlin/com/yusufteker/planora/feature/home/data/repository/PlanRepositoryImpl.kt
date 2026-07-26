@@ -831,14 +831,17 @@ class PlanRepositoryImpl(
                         imageUrl = room.imageUrl,
                         isSynced = 1L
                     )
+                    database.planoraDatabaseQueries.deleteMembersForRoom(room.id)
                     room.members.forEach { member ->
-                        database.planoraDatabaseQueries.insertPlanRoomMember(
-                            roomId = member.roomId,
-                            userId = member.userId.toLong(),
-                            status = member.status.name,
-                            role = member.role.name,
-                            joinedAt = member.joinedAt
-                        )
+                        if (member.status != com.yusufteker.planora.shared.api.RoomMemberStatus.DECLINED) {
+                            database.planoraDatabaseQueries.insertPlanRoomMember(
+                                roomId = member.roomId,
+                                userId = member.userId.toLong(),
+                                status = member.status.name,
+                                role = member.role.name,
+                                joinedAt = member.joinedAt
+                            )
+                        }
                     }
                 }
             }
@@ -957,7 +960,13 @@ class PlanRepositoryImpl(
 
     override suspend fun removeMemberFromRoom(roomId: String, targetUserId: Int): Result<Unit> {
         return try {
-            planApi.removeMemberFromRoom(roomId, targetUserId)
+            try {
+                planApi.removeMemberFromRoom(roomId, targetUserId)
+            } catch (e: Exception) {
+                val msg = e.message ?: ""
+                val isNotFound = msg.contains("404") || msg.contains("not found", ignoreCase = true) || msg.contains("Member not found", ignoreCase = true)
+                if (!isNotFound) throw e
+            }
             database.planoraDatabaseQueries.deleteMemberFromRoom(roomId = roomId, userId = targetUserId.toLong())
             Result.success(Unit)
         } catch (e: Exception) {

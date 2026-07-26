@@ -33,6 +33,10 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+import org.jetbrains.compose.resources.stringResource
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
+
 private val BottomBarRowHeight = 64.dp
 private val AiButtonSize = 52.dp
 
@@ -94,7 +98,7 @@ fun PlanoraBottomBar(
             ) {
                 // Home
                 PlanoraBottomNavItem(
-                    label = "Home",
+                    label = stringResource(Res.string.tab_home),
                     selectedIcon = Icons.Filled.Home,
                     unselectedIcon = Icons.Outlined.Home,
                     isSelected = currentDestination is Screen.MainDestination.Home,
@@ -104,7 +108,7 @@ fun PlanoraBottomBar(
 
                 // Plans
                 PlanoraBottomNavItem(
-                    label = "Plans",
+                    label = stringResource(Res.string.title_plan_rooms),
                     selectedIcon = Icons.Filled.DateRange,
                     unselectedIcon = Icons.Outlined.DateRange,
                     isSelected = currentDestination is Screen.MainDestination.PlanRooms,
@@ -117,7 +121,7 @@ fun PlanoraBottomBar(
 
                 // Notes
                 PlanoraBottomNavItem(
-                    label = "Notes",
+                    label = stringResource(Res.string.title_notes),
                     selectedIcon = Icons.Filled.Edit,
                     unselectedIcon = Icons.Outlined.Edit,
                     isSelected = currentDestination is Screen.MainDestination.Notes,
@@ -127,7 +131,7 @@ fun PlanoraBottomBar(
 
                 // Profile
                 PlanoraBottomNavItem(
-                    label = "Profile",
+                    label = stringResource(Res.string.tab_profile),
                     selectedIcon = Icons.Filled.Person,
                     unselectedIcon = Icons.Outlined.Person,
                     isSelected = currentDestination is Screen.MainDestination.Profile || currentDestination is Screen.MainDestination.Settings,

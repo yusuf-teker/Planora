@@ -64,10 +64,11 @@ fun PlanRoomsScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        text = stringResource(Res.string.title_plan_rooms), 
+                    com.yusufteker.planora.core.ui.components.GradientText(
+                        text = stringResource(Res.string.title_plan_rooms),
+                        colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Black
                         )
                     ) 
                 },
