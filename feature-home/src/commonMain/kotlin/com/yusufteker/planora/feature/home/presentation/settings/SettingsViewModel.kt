@@ -3,6 +3,7 @@ package com.yusufteker.planora.feature.home.presentation.settings
 import com.yusufteker.planora.core.base.BaseViewModel
 import com.yusufteker.planora.core.preferences.SessionPreferences
 import com.yusufteker.planora.core.preferences.ThemePreferences
+import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import kotlinx.coroutines.flow.first
 
 import com.yusufteker.planora.core.database.PlanoraDatabase
@@ -12,6 +13,7 @@ class SettingsViewModel(
     private val themePreferences: ThemePreferences,
     private val sessionPreferences: SessionPreferences,
     private val database: PlanoraDatabase,
+    private val planRepository: PlanRepository
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {
@@ -51,6 +53,28 @@ class SettingsViewModel(
                     setEffect(SettingsEffect.NavigateToLogin)
                 }
             }
+
+            is SettingsEvent.DeleteAccountClicked -> {
+                setState { copy(showDeleteConfirmDialog = true) }
+            }
+
+            is SettingsEvent.DeleteAccountDismissed -> {
+                setState { copy(showDeleteConfirmDialog = false) }
+            }
+
+            is SettingsEvent.DeleteAccountConfirmed -> {
+                setState { copy(showDeleteConfirmDialog = false, isDeletingAccount = true) }
+                launch {
+                    val result = planRepository.deleteAccount()
+                    if (result.isSuccess) {
+                        setEffect(SettingsEffect.NavigateToLogin)
+                    } else {
+                        setState { copy(isDeletingAccount = false, errorMessage = result.exceptionOrNull()?.message) }
+                    }
+                }
+            }
         }
     }
 }
+
+

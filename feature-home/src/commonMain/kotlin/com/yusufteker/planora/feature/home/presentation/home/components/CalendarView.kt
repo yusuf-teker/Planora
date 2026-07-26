@@ -162,7 +162,8 @@ fun CalendarView(
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 items(2400) { page ->
                 val monthOffset = page - initialPage
@@ -251,7 +252,7 @@ fun CalendarView(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 88.dp, bottom = 16.dp),
+                    .padding(end = 88.dp, bottom = 96.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {

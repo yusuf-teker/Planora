@@ -1,5 +1,6 @@
 package com.yusufteker.planora.feature.home.presentation.home.components
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -206,7 +207,8 @@ fun TimelineSection(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            contentPadding = PaddingValues(bottom = 100.dp)
         ) {
 
         grouped.forEach { (dayLabel, tasks) ->
@@ -306,7 +308,7 @@ fun TimelineSection(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 88.dp, bottom = 16.dp),
+                .padding(end = 88.dp, bottom = 96.dp),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             shape = androidx.compose.foundation.shape.CircleShape

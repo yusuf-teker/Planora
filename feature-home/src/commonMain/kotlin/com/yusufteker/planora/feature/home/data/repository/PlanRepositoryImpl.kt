@@ -31,6 +31,8 @@ import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.RecurrenceRule
 import com.yusufteker.planora.feature.home.data.mapper.insertTaskFromDto
 import com.yusufteker.planora.feature.home.data.mapper.insertTaskFromRequest
+import com.yusufteker.planora.core.database.clearAll
+import com.yusufteker.planora.core.preferences.SessionPreferences
 import kotlinx.coroutines.withContext
 import io.github.aakira.napier.Napier
 
@@ -47,7 +49,8 @@ class PlanRepositoryImpl(
     private val planApi: PlanApi,
     private val calendarApi: CalendarApi,
     private val database: PlanoraDatabase,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val sessionPreferences: SessionPreferences
 ) : PlanRepository {
 
     /**
@@ -1045,5 +1048,16 @@ class PlanRepositoryImpl(
 
     override suspend fun fetchSharedTasks(userId: Int, from: Long?, to: Long?): Result<List<TaskDto>> {
         return calendarApi.getSharedTasks(userId, from, to)
+    }
+
+    override suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            planApi.deleteAccount()
+            database.planoraDatabaseQueries.clearAll()
+            sessionPreferences.clearSession()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

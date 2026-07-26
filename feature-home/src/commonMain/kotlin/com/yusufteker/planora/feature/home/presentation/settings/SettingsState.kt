@@ -5,5 +5,9 @@ import com.yusufteker.planora.core.preferences.ThemeColor
 
 data class SettingsState(
     val isDarkMode: Boolean = false,
-    val themeColor: ThemeColor = ThemeColor.DEFAULT
+    val themeColor: ThemeColor = ThemeColor.DEFAULT,
+    val showDeleteConfirmDialog: Boolean = false,
+    val isDeletingAccount: Boolean = false,
+    val errorMessage: String? = null
 ) : UiState
+

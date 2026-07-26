@@ -52,4 +52,10 @@ interface PlanRepository {
     suspend fun fetchAccessibleUsers(): Result<Unit>
     fun observeAccessibleUsers(): Flow<List<com.yusufteker.planora.core.database.CalendarAccessEntity>>
     suspend fun fetchSharedTasks(userId: Int, from: Long?, to: Long?): Result<List<TaskDto>>
+
+    /**
+     * Permanently deletes the user's account and all associated backend & local data.
+     */
+    suspend fun deleteAccount(): Result<Unit>
 }
+

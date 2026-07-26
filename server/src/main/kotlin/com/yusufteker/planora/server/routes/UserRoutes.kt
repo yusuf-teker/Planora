@@ -1,13 +1,9 @@
 package com.yusufteker.planora.server.routes
 
 import com.yusufteker.planora.server.database.DatabaseFactory.dbQuery
-import com.yusufteker.planora.server.database.tables.FollowerEntity
-import com.yusufteker.planora.server.database.tables.FollowersTable
-import com.yusufteker.planora.server.database.tables.UserEntity
-import com.yusufteker.planora.server.database.tables.UsersTable
-import com.yusufteker.planora.server.database.tables.CalendarAccessTable
-import com.yusufteker.planora.server.database.tables.CalendarAccessEntity
+import com.yusufteker.planora.server.database.tables.*
 import com.yusufteker.planora.server.service.CloudinaryService
+import com.yusufteker.planora.shared.api.RoomMemberRole
 import com.yusufteker.planora.shared.api.UserProfileResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -16,6 +12,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
@@ -25,11 +22,13 @@ import io.ktor.http.content.streamProvider
 import io.ktor.http.content.forEachPart
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.lowerCase
-import org.jetbrains.exposed.sql.LikeEscapeOp
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.QueryBuilder
-import org.jetbrains.exposed.sql.Expression
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import java.time.Instant
 
 fun Route.userRoutes() {
@@ -456,6 +455,105 @@ fun Route.userRoutes() {
 
                 call.respond(HttpStatusCode.OK, followingUsers)
             }
+
+            // DELETE /users/me
+            // Kullanıcı hesabını ve tüm ilişkili verilerini siler.
+            // Odaların ve ortak görevlerin kuruculuğu devredilir.
+            delete("/me") {
+                val principal = call.principal<JWTPrincipal>()
+                val currentUserId = principal?.payload?.getClaim("userId")?.asInt()
+
+                if (currentUserId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    return@delete
+                }
+
+                dbQuery {
+                    deleteUserAccountInternal(currentUserId)
+                }
+
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Account deleted successfully"))
+            }
         }
     }
 }
+
+/**
+ * Kullanıcının veritabanındaki tüm ilişkilerini temizleyen ve kuruculukları devreden dahili yardımcı fonksiyon.
+ */
+private fun deleteUserAccountInternal(targetUserId: Int) {
+    val targetUserEntity = UserEntity.findById(targetUserId)
+
+    // 1. Odalar & Üyelikler: Kurucusu olduğu odalarda devir yap
+    val roomsCreatedByUser = PlanRoomEntity.find { PlanRoomsTable.creatorId eq targetUserId }
+    for (room in roomsCreatedByUser) {
+        val otherMemberRow = PlanRoomMembersTable
+            .selectAll()
+            .where { (PlanRoomMembersTable.roomId eq room.id.value) and (PlanRoomMembersTable.userId neq targetUserId) }
+            .orderBy(PlanRoomMembersTable.joinedAt to org.jetbrains.exposed.sql.SortOrder.ASC)
+            .firstOrNull()
+
+        if (otherMemberRow != null) {
+            val nextMemberId: Int = otherMemberRow[PlanRoomMembersTable.userId]
+            val nextUser = UserEntity.findById(nextMemberId)
+            if (nextUser != null) {
+                room.creator = nextUser
+            }
+            PlanRoomMembersTable.update({ (PlanRoomMembersTable.roomId eq room.id.value) and (PlanRoomMembersTable.userId eq nextMemberId) }) {
+                it[role] = RoomMemberRole.ADMIN
+            }
+        } else {
+            TaskSharedRoomsTable.deleteWhere { roomId eq room.id.value }
+            PlanRoomMembersTable.deleteWhere { roomId eq room.id.value }
+            room.delete()
+        }
+    }
+    PlanRoomMembersTable.deleteWhere { userId eq targetUserId }
+
+    // 2. Görevler & Notlar: Kurucusu olduğu görevlerde devir/silme yap
+    val tasksCreatedByUser = TaskEntity.find { TasksTable.creatorId eq targetUserId }
+    for (task in tasksCreatedByUser) {
+        val otherParticipantRow = TaskParticipantsTable
+            .selectAll()
+            .where { (TaskParticipantsTable.taskId eq task.id.value) and (TaskParticipantsTable.userId neq targetUserId) }
+            .firstOrNull()
+
+        if (otherParticipantRow != null) {
+            val nextParticipantId: Int = otherParticipantRow[TaskParticipantsTable.userId]
+            val nextUser = UserEntity.findById(nextParticipantId)
+            if (nextUser != null) {
+                task.creator = nextUser
+            }
+            TaskParticipantsTable.deleteWhere { (taskId eq task.id.value) and (userId eq targetUserId) }
+        } else {
+            TaskSharedRoomsTable.deleteWhere { taskId eq task.id.value }
+            TaskParticipantsTable.deleteWhere { taskId eq task.id.value }
+            task.delete()
+        }
+    }
+    TaskParticipantsTable.deleteWhere { userId eq targetUserId }
+
+    // 3. Postlar, Yorumlar, Favoriler
+    val userPosts = PostEntity.find { PostsTable.authorId eq targetUserId }
+    val userPostIds = userPosts.map { it.id }
+    CommentsTable.deleteWhere { authorId eq targetUserId }
+    if (userPostIds.isNotEmpty()) {
+        CommentsTable.deleteWhere { postId inList userPostIds }
+        BookmarksTable.deleteWhere { postId inList userPostIds }
+    }
+    BookmarksTable.deleteWhere { userId eq targetUserId }
+    userPosts.forEach { it.delete() }
+
+    // 4. Takipçiler ve İstekler
+    FollowersTable.deleteWhere { (followerId eq targetUserId) or (followedId eq targetUserId) }
+    FollowRequestsTable.deleteWhere { (requesterId eq targetUserId) or (targetId eq targetUserId) }
+
+    // 5. Takvim Erişimi, Tokenlar ve Kullanıcı Kaydı
+    CalendarAccessTable.deleteWhere { (requesterId eq targetUserId) or (granterId eq targetUserId) }
+    FcmTokensTable.deleteWhere { userId eq targetUserId }
+    RefreshTokensTable.deleteWhere { userId eq targetUserId }
+    PasswordResetTokensTable.deleteWhere { userId eq targetUserId }
+    targetUserEntity?.delete()
+}
+
+

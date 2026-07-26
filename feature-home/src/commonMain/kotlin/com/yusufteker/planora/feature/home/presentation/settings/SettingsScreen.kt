@@ -3,6 +3,8 @@ package com.yusufteker.planora.feature.home.presentation.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -64,7 +67,9 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
             .safeContentPadding()
+            .verticalScroll(rememberScrollState())
     ) {
         TopAppBar(
             title = {
@@ -134,7 +139,9 @@ fun SettingsScreen(
                 columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(5),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
             ) {
                 items(com.yusufteker.planora.core.preferences.ThemeColor.values().size) { index ->
                     val themeColor = com.yusufteker.planora.core.preferences.ThemeColor.values()[index]
@@ -181,22 +188,75 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Logout button
         TextButton(
             onClick = { viewModel.onEvent(SettingsEvent.LogoutClicked) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .padding(horizontal = 24.dp, vertical = 4.dp)
         ) {
             Text(
                 text = stringResource(Res.string.action_logout),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        // Delete account button
+        TextButton(
+            onClick = { viewModel.onEvent(SettingsEvent.DeleteAccountClicked) },
+            enabled = !state.isDeletingAccount,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 4.dp)
+        ) {
+            if (state.isDeletingAccount) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.padding(end = 8.dp),
+                    color = MaterialTheme.colorScheme.error,
+                    strokeWidth = 2.dp
+                )
+            }
+            Text(
+                text = stringResource(Res.string.settings_delete_account),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.error
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(110.dp))
+
+
+        if (state.showDeleteConfirmDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { viewModel.onEvent(SettingsEvent.DeleteAccountDismissed) },
+                title = {
+                    Text(text = stringResource(Res.string.settings_delete_account_confirm_title))
+                },
+                text = {
+                    Text(text = stringResource(Res.string.settings_delete_account_confirm_desc))
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.onEvent(SettingsEvent.DeleteAccountConfirmed) }
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.action_delete),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.onEvent(SettingsEvent.DeleteAccountDismissed) }
+                    ) {
+                        Text(text = stringResource(Res.string.cancel))
+                    }
+                }
+            )
+        }
     }
 }
+

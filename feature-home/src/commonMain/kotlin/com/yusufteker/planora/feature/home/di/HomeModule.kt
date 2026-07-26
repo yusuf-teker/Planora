@@ -61,7 +61,7 @@ val homeModule = module {
     // Plan Room & Task
     single { PlanApi(get()) }
     single { com.yusufteker.planora.feature.home.data.api.CalendarApi(get()) }
-    single<PlanRepository> { PlanRepositoryImpl(get(), get(), get(), get()) }
+    single<PlanRepository> { PlanRepositoryImpl(get(), get(), get(), get(), get()) }
     
     // Use Cases
     factory { com.yusufteker.planora.feature.home.domain.use_case.GetFilteredTasksUseCase() }

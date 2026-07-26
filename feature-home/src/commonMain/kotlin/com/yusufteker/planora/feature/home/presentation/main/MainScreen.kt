@@ -3,19 +3,24 @@ package com.yusufteker.planora.feature.home.presentation.main
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.ui.NavDisplay
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import com.yusufteker.planora.core.navigation.Screen.MainDestination
 import com.yusufteker.planora.core.navigation.Navigator
 import com.yusufteker.planora.core.navigation.LocalMainNavigator
@@ -121,40 +126,29 @@ fun MainScreen() {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            PlanoraBottomBar(
-                currentDestination = currentDestination,
-                isDark = isDark,
-                onNavigate = { destination ->
-                    navigateToTab(destination)
-                },
-                onAiButtonClick = {
-                    rootNavigator.navigate(Screen.AiChat)
-                },
-                pendingRequestsCount = pendingRequestsCount
-            )
+    // Create a ViewModelStore for the MainScreen. 
+    // When MainScreen is removed from composition (logout), it will be cleared.
+    val viewModelStoreOwner = remember {
+        object : ViewModelStoreOwner {
+            override val viewModelStore = ViewModelStore()
         }
-    ) { paddingValues ->
-        // Create a ViewModelStore for the MainScreen. 
-        // When MainScreen is removed from composition (logout), it will be cleared.
-        val viewModelStoreOwner = remember {
-            object : ViewModelStoreOwner {
-                override val viewModelStore = ViewModelStore()
-            }
+    }
+    
+    // Clear the ViewModelStore when MainScreen leaves the composition
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModelStoreOwner.viewModelStore.clear()
         }
-        
-        // Clear the ViewModelStore when MainScreen leaves the composition
-        DisposableEffect(Unit) {
+    }
 
-            onDispose {
-                viewModelStoreOwner.viewModelStore.clear()
-            }
-        }
+    // Create a cache of ViewModelStores for each tab to prevent recreation during transitions
+    val viewModelStores = remember { mutableMapOf<String, ViewModelStore>() }
 
-        // Create a cache of ViewModelStores for each tab to prevent recreation during transitions
-        val viewModelStores = remember { mutableMapOf<String, ViewModelStore>() }
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         CompositionLocalProvider(
             LocalMainNavigator provides navigator,
             LocalViewModelStoreOwner provides viewModelStoreOwner
@@ -162,7 +156,7 @@ fun MainScreen() {
             NavDisplay(
                 backStack = navigator.backStack,
                 onBack = { navigator.pop() },
-                modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
+                modifier = Modifier.fillMaxSize(),
                 entryProvider = entryProvider {
                     entry<MainDestination.Home> {
                         val storeOwner = remember {
@@ -262,5 +256,18 @@ fun MainScreen() {
                 }
             )
         }
+
+        PlanoraBottomBar(
+            currentDestination = currentDestination,
+            isDark = isDark,
+            onNavigate = { destination ->
+                navigateToTab(destination)
+            },
+            onAiButtonClick = {
+                rootNavigator.navigate(Screen.AiChat)
+            },
+            pendingRequestsCount = pendingRequestsCount,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }

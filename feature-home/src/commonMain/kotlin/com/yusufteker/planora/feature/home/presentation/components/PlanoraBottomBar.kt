@@ -53,7 +53,8 @@ fun PlanoraBottomBar(
     isDark: Boolean,
     onNavigate: (Screen.MainDestination) -> Unit,
     onAiButtonClick: () -> Unit,
-    pendingRequestsCount: Int = 0
+    pendingRequestsCount: Int = 0,
+    modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
@@ -70,7 +71,7 @@ fun PlanoraBottomBar(
 
     Box(
         contentAlignment = Alignment.BottomCenter,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .windowInsetsPadding(WindowInsets.navigationBars)

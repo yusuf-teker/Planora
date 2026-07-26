@@ -131,4 +131,9 @@ class PlanApi(private val httpClient: HttpClient) {
             setBody(RespondToInviteRequest(accept))
         }
     }
+
+    suspend fun deleteAccount() {
+        httpClient.delete("users/me")
+    }
 }
+

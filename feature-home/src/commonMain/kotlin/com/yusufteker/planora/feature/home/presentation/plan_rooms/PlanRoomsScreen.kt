@@ -100,7 +100,8 @@ fun PlanRoomsScreen(
                 onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(true)) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = androidx.compose.foundation.shape.CircleShape
+                shape = androidx.compose.foundation.shape.CircleShape,
+                modifier = Modifier.padding(bottom = 80.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -118,7 +119,10 @@ fun PlanRoomsScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 100.dp)
+                ) {
                     items(state.rooms, key = { it.id }) { room ->
                         RoomItem(
                             room = room,

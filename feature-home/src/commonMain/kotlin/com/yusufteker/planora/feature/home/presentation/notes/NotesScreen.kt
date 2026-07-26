@@ -54,7 +54,11 @@ fun NotesScreen(
 
     Scaffold(
         topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+            Column(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.background)
+                    .statusBarsPadding()
+            ) {
                 TopAppBar(
                     title = {
                         com.yusufteker.planora.core.ui.components.GradientText(
@@ -108,7 +112,8 @@ fun NotesScreen(
             FloatingActionButton(
                 onClick = { viewModel.onEvent(NotesEvent.CreateNoteClicked) },
                 containerColor = MaterialTheme.colorScheme.primary,
-                shape = androidx.compose.foundation.shape.CircleShape
+                shape = androidx.compose.foundation.shape.CircleShape,
+                modifier = Modifier.padding(bottom = 80.dp)
             ) {
                 Icon(Icons.Filled.Add, stringResource(Res.string.action_create_note))
             }
@@ -161,7 +166,8 @@ fun NotesScreen(
                         columns = StaggeredGridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                         verticalItemSpacing = 8.dp,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 100.dp)
                     ) {
                         if (state.pinnedNotes.isNotEmpty()) {
                             item(span = androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan.FullLine) {
@@ -202,7 +208,8 @@ fun NotesScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 100.dp)
                     ) {
                         if (state.pinnedNotes.isNotEmpty()) {
                             item {

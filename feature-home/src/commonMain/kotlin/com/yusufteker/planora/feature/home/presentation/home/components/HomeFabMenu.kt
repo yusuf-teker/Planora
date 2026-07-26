@@ -36,9 +36,10 @@ fun HomeFabMenu(
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onCreateTask: () -> Unit,
-    onCreateEvent: () -> Unit
+    onCreateEvent: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(horizontalAlignment = Alignment.End) {
+    Column(horizontalAlignment = Alignment.End, modifier = modifier) {
 
         AnimatedVisibility(
             visible = isExpanded,

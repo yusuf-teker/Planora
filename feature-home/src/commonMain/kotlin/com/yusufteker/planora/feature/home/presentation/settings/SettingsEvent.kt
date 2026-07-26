@@ -8,4 +8,8 @@ sealed interface SettingsEvent : UiEvent {
     data class DarkModeToggled(val enabled: Boolean) : SettingsEvent
     data class ThemeColorSelected(val color: ThemeColor) : SettingsEvent
     data object LogoutClicked : SettingsEvent
+    data object DeleteAccountClicked : SettingsEvent
+    data object DeleteAccountConfirmed : SettingsEvent
+    data object DeleteAccountDismissed : SettingsEvent
 }
+

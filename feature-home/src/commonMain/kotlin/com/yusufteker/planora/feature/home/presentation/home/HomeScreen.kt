@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -102,64 +103,69 @@ fun HomeScreen(
         }
         return
     }
-    Scaffold(
-        floatingActionButton = {
-            HomeFabMenu(isExpanded = isFabExpanded, onExpandedChange = {
-                isFabExpanded = it
-            }, onCreateTask = {
-                viewModel.onEvent(HomeEvent.CreateTaskClicked)
-            }, onCreateEvent = {
-                viewModel.onEvent(HomeEvent.CreateEventClicked)
-            })
-        }, containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-
             // Header (Planora Top Bar)
-                HomeTopBar(
-                    state = state, onEvent = viewModel::onEvent
+            HomeTopBar(
+                state = state, onEvent = viewModel::onEvent
+            )
+
+            // Shared Users row
+            SharedUserChipRow(
+                accessibleUsers = state.accessibleUsers,
+                selectedUserIds = state.selectedSharedUserIds,
+                currentUserAvatarId = state.currentUserAvatarId,
+                currentUserProfileImageUrl = state.currentUserProfileImageUrl,
+                onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Calendar View
+            if (state.viewOption == TimelineViewOption.CALENDAR) {
+                CalendarSection(
+                    state = state, 
+                    onEvent = viewModel::onEvent,
+                    modifier = Modifier.weight(1f)
                 )
-
-                // Shared Users row
-                SharedUserChipRow(
-                    accessibleUsers = state.accessibleUsers,
-                    selectedUserIds = state.selectedSharedUserIds,
-                    currentUserAvatarId = state.currentUserAvatarId,
-                    currentUserProfileImageUrl = state.currentUserProfileImageUrl,
-                    onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
+            } else {
+                // Timeline
+                TimelineSection(
+                    state = state, 
+                    onTaskClick = {
+                        viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
+                    },
+                    onTaskDelete = { taskId ->
+                        viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
+                    },
+                    onLoadMore = {
+                        viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
+                    },
+                    modifier = Modifier.weight(1f).fillMaxWidth()
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Calendar View
-                if (state.viewOption == TimelineViewOption.CALENDAR) {
-                    CalendarSection(
-                        state = state, 
-                        onEvent = viewModel::onEvent,
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    // Timeline
-                    TimelineSection(
-                        state = state, 
-                        onTaskClick = {
-                            viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
-                        },
-                        onTaskDelete = { taskId ->
-                            viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
-                        },
-                        onLoadMore = {
-                            viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
-                        },
-                        modifier = Modifier.weight(1f).fillMaxWidth()
-                    )
-                }
-
             }
         }
+
+        HomeFabMenu(
+            isExpanded = isFabExpanded,
+            onExpandedChange = { isFabExpanded = it },
+            onCreateTask = { viewModel.onEvent(HomeEvent.CreateTaskClicked) },
+            onCreateEvent = { viewModel.onEvent(HomeEvent.CreateEventClicked) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 96.dp)
+        )
+    }
 
     if (state.isFilterSheetVisible) {
         FilterBottomSheetComponent(
