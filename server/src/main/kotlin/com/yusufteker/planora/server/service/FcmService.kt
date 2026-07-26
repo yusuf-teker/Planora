@@ -24,22 +24,32 @@ object FcmService {
 
     fun init() {
         try {
-            val serviceAccount = File("firebase-service-account.json")
-            if (serviceAccount.exists()) {
+            val serviceAccount = listOf(
+                File("firebase-service-account.json"),
+                File("server/firebase-service-account.json")
+            ).firstOrNull { it.exists() }
+
+            if (serviceAccount != null) {
                 val options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(FileInputStream(serviceAccount)))
                     .build()
 
                 if (FirebaseApp.getApps().isEmpty()) {
                     FirebaseApp.initializeApp(options)
-                    logger.info("Firebase Admin initialized successfully.")
+                    logger.info("Firebase Admin initialized successfully from ${serviceAccount.path}.")
                 }
             } else {
-                logger.warn("firebase-service-account.json not found. Push notifications will be disabled.")
+                logger.warn("firebase-service-account.json not found in root or server/ directory. Push notifications will be disabled.")
             }
         } catch (e: Exception) {
             logger.error("Failed to initialize Firebase Admin: ${e.message}", e)
         }
+    }
+
+    private fun ensureInitialized(): Boolean {
+        if (FirebaseApp.getApps().isNotEmpty()) return true
+        init()
+        return FirebaseApp.getApps().isNotEmpty()
     }
 
     /**
@@ -56,6 +66,11 @@ object FcmService {
         body: String,
         data: Map<String, String> = emptyMap()
     ) {
+        if (!ensureInitialized()) {
+            logger.warn("Firebase Admin is not initialized. Skipping push notification '$title' to user $userId.")
+            return
+        }
+
         val tokens = dbQuery {
             FcmTokenEntity.find { FcmTokensTable.userId eq userId }.map { it.token }
         }
@@ -81,6 +96,11 @@ object FcmService {
      * @param excludeUserId The user who performed the action (won't receive the notification)
      */
     suspend fun sendSyncTriggerToRoomMembers(roomId: String, excludeUserId: Int) {
+        if (!ensureInitialized()) {
+            logger.warn("Firebase Admin is not initialized. Skipping sync trigger for room $roomId.")
+            return
+        }
+
         val memberUserIds = dbQuery {
             PlanRoomMembersTable.selectAll().where {
                 (PlanRoomMembersTable.roomId eq roomId) and

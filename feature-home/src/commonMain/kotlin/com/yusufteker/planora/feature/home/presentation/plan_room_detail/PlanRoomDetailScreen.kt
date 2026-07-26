@@ -780,20 +780,20 @@ private fun EditRoomBottomSheet(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val acceptedMembers = remember(state.memberProfiles, state.roomMembers) {
+                val allMembersList = remember(state.memberProfiles, state.roomMembers) {
                     if (state.roomMembers.isEmpty()) {
-                        state.memberProfiles.values.toList()
+                        state.memberProfiles.values.map { user -> user to com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
                     } else {
-                        val acceptedUserIds = state.roomMembers
-                            .filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
-                            .map { it.userId }
-                            .toSet()
-                        state.memberProfiles.values.filter { acceptedUserIds.contains(it.id) }
+                        state.roomMembers.mapNotNull { memberDto ->
+                            val profile = state.memberProfiles[memberDto.userId]
+                            if (profile != null) profile to memberDto.status else null
+                        }
                     }
                 }
 
-                acceptedMembers.forEach { user ->
+                allMembersList.forEach { (user, memberStatus) ->
                     val isCreator = user.id == state.creatorId
+                    val isPending = memberStatus == com.yusufteker.planora.shared.api.RoomMemberStatus.PENDING
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -825,6 +825,19 @@ private fun EditRoomBottomSheet(
                                             text = stringResource(Res.string.role_creator),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                } else if (isPending) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.tertiaryContainer
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.status_invited),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
@@ -909,7 +922,9 @@ private fun EditRoomBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     state.followingUsers.forEach { user ->
-                        val isAlreadyMember = state.memberProfiles.containsKey(user.id)
+                        val memberRecord = state.roomMembers.find { it.userId == user.id }
+                        val isAccepted = memberRecord?.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED
+                        val isPending = memberRecord?.status == com.yusufteker.planora.shared.api.RoomMemberStatus.PENDING
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -937,15 +952,27 @@ private fun EditRoomBottomSheet(
                                 )
                             }
 
-                            if (isAlreadyMember) {
+                            if (isAccepted) {
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
                                     color = MaterialTheme.colorScheme.secondaryContainer
                                 ) {
                                     Text(
-                                        text = stringResource(Res.string.room_members_title),
+                                        text = stringResource(Res.string.status_member),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            } else if (isPending) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.status_invited),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
