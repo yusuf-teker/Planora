@@ -248,20 +248,16 @@ fun RoomItem(
     memberProfiles: Map<Int, com.yusufteker.planora.shared.api.UserProfileResponse>,
     onClick: () -> Unit
 ) {
-    Card(
+    com.yusufteker.planora.core.ui.components.GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        borderGradient = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
         ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-        )
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
@@ -269,6 +265,7 @@ fun RoomItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             // Room Image / Cover Avatar
             val imageUrl = room.imageUrl
             Box(

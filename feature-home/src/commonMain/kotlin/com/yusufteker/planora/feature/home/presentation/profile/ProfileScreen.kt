@@ -150,25 +150,23 @@ fun ProfileScreen(
 
                     if (state.isLoggedIn) {
                         // Main Profile Card
-                        Box(
+                        com.yusufteker.planora.core.ui.components.GlassCard(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(24.dp)
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(24.dp)
-                                )
-                                .padding(20.dp)
+                                .padding(16.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            borderGradient = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+                            )
                         ) {
                             Column(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+
                                 // Centered Avatar with gradient ring border
                                 Box(
                                     modifier = Modifier

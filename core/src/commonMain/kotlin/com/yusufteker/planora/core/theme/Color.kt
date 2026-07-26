@@ -73,4 +73,13 @@ object PlanoraColors {
     val MeshGradientDark1 = Color(0xFF003355)
     val MeshGradientDark2 = Color(0xFF003736)
     val MeshGradientDark3 = Color(0xFF410002)
+
+    // ── Dribbble Modern Gradients & Accents ─────────────────
+    val GradientPrimary = listOf(Color(0xFF1D9BF0), Color(0xFF00CEC9))
+    val GradientPurpleCyan = listOf(Color(0xFF6C5CE7), Color(0xFF00CEC9))
+    val GradientCoralSunset = listOf(Color(0xFFFF6B6B), Color(0xFFFF8E53))
+    val GradientEmeraldTeal = listOf(Color(0xFF10B981), Color(0xFF06B6D4))
+    val GradientIndigoViolet = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
+    val GradientGoldAmber = listOf(Color(0xFFF59E0B), Color(0xFFFBBF24))
 }
+

@@ -85,18 +85,25 @@ fun TimelineTaskCard(
     val endDateStr = if (task.endTime != null) com.yusufteker.planora.core.utils.formatShortDate(task.endTime!!) else null
     val isMultiDay = task.endTime != null && startDateStr != endDateStr
 
-    Row(
+    com.yusufteker.planora.core.ui.components.GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
-            .clip(RoundedCornerShape(24.dp)) // Extra round for premium feel
-            .background(backgroundColor)
-            .border(1.dp, borderColor, RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick)
-            .padding(12.dp)
             .graphicsLayer { alpha = animatedAlpha },
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(24.dp),
+        borderGradient = listOf(
+            typeColor.copy(alpha = 0.5f),
+            typeColor.copy(alpha = 0.1f)
+        ),
+        onClick = onClick
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
         // Left: Time Badge (Pill)
         val primaryTime = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
         val formattedTime = formatTime(primaryTime)
@@ -356,3 +363,6 @@ fun TimelineTaskCard(
         }
     }
 }
+}
+
+

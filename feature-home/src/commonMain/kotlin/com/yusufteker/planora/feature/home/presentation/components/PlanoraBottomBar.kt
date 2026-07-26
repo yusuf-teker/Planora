@@ -51,96 +51,93 @@ fun PlanoraBottomBar(
     onAiButtonClick: () -> Unit,
     pendingRequestsCount: Int = 0
 ) {
-    // Temanın ana ve üçüncül renklerini alarak Planora gradient efektine uyguluyoruz
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
-    val surfaceColor = if (isDark) Color(0xCC000000) else Color(0xE6FFFFFF) // Glassmorphism opacity
+    val surfaceColor = if (isDark) Color(0xDC141419) else Color(0xF0FFFFFF) // Translucent glassmorphism
+
+    val pillShape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp)
+    val borderBrush = Brush.linearGradient(
+        colors = if (isDark) {
+            listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.03f))
+        } else {
+            listOf(Color.White.copy(alpha = 0.9f), primaryColor.copy(alpha = 0.2f))
+        }
+    )
 
     Box(
         contentAlignment = Alignment.BottomCenter,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
         Surface(
             color = surfaceColor,
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-            modifier = Modifier.fillMaxWidth()
+            shape = pillShape,
+            border = androidx.compose.foundation.BorderStroke(1.dp, borderBrush),
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 12.dp,
+                    shape = pillShape,
+                    spotColor = if (isDark) Color.Black else primaryColor.copy(alpha = 0.25f),
+                    ambientColor = if (isDark) Color.Black else primaryColor.copy(alpha = 0.15f)
+                )
         ) {
-            Column {
-                // TEMA UYUMLU CUSTOM BORDER
-                // Kenarlarda transparan, ortada AI butonu ile aynı 2.dp kalınlıkta ve mor-pembe (primary-tertiary) gradient efekti
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    primaryColor.copy(alpha = 0.6f),
-                                    tertiaryColor.copy(alpha = 0.6f),
-                                    tertiaryColor.copy(alpha = 0.6f),
-                                    primaryColor.copy(alpha = 0.6f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(BottomBarRowHeight),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Home
+                PlanoraBottomNavItem(
+                    label = "Home",
+                    selectedIcon = Icons.Filled.Home,
+                    unselectedIcon = Icons.Outlined.Home,
+                    isSelected = currentDestination is Screen.MainDestination.Home,
+                    onClick = { onNavigate(Screen.MainDestination.Home) },
+                    modifier = Modifier.weight(1f)
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .height(BottomBarRowHeight),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Home
-                    PlanoraBottomNavItem(
-                        label = "Home",
-                        selectedIcon = Icons.Filled.Home,
-                        unselectedIcon = Icons.Outlined.Home,
-                        isSelected = currentDestination is Screen.MainDestination.Home,
-                        onClick = { onNavigate(Screen.MainDestination.Home) },
-                        modifier = Modifier.weight(1f)
-                    )
+                // Plans
+                PlanoraBottomNavItem(
+                    label = "Plans",
+                    selectedIcon = Icons.Filled.DateRange,
+                    unselectedIcon = Icons.Outlined.DateRange,
+                    isSelected = currentDestination is Screen.MainDestination.PlanRooms,
+                    onClick = { onNavigate(Screen.MainDestination.PlanRooms) },
+                    modifier = Modifier.weight(1f)
+                )
 
-                    // Plans
-                    PlanoraBottomNavItem(
-                        label = "Plans",
-                        selectedIcon = Icons.Filled.DateRange,
-                        unselectedIcon = Icons.Outlined.DateRange,
-                        isSelected = currentDestination is Screen.MainDestination.PlanRooms,
-                        onClick = { onNavigate(Screen.MainDestination.PlanRooms) },
-                        modifier = Modifier.weight(1f)
-                    )
+                // Space for middle AI action button
+                Spacer(modifier = Modifier.weight(1f))
 
-                    // Ortadaki AI butonu için boşluk
-                    Spacer(modifier = Modifier.weight(1f))
+                // Notes
+                PlanoraBottomNavItem(
+                    label = "Notes",
+                    selectedIcon = Icons.Filled.Edit,
+                    unselectedIcon = Icons.Outlined.Edit,
+                    isSelected = currentDestination is Screen.MainDestination.Notes,
+                    onClick = { onNavigate(Screen.MainDestination.Notes) },
+                    modifier = Modifier.weight(1f)
+                )
 
-                    // Notes
-                    PlanoraBottomNavItem(
-                        label = "Notes",
-                        selectedIcon = Icons.Filled.Edit,
-                        unselectedIcon = Icons.Outlined.Edit,
-                        isSelected = currentDestination is Screen.MainDestination.Notes,
-                        onClick = { onNavigate(Screen.MainDestination.Notes) },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Profile
-                    PlanoraBottomNavItem(
-                        label = "Profile",
-                        selectedIcon = Icons.Filled.Person,
-                        unselectedIcon = Icons.Outlined.Person,
-                        isSelected = currentDestination is Screen.MainDestination.Profile || currentDestination is Screen.MainDestination.Settings,
-                        onClick = { onNavigate(Screen.MainDestination.Profile) },
-                        modifier = Modifier.weight(1f),
-                        badgeCount = pendingRequestsCount
-                    )
-                }
+                // Profile
+                PlanoraBottomNavItem(
+                    label = "Profile",
+                    selectedIcon = Icons.Filled.Person,
+                    unselectedIcon = Icons.Outlined.Person,
+                    isSelected = currentDestination is Screen.MainDestination.Profile || currentDestination is Screen.MainDestination.Settings,
+                    onClick = { onNavigate(Screen.MainDestination.Profile) },
+                    modifier = Modifier.weight(1f),
+                    badgeCount = pendingRequestsCount
+                )
             }
         }
+
 
         val aiButtonBgColor = if (isDark) {
             Color(0xFF18171E)
