@@ -57,8 +57,9 @@ import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorVi
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.time.Duration.Companion.milliseconds
 
-/**
+    /**
  * Root composable for the Planora application.
  *
  * Sets up:
@@ -96,7 +97,7 @@ fun App() {
         LaunchedEffect(navigator.backStack.lastOrNull()) {
             val currentScreen = navigator.backStack.lastOrNull()
             if (currentScreen != null) {
-                var screenName = currentScreen::class.simpleName ?: "UnknownScreen"
+                val screenName = currentScreen::class.simpleName ?: "UnknownScreen"
                 Napier.d("SCREEN: $screenName açıldı")
             }
         }
@@ -130,7 +131,7 @@ fun App() {
                 // Performans: debounce ile hızlı ardışık DB değişikliklerinde
                 // gereksiz cancel+reschedule döngüsünü önle
                 planRepository.observeAllTasks()
-                    .debounce(1000L)
+                    .debounce(1000L.milliseconds)
                     .collect { tasks ->
                         reminderManager.scheduleAllReminders(tasks)
                     }
@@ -146,8 +147,7 @@ fun App() {
             Napier.d("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
             if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen == Screen.Main) { // Only handle if logged in
                 Napier.d("DEEPLINK DEBUG: Conditions met! Parsing URL with UseCase...")
-                val result = processDeepLinkUseCase(deepLinkUrl)
-                when (result) {
+                when (val result = processDeepLinkUseCase(deepLinkUrl)) {
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToEvent -> {
                         navigator.navigate(
                             Screen.EventDetail(
@@ -177,6 +177,13 @@ fun App() {
                                 noteId = result.noteId,
                                 sharedNote = result.sharedNote,
                                 sharedSender = result.sharedSender
+                            )
+                        )
+                    }
+                    is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToRoom -> {
+                        navigator.navigate(
+                            Screen.PlanRoomDetail(
+                                roomId = result.roomId
                             )
                         )
                     }
@@ -349,7 +356,7 @@ fun App() {
                     entry<Screen.NoteEditor> { screen ->
                         val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.note_editor.NoteEditorViewModel>(
                             key = screen.noteId ?: "new_note_${screen.parentId}",
-                            parameters = { org.koin.core.parameter.parametersOf(screen.noteId, screen.planRoomId, screen.parentId) }
+                            parameters = {parametersOf(screen.noteId, screen.planRoomId, screen.parentId) }
                         )
                         androidx.compose.runtime.LaunchedEffect(screen) {
                             viewModel.onEvent(com.yusufteker.planora.feature.home.presentation.note_editor.NoteEditorEvent.OnLoadNote(

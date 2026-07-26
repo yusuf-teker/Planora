@@ -27,6 +27,10 @@ sealed class DeepLinkResult {
         val sharedSender: String? = null
     ) : DeepLinkResult()
 
+    data class NavigateToRoom(
+        val roomId: String
+    ) : DeepLinkResult()
+
     data object InvalidOrIgnored : DeepLinkResult()
 }
 
@@ -39,7 +43,7 @@ class ProcessDeepLinkUseCase(
         try {
             val url = Url(deepLinkUrl)
             val isPlanoraScheme = url.protocol.name == "planora" && url.host == "share"
-            val pathSegments = url.pathSegments.filter { it.isNotEmpty() }
+            val pathSegments = url.rawSegments.filter { it.isNotEmpty() }
             val isHttpScheme = (url.protocol.name == "http" || url.protocol.name == "https") &&
                                (url.host == "planora.yusufteker.com" || url.host == "pulse.yusufteker.com") &&
                                pathSegments.firstOrNull() == "share"
@@ -56,11 +60,13 @@ class ProcessDeepLinkUseCase(
             val sender = url.parameters["sender"]
             
             val eventId = url.parameters["eventId"]
+            val taskId = url.parameters["taskId"]
             val roomId = url.parameters["roomId"]
 
             return when (type) {
                 "event" -> {
                     DeepLinkResult.NavigateToEvent(
+                        eventId = eventId,
                         sharedTitle = title,
                         sharedNote = note,
                         sharedDate = date,
@@ -74,8 +80,6 @@ class ProcessDeepLinkUseCase(
                             planRepository.joinTask(taskId = eventId, roomId = roomId)
                         } catch (e: Exception) {
                             io.github.aakira.napier.Napier.w("Failed to join task via deep link: ${e.message}")
-                            // If joining fails (e.g. not in room), we might not want to navigate 
-                            // but let's just proceed so the user can see it or handle it.
                         }
                     }
                     DeepLinkResult.NavigateToEvent(
@@ -86,6 +90,7 @@ class ProcessDeepLinkUseCase(
                 }
                 "task" -> {
                     DeepLinkResult.NavigateToTask(
+                        taskId = taskId,
                         sharedTitle = title,
                         sharedNote = note,
                         sharedDate = date,
@@ -97,6 +102,13 @@ class ProcessDeepLinkUseCase(
                         sharedNote = note,
                         sharedSender = sender
                     )
+                }
+                "room", "joinRoom", "roomInvite" -> {
+                    if (roomId != null) {
+                        DeepLinkResult.NavigateToRoom(roomId = roomId)
+                    } else {
+                        DeepLinkResult.InvalidOrIgnored
+                    }
                 }
                 else -> DeepLinkResult.InvalidOrIgnored
             }

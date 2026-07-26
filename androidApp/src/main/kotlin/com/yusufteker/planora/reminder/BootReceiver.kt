@@ -54,10 +54,10 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
                         isPostponable = entity.isPostponable == 1L,
                         isAllDay = entity.isAllDay == 1L,
                         reminders = entity.reminders?.let {
-                            try { Json.decodeFromString(it) } catch (e: Exception) { emptyList() }
+                            try { Json.decodeFromString(it) } catch (_: Exception) { emptyList() }
                         } ?: emptyList(),
                         specificDetails = entity.specificDetails?.let {
-                            try { Json.decodeFromString(it) } catch(e: Exception) { null }
+                            try { Json.decodeFromString(it) } catch(_: Exception) { null }
                         }
                     )
                 } catch (e: Exception) {
@@ -67,7 +67,8 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
             }
 
             reminderManager.scheduleAllReminders(tasks)
-            Napier.d("Restored ${tasks.size} task alarms after boot", tag = "BootReceiver")
+            DailyDigestScheduler.scheduleAll(context)
+            Napier.d("Restored ${tasks.size} task alarms and daily digest scheduler after boot", tag = "BootReceiver")
         } catch (e: Exception) {
             Napier.e("Failed to restore alarms after boot: ${e.message}", e, tag = "BootReceiver")
         }

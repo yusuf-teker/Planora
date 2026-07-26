@@ -1,3 +1,38 @@
 <resources>
     <string name="app_name">Planora</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_default_name">Planora Notifications</string>
+    <string name="notification_channel_default_desc">Task, event and reminder notifications</string>
+    <string name="notification_channel_task_name">Task Reminders</string>
+    <string name="notification_channel_event_name">Event Reminders</string>
+    <string name="notification_channel_general_name">General Reminders</string>
+    <string name="notification_channel_digest_name">Daily Digest &amp; Reminders</string>
+
+    <!-- Reminder Alarms -->
+    <string name="reminder_title_task">Task Reminder</string>
+    <string name="reminder_title_event">Event Reminder</string>
+    <string name="reminder_title_general">Reminder</string>
+    <string name="reminder_time_now">Now</string>
+    <string name="reminder_time_days_later">In %1$d days</string>
+    <string name="reminder_time_hours_later">In %1$d hours</string>
+    <string name="reminder_time_minutes_later">In %1$d minutes</string>
+    <string name="reminder_default_task">Task</string>
+
+    <!-- Daily Digest Notifications -->
+    <string name="digest_morning_title">🌅 Good Morning! Today\'s Plans</string>
+    <string name="digest_morning_body_tasks">You have %1$d task(s) today. First up: %2$s</string>
+    <string name="digest_morning_body_empty">No tasks scheduled for today yet. Want to add a new goal?</string>
+
+    <string name="digest_afternoon_title">☀️ Afternoon Check-in</string>
+    <string name="digest_afternoon_body_remaining">You have %1$d remaining task(s) for the rest of the day.</string>
+    <string name="digest_afternoon_body_finished">You finished all today\'s tasks on time, congrats!</string>
+    <string name="digest_afternoon_body_clean">Great job! Your to-do list is sparkling clean.</string>
+
+    <string name="notification_overdue_title">⚠️ Overdue Tasks Alert</string>
+    <string name="digest_evening_title">🌙 Evening Digest &amp; Overdue</string>
+    <string name="digest_evening_body_both">You have %1$d uncompleted task(s) today and %2$d overdue task(s) from the last 3 days.</string>
+    <string name="digest_evening_body_overdue">You have %1$d overdue task(s) from the last 3 days.</string>
+    <string name="digest_evening_body_today">You have %1$d task(s) remaining for today.</string>
+    <string name="digest_evening_body_all_done">Congratulations! You completed all your plans today.</string>
 </resources>

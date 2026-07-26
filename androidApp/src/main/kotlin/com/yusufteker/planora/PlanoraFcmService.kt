@@ -3,9 +3,8 @@ package com.yusufteker.planora
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
+import android.content.ContentResolver
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -23,6 +22,8 @@ import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
+import androidx.core.net.toUri
+import androidx.core.graphics.toColorInt
 
 class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
 
@@ -34,8 +35,7 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
 
 
     companion object {
-        const val DEFAULT_CHANNEL_ID = "planora_default_channel"
-        const val DEFAULT_CHANNEL_NAME = "Planora Bildirimleri"
+        const val DEFAULT_CHANNEL_ID = "planora_v2_channel"
     }
 
     override fun onNewToken(token: String) {
@@ -62,9 +62,7 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
         super.onMessageReceived(message)
         Napier.d("FCM Message Received: ${message.data}", tag = "PlanoraFcmService")
 
-        val type = message.data["type"]
-
-        when (type) {
+        when (val type = message.data["type"]) {
             "sync_tasks" -> handleSyncTasksTrigger()
             "room_invite" -> {
                 CoroutineScope(Dispatchers.IO).launch {
@@ -146,11 +144,22 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
             ?: ""
 
         val type = message.data["type"] ?: "general"
+        val roomId = message.data["roomId"]
+        val taskId = message.data["taskId"]
+        val rawDeepLink = message.data["deepLink"]
+
+        val deepLinkUrl = when {
+            !rawDeepLink.isNullOrEmpty() -> rawDeepLink
+            !roomId.isNullOrEmpty() -> "planora://share/joinRoom?roomId=$roomId"
+            !taskId.isNullOrEmpty() -> "planora://share/task?taskId=$taskId"
+            else -> null
+        }
 
         showNotification(
             title = title,
             body = body,
-            type = type
+            type = type,
+            deepLinkUrl = deepLinkUrl
         )
     }
 
@@ -174,13 +183,13 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
                         visibility = TaskVisibility.valueOf(entity.visibility),
                         sharedRoomIds = emptyList(),
                         reminders = entity.reminders?.let {
-                            try { Json.decodeFromString(it) } catch (e: Exception) { emptyList() }
+                            try { Json.decodeFromString(it) } catch (_: Exception) { emptyList() }
                         } ?: emptyList(),
                         specificDetails = entity.specificDetails?.let {
-                            try { Json.decodeFromString(it) } catch(e: Exception) { null }
+                            try { Json.decodeFromString(it) } catch(_: Exception) { null }
                         }
                     )
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             }
@@ -195,10 +204,12 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
     private fun showNotification(
         title: String,
         body: String,
-        type: String = "general"
+        type: String = "general",
+        deepLinkUrl: String? = null
     ) {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            deepLinkUrl?.let { data = it.toUri() }
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -209,40 +220,54 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
         )
 
         val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                DEFAULT_CHANNEL_ID,
-                DEFAULT_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Task, event and reminder notifications"
-                enableLights(true)
-                enableVibration(true)
-                setShowBadge(true)
-            }
+        val soundUri =
+            "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${packageName}/${R.raw.planora_chime}".toUri()
 
-            notificationManager.createNotificationChannel(channel)
+        val audioAttributes = android.media.AudioAttributes.Builder()
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .build()
+
+        val channelName = getString(R.string.notification_channel_default_name)
+        val channelDesc = getString(R.string.notification_channel_default_desc)
+
+        val channel = NotificationChannel(
+            DEFAULT_CHANNEL_ID,
+            channelName,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = channelDesc
+            enableLights(true)
+            lightColor = "#7C4DFF".toColorInt()
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 120, 80, 120)
+            setSound(soundUri, audioAttributes)
+            setShowBadge(true)
         }
 
-        val category = when (type.lowercase()) {
-            "task" -> NotificationCompat.CATEGORY_REMINDER
-            "event" -> NotificationCompat.CATEGORY_EVENT
-            else -> NotificationCompat.CATEGORY_MESSAGE
+        notificationManager.createNotificationChannel(channel)
+
+        val (styledTitle, category) = when (type.lowercase()) {
+            "task" -> "✅ $title" to NotificationCompat.CATEGORY_REMINDER
+            "event" -> "🎉 $title" to NotificationCompat.CATEGORY_EVENT
+            "room_invite" -> "💌 $title" to NotificationCompat.CATEGORY_MESSAGE
+            "follow_request" -> "👤 $title" to NotificationCompat.CATEGORY_SOCIAL
+            "calendar_request" -> "📅 $title" to NotificationCompat.CATEGORY_EVENT
+            else -> "✨ $title" to NotificationCompat.CATEGORY_MESSAGE
         }
 
         val builder = NotificationCompat.Builder(this, DEFAULT_CHANNEL_ID)
-            // Kendi ikonunu koymanı öneririm
-            //.setSmallIcon(R.drawable.ic_notification)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor("#7C4DFF".toColorInt())
+            .setContentTitle(styledTitle)
             .setContentText(body)
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .setBigContentTitle(title)
+                    .setBigContentTitle(styledTitle)
                     .bigText(body)
-                    .setSummaryText("Planora")
+                    .setSummaryText("Planora ✨")
             )
             .setCategory(category)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -251,7 +276,8 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
             .setAutoCancel(true)
             .setShowWhen(true)
             .setWhen(System.currentTimeMillis())
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setSound(soundUri)
+            .setVibrate(longArrayOf(0, 120, 80, 120))
             .setOnlyAlertOnce(false)
 
         notificationManager.notify(

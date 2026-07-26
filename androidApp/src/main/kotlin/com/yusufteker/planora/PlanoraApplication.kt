@@ -2,6 +2,7 @@ package com.yusufteker.planora
 
 import android.app.Application
 import com.yusufteker.planora.di.initKoin
+import com.yusufteker.planora.reminder.DailyDigestScheduler
 import org.koin.android.ext.koin.androidContext
 
 /**
@@ -16,5 +17,6 @@ class PlanoraApplication : Application() {
         initKoin {
             androidContext(this@PlanoraApplication)
         }
+        DailyDigestScheduler.scheduleAll(this)
     }
 }

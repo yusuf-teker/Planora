@@ -480,6 +480,32 @@
     <string name="empty_room_tasks_desc">There are no plans matching your filter in this room.</string>
     <string name="room_image_desc">Room cover image</string>
     <string name="action_expand">Expand</string>
+
+    <!-- Daily Digest Notifications -->
+    <string name="notification_channel_default_name">Planora Notifications</string>
+    <string name="notification_channel_default_desc">Task, event and reminder notifications</string>
+    <string name="notification_channel_task_name">Task Reminders</string>
+    <string name="notification_channel_event_name">Event Reminders</string>
+    <string name="notification_channel_general_name">General Reminders</string>
+    <string name="notification_channel_digest_name">Daily Digest &amp; Reminders</string>
+
+    <string name="reminder_title_task">Task Reminder</string>
+    <string name="reminder_title_event">Event Reminder</string>
+    <string name="reminder_title_general">Reminder</string>
+    <string name="reminder_time_now">Now</string>
+    <string name="reminder_time_days_later">In %1$d days</string>
+    <string name="reminder_time_hours_later">In %1$d hours</string>
+    <string name="reminder_time_minutes_later">In %1$d minutes</string>
+    <string name="reminder_default_task">Task</string>
+
+    <string name="notification_morning_title">☀️ Good Morning! Today\'s Plans</string>
+    <string name="notification_morning_body">You have %1$d task(s) today. First up: %2$s</string>
+    <string name="notification_overdue_title">⚠️ Overdue Tasks Alert</string>
+    <string name="notification_overdue_body">You have %1$d uncompleted task(s) from the last 3 days.</string>
+    <string name="notification_afternoon_title">🌆 Afternoon Check-in</string>
+    <string name="notification_afternoon_body">Approaching the end of the day: You still have %1$d task(s) to finish today.</string>
+    <string name="notification_room_invite_title">🏠 Room Invitation</string>
+    <string name="notification_room_invite_body">%1$s invited you to join "%2$s".</string>
 </resources>
 
 

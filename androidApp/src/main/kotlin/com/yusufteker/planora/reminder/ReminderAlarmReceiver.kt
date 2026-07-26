@@ -6,13 +6,12 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.yusufteker.planora.MainActivity
 import com.yusufteker.planora.core.reminder.AndroidReminderManager
 import com.yusufteker.planora.shared.api.TaskType
-import io.github.aakira.napier.Napier
+import androidx.core.net.toUri
+import androidx.core.graphics.toColorInt
 
 /**
  * BroadcastReceiver that fires when a scheduled reminder alarm triggers.
@@ -23,20 +22,17 @@ import io.github.aakira.napier.Napier
 class ReminderAlarmReceiver : BroadcastReceiver() {
 
     companion object {
-        const val CHANNEL_ID_TASK = "planora_reminder_task_channel"
-        const val CHANNEL_ID_EVENT = "planora_reminder_event_channel"
-        const val CHANNEL_ID_GENERAL = "planora_reminder_general_channel"
-
-        const val CHANNEL_NAME_TASK = "Görev Hatırlatıcıları"
-        const val CHANNEL_NAME_EVENT = "Etkinlik Hatırlatıcıları"
-        const val CHANNEL_NAME_GENERAL = "Genel Hatırlatıcılar"
+        const val CHANNEL_ID_TASK = "planora_reminder_task_v2"
+        const val CHANNEL_ID_EVENT = "planora_reminder_event_v2"
+        const val CHANNEL_ID_GENERAL = "planora_reminder_general_v2"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != AndroidReminderManager.ACTION_REMINDER) return
 
         val taskId = intent.getStringExtra(AndroidReminderManager.EXTRA_TASK_ID) ?: return
-        val taskTitle = intent.getStringExtra(AndroidReminderManager.EXTRA_TASK_TITLE) ?: "Görev"
+        val defaultTitle = context.getString(com.yusufteker.planora.R.string.reminder_default_task)
+        val taskTitle = intent.getStringExtra(AndroidReminderManager.EXTRA_TASK_TITLE) ?: defaultTitle
         val reminderMinutes = intent.getIntExtra(AndroidReminderManager.EXTRA_REMINDER_MINUTES, 0)
         val taskType = intent.getStringExtra(AndroidReminderManager.EXTRA_TASK_TYPE)
             ?.let { runCatching { TaskType.valueOf(it) }.getOrNull() }
@@ -55,15 +51,18 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val style = notificationStyleFor(taskType)
+        val style = notificationStyleFor(context, taskType)
 
-        ensureChannel(notificationManager, style.channelId, style.channelName, style.channelColor)
+        val soundUri =
+            "${android.content.ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${com.yusufteker.planora.R.raw.planora_chime}".toUri()
+
+        ensureChannel( notificationManager, style.channelId, style.channelName, style.channelColor, soundUri)
 
         val timeText = when {
-            reminderMinutes == 0 -> "Şimdi"
-            reminderMinutes % 1440 == 0 -> "${reminderMinutes / 1440} gün sonra"
-            reminderMinutes % 60 == 0 -> "${reminderMinutes / 60} saat sonra"
-            else -> "$reminderMinutes dakika sonra"
+            reminderMinutes == 0 -> context.getString(com.yusufteker.planora.R.string.reminder_time_now)
+            reminderMinutes % 1440 == 0 -> context.getString(com.yusufteker.planora.R.string.reminder_time_days_later, reminderMinutes / 1440)
+            reminderMinutes % 60 == 0 -> context.getString(com.yusufteker.planora.R.string.reminder_time_hours_later, reminderMinutes / 60)
+            else -> context.getString(com.yusufteker.planora.R.string.reminder_time_minutes_later, reminderMinutes)
         }
         val notificationTitle = "${style.emoji} ${style.titlePrefix}"
         val notificationBody = "$taskTitle · $timeText"
@@ -84,9 +83,16 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             .setColor(style.channelColor)
             .setContentTitle(notificationTitle)
             .setContentText(notificationBody)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(notificationBody))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(notificationTitle)
+                    .bigText(notificationBody)
+                    .setSummaryText("Planora ✨")
+            )
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setSound(soundUri)
+            .setVibrate(longArrayOf(0, 120, 80, 120))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .build()
@@ -99,21 +105,27 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         notificationManager: NotificationManager,
         channelId: String,
         channelName: String,
-        color: Int
+        color: Int,
+        soundUri: android.net.Uri
     ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = channelName
-                enableVibration(true)
-                enableLights(true)
-                lightColor = color
-            }
-            notificationManager.createNotificationChannel(channel)
+        val audioAttributes = android.media.AudioAttributes.Builder()
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .build()
+
+        val channel = NotificationChannel(
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = channelName
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 120, 80, 120)
+            enableLights(true)
+            lightColor = color
+            setSound(soundUri, audioAttributes)
         }
+        notificationManager.createNotificationChannel(channel)
     }
 
     private data class NotificationStyle(
@@ -125,31 +137,31 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val channelColor: Int
     )
 
-    private fun notificationStyleFor(taskType: TaskType): NotificationStyle {
+    private fun notificationStyleFor(context: Context, taskType: TaskType): NotificationStyle {
         return when (taskType) {
             TaskType.TASK -> NotificationStyle(
                 channelId = CHANNEL_ID_TASK,
-                channelName = CHANNEL_NAME_TASK,
+                channelName = context.getString(com.yusufteker.planora.R.string.notification_channel_task_name),
                 emoji = "✅",
-                titlePrefix = "Görev Hatırlatıcı",
-                smallIcon = android.R.drawable.ic_menu_agenda,
-                channelColor = Color.parseColor("#4CAF50") // yeşil
+                titlePrefix = context.getString(com.yusufteker.planora.R.string.reminder_title_task),
+                smallIcon = com.yusufteker.planora.R.drawable.ic_notification,
+                channelColor = "#10B981".toColorInt() // emerald
             )
             TaskType.EVENT -> NotificationStyle(
                 channelId = CHANNEL_ID_EVENT,
-                channelName = CHANNEL_NAME_EVENT,
-                emoji = "📅",
-                titlePrefix = "Etkinlik Hatırlatıcı",
-                smallIcon = android.R.drawable.ic_menu_my_calendar,
-                channelColor = Color.parseColor("#2196F3") // mavi
+                channelName = context.getString(com.yusufteker.planora.R.string.notification_channel_event_name),
+                emoji = "🎉",
+                titlePrefix = context.getString(com.yusufteker.planora.R.string.reminder_title_event),
+                smallIcon = com.yusufteker.planora.R.drawable.ic_notification,
+                channelColor = "#3B82F6".toColorInt() // blue
             )
             else -> NotificationStyle(
                 channelId = CHANNEL_ID_GENERAL,
-                channelName = CHANNEL_NAME_GENERAL,
-                emoji = "⏰",
-                titlePrefix = "Hatırlatıcı",
-                smallIcon = android.R.drawable.ic_dialog_info,
-                channelColor = Color.parseColor("#9E9E9E") // gri
+                channelName = context.getString(com.yusufteker.planora.R.string.notification_channel_general_name),
+                emoji = "✨",
+                titlePrefix = context.getString(com.yusufteker.planora.R.string.reminder_title_general),
+                smallIcon = com.yusufteker.planora.R.drawable.ic_notification,
+                channelColor = "#7C4DFF".toColorInt() // purple
             )
         }
     }

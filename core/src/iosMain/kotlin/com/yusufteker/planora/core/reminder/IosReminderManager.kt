@@ -2,12 +2,15 @@ package com.yusufteker.planora.core.reminder
 
 import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskDto
+import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import io.github.aakira.napier.Napier
 import kotlinx.cinterop.ExperimentalForeignApi
+import platform.Foundation.NSDateComponents
 import platform.UserNotifications.UNAuthorizationOptionAlert
 import platform.UserNotifications.UNAuthorizationOptionBadge
 import platform.UserNotifications.UNAuthorizationOptionSound
+import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotification
 import platform.UserNotifications.UNNotificationPresentationOptionBadge
@@ -64,11 +67,14 @@ class IosReminderManager : ReminderManager {
             didReceiveNotificationResponse: UNNotificationResponse,
             withCompletionHandler: () -> Unit
         ) {
-            // Kullanıcı bildirime tıkladığında (isteğe bağlı navigation vs. buraya eklenebilir)
-            Napier.d(
-                "Notification tapped: ${didReceiveNotificationResponse.notification.request.identifier}",
-                tag = TAG
-            )
+            val userInfo = didReceiveNotificationResponse.notification.request.content.userInfo
+            val deepLink = userInfo["deepLink"] as? String
+            val taskId = userInfo["taskId"] as? String
+            val url = deepLink ?: taskId?.let { "planora://share/task?taskId=$it" }
+            if (!url.isNullOrEmpty()) {
+                Napier.d("iOS Notification tapped: url=$url", tag = TAG)
+                com.yusufteker.planora.core.navigation.DeepLinkManager.emitLink(url)
+            }
             withCompletionHandler()
         }
     }
@@ -116,12 +122,12 @@ class IosReminderManager : ReminderManager {
 
                 val triggerTime = baseTime - (reminderMinutes * 60_000L)
 
-                // Yeni
                 if (triggerTime > now - 60_000L) {
                     val identifier = generateIdentifier(task.id, reminderMinutes)
                     scheduleNotification(
                         identifier = identifier,
                         triggerTimeMs = triggerTime,
+                        taskId = task.id,
                         taskTitle = task.title,
                         reminderMinutes = reminderMinutes,
                         taskType = task.type
@@ -136,6 +142,7 @@ class IosReminderManager : ReminderManager {
             }
         }
 
+        scheduleDailyDigests(tasks)
         Napier.d("Scheduled ${identifiers.size} reminders for ${tasks.size} tasks", tag = TAG)
     }
 
@@ -144,9 +151,96 @@ class IosReminderManager : ReminderManager {
         Napier.d("Cancelled all pending reminders", tag = TAG)
     }
 
+    private fun scheduleDailyDigests(tasks: List<TaskDto>) {
+        val uncompletedTasks = tasks.filter { it.status != TaskStatus.COMPLETED }
+        val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+
+        // 1. Morning Digest (09:00)
+        val todayTasks = uncompletedTasks.filter { task ->
+            val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            baseTime in (now - 12 * 3600 * 1000L)..(now + 24 * 3600 * 1000L)
+        }
+        if (todayTasks.isNotEmpty()) {
+            val earliestTask = todayTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+            scheduleCalendarDigest(
+                identifier = "planora_digest_morning",
+                hour = 9,
+                title = "☀️ Günaydın!",
+                body = "Bugün tamamlanması gereken ${todayTasks.size} görevin bulunuyor.",
+                deepLinkUrl = earliestTask?.let { "planora://share/task?taskId=${it.id}" }
+            )
+        }
+
+        // 2. Overdue Check (12:00)
+        val overdueTasks = uncompletedTasks.filter { task ->
+            val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            baseTime in (now - 3 * 24 * 3600 * 1000L) until now
+        }
+        if (overdueTasks.isNotEmpty()) {
+            val urgentTask = overdueTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+            scheduleCalendarDigest(
+                identifier = "planora_digest_overdue",
+                hour = 12,
+                title = "⚠️ Geciken Görev Uyarısı!",
+                body = "Son 3 gün içinde henüz tamamlanmamış ${overdueTasks.size} görevin bulunuyor.",
+                deepLinkUrl = urgentTask?.let { "planora://share/task?taskId=${it.id}" }
+            )
+        }
+
+        // 3. Afternoon Check (16:00)
+        if (todayTasks.isNotEmpty()) {
+            val nextTask = todayTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+            scheduleCalendarDigest(
+                identifier = "planora_digest_afternoon",
+                hour = 16,
+                title = "🌆 Akşamüstü Kontrolü",
+                body = "Günün bitimine yaklaşırken: Bugün tamamlanması gereken ${todayTasks.size} görevin henüz bitmedi.",
+                deepLinkUrl = nextTask?.let { "planora://share/task?taskId=${it.id}" }
+            )
+        }
+    }
+
+    private fun scheduleCalendarDigest(
+        identifier: String,
+        hour: Long,
+        title: String,
+        body: String,
+        deepLinkUrl: String?
+    ) {
+        val content = UNMutableNotificationContent().apply {
+            setTitle(title)
+            setBody(body)
+            setSound(UNNotificationSound.defaultSound())
+            deepLinkUrl?.let { setUserInfo(mapOf("deepLink" to it)) }
+        }
+
+        val dateComponents = NSDateComponents().apply {
+            setHour(hour)
+            setMinute(0)
+        }
+
+        val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(
+            dateComponents = dateComponents,
+            repeats = true
+        )
+
+        val request = UNNotificationRequest.requestWithIdentifier(
+            identifier = identifier,
+            content = content,
+            trigger = trigger
+        )
+
+        center.addNotificationRequest(request) { error ->
+            if (error != null) {
+                Napier.e("Failed to schedule digest $identifier: ${error.localizedDescription}", tag = TAG)
+            }
+        }
+    }
+
     private fun scheduleNotification(
         identifier: String,
         triggerTimeMs: Long,
+        taskId: String,
         taskTitle: String,
         reminderMinutes: Int,
         taskType: TaskType
@@ -167,6 +261,7 @@ class IosReminderManager : ReminderManager {
             setSound(UNNotificationSound.defaultSound())
             setThreadIdentifier(style.threadId)
             setCategoryIdentifier(style.categoryId)
+            setUserInfo(mapOf("taskId" to taskId))
         }
 
         val secondsFromNow =

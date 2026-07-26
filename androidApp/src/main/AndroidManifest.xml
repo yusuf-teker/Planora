@@ -75,6 +75,15 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- Daily Digest & Overdue task receiver -->
+        <receiver
+            android:name=".reminder.DailyDigestReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.yusufteker.planora.ACTION_DAILY_DIGEST" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

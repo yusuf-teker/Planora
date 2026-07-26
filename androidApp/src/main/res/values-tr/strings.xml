@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">Planora</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_default_name">Planora Bildirimleri</string>
+    <string name="notification_channel_default_desc">Görev, etkinlik ve hatırlatıcı bildirimleri</string>
+    <string name="notification_channel_task_name">Görev Hatırlatıcıları</string>
+    <string name="notification_channel_event_name">Etkinlik Hatırlatıcıları</string>
+    <string name="notification_channel_general_name">Genel Hatırlatıcılar</string>
+    <string name="notification_channel_digest_name">Günlük Özet &amp; Hatırlatıcılar</string>
+
+    <!-- Reminder Alarms -->
+    <string name="reminder_title_task">Görev Hatırlatıcı</string>
+    <string name="reminder_title_event">Etkinlik Hatırlatıcı</string>
+    <string name="reminder_title_general">Hatırlatıcı</string>
+    <string name="reminder_time_now">Şimdi</string>
+    <string name="reminder_time_days_later">%1$d gün sonra</string>
+    <string name="reminder_time_hours_later">%1$d saat sonra</string>
+    <string name="reminder_time_minutes_later">%1$d dakika sonra</string>
+    <string name="reminder_default_task">Görev</string>
+
+    <!-- Daily Digest Notifications -->
+    <string name="digest_morning_title">🌅 Günaydın! Bugünkü Planların</string>
+    <string name="digest_morning_body_tasks">Bugün %1$d görevin var. İlk görev: %2$s</string>
+    <string name="digest_morning_body_empty">Bugün henüz planlanmış görevin yok. Yeni bir hedef eklemek ister misin?</string>
+
+    <string name="digest_afternoon_title">☀️ Gün Ortası Kontrolü</string>
+    <string name="digest_afternoon_body_remaining">Günün geri kalanı için %1$d tamamlanmamış görevin var.</string>
+    <string name="digest_afternoon_body_finished">Bugünkü görevlerinin hepsini zamanında bitirdin, tebrikler!</string>
+    <string name="digest_afternoon_body_clean">Harika gidiyorsun! Bugün yapılacaklar listen tertemiz.</string>
+
+    <string name="notification_overdue_title">⚠️ Geciken Görev Uyarısı!</string>
+    <string name="digest_evening_title">🌙 Gün Sonu Özeti &amp; Gecikenler</string>
+    <string name="digest_evening_body_both">Bugün tamamlanmayan %1$d görev ve son 3 günde geciken %2$d görev var.</string>
+    <string name="digest_evening_body_overdue">Son 3 günden tamamlanmamış %1$d geciken görevin bulunuyor.</string>
+    <string name="digest_evening_body_today">Bugün tamamlanmayı bekleyen %1$d görevin kaldı.</string>
+    <string name="digest_evening_body_all_done">Tebrikler! Bugün tüm planlarını başarıyla tamamladın.</string>
+</resources>
