@@ -346,16 +346,16 @@ fun Route.planRoomRoutes() {
 
                     if (!isAdmin) return@dbQuery false
 
-                    // Check if target user is already in the room (pending or accepted)
-                    val alreadyMember = PlanRoomMembersTable.selectAll().where {
+                    // Check if target user is already an ACCEPTED member of the room
+                    val isAlreadyAccepted = PlanRoomMembersTable.selectAll().where {
                         (PlanRoomMembersTable.roomId eq roomId) and 
                         (PlanRoomMembersTable.userId eq targetUser.id.value) and
-                        (PlanRoomMembersTable.status neq RoomMemberStatus.DECLINED)
+                        (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED)
                     }.count() > 0
 
-                    if (alreadyMember) return@dbQuery false
+                    if (isAlreadyAccepted) return@dbQuery false
 
-                    // If user was previously DECLINED, delete old record first before re-inviting
+                    // If user was previously PENDING or DECLINED, delete old record first before re-inviting
                     PlanRoomMembersTable.deleteWhere {
                         (PlanRoomMembersTable.roomId eq roomId) and (PlanRoomMembersTable.userId eq targetUser.id.value)
                     }
@@ -376,16 +376,18 @@ fun Route.planRoomRoutes() {
 
                 if (success) {
                     if (pushRoomName.isNotBlank()) {
-                        com.yusufteker.planora.server.service.FcmService.sendPushToUser(
-                            userId = request.userId,
-                            title = "Yeni Plan Odası Daveti",
-                            body = "$pushInviterName sizi '$pushRoomName' adlı odaya davet etti.",
-                            data = mapOf("type" to "room_invite", "roomId" to roomId)
-                        )
+                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                            com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                                userId = request.userId,
+                                title = "Yeni Plan Odası Daveti",
+                                body = "$pushInviterName sizi '$pushRoomName' adlı odaya davet etti.",
+                                data = mapOf("type" to "room_invite", "roomId" to roomId)
+                            )
+                        }
                     }
                     call.respond(HttpStatusCode.OK, "User invited successfully")
                 } else {
-                    call.respond(HttpStatusCode.Forbidden, "Cannot invite user. Either not admin or user already invited.")
+                    call.respond(HttpStatusCode.Forbidden, "Cannot invite user. User is already an accepted member.")
                 }
             }
 

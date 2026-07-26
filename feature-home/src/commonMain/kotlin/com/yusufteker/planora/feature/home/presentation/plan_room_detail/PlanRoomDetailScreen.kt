@@ -978,14 +978,20 @@ private fun EditRoomBottomSheet(
                                     )
                                 }
                             } else {
+                                val isInviting = state.invitingUserIds.contains(user.id)
                                 FilledTonalButton(
                                     onClick = { onUserSelectToInvite(user.id) },
+                                    enabled = !isInviting,
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(Res.string.action_invite_person), style = MaterialTheme.typography.labelSmall)
+                                    if (isInviting) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(stringResource(Res.string.action_invite_person), style = MaterialTheme.typography.labelSmall)
+                                    }
                                 }
                             }
                         }

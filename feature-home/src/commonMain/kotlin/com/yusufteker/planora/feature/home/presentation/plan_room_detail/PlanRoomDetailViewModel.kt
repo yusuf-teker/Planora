@@ -277,15 +277,17 @@ class PlanRoomDetailViewModel(
     private fun inviteUser(userId: Int) {
         val roomId = currentState.roomId
         if (roomId.isBlank()) return
+        if (currentState.invitingUserIds.contains(userId)) return
         
+        setState { copy(invitingUserIds = invitingUserIds + userId) }
+
         viewModelScope.launch {
             val successMsg = getString(Res.string.room_user_invited_success)
             val failureMsg = getString(Res.string.error_operation_failed)
-            setState { copy(isLoading = true) }
             val request = InviteUserRequest(userId = userId)
             val result = planRepository.inviteUserToRoom(roomId, request)
             
-            setState { copy(isLoading = false) }
+            setState { copy(invitingUserIds = invitingUserIds - userId) }
             
             if (result.isSuccess) {
                 setEffect(PlanRoomDetailEffect.ShowToast(successMsg))

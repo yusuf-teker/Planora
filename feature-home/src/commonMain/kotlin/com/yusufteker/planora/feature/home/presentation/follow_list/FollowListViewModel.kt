@@ -103,6 +103,7 @@ class FollowListViewModel(
     }
 
     private fun acceptRequest(requestId: Int) {
+        if (state.value.requests.none { it.id == requestId }) return
         // Optimistic UI
         val originalRequests = state.value.requests
         val acceptedRequest = originalRequests.find { it.id == requestId }
@@ -127,6 +128,7 @@ class FollowListViewModel(
     }
 
     private fun rejectRequest(requestId: Int) {
+        if (state.value.requests.none { it.id == requestId }) return
         // Optimistic UI
         val originalRequests = state.value.requests
         setState { copy(requests = requests.filter { it.id != requestId }) }

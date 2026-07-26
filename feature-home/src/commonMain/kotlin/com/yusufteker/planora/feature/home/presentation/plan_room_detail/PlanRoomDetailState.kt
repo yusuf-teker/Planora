@@ -25,6 +25,7 @@ data class PlanRoomDetailState(
     val isFollowingLoading: Boolean = false,
     val searchQuery: String = "",
     val inviteError: String? = null,
+    val invitingUserIds: Set<Int> = emptySet(),
     
     // Rename & Dialog & BottomSheet States
     val isEditRoomBottomSheetOpen: Boolean = false,

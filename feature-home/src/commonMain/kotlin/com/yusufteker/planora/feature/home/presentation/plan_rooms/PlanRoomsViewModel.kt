@@ -167,17 +167,24 @@ class PlanRoomsViewModel(
                 }
             }
             is PlanRoomsEvent.RespondToInvite -> {
-                setState { copy(isLoading = true) }
+                if (currentState.processingInviteIds.contains(event.roomId)) return
+                val updatedInvitations = currentState.pendingInvitations.filter { it.id != event.roomId }
+                setState {
+                    copy(
+                        processingInviteIds = processingInviteIds + event.roomId,
+                        pendingInvitations = updatedInvitations
+                    )
+                }
                 viewModelScope.launch {
                     val joinedMsg = getString(Res.string.room_joined_success)
                     val declinedMsg = getString(Res.string.invitation_declined)
                     val failureMsg = getString(Res.string.error_operation_failed)
 
                     val result = planRepository.respondToInvite(event.roomId, event.accept)
+                    setState { copy(processingInviteIds = processingInviteIds - event.roomId) }
                     if (result.isSuccess) {
                         val msg = if (event.accept) joinedMsg else declinedMsg
                         snackbarManager.showMessage(msg, SnackbarType.SUCCESS)
-                        setState { copy(isLoading = false) }
                         onEvent(PlanRoomsEvent.LoadPendingInvitations)
                         if (event.accept) {
                             onEvent(PlanRoomsEvent.LoadRooms)
@@ -187,8 +194,8 @@ class PlanRoomsViewModel(
                             }
                         }
                     } else {
-                        setState { copy(isLoading = false) }
                         snackbarManager.showMessage(failureMsg, SnackbarType.ERROR)
+                        onEvent(PlanRoomsEvent.LoadPendingInvitations)
                     }
                 }
             }

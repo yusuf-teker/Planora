@@ -211,8 +211,10 @@ fun PlanRoomsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.End
                                     ) {
+                                        val isProcessing = state.processingInviteIds.contains(invite.id)
                                         OutlinedButton(
                                             onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, false)) },
+                                            enabled = !isProcessing,
                                             colors = ButtonDefaults.outlinedButtonColors(
                                                 contentColor = MaterialTheme.colorScheme.error
                                             ),
@@ -223,6 +225,7 @@ fun PlanRoomsScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Button(
                                             onClick = { onEvent(PlanRoomsEvent.RespondToInvite(invite.id, true)) },
+                                            enabled = !isProcessing,
                                         ) {
                                             Text(stringResource(Res.string.action_accept))
                                         }
