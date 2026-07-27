@@ -68,6 +68,8 @@ google-services-plugin = "4.5.0"
 gitlive-firebase = "2.1.0"
 google-ai-edge = "0.9.0"
 
+compottie = "2.2.4"
+
 [libraries]
 # Kotlin
 javax-mail = { module = "com.sun.mail:javax.mail", version.ref = "javaxMail" }
@@ -181,6 +183,9 @@ firebase-crashlytics = { module = "dev.gitlive:firebase-crashlytics", version.re
 google-ai-edge-aicore = { module = "com.google.ai.edge:aicore", version.ref = "google-ai-edge" }
 
 mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipe-tasks-genai" }
+
+compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
+compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

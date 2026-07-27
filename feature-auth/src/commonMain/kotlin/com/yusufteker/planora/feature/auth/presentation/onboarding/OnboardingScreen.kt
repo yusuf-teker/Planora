@@ -53,7 +53,7 @@ fun OnboardingScreen(
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
             is OnboardingEffect.NavigateToLogin -> navigator.setRoot(Screen.Login)
-            is OnboardingEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is OnboardingEffect.NavigateToHome -> navigator.setRoot(Screen.Main())
         }
     }
 

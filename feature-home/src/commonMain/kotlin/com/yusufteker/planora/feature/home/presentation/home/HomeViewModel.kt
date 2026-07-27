@@ -40,11 +40,13 @@ class HomeViewModel(
     private val planRepository: PlanRepository,
     private val sessionPreferences: SessionPreferences,
     private val getFilteredTasksUseCase: GetFilteredTasksUseCase,
-    private val submitSmartInputUseCase: SubmitSmartInputUseCase
+    private val submitSmartInputUseCase: SubmitSmartInputUseCase,
+    private val holidayRepository: com.yusufteker.planora.core.holiday.HolidayRepository
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     initialState = HomeState()
 ) {
     private val fetchedMonths = mutableSetOf<LocalDate>()
+    private val loadedHolidayYears = mutableSetOf<Int>()
     private var isInitialFetchCompleted = false
 
     override fun onCleared() {
@@ -59,6 +61,11 @@ class HomeViewModel(
         val currentMonthStart = LocalDate(today.year, today.monthNumber, 1)
         setState { copy(visibleCalendarMonth = currentMonthStart) }
         fetchedMonths.add(currentMonthStart)
+
+        // -3 ile +3 yıl aralığındaki tüm tatilleri çek (örn: 2023 - 2029)
+        for (y in (today.year - 3)..(today.year + 3)) {
+            loadHolidaysForYear(y)
+        }
         // Load stored filter options and view option.
         // NOTE: We intentionally do NOT recalculate upcomingTasks here to avoid a race condition
         // with the DB observer coroutine below. If preferences load after the DB emits its first
@@ -302,13 +309,13 @@ class HomeViewModel(
             }
             
             is HomeEvent.CalendarMonthChanged -> {
+                for (y in (event.monthStart.year - 1)..(event.monthStart.year + 1)) {
+                    loadHolidaysForYear(y)
+                }
                 setState {
-                    val monthTasks = getFilteredTasks(calendarMonth = event.monthStart, calendarDate = null)
-                    val earliestDate = getEarliestEventDateInMonth(monthTasks, event.monthStart)
                     copy(
                         visibleCalendarMonth = event.monthStart,
-                        selectedCalendarDate = earliestDate,
-                        upcomingTasks = getFilteredTasks(calendarMonth = event.monthStart, calendarDate = earliestDate)
+                        upcomingTasks = getFilteredTasks(calendarMonth = event.monthStart, calendarDate = selectedCalendarDate)
                     )
                 }
                 // Sadece bu ay daha önce sunucudan çekilmediyse istek at (mükerrer istekleri önler)
@@ -393,7 +400,7 @@ class HomeViewModel(
                 val isMine = state.value.allFetchedTasks.any { it.id == event.task.id }
                 if (isMine) {
                     when (event.task.type) {
-                        TaskType.TASK -> setEffect(NavigateToTaskEditor(event.task.id))
+                        TaskType.TASK -> setEffect(NavigateToTaskDetail(event.task.id))
                         TaskType.EVENT -> setEffect(NavigateToEventDetail(event.task.id))
                         TaskType.NOTE -> setEffect(NavigateToNoteEditor(event.task.id))
                         TaskType.FOLDER -> {}
@@ -472,5 +479,33 @@ class HomeViewModel(
             selectedCalendarDate = calendarDate,
             visibleCalendarMonth = calendarMonth
         )
+    }
+
+    private fun loadHolidaysForYear(year: Int) {
+        if (loadedHolidayYears.contains(year)) return
+        loadedHolidayYears.add(year)
+
+        launch {
+            try {
+                val countryCode = com.yusufteker.planora.core.holiday.getDeviceCountryCode()
+                val holidaysMap = holidayRepository.getHolidays(countryCode, year)
+                if (holidaysMap.isNotEmpty()) {
+                    val parsedHolidays = holidaysMap.mapNotNull { (dateStr, name) ->
+                        try {
+                            LocalDate.parse(dateStr) to name
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }.toMap()
+
+                    setState {
+                        copy(holidays = holidays + parsedHolidays)
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Napier.w("Failed to load holidays: ${e.message}", tag = "HomeViewModel")
+            }
+        }
     }
 }

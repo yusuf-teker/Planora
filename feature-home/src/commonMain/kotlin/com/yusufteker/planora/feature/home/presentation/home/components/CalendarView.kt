@@ -1,37 +1,88 @@
 package com.yusufteker.planora.feature.home.presentation.home.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.yusufteker.planora.core.theme.PlanoraTheme
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.TaskDto
 import kotlinx.coroutines.launch
-import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
-import planora.core.generated.resources.*
-
+import planora.core.generated.resources.action_next_month
+import planora.core.generated.resources.action_prev_month
+import planora.core.generated.resources.day_fri
+import planora.core.generated.resources.day_mon
+import planora.core.generated.resources.day_sat
+import planora.core.generated.resources.day_sun
+import planora.core.generated.resources.day_thu
+import planora.core.generated.resources.day_tue
+import planora.core.generated.resources.day_wed
+import planora.core.generated.resources.empty_events_today
+import planora.core.generated.resources.holiday_label
+import planora.core.generated.resources.month_apr
+import planora.core.generated.resources.month_aug
+import planora.core.generated.resources.month_dec
+import planora.core.generated.resources.month_feb
+import planora.core.generated.resources.month_jan
+import planora.core.generated.resources.month_jul
+import planora.core.generated.resources.month_jun
+import planora.core.generated.resources.month_mar
+import planora.core.generated.resources.month_may
+import planora.core.generated.resources.month_nov
+import planora.core.generated.resources.month_oct
+import planora.core.generated.resources.month_sep
+import planora.core.generated.resources.today
 @Composable
 fun CalendarView(
     tasksByDate: Map<LocalDate, List<TaskDto>>,
@@ -41,6 +92,7 @@ fun CalendarView(
     selectedSharedUserIds: Set<Int>,
     selectedDate: LocalDate?,
     visibleMonth: LocalDate?,
+    holidays: Map<LocalDate, String> = emptyMap(),
     upcomingTasks: List<TaskDto>,
     hasLoadedTasks: Boolean,
     onDateSelected: (LocalDate) -> Unit,
@@ -48,9 +100,12 @@ fun CalendarView(
     onTaskClick: (TaskDto) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val today = remember { Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date }
+    val today = remember {
+        Instant.fromEpochMilliseconds(getCurrentTimeMs())
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+    }
     val initialMonth = remember { visibleMonth ?: LocalDate(today.year, today.monthNumber, 1) }
-    
+
     // LazyColumn state for infinite scrolling (virtually)
     // We'll set a large item count and start in the middle
     // Performans: 10000 yerine 2400 item (100 yıl ileri/geri, yeterli)
@@ -67,8 +122,9 @@ fun CalendarView(
     }
 
     LaunchedEffect(selectedDate) {
-        if (selectedDate != null) {
-            val monthOffset = (selectedDate.year - initialMonth.year) * 12 + (selectedDate.monthNumber - initialMonth.monthNumber)
+        if (selectedDate != null && !listState.isScrollInProgress) {
+            val monthOffset =
+                (selectedDate.year - initialMonth.year) * 12 + (selectedDate.monthNumber - initialMonth.monthNumber)
             val targetPage = initialPage + monthOffset
             if (listState.firstVisibleItemIndex != targetPage) {
                 listState.animateScrollToItem(targetPage)
@@ -76,17 +132,18 @@ fun CalendarView(
         }
     }
 
-    val monthOffsetForToday = (today.year - initialMonth.year) * 12 + (today.monthNumber - initialMonth.monthNumber)
+    val monthOffsetForToday =
+        (today.year - initialMonth.year) * 12 + (today.monthNumber - initialMonth.monthNumber)
     val todayPage = initialPage + monthOffsetForToday
 
     val showFab by remember(todayPage) {
         derivedStateOf {
             val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
-            
+
             val firstVisible = visibleItemsInfo.first().index
             val lastVisible = visibleItemsInfo.last().index
-            
+
             todayPage < firstVisible || todayPage > lastVisible
         }
     }
@@ -95,7 +152,7 @@ fun CalendarView(
         derivedStateOf {
             val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
-            
+
             val firstVisible = visibleItemsInfo.first().index
             todayPage < firstVisible
         }
@@ -104,9 +161,7 @@ fun CalendarView(
     Column(modifier = modifier.fillMaxWidth()) {
         // Header (Optional, if we want to keep the chevron navigation to jump months)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -115,25 +170,37 @@ fun CalendarView(
                     listState.animateScrollToItem(listState.firstVisibleItemIndex - 1)
                 }
             }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(Res.string.action_prev_month))
+                Icon(
+                    Icons.Default.ChevronLeft,
+                    contentDescription = stringResource(Res.string.action_prev_month)
+                )
             }
-            
-            val displayMonth by remember { derivedStateOf { getMonthDateWithOffset(initialMonth, listState.firstVisibleItemIndex - initialPage) } }
+
+            val displayMonth by remember {
+                derivedStateOf {
+                    getMonthDateWithOffset(
+                        initialMonth, listState.firstVisibleItemIndex - initialPage
+                    )
+                }
+            }
             val monthName = stringResource(getMonthNameRes(displayMonth.monthNumber))
-            
+
             Text(
                 text = "$monthName ${displayMonth.year}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            
+
             IconButton(onClick = {
                 coroutineScope.launch {
                     listState.animateScrollToItem(listState.firstVisibleItemIndex + 1)
                 }
             }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = stringResource(Res.string.action_next_month))
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = stringResource(Res.string.action_next_month)
+                )
             }
         }
 
@@ -166,104 +233,147 @@ fun CalendarView(
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 items(2400) { page ->
-                val monthOffset = page - initialPage
-                val monthDate = getMonthDateWithOffset(initialMonth, monthOffset)
-                
-                Column {
-                    // Render the Month Name if you want a separator inside the list (optional)
-                    // We already have a sticky header-like row above, but a label inside helps for continuous scrolling
-                    Text(
-                        text = "${stringResource(getMonthNameRes(monthDate.monthNumber))} ${monthDate.year}",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    CalendarMonthGrid(
-                        monthDate = monthDate,
-                        today = today,
-                        selectedDate = selectedDate,
-                        tasksByDate = tasksByDate,
-                        sharedTasksByDate = sharedTasksByDate,
-                        sharedUserColors = sharedUserColors,
-                        selectedSharedUserIds = selectedSharedUserIds,
-                        onDateSelected = onDateSelected
-                    )
+                    val monthOffset = page - initialPage
+                    val monthDate = getMonthDateWithOffset(initialMonth, monthOffset)
 
-                    // INLINE TASKS
-                    if (selectedDate != null && selectedDate.monthNumber == monthDate.monthNumber && selectedDate.year == monthDate.year) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        if (hasLoadedTasks && upcomingTasks.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.empty_events_today),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                upcomingTasks.forEach { task ->
-                                    val creatorUser = accessibleUsers.find { it.userId == task.creatorId }
-                                    val creatorColor = creatorUser?.color?.let { 
-                                        try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (e: Exception) { null } 
+                    Column {
+                        // Render the Month Name if you want a separator inside the list (optional)
+                        // We already have a sticky header-like row above, but a label inside helps for continuous scrolling
+                        Text(
+                            text = "${stringResource(getMonthNameRes(monthDate.monthNumber))} ${monthDate.year}",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        CalendarMonthGrid(
+                            monthDate = monthDate,
+                            today = today,
+                            selectedDate = selectedDate,
+                            tasksByDate = tasksByDate,
+                            sharedTasksByDate = sharedTasksByDate,
+                            sharedUserColors = sharedUserColors,
+                            selectedSharedUserIds = selectedSharedUserIds,
+                            holidays = holidays,
+                            onDateSelected = onDateSelected
+                        )
+
+                        // INLINE TASKS & HOLIDAY BADGE
+                        if (selectedDate != null && selectedDate.monthNumber == monthDate.monthNumber && selectedDate.year == monthDate.year) {
+                            val holidayName = holidays[selectedDate]
+                            if (!holidayName.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.secondary.copy(
+                                            alpha = 0.6f
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 14.dp, vertical = 10.dp
+                                        ), verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "🎉 ",
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Column {
+                                            Text(
+                                                text = stringResource(Res.string.holiday_label),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onErrorContainer.copy(
+                                                    alpha = 0.8f
+                                                )
+                                            )
+                                            Text(
+                                                text = holidayName,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
                                     }
-
-                                    TimelineTaskCard(
-                                        task = task,
-                                        showDate = false,
-                                        sharedUserAvatar = creatorUser?.avatarId,
-                                        sharedUserColor = creatorColor,
-                                        sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
-                                        onClick = { onTaskClick(task) }
-                                    )
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            if (hasLoadedTasks && upcomingTasks.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.empty_events_today),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    upcomingTasks.forEach { task ->
+                                        val creatorUser =
+                                            accessibleUsers.find { it.userId == task.creatorId }
+                                        val creatorColor = creatorUser?.color?.let {
+                                            try {
+                                                androidx.compose.ui.graphics.Color(
+                                                    it.removePrefix("#")
+                                                        .toLong(16) or 0x00000000FF000000
+                                                )
+                                            } catch (e: Exception) {
+                                                null
+                                            }
+                                        }
+
+                                        TimelineTaskCard(
+                                            task = task,
+                                            showDate = false,
+                                            sharedUserAvatar = creatorUser?.avatarId,
+                                            sharedUserColor = creatorColor,
+                                            sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
+                                            onClick = { onTaskClick(task) })
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            Spacer(modifier = Modifier.height(16.dp))
+                        } else {
+                            Spacer(modifier = Modifier.height(24.dp))
                         }
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Divider(color = MaterialTheme.colorScheme.surfaceVariant)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    } else {
-                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
+            } // closes LazyColumn
+
+            if (showFab) {
+                FloatingActionButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(todayPage)
+                            onDateSelected(today)
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                        .padding(end = 88.dp, bottom = 100.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(
+                        imageVector = if (isTodayAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                        contentDescription = stringResource(Res.string.today)
+                    )
+                }
             }
-        } // closes LazyColumn
-            
-        if (showFab) {
-            FloatingActionButton(
-                onClick = {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(todayPage)
-                        onDateSelected(today)
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 88.dp, bottom = 100.dp),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                Icon(
-                    imageVector = if (isTodayAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                    contentDescription = stringResource(Res.string.today)
-                )
-            }
-        }
-    } // closes Box
-} // closes Column
+        } // closes Box
+    } // closes Column
 } // closes CalendarView
 
 @Composable
@@ -275,6 +385,7 @@ private fun CalendarMonthGrid(
     sharedTasksByDate: Map<Int, Map<LocalDate, List<TaskDto>>>,
     sharedUserColors: Map<Int, String>,
     selectedSharedUserIds: Set<Int>,
+    holidays: Map<LocalDate, String>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysInMonth = getDaysInMonth(monthDate.year, monthDate.monthNumber)
@@ -288,7 +399,7 @@ private fun CalendarMonthGrid(
                 for (col in 0..6) {
                     val cellIndex = row * 7 + col
                     val dayNum = cellIndex - startDayOfWeek + 2
-                    
+
                     if (dayNum in 1..daysInMonth) {
                         val date = LocalDate(monthDate.year, monthDate.monthNumber, dayNum)
                         val otherTasksColors = mutableListOf<Color>()
@@ -297,19 +408,24 @@ private fun CalendarMonthGrid(
                             if (!userTasks.isNullOrEmpty()) {
                                 sharedUserColors[userId]?.let { colorStr ->
                                     try {
-                                        val color = Color(colorStr.removePrefix("#").toLong(16) or 0x00000000FF000000)
+                                        val color = Color(
+                                            colorStr.removePrefix("#")
+                                                .toLong(16) or 0x00000000FF000000
+                                        )
                                         repeat(userTasks.size) {
                                             otherTasksColors.add(color)
                                         }
-                                    } catch (e: Exception) {}
+                                    } catch (e: Exception) {
+                                    }
                                 }
                             }
                         }
-                        
+
                         CalendarDayCell(
                             date = date,
                             isToday = date == today,
                             isSelected = date == selectedDate,
+                            holidayName = holidays[date],
                             tasks = tasksByDate[date] ?: emptyList(),
                             sharedColors = otherTasksColors,
                             onClick = { onDateSelected(date) },
@@ -330,125 +446,146 @@ private fun CalendarDayCell(
     date: LocalDate,
     isToday: Boolean,
     isSelected: Boolean,
+    holidayName: String? = null,
     tasks: List<TaskDto>,
     sharedColors: List<Color>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isHoliday = !holidayName.isNullOrBlank()
+    val isNewYear = date.monthNumber == 1 && date.dayOfMonth == 1
+
     val backgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         else -> Color.Transparent
     }
-    
+
     val textColor = when {
         isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
         isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onBackground
     }
-    
-    Column(
-        modifier = modifier
-            .aspectRatio(0.8f)
-            .padding(2.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+
+    Box(
+        modifier = modifier.aspectRatio(0.8f).padding(2.dp).clip(RoundedCornerShape(8.dp))
+            .background(
+                if (isNewYear) Color.Transparent else backgroundColor
+            ).clickable(onClick = onClick)
+
     ) {
-        Text(
-            text = date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = textColor
-        )
-        
-        Spacer(modifier = Modifier.height(2.dp))
 
-        // Avatars / Markers for tasks
-        val myTasks = tasks.filter { it.participants.size <= 1 && it.sharedRoomIds.isEmpty() }
-        val sharedTasks = tasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
-        
-        if (myTasks.isNotEmpty() || sharedTasks.isNotEmpty() || sharedColors.isNotEmpty()) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            Box(
+                modifier = Modifier.size(24.dp).clip(CircleShape).background(
+                         Color.Transparent
+                    ), contentAlignment = Alignment.Center
             ) {
-                // Row 1: My Tasks (Max 3)
-                if (myTasks.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val count = minOf(myTasks.size, 3)
-                        repeat(count) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 1.dp)
-                                    .size(4.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
-                        }
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isToday || isHoliday) FontWeight.Bold else FontWeight.Normal,
+                    color = when {
+                        isHoliday -> MaterialTheme.colorScheme.primary
+                        isToday -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onBackground
                     }
-                }
-                
-                // Row 2: Shared Tasks (Max 3)
-                if (sharedTasks.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val count = minOf(sharedTasks.size, 3)
-                        val sharedDotColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
-                        repeat(count) {
-                            MultiColorDot(
-                                colors = sharedDotColors,
-                                size = 4.dp,
-                                modifier = Modifier.padding(horizontal = 1.dp)
-                            )
-                        }
-                    }
-                }
-                
-                // Row 3: Others' Tasks (Max 3)
-                if (sharedColors.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val count = minOf(sharedColors.size, 3)
-                        for (i in 0 until count) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 1.dp)
-                                    .size(4.dp)
-                                    .clip(CircleShape)
-                                    .background(sharedColors[i])
-                            )
-                        }
-                    }
-                }
+                )
+            }
 
-                // Görev ismi (ilk görev için)
-                for (task in tasks.take(1)) {
-                    androidx.compose.material3.Text(
-                        text = task.title,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
-                                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
-                                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both
+            Spacer(modifier = Modifier.height(2.dp))
+
+            // Avatars / Markers for tasks
+            val myTasks = tasks.filter { it.participants.size <= 1 && it.sharedRoomIds.isEmpty() }
+            val sharedTasks =
+                tasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
+
+            if (isNewYear){
+                NewYearSnow(modifier = Modifier.fillMaxSize())
+
+            }
+            else if (myTasks.isNotEmpty() || sharedTasks.isNotEmpty() || sharedColors.isNotEmpty()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    // Row 1: My Tasks (Max 3)
+                    if (myTasks.isNotEmpty()) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val count = minOf(myTasks.size, 3)
+                            repeat(count) {
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 1.dp).size(4.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                        }
+                    }
+
+                    // Row 2: Shared Tasks (Max 3)
+                    if (sharedTasks.isNotEmpty()) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val count = minOf(sharedTasks.size, 3)
+                            val sharedDotColors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary
                             )
-                        ),
-                        maxLines = 1,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
+                            repeat(count) {
+                                MultiColorDot(
+                                    colors = sharedDotColors,
+                                    size = 4.dp,
+                                    modifier = Modifier.padding(horizontal = 1.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Row 3: Others' Tasks (Max 3)
+                    if (sharedColors.isNotEmpty()) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val count = minOf(sharedColors.size, 3)
+                            for (i in 0 until count) {
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 1.dp).size(4.dp)
+                                        .clip(CircleShape).background(sharedColors[i])
+                                )
+                            }
+                        }
+                    }
+
+                    // Görev ismi (ilk görev için)
+                    for (task in tasks.take(1)) {
+                        androidx.compose.material3.Text(
+                            text = task.title,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                                    alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                                    trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both
+                                )
+                            ),
+                            maxLines = 1,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
                 }
             }
         }
@@ -467,7 +604,7 @@ private fun getDaysInMonth(year: Int, monthNumber: Int): Int {
 private fun getMonthDateWithOffset(start: LocalDate, offset: Int): LocalDate {
     var m = start.monthNumber - 1 + offset
     var y = start.year
-    
+
     if (m >= 0) {
         y += m / 12
         m = m % 12
@@ -475,7 +612,7 @@ private fun getMonthDateWithOffset(start: LocalDate, offset: Int): LocalDate {
         y += (m - 11) / 12
         m = (m % 12 + 12) % 12
     }
-    
+
     return LocalDate(y, m + 1, 1)
 }
 
@@ -496,3 +633,5 @@ private fun getMonthNameRes(monthNumber: Int): org.jetbrains.compose.resources.S
         else -> Res.string.month_jan
     }
 }
+
+

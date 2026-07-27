@@ -3,6 +3,7 @@ package com.yusufteker.planora.feature.home.presentation.task_editor
 import com.yusufteker.planora.shared.api.UserProfileResponse
 import com.yusufteker.planora.core.base.UiState
 import com.yusufteker.planora.shared.api.RecurrenceRule
+import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 
@@ -17,6 +18,7 @@ data class TaskEditorState(
     val planRoomName: String? = null,
     val parentId: String? = null,
     val status: TaskStatus = TaskStatus.PENDING,
+    val priority: TaskPriority = TaskPriority.MEDIUM,
     val isRecurring: Boolean = false,
     val recurrenceRule: RecurrenceRule? = null,
     val participants: Map<Int, String> = emptyMap(),
@@ -26,6 +28,7 @@ data class TaskEditorState(
     val isRepeatPickerVisible: Boolean = false,
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
+    val isPriorityPickerVisible: Boolean = false,
     val roomMembers: List<UserProfileResponse> = emptyList(),
     val isRoomMembersLoading: Boolean = false,
     val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),

@@ -63,10 +63,10 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
 
             // Kotlinx
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.compose.materialIconsExtended)
+            api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.datetime)
+            api(libs.compose.materialIconsExtended)
 
             // DataStore
             api(libs.datastore.preferences.core)

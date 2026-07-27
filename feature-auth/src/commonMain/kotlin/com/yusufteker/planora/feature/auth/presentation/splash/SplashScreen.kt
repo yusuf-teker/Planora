@@ -56,7 +56,7 @@ fun SplashScreen(
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
             is SplashEffect.NavigateToOnboarding -> navigator.setRoot(Screen.Onboarding)
-            is SplashEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is SplashEffect.NavigateToHome -> navigator.setRoot(Screen.Main())
             is SplashEffect.NavigateToLogin -> navigator.setRoot(Screen.Login)
         }
     }

@@ -217,6 +217,9 @@ fun Route.userRoutes() {
                     return@post
                 }
 
+                var isNewRequestSent = false
+                var currentUsername = ""
+
                 dbQuery {
                     val targetUser = UserEntity.findById(targetUserId)
                     val currentUser = UserEntity.findById(currentUserId)
@@ -259,14 +262,19 @@ fun Route.userRoutes() {
                             createdAt = Instant.now()
                         } // Send request
                         
-                        // Send push notification to target user
-                        com.yusufteker.planora.server.service.FcmService.sendPushToUser(
-                            userId = targetUserId,
-                            title = "Yeni Takip İsteği",
-                            body = "@${currentUser.username} seni takip etmek istiyor.",
-                            data = mapOf("type" to "follow_request")
-                        )
+                        isNewRequestSent = true
+                        currentUsername = currentUser.username
                     }
+                }
+
+                if (isNewRequestSent) {
+                    // Send push notification to target user
+                    com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                        userId = targetUserId,
+                        title = "Yeni Takip İsteği",
+                        body = "@$currentUsername seni takip etmek istiyor.",
+                        data = mapOf("type" to "follow_request")
+                    )
                 }
 
                 call.respond(HttpStatusCode.OK)
@@ -404,7 +412,7 @@ fun Route.userRoutes() {
                 }
 
                 dbQuery {
-                    val request = com.yusufteker.planora.server.database.tables.FollowRequestEntity.findById(requestId)
+                    val request = FollowRequestEntity.findById(requestId)
                     if (request != null && request.target.id.value == currentUserId) {
                         request.delete() // Just delete it if rejected
                     }

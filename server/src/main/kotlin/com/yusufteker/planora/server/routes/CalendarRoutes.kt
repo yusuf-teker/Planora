@@ -47,6 +47,9 @@ fun Route.calendarRoutes() {
                     return@post
                 }
 
+                var isNewCalendarRequestSent = false
+                var currentUsername = ""
+
                 dbQuery {
                     val targetUser = UserEntity.findById(targetUserId)
                     val currentUser = UserEntity.findById(currentUserId)
@@ -69,16 +72,21 @@ fun Route.calendarRoutes() {
                             status = "PENDING"
                             createdAt = Instant.now()
                         }
-                        
-                        // Send push notification to target user
-                        com.yusufteker.planora.server.service.FcmService.sendPushToUser(
-                            userId = targetUserId,
-                            title = "Takvim Erişim İsteği",
-                            body = "@${currentUser.username} takvimini görmek için izin istiyor.",
-                            data = mapOf("type" to "calendar_request")
-                        )
+                        isNewCalendarRequestSent = true
+                        currentUsername = currentUser.username
                     }
                 }
+
+                if (isNewCalendarRequestSent) {
+                    // Send push notification to target user
+                    com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                        userId = targetUserId,
+                        title = "Takvim Erişim İsteği",
+                        body = "@$currentUsername takvimini görmek için izin istiyor.",
+                        data = mapOf("type" to "calendar_request")
+                    )
+                }
+
                 call.respond(HttpStatusCode.OK)
             }
 

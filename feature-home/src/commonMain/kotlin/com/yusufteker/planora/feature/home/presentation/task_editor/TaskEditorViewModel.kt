@@ -168,6 +168,11 @@ class TaskEditorViewModel(
                     }
                 }
             }
+            is TaskEditorEvent.OnPriorityChanged -> {
+                _state.update { it.copy(priority = event.priority, isPriorityPickerVisible = false) }
+                _saveTrigger.tryEmit(Unit)
+            }
+            is TaskEditorEvent.OnPriorityPickerVisibilityChanged -> _state.update { it.copy(isPriorityPickerVisible = event.isVisible) }
             is TaskEditorEvent.SaveClicked -> saveTask()
             is TaskEditorEvent.DeleteClicked -> deleteTask()
             is TaskEditorEvent.OnBackClick -> setEffect(TaskEditorEffect.NavigateBack)
@@ -303,6 +308,7 @@ class TaskEditorViewModel(
                             deadlineDateMs = newDeadline,
                             planRoomId = actualPlanRoomId,
                             status = task.status,
+                            priority = details?.priority ?: com.yusufteker.planora.shared.api.TaskPriority.MEDIUM,
                             isRecurring = task.isRecurring,
                             recurrenceRule = ruleObj,
                             isOptional = task.isOptional,
@@ -426,7 +432,7 @@ class TaskEditorViewModel(
             participants = state.participants,
             specificDetails = com.yusufteker.planora.shared.api.ItemDetails.Task(
                 subtasks = state.originalTask?.specificDetails?.let { (it as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.subtasks } ?: emptyList(),
-                priority = state.originalTask?.specificDetails?.let { (it as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.priority } ?: com.yusufteker.planora.shared.api.TaskPriority.MEDIUM,
+                priority = state.priority,
                 deadline = state.deadlineDateMs
             ),
             parentId = state.parentId,

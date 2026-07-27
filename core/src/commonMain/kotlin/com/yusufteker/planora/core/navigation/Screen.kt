@@ -40,7 +40,7 @@ sealed interface Screen {
     
     /** Main container screen holding the Bottom Navigation */
     @Serializable
-    data object Main : Screen
+    data class Main(val initialDestination: String? = null) : Screen
 
     /**
      * "Bekleyen Gönderiler / Taslaklar" ekranı.
@@ -81,6 +81,16 @@ sealed interface Screen {
     data class PlanRoomDetail(val roomId: String) : Screen
     
     @Serializable
+    data class TaskDetail(
+        val taskId: String? = null,
+        val planRoomId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : Screen
+
+    @Serializable
     data class TaskEditor(
         val taskId: String? = null, 
         val planRoomId: String? = null, 
@@ -102,6 +112,16 @@ sealed interface Screen {
 
     @Serializable
     data class EventDetail(
+        val eventId: String? = null, 
+        val planRoomId: String? = null,
+        val sharedTitle: String? = null,
+        val sharedNote: String? = null,
+        val sharedDate: Long? = null,
+        val sharedSender: String? = null
+    ) : Screen
+
+    @Serializable
+    data class EventEditor(
         val eventId: String? = null, 
         val planRoomId: String? = null,
         val sharedTitle: String? = null,

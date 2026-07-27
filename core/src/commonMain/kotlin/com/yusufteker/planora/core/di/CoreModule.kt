@@ -58,4 +58,8 @@ val coreModule = module {
     }
     single { com.yusufteker.planora.core.domain.usecase.CheckAppVersionUseCase(get(), get()) }
     viewModelOf(::AppVersionViewModel)
+
+    // Holiday Management
+    single { com.yusufteker.planora.core.holiday.HolidayApi(get()) }
+    single { com.yusufteker.planora.core.holiday.HolidayRepository(get(), get()) }
 }

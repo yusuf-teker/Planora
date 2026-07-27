@@ -6,16 +6,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.background
-import androidx.compose.material.icons.filled.Delete
+import com.yusufteker.planora.core.utils.TimeBucket
 import com.yusufteker.planora.core.utils.TimelineViewOption
 import com.yusufteker.planora.core.utils.formatDayName
 import com.yusufteker.planora.core.utils.formatShortDate
@@ -61,6 +57,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
+import planora.core.generated.resources.time_bucket_future
+import planora.core.generated.resources.time_bucket_past
+import planora.core.generated.resources.time_bucket_this_month
+import planora.core.generated.resources.time_bucket_this_week
+import planora.core.generated.resources.time_bucket_today
 
 @Composable
 fun TimelineSection(
@@ -73,6 +74,11 @@ fun TimelineSection(
     // Performans: groupBy sonucunu remember ile sarıp her frame'de tekrar hesaplamayı önle
     val todayLabel = stringResource(Res.string.today)
     val tomorrowLabel = stringResource(Res.string.tomorrow)
+    val bucketToday = stringResource(Res.string.time_bucket_today)
+    val bucketThisWeek = stringResource(Res.string.time_bucket_this_week)
+    val bucketThisMonth = stringResource(Res.string.time_bucket_this_month)
+    val bucketFuture = stringResource(Res.string.time_bucket_future)
+    val bucketPast = stringResource(Res.string.time_bucket_past)
 
     val grouped = remember(state.upcomingTasks, state.viewOption, state.selectedCalendarDate) {
         state.upcomingTasks.groupBy<TaskDto, String> { task ->
@@ -100,7 +106,13 @@ fun TimelineSection(
                 }
 
                 TimelineViewOption.RELATIVE -> {
-                    getRelativeTimeBucket(time)
+                    when (getRelativeTimeBucket(time)) {
+                        TimeBucket.TODAY -> bucketToday
+                        TimeBucket.THIS_WEEK -> bucketThisWeek
+                        TimeBucket.THIS_MONTH -> bucketThisMonth
+                        TimeBucket.FUTURE -> bucketFuture
+                        TimeBucket.PAST -> bucketPast
+                    }
                 }
             }
         }
@@ -147,7 +159,7 @@ fun TimelineSection(
                     if (taskDate >= todayDate) {
                         groupHasUpcoming = true
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // ignore
                 }
             }
@@ -189,8 +201,8 @@ fun TimelineSection(
             
             val firstVisible = visibleItemsInfo.first().index
             val lastVisible = visibleItemsInfo.last().index
-            
-            targetTodayIndex < firstVisible || targetTodayIndex > lastVisible
+
+            targetTodayIndex !in firstVisible..lastVisible
         }
     }
 
@@ -228,7 +240,7 @@ fun TimelineSection(
                 val isMine = myTaskIds.contains(task.id)
                 val creatorUser = if (!isMine) state.accessibleUsers.find { it.userId == task.creatorId } else null
                 val creatorColor = creatorUser?.color?.let { 
-                    try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (e: Exception) { null } 
+                    try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (_: Exception) { null }
                 }
 
                 if (isMine) {

@@ -115,8 +115,10 @@ fun PlanRoomDetailScreen(
                 is PlanRoomDetailEffect.NavigateBack -> onNavigateBack()
                 is PlanRoomDetailEffect.NavigateToCreateTask -> onNavigateToCreateTask(effect.roomId)
                 is PlanRoomDetailEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.roomId)
+                is PlanRoomDetailEffect.NavigateToTaskDetail -> onNavigateToTaskEditor(effect.taskId)
                 is PlanRoomDetailEffect.NavigateToTaskEditor -> onNavigateToTaskEditor(effect.taskId)
                 is PlanRoomDetailEffect.NavigateToEventDetail -> onNavigateToEventDetail(effect.eventId)
+                is PlanRoomDetailEffect.NavigateToEventEditor -> onNavigateToCreateEvent(effect.eventId)
                 is PlanRoomDetailEffect.NavigateToNoteEditor -> onNavigateToNoteEditor(effect.noteId)
                 is PlanRoomDetailEffect.ShowToast -> {
                     scope.launch {

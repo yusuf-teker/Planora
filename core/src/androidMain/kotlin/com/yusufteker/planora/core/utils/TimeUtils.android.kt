@@ -4,10 +4,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.Instant
-import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
 
 actual fun getCurrentTimeMs(): Long {
     return System.currentTimeMillis()
@@ -37,15 +33,55 @@ actual fun formatFullDate(epochMs: Long): String {
 }
 
 actual fun isToday(epochMs: Long): Boolean {
-    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
-    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(tz).date
-    val target = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
-    return target == today
+    val now = Calendar.getInstance()
+    val target = Calendar.getInstance().apply { timeInMillis = epochMs }
+    return now.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
+            now.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
 }
 
 actual fun isTomorrow(epochMs: Long): Boolean {
-    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
-    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(tz).date
-    val target = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
-    return target == today.plus(DatePeriod(days = 1))
+    val tomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+    val target = Calendar.getInstance().apply { timeInMillis = epochMs }
+    return tomorrow.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
+            tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
+}
+
+actual fun getRelativeTimeBucket(epochMs: Long): TimeBucket {
+    if (isToday(epochMs)) return TimeBucket.TODAY
+
+    val now = Calendar.getInstance()
+    val target = Calendar.getInstance().apply { timeInMillis = epochMs }
+
+    val startOfToday = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+
+    if (target.before(startOfToday)) {
+        return TimeBucket.PAST
+    }
+
+    val nowCal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
+    val targetCal = Calendar.getInstance().apply {
+        firstDayOfWeek = Calendar.MONDAY
+        timeInMillis = epochMs
+    }
+
+    val currentWeek = nowCal.get(Calendar.WEEK_OF_YEAR)
+    val currentYear = nowCal.get(Calendar.YEAR)
+    val targetWeek = targetCal.get(Calendar.WEEK_OF_YEAR)
+    val targetYear = targetCal.get(Calendar.YEAR)
+
+    if (currentYear == targetYear && currentWeek == targetWeek) {
+        return TimeBucket.THIS_WEEK
+    }
+
+    val currentMonth = nowCal.get(Calendar.MONTH)
+    if (currentYear == targetYear && currentMonth == targetCal.get(Calendar.MONTH)) {
+        return TimeBucket.THIS_MONTH
+    }
+
+    return TimeBucket.FUTURE
 }

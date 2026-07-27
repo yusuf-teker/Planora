@@ -30,9 +30,11 @@ import com.yusufteker.planora.feature.home.presentation.components.FormSwitchRow
 import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
+import com.yusufteker.planora.feature.home.presentation.components.PriorityPickerSheet
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskPriority
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -57,6 +59,7 @@ fun TaskEditorScreen(
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val reminderSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val participantSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val prioritySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
         val scope = this
@@ -322,6 +325,20 @@ fun TaskEditorScreen(
                         value = if (state.reminders.isNotEmpty()) stringResource(Res.string.reminders_selected_count_pattern, state.reminders.size.toString()) else stringResource(Res.string.repeat_none),
                         onClick = { viewModel.onEvent(TaskEditorEvent.OnReminderPickerVisibilityChanged(true)) }
                     )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+
+                    val priorityText = when (state.priority) {
+                        TaskPriority.LOW -> stringResource(Res.string.priority_low)
+                        TaskPriority.MEDIUM -> stringResource(Res.string.priority_medium)
+                        TaskPriority.HIGH -> stringResource(Res.string.priority_high)
+                        TaskPriority.URGENT -> stringResource(Res.string.priority_urgent)
+                    }
+                    FormRow(
+                        label = stringResource(Res.string.priority_label),
+                        value = priorityText,
+                        onClick = { viewModel.onEvent(TaskEditorEvent.OnPriorityPickerVisibilityChanged(true)) }
+                    )
                 }
 
                 // Context specific: Plan Room Participants
@@ -439,6 +456,15 @@ fun TaskEditorScreen(
             sheetState = participantSheetState,
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(false)) },
             onParticipantToggled = { id -> viewModel.onEvent(TaskEditorEvent.OnParticipantToggled(id)) }
+        )
+    }
+
+    if (state.isPriorityPickerVisible) {
+        PriorityPickerSheet(
+            currentPriority = state.priority,
+            sheetState = prioritySheetState,
+            onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnPriorityPickerVisibilityChanged(false)) },
+            onPrioritySelected = { priority -> viewModel.onEvent(TaskEditorEvent.OnPriorityChanged(priority)) }
         )
     }
 }

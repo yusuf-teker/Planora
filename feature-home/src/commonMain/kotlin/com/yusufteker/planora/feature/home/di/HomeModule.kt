@@ -27,6 +27,7 @@ import com.yusufteker.planora.feature.home.data.api.PlanApi
 import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.feature.home.data.repository.PlanRepositoryImpl
 import com.yusufteker.planora.feature.home.presentation.event_detail.EventDetailViewModel
+import com.yusufteker.planora.feature.home.presentation.event_editor.EventEditorViewModel
 import com.yusufteker.planora.feature.home.presentation.follow_list.FollowListViewModel
 import com.yusufteker.planora.feature.home.presentation.note_editor.NoteEditorViewModel
 import com.yusufteker.planora.feature.home.presentation.plan_rooms.PlanRoomsViewModel
@@ -35,6 +36,7 @@ import com.yusufteker.planora.feature.home.presentation.plan_room_detail.PlanRoo
 
 import com.yusufteker.planora.feature.home.presentation.notes.NotesViewModel
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorViewModel
+import com.yusufteker.planora.feature.home.presentation.task_detail.TaskDetailViewModel
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -89,6 +91,13 @@ val homeModule = module {
         )
     }
     viewModel { params ->
+        TaskDetailViewModel(
+            planRepository = get(),
+            profileRepository = get(),
+            sessionPreferences = get()
+        )
+    }
+    viewModel { params ->
         val (noteId: String?, planRoomId: String?, parentId: String?) = params
         
         NoteEditorViewModel(
@@ -102,6 +111,13 @@ val homeModule = module {
     }
     viewModel { params ->
         EventDetailViewModel(
+            planRepository = get(),
+            profileRepository = get(),
+            sessionPreferences = get()
+        )
+    }
+    viewModel { params ->
+        EventEditorViewModel(
             planRepository = get(),
             profileRepository = get(),
             sessionPreferences = get()

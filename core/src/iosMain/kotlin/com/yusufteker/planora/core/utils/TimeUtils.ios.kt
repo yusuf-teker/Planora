@@ -12,6 +12,7 @@ import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
@@ -63,4 +64,30 @@ actual fun isTomorrow(epochMs: Long): Boolean {
     val today = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(tz).date
     val target = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
     return target == today.plus(DatePeriod(days = 1))
+}
+
+actual fun getRelativeTimeBucket(epochMs: Long): TimeBucket {
+    val nowMs = getCurrentTimeMs()
+    if (isToday(epochMs)) return TimeBucket.TODAY
+
+    try {
+        val timeZone = kotlinx.datetime.TimeZone.currentSystemDefault()
+        val targetDate = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(timeZone).date
+        val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
+
+        if (targetDate < today) return TimeBucket.PAST
+
+        val daysDiff = targetDate.toEpochDays() - today.toEpochDays()
+
+        val daysUntilSunday = 7 - today.dayOfWeek.isoDayNumber
+        if (daysDiff <= daysUntilSunday) return TimeBucket.THIS_WEEK
+
+        if (targetDate.monthNumber == today.monthNumber && targetDate.year == today.year) {
+            return TimeBucket.THIS_MONTH
+        }
+
+        return TimeBucket.FUTURE
+    } catch (e: Exception) {
+        return TimeBucket.FUTURE
+    }
 }

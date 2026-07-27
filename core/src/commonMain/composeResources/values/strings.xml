@@ -519,6 +519,48 @@
     <string name="optional_update_title">Update Available</string>
     <string name="optional_update_message">A new version of Planora is available with performance improvements and new features.</string>
     <string name="action_later">Later</string>
+
+    <!-- Task & Event Details / Editors -->
+    <string name="title_task_detail">Task Details</string>
+    <string name="title_event_detail">Event Details</string>
+    <string name="title_event_editor">Edit Event</string>
+    <string name="action_edit_task">Edit Task</string>
+    <string name="action_edit_event">Edit Event</string>
+    <string name="action_focus">Focus</string>
+    <string name="label_subtasks">Subtasks</string>
+    <string name="label_attached_notes">Attached Notes</string>
+    <string name="label_attached_tasks">Attached Tasks</string>
+    <string name="label_location">Location</string>
+    <string name="label_date_time">Date &amp; Time</string>
+    <string name="label_start_time">Start Time</string>
+    <string name="label_end_time">End Time</string>
+    <string name="label_duration">Duration</string>
+    <string name="label_deadline">Deadline</string>
+    <string name="task_status_completed">Completed</string>
+    <string name="task_status_pending">Pending</string>
+    <string name="action_mark_completed">Mark as Completed</string>
+    <string name="action_mark_pending">Mark as Pending</string>
+    <string name="shared_room_task">Shared Room Task</string>
+    <string name="priority_urgent">Urgent</string>
+    <string name="priority_high">High</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_label">Priority</string>
+    <string name="holiday_label">Holiday</string>
+    <string name="label_description">Description</string>
+    <string name="untitled_task">Untitled Task</string>
+    <string name="untitled_event">Untitled Event</string>
+    <string name="connected_room">Connected Room</string>
+    <string name="task_marked_completed">Task marked as completed</string>
+    <string name="task_marked_uncompleted">Task marked as to-do</string>
+    <string name="delete_confirm_title">Delete Confirmation</string>
+    <string name="delete_task_confirm_msg">Are you sure you want to delete this task?</string>
+    <string name="delete_event_confirm_msg">Are you sure you want to delete this event?</string>
+    <string name="time_bucket_today">Today</string>
+    <string name="time_bucket_this_week">This Week</string>
+    <string name="time_bucket_this_month">This Month</string>
+    <string name="time_bucket_future">Upcoming</string>
+    <string name="time_bucket_past">Past</string>
 </resources>
 
 

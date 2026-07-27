@@ -124,6 +124,7 @@ fun CalendarSection(
             selectedSharedUserIds = state.selectedSharedUserIds,
             selectedDate = state.selectedCalendarDate,
             visibleMonth = state.visibleCalendarMonth,
+            holidays = state.holidays,
             upcomingTasks = state.upcomingTasks,
             hasLoadedTasks = state.hasLoadedTasks,
             onDateSelected = {

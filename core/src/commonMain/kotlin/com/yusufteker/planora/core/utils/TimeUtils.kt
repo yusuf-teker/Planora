@@ -1,70 +1,53 @@
 package com.yusufteker.planora.core.utils
 
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.toLocalDateTime
-
 expect fun getCurrentTimeMs(): Long
 
 /**
- * Epoch millis -> "14:30" gibi saat:dakika formatı
+ * Formats epoch milliseconds into a "HH:mm" time string.
  */
 expect fun formatTime(epochMs: Long): String
 
 /**
- * Epoch millis -> "1 Tem" gibi gün ay kısa formatı
+ * Formats epoch milliseconds into a short date string like "1 Jul" or "1 Jul 2026".
  */
 expect fun formatShortDate(epochMs: Long): String
 
 /**
- * Epoch millis -> "Salı" gibi gün adı
+ * Formats epoch milliseconds into a full day name like "Tuesday".
  */
 expect fun formatDayName(epochMs: Long): String
 
 /**
- * Epoch millis -> "1 Temmuz 2026, Salı" gibi tam tarih
+ * Formats epoch milliseconds into a full date string like "1 July 2026, Tuesday".
  */
 expect fun formatFullDate(epochMs: Long): String
 
 /**
- * Verilen epochMs bugün mü?
+ * Checks whether the given epoch milliseconds falls on today's date.
  */
 expect fun isToday(epochMs: Long): Boolean
 
 /**
- * Verilen epochMs yarın mı?
+ * Checks whether the given epoch milliseconds falls on tomorrow's date.
  */
 expect fun isTomorrow(epochMs: Long): Boolean
 
 /**
- * Returns a relative time bucket for grouping tasks.
- * Buckets: "Bugün", "Bu Hafta", "Bu Ay", "İleri Tarihli", "Geçmiş"
+ * Represents relative time buckets for grouping tasks.
  */
-fun getRelativeTimeBucket(epochMs: Long): String {
-    val nowMs = getCurrentTimeMs()
-    if (isToday(epochMs)) return "Bugün"
-    
-    // Fallback to kotlinx.datetime for complex logic
-    try {
-        val timeZone = kotlinx.datetime.TimeZone.currentSystemDefault()
-        val targetDate = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(timeZone).date
-        val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
-        
-        if (targetDate < today) return "Geçmiş"
-        
-        val daysDiff = targetDate.toEpochDays() - today.toEpochDays()
-        
-        // This week (until Sunday)
-        val daysUntilSunday = 7 - today.dayOfWeek.isoDayNumber
-        if (daysDiff <= daysUntilSunday) return "Bu Hafta"
-        
-        // This month
-        if (targetDate.monthNumber == today.monthNumber && targetDate.year == today.year) {
-            return "Bu Ay"
-        }
-        
-        return "İleri Tarihli"
-    } catch (e: Exception) {
-        return "İleri Tarihli"
-    }
+enum class TimeBucket {
+    TODAY,
+    THIS_WEEK,
+    THIS_MONTH,
+    FUTURE,
+    PAST
 }
+
+/**
+ * Returns a relative time bucket for grouping tasks.
+ *
+ * @param epochMs The epoch milliseconds of the target date.
+ * @return A [TimeBucket] representing the relative time group.
+ */
+expect fun getRelativeTimeBucket(epochMs: Long): TimeBucket
+

@@ -67,7 +67,11 @@ fun HomeScreen(
             }
 
             is HomeEffect.NavigateToCreateEvent -> {
-                rootNavigator.navigate(Screen.EventDetail(eventId = null))
+                rootNavigator.navigate(Screen.EventEditor(eventId = null))
+            }
+
+            is HomeEffect.NavigateToTaskDetail -> {
+                rootNavigator.navigate(Screen.TaskDetail(taskId = effect.taskId))
             }
 
             is HomeEffect.NavigateToTaskEditor -> {
@@ -76,6 +80,10 @@ fun HomeScreen(
 
             is HomeEffect.NavigateToEventDetail -> {
                 rootNavigator.navigate(Screen.EventDetail(eventId = effect.eventId))
+            }
+
+            is HomeEffect.NavigateToEventEditor -> {
+                rootNavigator.navigate(Screen.EventEditor(eventId = effect.eventId))
             }
 
             is HomeEffect.NavigateToNoteEditor -> {

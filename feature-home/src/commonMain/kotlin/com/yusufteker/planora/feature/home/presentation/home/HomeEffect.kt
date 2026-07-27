@@ -10,7 +10,9 @@ sealed interface HomeEffect : UiEffect {
     data object NavigateToSettings : HomeEffect
     data object NavigateToCreateTask : HomeEffect
     data object NavigateToCreateEvent : HomeEffect
+    data class NavigateToTaskDetail(val taskId: String) : HomeEffect
     data class NavigateToTaskEditor(val taskId: String) : HomeEffect
     data class NavigateToEventDetail(val eventId: String) : HomeEffect
+    data class NavigateToEventEditor(val eventId: String) : HomeEffect
     data class NavigateToNoteEditor(val noteId: String) : HomeEffect
 }

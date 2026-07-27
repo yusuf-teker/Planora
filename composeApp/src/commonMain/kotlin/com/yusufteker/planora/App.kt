@@ -44,6 +44,12 @@ import com.yusufteker.planora.feature.home.presentation.create_post.CreatePostVi
 import com.yusufteker.planora.feature.home.presentation.event_detail.EventDetailEvent
 import com.yusufteker.planora.feature.home.presentation.event_detail.EventDetailScreen
 import com.yusufteker.planora.feature.home.presentation.event_detail.EventDetailViewModel
+import com.yusufteker.planora.feature.home.presentation.event_editor.EventEditorEvent
+import com.yusufteker.planora.feature.home.presentation.event_editor.EventEditorScreen
+import com.yusufteker.planora.feature.home.presentation.event_editor.EventEditorViewModel
+import com.yusufteker.planora.feature.home.presentation.task_detail.TaskDetailEvent
+import com.yusufteker.planora.feature.home.presentation.task_detail.TaskDetailScreen
+import com.yusufteker.planora.feature.home.presentation.task_detail.TaskDetailViewModel
 import com.yusufteker.planora.feature.home.presentation.main.MainScreen
 import com.yusufteker.planora.feature.home.presentation.pending_posts.PendingPostsScreen
 import com.yusufteker.planora.feature.home.presentation.pending_posts.PendingPostsViewModel
@@ -169,7 +175,7 @@ fun App() {
         val currentScreen = navigator.backStack.lastOrNull()
         LaunchedEffect(deepLinkUrl, userId, currentScreen) {
             Napier.d("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
-            if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen == Screen.Main) { // Only handle if logged in
+            if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen is Screen.Main) { // Only handle if logged in
                 Napier.d("DEEPLINK DEBUG: Conditions met! Parsing URL with UseCase...")
                 when (val result = processDeepLinkUseCase(deepLinkUrl)) {
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToEvent -> {
@@ -186,7 +192,7 @@ fun App() {
                     }
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToTask -> {
                         navigator.navigate(
-                            Screen.TaskEditor(
+                            Screen.TaskDetail(
                                 taskId = result.taskId,
                                 sharedTitle = result.sharedTitle,
                                 sharedNote = result.sharedNote,
@@ -210,6 +216,9 @@ fun App() {
                                 roomId = result.roomId
                             )
                         )
+                    }
+                    is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToPlanRooms -> {
+                        navigator.setRoot(Screen.Main(initialDestination = "PlanRooms"))
                     }
                     com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.InvalidOrIgnored -> {
                         Napier.d("DEEPLINK DEBUG: Invalid or Ignored deep link")
@@ -275,8 +284,8 @@ fun App() {
 
                     // ── Main Graph (Container for Bottom Navigation) ─────────
 
-                    entry<Screen.Main> {
-                        MainScreen()
+                    entry<Screen.Main> { screen ->
+                        MainScreen(initialDestination = screen.initialDestination)
                     }
 
                     entry<Screen.AiChat> {
@@ -344,13 +353,36 @@ fun App() {
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
                             onNavigateToCreateTask = { roomId -> navigator.navigate(Screen.TaskEditor(planRoomId = roomId)) },
-                            onNavigateToCreateEvent = { roomId -> navigator.navigate(Screen.EventDetail(planRoomId = roomId)) },
-                            onNavigateToTaskEditor = { taskId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = screen.roomId)) },
+                            onNavigateToCreateEvent = { roomId -> navigator.navigate(Screen.EventEditor(planRoomId = roomId)) },
+                            onNavigateToTaskEditor = { taskId -> navigator.navigate(Screen.TaskDetail(taskId = taskId, planRoomId = screen.roomId)) },
                             onNavigateToEventDetail = { eventId -> navigator.navigate(Screen.EventDetail(eventId = eventId, planRoomId = screen.roomId)) },
                             onNavigateToNoteEditor = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.roomId)) }
                         )
                     }
 
+                    entry<Screen.TaskDetail> { screen ->
+                        val viewModel = koinViewModel<TaskDetailViewModel>(
+                            key = "task_detail_${screen.taskId}_${screen.planRoomId}"
+                        )
+                        LaunchedEffect(screen.taskId, screen.planRoomId) {
+                            viewModel.onEvent(TaskDetailEvent.OnLoadTask(
+                                taskId = screen.taskId,
+                                planRoomId = screen.planRoomId,
+                                sharedTitle = screen.sharedTitle,
+                                sharedNote = screen.sharedNote,
+                                sharedDate = screen.sharedDate,
+                                sharedSender = screen.sharedSender
+                            ))
+                        }
+                        TaskDetailScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToEditTask = { taskId, roomId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = roomId)) },
+                            onNavigateToFocus = { id -> navigator.navigate(Screen.Focus(taskId = id)) },
+                            onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },
+                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
+                        )
+                    }
 
                     entry<Screen.TaskEditor> { screen ->
                         val viewModel = koinViewModel<TaskEditorViewModel>(
@@ -399,10 +431,9 @@ fun App() {
 
                     entry<Screen.EventDetail> { screen ->
                         val viewModel = koinViewModel<EventDetailViewModel>(
-                            key = screen.eventId ?: "new_event",
-                            parameters = { parametersOf(screen.eventId) }
+                            key = "event_detail_${screen.eventId}_${screen.planRoomId}"
                         )
-                        LaunchedEffect(screen) {
+                        LaunchedEffect(screen.eventId, screen.planRoomId) {
                             viewModel.onEvent(EventDetailEvent.OnLoadEvent(
                                 eventId = screen.eventId, 
                                 planRoomId = screen.planRoomId,
@@ -413,6 +444,29 @@ fun App() {
                             ))
                         }
                         EventDetailScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToEditEvent = { eventId, roomId -> navigator.navigate(Screen.EventEditor(eventId = eventId, planRoomId = roomId)) },
+                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
+                        )
+                    }
+
+                    entry<Screen.EventEditor> { screen ->
+                        val viewModel = koinViewModel<EventEditorViewModel>(
+                            key = screen.eventId ?: "new_event",
+                            parameters = { parametersOf(screen.eventId) }
+                        )
+                        LaunchedEffect(screen) {
+                            viewModel.onEvent(EventEditorEvent.OnLoadEvent(
+                                eventId = screen.eventId, 
+                                planRoomId = screen.planRoomId,
+                                sharedTitle = screen.sharedTitle,
+                                sharedNote = screen.sharedNote,
+                                sharedDate = screen.sharedDate,
+                                sharedSender = screen.sharedSender
+                            ))
+                        }
+                        EventEditorScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
                             onNavigateToCreateTask = { parentId -> navigator.navigate(Screen.TaskEditor(parentId = parentId, planRoomId = screen.planRoomId)) },

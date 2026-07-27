@@ -2,6 +2,7 @@ package com.yusufteker.planora.feature.home.presentation.task_editor
 
 import com.yusufteker.planora.core.base.UiEvent
 import com.yusufteker.planora.shared.api.RecurrenceRule
+import com.yusufteker.planora.shared.api.TaskPriority
 
 sealed interface TaskEditorEvent : UiEvent {
     data class TitleChanged(val title: String) : TaskEditorEvent
@@ -29,6 +30,8 @@ sealed interface TaskEditorEvent : UiEvent {
     data class OnReminderToggled(val minutes: Int) : TaskEditorEvent
     data class OnParticipantPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data class OnParticipantToggled(val userId: Int) : TaskEditorEvent
+    data class OnPriorityChanged(val priority: TaskPriority) : TaskEditorEvent
+    data class OnPriorityPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data object OnDispose : TaskEditorEvent
     data object OnShareClick : TaskEditorEvent
 }

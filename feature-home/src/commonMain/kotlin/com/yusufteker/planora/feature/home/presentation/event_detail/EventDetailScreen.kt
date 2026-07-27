@@ -1,19 +1,27 @@
 package com.yusufteker.planora.feature.home.presentation.event_detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,15 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet
-import com.yusufteker.planora.feature.home.presentation.components.FormRow
-import com.yusufteker.planora.feature.home.presentation.components.FormSection
-import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerSheet
-import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
-import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
+import coil3.compose.AsyncImage
+import com.yusufteker.planora.core.ui.components.getOptimizedCloudinaryUrl
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import kotlinx.coroutines.launch
@@ -42,28 +48,21 @@ import planora.core.generated.resources.*
 fun EventDetailScreen(
     viewModel: EventDetailViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToCreateTask: (String) -> Unit = {},
-    onNavigateToCreateNote: (String) -> Unit = {},
-    onNavigateToEditTask: (String) -> Unit = {},
-    onNavigateToEditNote: (String) -> Unit = {},
+    onNavigateToEditEvent: (String, String?) -> Unit = { _, _ -> },
     onNavigateToPlanRoom: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val shareManager = org.koin.compose.koinInject<com.yusufteker.planora.core.share.ShareManager>()
-
-    val startDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val endDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val reminderSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val participantSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         val scope = this
         viewModel.effect.collect { effect ->
             when (effect) {
                 is EventDetailEffect.NavigateBack -> onNavigateBack()
+                is EventDetailEffect.NavigateToEditEvent -> onNavigateToEditEvent(effect.eventId, effect.planRoomId)
                 is EventDetailEffect.ShowToast -> {
                     scope.launch {
                         snackbarHostState.showSnackbar(effect.message)
@@ -76,70 +75,82 @@ fun EventDetailScreen(
         }
     }
 
-    val isTimeOnly = state.isRecurring && state.recurrenceRule != null && 
-        (state.recurrenceRule is com.yusufteker.planora.shared.api.RecurrenceRule.Daily || 
-         state.recurrenceRule is com.yusufteker.planora.shared.api.RecurrenceRule.Weekly || 
-         (state.recurrenceRule as? com.yusufteker.planora.shared.api.RecurrenceRule.Monthly)?.isLastDay == true)
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.id == null) stringResource(Res.string.title_new_event) else stringResource(Res.string.action_edit), fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(Res.string.title_event_detail), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnBackClick) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 actions = {
-                    if (state.id != null) {
-                        IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnShareClick) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnShareClick) }) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.action_share), tint = MaterialTheme.colorScheme.primary)
+                    }
+
+                    var showMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = stringResource(Res.string.action_more_options),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    }
-                    
-                    IconButton(onClick = { viewModel.onEvent(EventDetailEvent.OnSaveClick) }) {
-                        Icon(Icons.Default.Check, contentDescription = stringResource(Res.string.save), tint = MaterialTheme.colorScheme.primary)
-                    }
-                    
-                    if (state.id != null) {
-                        var showMenu by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    Icons.Default.MoreVert,
-                                    contentDescription = "Daha Fazla",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        showMenu = false
-                                        viewModel.onEvent(EventDetailEvent.OnDeleteClick)
-                                    }
-                                )
-                            }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showDeleteDialog = true
+                                }
+                            )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
+        bottomBar = {
+            Surface(
+                tonalElevation = 8.dp,
+                shadowElevation = 12.dp,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 18.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.onEvent(EventDetailEvent.OnEditClick) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(Res.string.action_edit_event), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        if (state.isLoading && state.id != null && state.title.isBlank()) {
+        if (state.isLoading && state.title.isBlank()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -150,24 +161,23 @@ fun EventDetailScreen(
                     .padding(padding)
                     .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                // Shared Room Banner if event belongs to a plan room
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Room Banner if event is associated with a Plan Room
                 if (state.planRoomId != null || state.planRoomName != null) {
-                    Card(
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 12.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(18.dp))
                             .clickable(enabled = state.planRoomId != null) {
-                                state.planRoomId?.let { roomId ->
-                                    onNavigateToPlanRoom(roomId)
-                                }
+                                state.planRoomId?.let { roomId -> onNavigateToPlanRoom(roomId) }
                             },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                        )
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        shadowElevation = 1.dp
                     ) {
                         Row(
                             modifier = Modifier
@@ -180,267 +190,454 @@ fun EventDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Group,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "Ortak Oda Etkinliği",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                                if (!state.planRoomImageUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = getOptimizedCloudinaryUrl(state.planRoomImageUrl!!),
+                                        contentDescription = state.planRoomName,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
                                     )
-                                    Text(
-                                        text = state.planRoomName ?: "Bağlı Oda",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = state.planRoomName?.take(1)?.uppercase() ?: "O",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
                                 }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = state.planRoomName ?: stringResource(Res.string.connected_room),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                             if (state.planRoomId != null) {
                                 Icon(
                                     imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = "Odaya Git",
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
                     }
                 }
 
-                // Title, Description, Location Section
-                FormSection {
-                    TextField(
-                        value = state.title,
-                        onValueChange = { viewModel.onEvent(EventDetailEvent.OnTitleChange(it)) },
-                        placeholder = { Text(stringResource(Res.string.task_title_label), style = MaterialTheme.typography.titleLarge) },
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        singleLine = true
-                    )
-                    
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
-
-                    TextField(
-                        value = state.location,
-                        onValueChange = { viewModel.onEvent(EventDetailEvent.OnLocationChange(it)) },
-                        placeholder = { Text(stringResource(Res.string.event_location_optional)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        singleLine = true
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
-
-                    TextField(
-                        value = state.description,
-                        onValueChange = { viewModel.onEvent(EventDetailEvent.OnDescriptionChange(it)) },
-                        placeholder = { Text(stringResource(Res.string.task_desc_label)) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-                }
-
-                // Date, Time, and Repetition Section
-
-
-                FormSection {
-                    val startText = if (isTimeOnly) formatTime(state.startDateTimeMs) else "${formatShortDate(state.startDateTimeMs)} ${formatTime(state.startDateTimeMs)}"
-                    val endText = if (isTimeOnly) formatTime(state.endDateTimeMs) else "${formatShortDate(state.endDateTimeMs)} ${formatTime(state.endDateTimeMs)}"
-
-                    FormRow(
-                        label = if (isTimeOnly) stringResource(Res.string.event_start_time_label) else stringResource(Res.string.event_start_label),
-                        value = startText,
-                        onClick = { viewModel.onEvent(EventDetailEvent.OnStartPickerVisibilityChanged(true)) }
-                    )
-                    
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
-                    
-                    FormRow(
-                        label = if (isTimeOnly) stringResource(Res.string.event_end_time_label) else stringResource(Res.string.event_end_label),
-                        value = endText,
-                        onClick = { viewModel.onEvent(EventDetailEvent.OnEndPickerVisibilityChanged(true)) }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
-                    
-                    val repeatText = when (val rule = state.recurrenceRule) {
-                        null -> stringResource(Res.string.repeat_none)
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Daily -> stringResource(Res.string.repeat_daily)
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Weekly -> stringResource(Res.string.repeat_weekly_pattern, rule.daysOfWeek.size.toString())
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) stringResource(Res.string.repeat_monthly_last_day) else stringResource(Res.string.repeat_monthly)
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Yearly -> stringResource(Res.string.repeat_yearly)
-                    }
-
-                    FormRow(
-                        label = stringResource(Res.string.repeat_label),
-                        value = repeatText,
-                        onClick = { viewModel.onEvent(EventDetailEvent.OnRepeatPickerVisibilityChanged(true)) }
-                    )
-                    
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
-
-                    FormRow(
-                        label = stringResource(Res.string.reminders_label),
-                        value = if (state.reminders.isNotEmpty()) stringResource(Res.string.reminders_selected_count_pattern, state.reminders.size.toString()) else stringResource(Res.string.repeat_none),
-                        onClick = { viewModel.onEvent(EventDetailEvent.OnReminderPickerVisibilityChanged(true)) }
-                    )
-                }
-
-                // Context specific: Plan Room Participants
-                if (state.planRoomId != null || state.participants.isNotEmpty()) {
-                    FormSection {
-                        val participantsText = if (state.participants.isEmpty()) {
-                            stringResource(Res.string.option_not_selected)
-                        } else {
-                            state.participants.values.joinToString(", ")
-                        }
-                        FormRow(
-                            label = stringResource(Res.string.participants_label),
-                            value = participantsText,
-                            onClick = { 
-                                if (state.planRoomId != null) {
-                                    viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(true)) 
-                                }
-                            }
-                        )
-                    }
-                }
-                // Sub-items (Tasks and Notes)
-                if (state.id != null) {
-                    FormSection {
+                // Hero Event Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(22.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            Text(
-                                text = stringResource(Res.string.event_sub_items),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Row {
-                                TextButton(onClick = { onNavigateToCreateTask(state.id!!) }) {
-                                    Text(stringResource(Res.string.action_add_task))
-                                }
-                                TextButton(onClick = { onNavigateToCreateNote(state.id!!) }) {
-                                    Text(stringResource(Res.string.action_create_note))
-                                }
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Event,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = state.title.ifBlank { stringResource(Res.string.untitled_event) },
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = (-0.5).sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
-                        
-                        if (state.subItems.isEmpty()) {
-                            Text(
-                                text = stringResource(Res.string.event_no_sub_items),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        } else {
-                            state.subItems.forEach { subItem ->
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+
+                        if (state.location.isNotBlank()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            if (subItem.type == com.yusufteker.planora.shared.api.TaskType.NOTE) {
-                                                onNavigateToEditNote(subItem.id)
-                                            } else {
-                                                onNavigateToEditTask(subItem.id)
-                                            }
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Text(
-                                        text = subItem.title,
-                                        style = MaterialTheme.typography.bodyLarge
+                                        text = state.location,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
                         }
                     }
                 }
-                
+
+                // Date & Time Details Card with Side-by-Side Start & End Row Layout
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Side-by-Side Start & End 2-Line Row Layout
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Start Column
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.Start
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.label_start_time),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${formatShortDate(state.startDateTimeMs)}  •  ${formatTime(state.startDateTimeMs)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                // Separator line
+                                Box(
+                                    modifier = Modifier
+                                        .height(36.dp)
+                                        .width(1.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                // End Column
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.Start
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.label_end_time),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${formatShortDate(state.endDateTimeMs)}  •  ${formatTime(state.endDateTimeMs)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        // Recurrence rule if present
+                        if (state.isRecurring && state.recurrenceRule != null) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Repeat,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = stringResource(Res.string.repeat_label),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    val repeatText = when (val rule = state.recurrenceRule) {
+                                        is com.yusufteker.planora.shared.api.RecurrenceRule.Daily -> stringResource(Res.string.repeat_daily)
+                                        is com.yusufteker.planora.shared.api.RecurrenceRule.Weekly -> stringResource(Res.string.repeat_weekly_pattern, rule.daysOfWeek.size.toString())
+                                        is com.yusufteker.planora.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) stringResource(Res.string.repeat_monthly_last_day) else stringResource(Res.string.repeat_monthly)
+                                        is com.yusufteker.planora.shared.api.RecurrenceRule.Yearly -> stringResource(Res.string.repeat_yearly)
+                                        null -> ""
+                                    }
+                                    Text(
+                                        text = repeatText,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        if (state.reminders.isNotEmpty()) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = stringResource(Res.string.reminders_label),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    val remNow = stringResource(Res.string.reminder_time_now)
+                                    val rem5 = stringResource(Res.string.reminder_5_min)
+                                    val rem15 = stringResource(Res.string.reminder_15_min)
+                                    val rem30 = stringResource(Res.string.reminder_30_min)
+                                    val rem60 = stringResource(Res.string.reminder_1_hour)
+                                    val rem1440 = stringResource(Res.string.reminder_1_day)
+                                    val reminderSummary = state.reminders.joinToString(", ") { mins ->
+                                        when (mins) {
+                                            0 -> remNow
+                                            5 -> rem5
+                                            15 -> rem15
+                                            30 -> rem30
+                                            60 -> rem60
+                                            1440 -> rem1440
+                                            else -> "$mins dk"
+                                        }
+                                    }
+                                    Text(
+                                        text = reminderSummary,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Description Card (No "(Optional)", localized label_description)
+                if (state.description.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.label_description),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    text = state.description,
+                                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Participants Section (if present)
+                if (state.participants.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.assignees_label),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            state.participants.forEach { participant ->
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        if (!participant.profileImageUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = getOptimizedCloudinaryUrl(participant.profileImageUrl!!),
+                                                contentDescription = participant.name,
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = participant.name.take(1).uppercase(),
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = participant.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
 
-    if (state.isStartPickerOpen) {
-        DateTimePickerSheet(
-            initialTimeMs = state.startDateTimeMs,
-            timeOnly = isTimeOnly,
-            sheetState = startDateSheetState,
-            onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnStartPickerVisibilityChanged(false)) },
-            onDateTimeSelected = { ms -> viewModel.onEvent(EventDetailEvent.OnStartDateTimeSelected(ms)) }
-        )
-    }
-
-    if (state.isEndPickerOpen) {
-        DateTimePickerSheet(
-            initialTimeMs = state.endDateTimeMs,
-            timeOnly = isTimeOnly,
-            sheetState = endDateSheetState,
-            onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnEndPickerVisibilityChanged(false)) },
-            onDateTimeSelected = { ms -> viewModel.onEvent(EventDetailEvent.OnEndDateTimeSelected(ms)) }
-        )
-    }
-
-    if (state.isRepeatPickerOpen) {
-        RepeatPickerSheet(
-            initialRule = state.recurrenceRule,
-            startDateMs = state.startDateTimeMs,
-            sheetState = repeatSheetState,
-            onDismissRequest = { 
-                viewModel.onEvent(EventDetailEvent.OnRepeatPickerVisibilityChanged(false))
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(Res.string.delete_confirm_title)) },
+            text = { Text(stringResource(Res.string.delete_event_confirm_msg)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.onEvent(EventDetailEvent.OnDeleteClick)
+                    }
+                ) {
+                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
             },
-            onRuleSelected = { rule -> 
-                viewModel.onEvent(EventDetailEvent.OnRecurrenceRuleChanged(rule))
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(Res.string.cancel))
+                }
             }
-        )
-    }
-
-    if (state.isReminderPickerVisible) {
-        ReminderPickerSheet(
-            selectedReminders = state.reminders,
-            sheetState = reminderSheetState,
-            onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnReminderPickerVisibilityChanged(false)) },
-            onReminderToggled = { min -> viewModel.onEvent(EventDetailEvent.OnReminderToggled(min)) }
-        )
-    }
-
-    if (state.isParticipantPickerVisible) {
-        ParticipantPickerSheet(
-            title = stringResource(Res.string.participants_label),
-            roomMembers = state.roomMembers,
-            selectedParticipantIds = state.participants.keys,
-            sheetState = participantSheetState,
-            onDismissRequest = { viewModel.onEvent(EventDetailEvent.OnParticipantPickerVisibilityChanged(false)) },
-            onParticipantToggled = { id -> viewModel.onEvent(EventDetailEvent.OnParticipantToggled(id)) }
         )
     }
 }

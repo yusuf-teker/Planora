@@ -150,6 +150,7 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
 
         val deepLinkUrl = when {
             !rawDeepLink.isNullOrEmpty() -> rawDeepLink
+            type == "room_invite" -> "planora://share/roomInvite"
             !roomId.isNullOrEmpty() -> "planora://share/joinRoom?roomId=$roomId"
             !taskId.isNullOrEmpty() -> "planora://share/task?taskId=$taskId"
             else -> null

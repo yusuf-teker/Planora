@@ -31,6 +31,8 @@ sealed class DeepLinkResult {
         val roomId: String
     ) : DeepLinkResult()
 
+    data object NavigateToPlanRooms : DeepLinkResult()
+
     data object InvalidOrIgnored : DeepLinkResult()
 }
 
@@ -103,11 +105,14 @@ class ProcessDeepLinkUseCase(
                         sharedSender = sender
                     )
                 }
-                "room", "joinRoom", "roomInvite" -> {
+                "roomInvite" -> {
+                    DeepLinkResult.NavigateToPlanRooms
+                }
+                "room", "joinRoom" -> {
                     if (roomId != null) {
                         DeepLinkResult.NavigateToRoom(roomId = roomId)
                     } else {
-                        DeepLinkResult.InvalidOrIgnored
+                        DeepLinkResult.NavigateToPlanRooms
                     }
                 }
                 else -> DeepLinkResult.InvalidOrIgnored

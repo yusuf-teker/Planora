@@ -74,7 +74,7 @@ kotlin {
 
             // Peekaboo
             implementation(libs.peekaboo.image.picker)
-        }
+      }
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)

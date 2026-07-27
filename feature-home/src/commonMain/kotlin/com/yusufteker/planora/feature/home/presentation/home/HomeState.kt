@@ -28,7 +28,8 @@ data class HomeState(
     val currentUserAvatarId: String? = null,
     val currentUserProfileImageUrl: String? = null,
     val yearsAhead: Int = 3,
-    val isLoadingMoreFutureTasks: Boolean = false
+    val isLoadingMoreFutureTasks: Boolean = false,
+    val holidays: Map<kotlinx.datetime.LocalDate, String> = emptyMap()
 ) : UiState
 
 data class AccessibleUser(

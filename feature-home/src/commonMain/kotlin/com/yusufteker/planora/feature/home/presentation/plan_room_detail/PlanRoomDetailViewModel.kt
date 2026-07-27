@@ -302,7 +302,7 @@ class PlanRoomDetailViewModel(
 
     private fun handleTaskClick(task: com.yusufteker.planora.shared.api.TaskDto) {
         when (task.type) {
-            com.yusufteker.planora.shared.api.TaskType.TASK -> setEffect(PlanRoomDetailEffect.NavigateToTaskEditor(task.id))
+            com.yusufteker.planora.shared.api.TaskType.TASK -> setEffect(PlanRoomDetailEffect.NavigateToTaskDetail(task.id))
             com.yusufteker.planora.shared.api.TaskType.EVENT -> setEffect(PlanRoomDetailEffect.NavigateToEventDetail(task.id))
             com.yusufteker.planora.shared.api.TaskType.NOTE -> setEffect(PlanRoomDetailEffect.NavigateToNoteEditor(task.id))
             com.yusufteker.planora.shared.api.TaskType.FOLDER -> {}

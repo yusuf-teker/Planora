@@ -68,6 +68,8 @@ kotlin {
 
             // Peekaboo Image Picker
             implementation(libs.peekaboo.image.picker)
+            implementation(libs.compottie)
+            implementation(libs.compottie.dot)
         }
 
         commonTest.dependencies {

@@ -518,4 +518,46 @@
     <string name="optional_update_title">Güncelleme Mevcut</string>
     <string name="optional_update_message">Planora\'nın yeni bir sürümü yayınlandı. Yeni özellikleri deneyimlemek için güncelleyebilirsiniz.</string>
     <string name="action_later">Daha Sonra</string>
+
+    <!-- Task & Event Details / Editors -->
+    <string name="title_task_detail">Görev Detayları</string>
+    <string name="title_event_detail">Etkinlik Detayları</string>
+    <string name="title_event_editor">Etkinliği Düzenle</string>
+    <string name="action_edit_task">Görevi Düzenle</string>
+    <string name="action_edit_event">Etkinliği Düzenle</string>
+    <string name="action_focus">Odaklan</string>
+    <string name="label_subtasks">Alt Görevler</string>
+    <string name="label_attached_notes">Bağlı Notlar</string>
+    <string name="label_attached_tasks">Bağlı Görevler</string>
+    <string name="label_location">Konum</string>
+    <string name="label_date_time">Tarih ve Saat</string>
+    <string name="label_start_time">Başlangıç Zamanı</string>
+    <string name="label_end_time">Bitiş Zamanı</string>
+    <string name="label_duration">Süre</string>
+    <string name="label_deadline">Son Tarih</string>
+    <string name="task_status_completed">Tamamlandı</string>
+    <string name="task_status_pending">Yapılacak</string>
+    <string name="action_mark_completed">Tamamlandı İşaretle</string>
+    <string name="action_mark_pending">Yapılacak İşaretle</string>
+    <string name="shared_room_task">Ortak Oda Görevi</string>
+    <string name="priority_urgent">Acil</string>
+    <string name="priority_high">Yüksek</string>
+    <string name="priority_medium">Orta</string>
+    <string name="priority_low">Düşük</string>
+    <string name="priority_label">Öncelik</string>
+    <string name="holiday_label">Tatil</string>
+    <string name="label_description">Açıklama</string>
+    <string name="untitled_task">Başlıksız Görev</string>
+    <string name="untitled_event">Başlıksız Etkinlik</string>
+    <string name="connected_room">Bağlı Oda</string>
+    <string name="task_marked_completed">Görev tamamlandı olarak işaretlendi</string>
+    <string name="task_marked_uncompleted">Görev yapılacak olarak işaretlendi</string>
+    <string name="delete_confirm_title">Silme Onayı</string>
+    <string name="delete_task_confirm_msg">Bu görevi silmek istediğinizden emin misiniz?</string>
+    <string name="delete_event_confirm_msg">Bu etkinliği silmek istediğinizden emin misiniz?</string>
+    <string name="time_bucket_today">Bugün</string>
+    <string name="time_bucket_this_week">Bu Hafta</string>
+    <string name="time_bucket_this_month">Bu Ay</string>
+    <string name="time_bucket_future">İleri Tarihli</string>
+    <string name="time_bucket_past">Geçmiş</string>
 </resources>

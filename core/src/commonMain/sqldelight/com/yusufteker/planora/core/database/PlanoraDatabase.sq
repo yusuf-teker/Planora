@@ -327,5 +327,34 @@ SELECT * FROM calendarAccessEntity;
 deleteAllCalendarAccess:
 DELETE FROM calendarAccessEntity;
 
+-- 7. HOLIDAYS
+CREATE TABLE holidayDbEntity (
+    date TEXT NOT NULL,
+    name TEXT NOT NULL,
+    countryCode TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    PRIMARY KEY(date, countryCode)
+);
+
+createHolidayTableIfNotExists:
+CREATE TABLE IF NOT EXISTS holidayDbEntity (
+    date TEXT NOT NULL,
+    name TEXT NOT NULL,
+    countryCode TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    PRIMARY KEY(date, countryCode)
+);
+
+insertHoliday:
+INSERT OR REPLACE INTO holidayDbEntity(date, name, countryCode, year)
+VALUES (?, ?, ?, ?);
+
+getHolidaysByCountryAndYear:
+SELECT * FROM holidayDbEntity WHERE countryCode = :countryCode AND year = :year;
+
+deleteAllHolidays:
+DELETE FROM holidayDbEntity;
+
+
 deleteCalendarAccessByUserId:
 DELETE FROM calendarAccessEntity WHERE userId = :userId;

@@ -57,7 +57,7 @@ import com.yusufteker.planora.feature.home.presentation.components.PlanoraBottom
 import org.koin.compose.koinInject
 
 @Composable
-fun MainScreen() {
+fun MainScreen(initialDestination: String? = null) {
     val rootNavigator = LocalNavigator.current
     // Nested back stack for the bottom navigation, saved across compositions
     val backStack = rememberSaveable(
@@ -91,11 +91,38 @@ fun MainScreen() {
             }
         )
     ) {
-        mutableStateListOf<MainDestination>(MainDestination.Home)
+        val initial = when (initialDestination) {
+            "PlanRooms" -> MainDestination.PlanRooms
+            "Notes" -> MainDestination.Notes
+            "Profile" -> MainDestination.Profile
+            "Settings" -> MainDestination.Settings
+            else -> MainDestination.Home
+        }
+        mutableStateListOf<MainDestination>(initial)
     }
     val navigator = remember { Navigator(backStack) }
 
     val currentDestination = backStack.lastOrNull() ?: MainDestination.Home
+
+    LaunchedEffect(initialDestination) {
+        if (!initialDestination.isNullOrEmpty()) {
+            val targetDest = when (initialDestination) {
+                "PlanRooms" -> MainDestination.PlanRooms
+                "Notes" -> MainDestination.Notes
+                "Profile" -> MainDestination.Profile
+                "Settings" -> MainDestination.Settings
+                else -> MainDestination.Home
+            }
+            if (backStack.lastOrNull() != targetDest) {
+                while (backStack.size > 1) {
+                    backStack.removeLastOrNull()
+                }
+                if (targetDest != MainDestination.Home) {
+                    backStack.add(targetDest)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(currentDestination) {
         val screenName = currentDestination::class.simpleName ?: "UnknownScreen"
@@ -235,7 +262,7 @@ fun MainScreen() {
                                 rootNav.navigate(Screen.TaskEditor(taskId = null))
                             },
                             onNavigateToCreateEvent = {
-                                rootNav.navigate(Screen.EventDetail(eventId = null))
+                                rootNav.navigate(Screen.EventEditor(eventId = null))
                             },
                             onShowSnackbar = { /* TODO */ }
                         )

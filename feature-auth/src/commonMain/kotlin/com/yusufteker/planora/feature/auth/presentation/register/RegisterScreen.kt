@@ -59,7 +59,7 @@ fun RegisterScreen(
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is RegisterEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is RegisterEffect.NavigateToHome -> navigator.setRoot(Screen.Main())
             is RegisterEffect.NavigateBack -> navigator.pop()
             is RegisterEffect.ShowError -> {
                 // TODO: Show snackbar or dialog

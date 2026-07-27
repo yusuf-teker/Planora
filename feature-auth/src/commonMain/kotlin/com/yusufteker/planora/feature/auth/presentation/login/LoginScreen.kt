@@ -60,7 +60,7 @@ fun LoginScreen(
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
-            is LoginEffect.NavigateToHome -> navigator.setRoot(Screen.Main)
+            is LoginEffect.NavigateToHome -> navigator.setRoot(Screen.Main())
             is LoginEffect.NavigateToRegister -> navigator.navigate(Screen.Register)
             is LoginEffect.ShowError -> {
                 // TODO: Show snackbar or dialog
