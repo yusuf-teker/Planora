@@ -298,7 +298,7 @@ fun Route.calendarRoutes() {
                             isAllDay = entity.isAllDay,
                             aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
                             reminders = emptyList(), // Do not share reminders
-                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it.replace("com.yusufteker.pulse.", "com.yusufteker.planora.")) } catch(e: Exception) { null } },
                             tags = if (isPrivate) emptyList() else entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,

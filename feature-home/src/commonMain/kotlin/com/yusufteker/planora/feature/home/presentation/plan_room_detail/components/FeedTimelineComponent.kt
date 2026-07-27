@@ -20,6 +20,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
+import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.feature.home.presentation.home.components.TimelineTaskCard
 
 @Composable
@@ -36,17 +37,19 @@ fun FeedTimelineComponent(
         val filtered = if (showPastTasks) {
             tasks
         } else {
-            tasks.filter { 
-                val taskDate = Instant.fromEpochMilliseconds(it.startTime).toLocalDateTime(TimeZone.currentSystemDefault()).date
+            tasks.filter { task ->
+                val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                val taskDate = Instant.fromEpochMilliseconds(effectiveTime).toLocalDateTime(TimeZone.currentSystemDefault()).date
                 taskDate >= today
             }
         }
-        filtered.sortedBy { it.startTime }
+        filtered.sortedBy { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
     }
     
     val groupedTasks = remember(sortedTasks) {
-        sortedTasks.groupBy { 
-            Instant.fromEpochMilliseconds(it.startTime).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        sortedTasks.groupBy { task ->
+            val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            Instant.fromEpochMilliseconds(effectiveTime).toLocalDateTime(TimeZone.currentSystemDefault()).date
         }
     }
     

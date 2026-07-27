@@ -21,11 +21,11 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.yusufteker.planora.core.utils.RecurringTaskEvaluator
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.RecurrenceRule
@@ -35,6 +35,12 @@ import com.yusufteker.planora.core.database.clearAll
 import com.yusufteker.planora.core.preferences.SessionPreferences
 import kotlinx.coroutines.withContext
 import io.github.aakira.napier.Napier
+
+private val json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    coerceInputValues = true
+}
 
 /**
  * Görev ve Plan Odası (PlanRoom) verilerinin kaynağını yöneten repository implementasyonu.
@@ -414,10 +420,10 @@ class PlanRepositoryImpl(
             isPostponable = entity.isPostponable == 1L,
             isAllDay = entity.isAllDay == 1L,
             parentId = entity.parentId,
-            aiMetadata = entity.aiMetadata?.let { Json.decodeFromString(it) },
-            reminders = entity.reminders?.let { Json.decodeFromString(it) } ?: emptyList(),
-            specificDetails = entity.specificDetails?.let { Json.decodeFromString(it) },
-            tags = entity.tags?.let { Json.decodeFromString(it) } ?: emptyList(),
+            aiMetadata = entity.aiMetadata?.let { try { json.decodeFromString(it) } catch (e: Exception) { null } },
+            reminders = entity.reminders?.let { try { json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
+            specificDetails = entity.specificDetails?.let { try { json.decodeFromString(it.replace("com.yusufteker.pulse.", "com.yusufteker.planora.")) } catch (e: Exception) { null } },
+            tags = entity.tags?.let { try { json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
             color = entity.color,
             participants = entity.participants?.let {
                 try {
@@ -788,10 +794,10 @@ class PlanRepositoryImpl(
             isOptional = entity.isOptional == 1L,
             isPostponable = entity.isPostponable == 1L,
             isAllDay = entity.isAllDay == 1L,
-            aiMetadata = entity.aiMetadata?.let { try { Json.decodeFromString(it) } catch (e: Exception) { null } },
-            reminders = entity.reminders?.let { try { Json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
-            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch (e: Exception) { null } },
-            tags = entity.tags?.let { try { Json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
+            aiMetadata = entity.aiMetadata?.let { try { json.decodeFromString(it) } catch (e: Exception) { null } },
+            reminders = entity.reminders?.let { try { json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
+            specificDetails = entity.specificDetails?.let { try { json.decodeFromString(it.replace("com.yusufteker.pulse.", "com.yusufteker.planora.")) } catch (e: Exception) { null } },
+            tags = entity.tags?.let { try { json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
             color = entity.color,
             parentId = entity.parentId,
             participants = entity.participants?.let { try { Json.decodeFromString<List<com.yusufteker.planora.shared.api.TaskParticipantDto>>(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),

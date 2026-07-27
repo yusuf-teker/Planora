@@ -13,10 +13,10 @@ enum class TaskType {
 
 @Serializable
 sealed class RecurrenceRule {
-    @Serializable @SerialName("com.yusufteker.pulse.shared.api.RecurrenceRule.Daily") data class Daily(val interval: Int = 1) : RecurrenceRule()
-    @Serializable @SerialName("com.yusufteker.pulse.shared.api.RecurrenceRule.Weekly") data class Weekly(val daysOfWeek: Set<Int>) : RecurrenceRule()
-    @Serializable @SerialName("com.yusufteker.pulse.shared.api.RecurrenceRule.Monthly") data class Monthly(val dayOfMonth: Int? = null, val isLastDay: Boolean = false) : RecurrenceRule()
-    @Serializable @SerialName("com.yusufteker.pulse.shared.api.RecurrenceRule.Yearly") data class Yearly(val month: Int, val dayOfMonth: Int) : RecurrenceRule()
+    @Serializable @SerialName("com.yusufteker.planora.shared.api.RecurrenceRule.Daily") data class Daily(val interval: Int = 1) : RecurrenceRule()
+    @Serializable @SerialName("com.yusufteker.planora.shared.api.RecurrenceRule.Weekly") data class Weekly(val daysOfWeek: Set<Int>) : RecurrenceRule()
+    @Serializable @SerialName("com.yusufteker.planora.shared.api.RecurrenceRule.Monthly") data class Monthly(val dayOfMonth: Int? = null, val isLastDay: Boolean = false) : RecurrenceRule()
+    @Serializable @SerialName("com.yusufteker.planora.shared.api.RecurrenceRule.Yearly") data class Yearly(val month: Int, val dayOfMonth: Int) : RecurrenceRule()
 }
 
 @Serializable
@@ -87,7 +87,7 @@ data class AiMetadata(
 @Serializable
 sealed class ItemDetails {
     @Serializable
-    @SerialName("com.yusufteker.pulse.shared.api.ItemDetails.Note")
+    @SerialName("com.yusufteker.planora.shared.api.ItemDetails.Note")
     data class Note(
         val content: String = "",
         val attachments: List<String> = emptyList(),
@@ -95,7 +95,7 @@ sealed class ItemDetails {
     ) : ItemDetails()
 
     @Serializable
-    @SerialName("com.yusufteker.pulse.shared.api.ItemDetails.Task")
+    @SerialName("com.yusufteker.planora.shared.api.ItemDetails.Task")
     data class Task(
         val priority: TaskPriority = TaskPriority.MEDIUM,
         val subtasks: List<SubTask> = emptyList(),
@@ -104,7 +104,7 @@ sealed class ItemDetails {
     ) : ItemDetails()
 
     @Serializable
-    @SerialName("com.yusufteker.pulse.shared.api.ItemDetails.Event")
+    @SerialName("com.yusufteker.planora.shared.api.ItemDetails.Event")
     data class Event(
         val location: String? = null,
         val meetingUrl: String? = null,

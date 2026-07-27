@@ -79,7 +79,6 @@ fun TimelineSection(
 
             val time =
                 (task.specificDetails as? ItemDetails.Task)?.deadline
-                    ?: task.endTime
                     ?: task.startTime
 
             when (state.viewOption) {
@@ -139,7 +138,7 @@ fun TimelineSection(
             var groupHasUpcoming = false
 
             for (task in tasks) {
-                val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+                val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
                 if (isToday(time)) {
                     groupHasToday = true
                 }

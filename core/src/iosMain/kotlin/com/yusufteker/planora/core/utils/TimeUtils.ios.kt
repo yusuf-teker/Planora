@@ -10,6 +10,10 @@ import platform.Foundation.NSCalendarUnitYear
 import platform.Foundation.date
 import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.Instant
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 
 actual fun getCurrentTimeMs(): Long {
     return (NSDate.date().timeIntervalSince1970 * 1000).toLong()
@@ -48,11 +52,15 @@ actual fun formatFullDate(epochMs: Long): String {
 }
 
 actual fun isToday(epochMs: Long): Boolean {
-    val calendar = NSCalendar.currentCalendar
-    return calendar.isDateInToday(dateFromMs(epochMs))
+    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
+    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(tz).date
+    val target = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
+    return target == today
 }
 
 actual fun isTomorrow(epochMs: Long): Boolean {
-    val calendar = NSCalendar.currentCalendar
-    return calendar.isDateInTomorrow(dateFromMs(epochMs))
+    val tz = kotlinx.datetime.TimeZone.currentSystemDefault()
+    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(getCurrentTimeMs()).toLocalDateTime(tz).date
+    val target = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(tz).date
+    return target == today.plus(DatePeriod(days = 1))
 }

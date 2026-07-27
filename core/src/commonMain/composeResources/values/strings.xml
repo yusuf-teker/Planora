@@ -306,7 +306,7 @@
     <string name="follow_request_rejected">Follow request rejected.</string>
     <string name="action_cancel_request">Cancel Request</string>
     <string name="today">Today</string>
-    <string name="tomorrow">Today</string>
+    <string name="tomorrow">Tomorrow</string>
     <string name="chat_with_ai">Say something to the AI!</string>
     <string name="no_tasks">No tasks for today.</string>
 

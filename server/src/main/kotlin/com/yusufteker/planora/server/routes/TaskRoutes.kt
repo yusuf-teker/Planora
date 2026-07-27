@@ -600,7 +600,7 @@ fun Route.taskRoutes() {
                                 .firstOrNull()?.get(TaskParticipantsTable.reminders)?.let { 
                                     try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } 
                                 } ?: entity.reminders?.let { try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it.replace("com.yusufteker.pulse.", "com.yusufteker.planora.")) } catch(e: Exception) { null } },
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
@@ -705,7 +705,7 @@ fun Route.taskRoutes() {
                                 .firstOrNull()?.get(TaskParticipantsTable.reminders)?.let { 
                                     try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } 
                                 } ?: entity.reminders?.let { try { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
-                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it) } catch(e: Exception) { null } },
+                            specificDetails = entity.specificDetails?.let { try { Json.decodeFromString(it.replace("com.yusufteker.pulse.", "com.yusufteker.planora.")) } catch(e: Exception) { null } },
                             tags = entity.tags?.let { try { Json.decodeFromString(it) } catch(e: Exception) { emptyList() } } ?: emptyList(),
                             color = entity.color,
                             parentId = entity.parentId,
