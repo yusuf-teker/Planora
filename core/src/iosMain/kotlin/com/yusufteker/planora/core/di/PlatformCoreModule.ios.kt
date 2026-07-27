@@ -52,4 +52,9 @@ actual val platformCoreModule = module {
     
     // Share Manager
     single<ShareManager> { IosShareManager() }
+
+    // App Version Provider
+    single<com.yusufteker.planora.core.version.AppVersionProvider> { 
+        com.yusufteker.planora.core.version.IosAppVersionProvider() 
+    }
 }

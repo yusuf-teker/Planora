@@ -510,4 +510,12 @@
     <string name="settings_delete_account_confirm_title">Hesabımı Sil</string>
     <string name="settings_delete_account_confirm_desc">Hesabınızı silmek istediğinize emin misiniz? Tüm kişisel notlarınız, görevleriniz ve gönderileriniz silinecektir. Ortak odalarınız ve etkinlikleriniz diğer üyelere devredilecektir. Bu işlem geri alınamaz.</string>
     <string name="error_delete_account_failed">Hesap silinemedi. Lütfen tekrar deneyin.</string>
+
+    <!-- Force Update / App Version -->
+    <string name="force_update_title">Zorunlu Güncelleme</string>
+    <string name="force_update_message">Planora\'yı kullanmaya devam edebilmek için lütfen uygulamayı en son sürüme güncelleyin.</string>
+    <string name="action_update_now">Şimdi Güncelle</string>
+    <string name="optional_update_title">Güncelleme Mevcut</string>
+    <string name="optional_update_message">Planora\'nın yeni bir sürümü yayınlandı. Yeni özellikleri deneyimlemek için güncelleyebilirsiniz.</string>
+    <string name="action_later">Daha Sonra</string>
 </resources>

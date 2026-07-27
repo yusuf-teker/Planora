@@ -18,6 +18,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -90,6 +91,29 @@ fun App() {
         val sessionPreferences = koinInject<SessionPreferences>()
         val userId by sessionPreferences.userIdFlow.collectAsStateWithLifecycle(initialValue = null)
         val vmKey = userId ?: "guest"
+
+        val appVersionViewModel = koinViewModel<com.yusufteker.planora.core.ui.version.AppVersionViewModel>()
+        val updateStatus by appVersionViewModel.updateStatus.collectAsStateWithLifecycle()
+        var isOptionalUpdateDismissed by remember { androidx.compose.runtime.mutableStateOf(false) }
+
+        when (val status = updateStatus) {
+            is com.yusufteker.planora.core.domain.usecase.UpdateStatus.ForceUpdateRequired -> {
+                com.yusufteker.planora.core.ui.components.ForceUpdateDialog(
+                    config = status.config,
+                    isForceUpdate = true
+                )
+            }
+            is com.yusufteker.planora.core.domain.usecase.UpdateStatus.OptionalUpdateAvailable -> {
+                if (!isOptionalUpdateDismissed) {
+                    com.yusufteker.planora.core.ui.components.ForceUpdateDialog(
+                        config = status.config,
+                        isForceUpdate = false,
+                        onDismiss = { isOptionalUpdateDismissed = true }
+                    )
+                }
+            }
+            com.yusufteker.planora.core.domain.usecase.UpdateStatus.UpToDate -> { /* Up to date */ }
+        }
 
         val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
         val navigator = remember { Navigator(backStack) }

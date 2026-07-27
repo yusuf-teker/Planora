@@ -20,6 +20,7 @@ import com.yusufteker.planora.server.routes.planRoomRoutes
 import com.yusufteker.planora.server.routes.taskRoutes
 import com.yusufteker.planora.server.routes.calendarRoutes
 
+import com.yusufteker.planora.server.routes.appConfigRoutes
 import com.yusufteker.planora.server.routes.fcmTokenRoutes
 import com.yusufteker.planora.server.service.FcmService
 
@@ -61,6 +62,7 @@ fun Application.module() {
         get("/") {
             call.respondText("Planora Server is Running!", status = io.ktor.http.HttpStatusCode.OK)
         }
+        appConfigRoutes()
         authRoutes()
         postRoutes()
         commentRoutes()

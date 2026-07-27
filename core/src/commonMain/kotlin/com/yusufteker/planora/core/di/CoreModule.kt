@@ -5,7 +5,9 @@ import com.yusufteker.planora.core.preferences.SessionPreferences
 import com.yusufteker.planora.core.network.createHttpClient
 import com.yusufteker.planora.core.database.PlanoraDatabase
 import app.cash.sqldelight.db.SqlDriver
+import com.yusufteker.planora.core.ui.version.AppVersionViewModel
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 import com.yusufteker.planora.core.analytics.AnalyticsManager
@@ -48,4 +50,12 @@ val coreModule = module {
     
     // Cloud AI
     single { com.yusufteker.planora.core.ai.CloudAiManager() }
+
+    // App Version & Force Update
+    single { com.yusufteker.planora.core.data.api.AppVersionApi(get()) }
+    single<com.yusufteker.planora.core.domain.repository.AppVersionRepository> {
+        com.yusufteker.planora.core.data.repository.AppVersionRepositoryImpl(get())
+    }
+    single { com.yusufteker.planora.core.domain.usecase.CheckAppVersionUseCase(get(), get()) }
+    viewModelOf(::AppVersionViewModel)
 }
