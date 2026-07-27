@@ -87,7 +87,8 @@ fun SocialScreen(
                 FloatingActionButton(
                     onClick = { rootNavigator.navigate(Screen.CreatePost()) },
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(bottom = 84.dp)
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Default.Add,

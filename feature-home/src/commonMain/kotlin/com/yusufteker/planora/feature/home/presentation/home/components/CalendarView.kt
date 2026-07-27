@@ -252,7 +252,7 @@ fun CalendarView(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 88.dp, bottom = 96.dp),
+                    .padding(end = 88.dp, bottom = 100.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {

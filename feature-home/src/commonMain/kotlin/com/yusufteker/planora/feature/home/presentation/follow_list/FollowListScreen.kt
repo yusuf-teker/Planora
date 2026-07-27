@@ -149,7 +149,7 @@ private fun FollowersTab(
         EmptyStateComponent(
             icon = Icons.Default.Group,
             title = stringResource(Res.string.empty_followers),
-            description = "Henüz takipçiniz bulunmuyor.",
+            //description = "Henüz takipçiniz bulunmuyor.",
             modifier = Modifier.fillMaxSize()
         )
     } else {
@@ -197,7 +197,7 @@ private fun FollowingTab(
         EmptyStateComponent(
             icon = Icons.Default.PersonSearch,
             title = stringResource(Res.string.empty_following),
-            description = "Henüz kimseyi takip etmiyorsunuz.",
+            //description = "Henüz kimseyi takip etmiyorsunuz.",
             modifier = Modifier.fillMaxSize()
         )
     } else {
@@ -247,7 +247,7 @@ private fun RequestsTab(
         EmptyStateComponent(
             icon = Icons.Default.PersonAdd,
             title = stringResource(Res.string.empty_requests),
-            description = "Bekleyen takip isteğiniz yok.",
+            //description = stringResource(Res.string.empty_requests),
             modifier = Modifier.fillMaxSize()
         )
     } else {

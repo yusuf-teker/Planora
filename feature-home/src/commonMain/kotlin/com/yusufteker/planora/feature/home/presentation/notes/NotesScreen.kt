@@ -113,7 +113,7 @@ fun NotesScreen(
                 onClick = { viewModel.onEvent(NotesEvent.CreateNoteClicked) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 shape = androidx.compose.foundation.shape.CircleShape,
-                modifier = Modifier.padding(bottom = 80.dp)
+                modifier = Modifier.padding(bottom = 84.dp)
             ) {
                 Icon(Icons.Filled.Add, stringResource(Res.string.action_create_note))
             }

@@ -101,7 +101,7 @@ fun PlanRoomsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = androidx.compose.foundation.shape.CircleShape,
-                modifier = Modifier.padding(bottom = 80.dp)
+                modifier = Modifier.padding(bottom = 84.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,

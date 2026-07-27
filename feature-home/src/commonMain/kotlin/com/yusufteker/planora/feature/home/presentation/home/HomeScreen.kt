@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -103,68 +105,71 @@ fun HomeScreen(
         }
         return
     }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            HomeFabMenu(
+                isExpanded = isFabExpanded,
+                onExpandedChange = { isFabExpanded = it },
+                onCreateTask = { viewModel.onEvent(HomeEvent.CreateTaskClicked) },
+                onCreateEvent = { viewModel.onEvent(HomeEvent.CreateEventClicked) },
+                modifier = Modifier.padding(bottom = 84.dp)
+            )
+        }
+    ) { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.Start,
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Header (Planora Top Bar)
-            HomeTopBar(
-                state = state, onEvent = viewModel::onEvent
-            )
-
-            // Shared Users row
-            SharedUserChipRow(
-                accessibleUsers = state.accessibleUsers,
-                selectedUserIds = state.selectedSharedUserIds,
-                currentUserAvatarId = state.currentUserAvatarId,
-                currentUserProfileImageUrl = state.currentUserProfileImageUrl,
-                onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Calendar View
-            if (state.viewOption == TimelineViewOption.CALENDAR) {
-                CalendarSection(
-                    state = state, 
-                    onEvent = viewModel::onEvent,
-                    modifier = Modifier.weight(1f)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                // Header (Planora Top Bar)
+                HomeTopBar(
+                    state = state, onEvent = viewModel::onEvent
                 )
-            } else {
-                // Timeline
-                TimelineSection(
-                    state = state, 
-                    onTaskClick = {
-                        viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
-                    },
-                    onTaskDelete = { taskId ->
-                        viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
-                    },
-                    onLoadMore = {
-                        viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
-                    },
-                    modifier = Modifier.weight(1f).fillMaxWidth()
+
+                // Shared Users row
+                SharedUserChipRow(
+                    accessibleUsers = state.accessibleUsers,
+                    selectedUserIds = state.selectedSharedUserIds,
+                    currentUserAvatarId = state.currentUserAvatarId,
+                    currentUserProfileImageUrl = state.currentUserProfileImageUrl,
+                    onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Calendar View
+                if (state.viewOption == TimelineViewOption.CALENDAR) {
+                    CalendarSection(
+                        state = state, 
+                        onEvent = viewModel::onEvent,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    // Timeline
+                    TimelineSection(
+                        state = state, 
+                        onTaskClick = {
+                            viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
+                        },
+                        onTaskDelete = { taskId ->
+                            viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
+                        },
+                        onLoadMore = {
+                            viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
+                        },
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    )
+                }
             }
         }
-
-        HomeFabMenu(
-            isExpanded = isFabExpanded,
-            onExpandedChange = { isFabExpanded = it },
-            onCreateTask = { viewModel.onEvent(HomeEvent.CreateTaskClicked) },
-            onCreateEvent = { viewModel.onEvent(HomeEvent.CreateEventClicked) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 96.dp)
-        )
     }
 
     if (state.isFilterSheetVisible) {
