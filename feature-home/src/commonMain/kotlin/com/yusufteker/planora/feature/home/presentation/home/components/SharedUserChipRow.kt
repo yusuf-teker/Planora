@@ -33,8 +33,10 @@ private fun String.toColorOrNull(): Color? {
 fun SharedUserChipRow(
     accessibleUsers: List<AccessibleUser>,
     selectedUserIds: Set<Int>,
+    isMyTasksSelected: Boolean,
     currentUserAvatarId: String?,
     currentUserProfileImageUrl: String?,
+    onToggleMyUser: () -> Unit,
     onToggleUser: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -52,8 +54,8 @@ fun SharedUserChipRow(
                 avatarId = currentUserAvatarId ?: "avatar_1",
                 profileImageUrl = currentUserProfileImageUrl,
                 color = MaterialTheme.colorScheme.primary,
-                isSelected = true,
-                onClick = { /* Me is always selected for now */ }
+                isSelected = isMyTasksSelected,
+                onClick = onToggleMyUser
             )
         }
         
