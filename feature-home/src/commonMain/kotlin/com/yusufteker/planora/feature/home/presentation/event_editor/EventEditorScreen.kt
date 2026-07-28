@@ -30,6 +30,8 @@ import com.yusufteker.planora.feature.home.presentation.components.ReminderPicke
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
+import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.TaskType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
@@ -333,6 +335,142 @@ fun EventEditorScreen(
                     }
                 }
                 
+                // Sub-tasks Section (if editing an existing event)
+                if (state.id != null) {
+                    val subTasks = remember(state.subItems) {
+                        state.subItems.filter { it.type == TaskType.TASK }
+                    }
+                    FormSection {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.label_subtasks),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(onClick = { onNavigateToCreateTask(state.id!!) }) {
+                                Text(stringResource(Res.string.action_create_subtask))
+                            }
+                        }
+
+                        if (subTasks.isEmpty()) {
+                            Text(
+                                text = stringResource(Res.string.no_sub_tasks_added),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        } else {
+                            subTasks.forEach { subTask ->
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onNavigateToEditTask(subTask.id)
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = subTask.title,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        val subTaskDeadline = (subTask.specificDetails as? ItemDetails.Task)?.deadline ?: subTask.startTime
+                                        val assigneeName = subTask.participants.firstOrNull()?.name
+                                        if (subTaskDeadline != 0L || !assigneeName.isNullOrBlank()) {
+                                            val detailText = buildString {
+                                                if (subTaskDeadline != 0L) append(formatShortDate(subTaskDeadline))
+                                                if (!assigneeName.isNullOrBlank()) {
+                                                    if (isNotEmpty()) append(" • ")
+                                                    append(assigneeName)
+                                                }
+                                            }
+                                            Text(
+                                                text = detailText,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Sub-notes Section (if editing an existing event)
+                    val subNotes = remember(state.subItems) {
+                        state.subItems.filter { it.type == TaskType.NOTE }
+                    }
+                    FormSection {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.sub_notes_label),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(onClick = { onNavigateToCreateNote(state.id!!) }) {
+                                Text(stringResource(Res.string.action_create_note))
+                            }
+                        }
+
+                        if (subNotes.isEmpty()) {
+                            Text(
+                                text = stringResource(Res.string.no_sub_notes_added),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        } else {
+                            subNotes.forEach { subNote ->
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onNavigateToEditNote(subNote.id)
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = subNote.title,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }

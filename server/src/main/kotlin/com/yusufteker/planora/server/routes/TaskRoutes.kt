@@ -104,7 +104,6 @@ fun Route.taskRoutes() {
                 var newTaskDto: TaskDto? = null
                 dbQuery {
                     val localId = request.localId
-                    val newTaskId = localId ?: UUID.randomUUID().toString()
 
                     if (localId != null) {
                         val existingTask = TaskEntity.findById(localId)
@@ -150,6 +149,8 @@ fun Route.taskRoutes() {
                             }
                         }
                     }
+
+                    val newTaskId = UUID.randomUUID().toString()
 
                     TaskEntity.new(newTaskId) {
                         this.creator = UserEntity[userId]

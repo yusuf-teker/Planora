@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +41,8 @@ import coil3.compose.AsyncImage
 import com.yusufteker.planora.core.ui.components.getOptimizedCloudinaryUrl
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
+import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
@@ -51,7 +55,9 @@ fun EventDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditEvent: (String, String?) -> Unit = { _, _ -> },
     onNavigateToCopyEvent: (String, String?) -> Unit = { _, _ -> },
-    onNavigateToPlanRoom: (String) -> Unit = {}
+    onNavigateToPlanRoom: (String) -> Unit = {},
+    onNavigateToEditTask: (String) -> Unit = {},
+    onNavigateToEditNote: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -576,7 +582,179 @@ fun EventDetailScreen(
                     }
                 }
 
-                // Participants Section (if present)
+                // Sub-tasks Section (placed higher up in Event Detail)
+                val subTasks = remember(state.subItems) {
+                    state.subItems.filter { it.type == TaskType.TASK }
+                }
+                if (subTasks.isNotEmpty()) {
+                    val completedCount = subTasks.count { it.status == TaskStatus.COMPLETED }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(Res.string.label_subtasks),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Text(
+                                    text = "$completedCount / ${subTasks.size}",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                subTasks.forEach { subtask ->
+                                    val subtaskCompleted = subtask.status == TaskStatus.COMPLETED
+                                    val ownerName = subtask.participants.firstOrNull()?.name
+                                        ?: if (state.planRoomId != null && subtask.creatorId != 0) {
+                                            state.roomMembers.find { it.id == subtask.creatorId }?.name
+                                        } else null
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable { viewModel.onEvent(EventDetailEvent.OnToggleSubTask(subtask.id)) },
+                                        color = if (subtaskCompleted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Checkbox(
+                                                checked = subtaskCompleted,
+                                                onCheckedChange = { viewModel.onEvent(EventDetailEvent.OnToggleSubTask(subtask.id)) },
+                                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = subtask.title,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (subtaskCompleted) FontWeight.Normal else FontWeight.Medium,
+                                                    textDecoration = if (subtaskCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                                                    color = if (subtaskCompleted) MaterialTheme.colorScheme.onSurfaceVariant
+                                                    else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                if (!ownerName.isNullOrBlank()) {
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Text(
+                                                        text = stringResource(Res.string.sub_task_owner_label, ownerName),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Sub-notes Section
+                val subNotes = remember(state.subItems) {
+                    state.subItems.filter { it.type == TaskType.NOTE }
+                }
+                if (subNotes.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.sub_notes_label),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            subNotes.forEach { subnote ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { onNavigateToEditNote(subnote.id) },
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = subnote.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        if (!subnote.description.isNullOrBlank()) {
+                                            Text(
+                                                text = subnote.description!!,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Participants Section (Sorumlular, moved to bottom)
                 if (state.participants.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),

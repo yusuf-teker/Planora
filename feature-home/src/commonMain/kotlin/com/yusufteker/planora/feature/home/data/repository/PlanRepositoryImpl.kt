@@ -117,13 +117,15 @@ class PlanRepositoryImpl(
         return try {
             val currentUserId = 0L
             val localTaskId = "local_${generateUUID()}"
+            val resolvedParentId = request.parentId?.let { getActualTaskId(it) } ?: request.parentId
+            val requestToSave = if (resolvedParentId != request.parentId) request.copy(parentId = resolvedParentId) else request
 
             // Görevi ve oda bağlantısını tek bir transaction içinde kaydet (atomik)
             database.planoraDatabaseQueries.transaction { // herhangi biri hata alırsa tüm hepsi hata alır
                 database.planoraDatabaseQueries.insertTaskFromRequest(
-                    id = localTaskId, creatorId = currentUserId, request = request, isSynced = 0L
+                    id = localTaskId, creatorId = currentUserId, request = requestToSave, isSynced = 0L
                 )
-                request.sharedRoomIds.forEach { roomId ->
+                requestToSave.sharedRoomIds.forEach { roomId ->
                     database.planoraDatabaseQueries.insertTaskSharedRoom(taskId = localTaskId, roomId = roomId)
                 }
             }
@@ -153,6 +155,8 @@ class PlanRepositoryImpl(
     override suspend fun updateTask(taskId: String, request: CreateTaskRequest, triggerSync: Boolean): Result<Unit> {
         return try {
             val actualTaskId = getActualTaskId(taskId)
+            val resolvedParentId = request.parentId?.let { getActualTaskId(it) } ?: request.parentId
+            val requestToSave = if (resolvedParentId != request.parentId) request.copy(parentId = resolvedParentId) else request
 
             val existingTask = database.planoraDatabaseQueries.getTaskById(actualTaskId).executeAsOneOrNull()
             if (existingTask == null) {
@@ -163,10 +167,10 @@ class PlanRepositoryImpl(
             // Görevi ve oda bağlantısını atomic transaction içinde güncelle
             database.planoraDatabaseQueries.transaction {
                 database.planoraDatabaseQueries.insertTaskFromRequest(
-                    id = actualTaskId, creatorId = currentUserId, request = request, isSynced = 0L
+                    id = actualTaskId, creatorId = currentUserId, request = requestToSave, isSynced = 0L
                 )
                 database.planoraDatabaseQueries.deleteTaskSharedRoomsForTask(actualTaskId)
-                request.sharedRoomIds.forEach { roomId ->
+                requestToSave.sharedRoomIds.forEach { roomId ->
                     database.planoraDatabaseQueries.insertTaskSharedRoom(taskId = actualTaskId, roomId = roomId)
                 }
             }
@@ -248,15 +252,16 @@ class PlanRepositoryImpl(
 
                 pendingTasks.forEach { entity ->
                     try {
+                        val currentLocalEntity = database.planoraDatabaseQueries.getTaskById(entity.id).executeAsOneOrNull() ?: entity
                         // DB entity'sini API isteğine dönüştür
-                        val request = buildRequestFromEntity(entity)
+                        val request = buildRequestFromEntity(currentLocalEntity)
 
-                        if (entity.id.startsWith("local_")) {
+                        if (currentLocalEntity.id.startsWith("local_")) {
                             // ── YENİ GÖREV: Sunucuda henüz oluşturulmadı, POST at ──
-                            syncNewLocalTask(entity, request)
+                            syncNewLocalTask(currentLocalEntity, request)
                         } else {
                             // ── VAR OLAN GÖREV: Sunucuda güncelle, PUT at ──
-                            syncExistingTask(entity, request)
+                            syncExistingTask(currentLocalEntity, request)
                         }
                     } catch (e: Exception) {
                         Napier.w("Failed to sync task ${entity.id}: ${e.message}")
@@ -403,7 +408,8 @@ class PlanRepositoryImpl(
     /**
      * Bir DB entity'sini sunucuya gönderilebilecek [CreateTaskRequest] nesnesine dönüştürür.
      */
-    private fun buildRequestFromEntity(entity: com.yusufteker.planora.core.database.TaskEntity): CreateTaskRequest {
+    private suspend fun buildRequestFromEntity(entity: com.yusufteker.planora.core.database.TaskEntity): CreateTaskRequest {
+        val resolvedParentId = entity.parentId?.let { getActualTaskId(it) } ?: entity.parentId
         return CreateTaskRequest(
             title = entity.title,
             description = entity.description,
@@ -419,7 +425,7 @@ class PlanRepositoryImpl(
             isOptional = entity.isOptional == 1L,
             isPostponable = entity.isPostponable == 1L,
             isAllDay = entity.isAllDay == 1L,
-            parentId = entity.parentId,
+            parentId = resolvedParentId,
             aiMetadata = entity.aiMetadata?.let { try { json.decodeFromString(it) } catch (e: Exception) { null } },
             reminders = entity.reminders?.let { try { json.decodeFromString(it) } catch (e: Exception) { emptyList() } } ?: emptyList(),
             specificDetails = entity.specificDetails?.let { try { json.decodeFromString(it.replace("com.yusufteker.pulse.", "com.yusufteker.planora.")) } catch (e: Exception) { null } },
@@ -596,7 +602,7 @@ class PlanRepositoryImpl(
                     specificDetails = dto.specificDetails,
                     tags = dto.tags,
                     color = dto.color,
-                    parentId = dto.parentId
+                    parentId = dto.parentId?.let { getActualTaskId(it) } ?: dto.parentId
                 )
                 scope.launch(Dispatchers.IO) {
                     try {

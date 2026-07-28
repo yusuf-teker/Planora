@@ -20,6 +20,7 @@ import kotlinx.serialization.json.Json
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskVisibility
+import com.yusufteker.planora.shared.api.extractBaseTaskId
 import org.jetbrains.compose.resources.getString
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -65,6 +66,34 @@ class EventDetailViewModel(
                 }
             }
             is EventDetailEvent.OnQuickDuplicate -> quickDuplicateEvent(event.targetDateMs)
+            is EventDetailEvent.OnToggleSubTask -> toggleSubTask(event.subTaskId)
+        }
+    }
+
+    private fun toggleSubTask(subTaskId: String) {
+        val subtask = _state.value.subItems.find { it.id == subTaskId } ?: return
+        val isCompleted = subtask.status == TaskStatus.COMPLETED
+
+        viewModelScope.launch {
+            val newStatus = if (isCompleted) TaskStatus.PENDING else TaskStatus.COMPLETED
+            val updatedSubItems = _state.value.subItems.map {
+                if (it.id == subTaskId) it.copy(status = newStatus) else it
+            }
+            _state.update { it.copy(subItems = updatedSubItems) }
+
+            val result = planRepository.completeTaskInstance(
+                taskId = subTaskId.extractBaseTaskId(),
+                dateMs = subtask.startTime,
+                isCompleted = !isCompleted
+            )
+            if (result.isFailure) {
+                _state.update { state ->
+                    state.copy(subItems = state.subItems.map {
+                        if (it.id == subTaskId) subtask else it
+                    })
+                }
+                setEffect(EventDetailEffect.ShowToast("Alt görev durumu güncellenemedi"))
+            }
         }
     }
 

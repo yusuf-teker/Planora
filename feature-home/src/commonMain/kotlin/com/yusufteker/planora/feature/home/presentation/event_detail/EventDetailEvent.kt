@@ -15,4 +15,6 @@ sealed interface EventDetailEvent {
     data object OnShareClick : EventDetailEvent
     data object OnCopyClick : EventDetailEvent
     data class OnQuickDuplicate(val targetDateMs: Long) : EventDetailEvent
+    data class OnToggleSubTask(val subTaskId: String) : EventDetailEvent
 }
+

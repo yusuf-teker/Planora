@@ -592,6 +592,9 @@
     <string name="title_quick_duplicate">Select Target Date &amp; Time</string>
     <string name="msg_duplicated_successfully">Duplicated successfully!</string>
     <string name="action_postpone_tomorrow">Postpone to Tomorrow</string>
+    <string name="action_create_subtask">Create Sub-task</string>
+    <string name="no_sub_tasks_added">No sub-tasks added yet.</string>
+    <string name="sub_task_owner_label">Assigned to: %1$s</string>
 </resources>
 
 

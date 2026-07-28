@@ -450,7 +450,9 @@ fun App() {
                             onNavigateBack = { navigator.pop() },
                             onNavigateToEditEvent = { eventId, roomId -> navigator.navigate(Screen.EventEditor(eventId = eventId, planRoomId = roomId)) },
                             onNavigateToCopyEvent = { eventId, roomId -> navigator.navigate(Screen.EventEditor(copyFromEventId = eventId, planRoomId = roomId)) },
-                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
+                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) },
+                            onNavigateToEditTask = { taskId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = screen.planRoomId)) },
+                            onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) }
                         )
                     }
 
@@ -473,7 +475,7 @@ fun App() {
                         EventEditorScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
-                            onNavigateToCreateTask = { parentId -> navigator.navigate(Screen.TaskEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
+                            onNavigateToCreateTask = { parentId -> navigator.navigate(Screen.TaskEditor(parentId = parentId, planRoomId = screen.planRoomId, sharedDate = viewModel.state.value.startDateTimeMs)) },
                             onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
                             onNavigateToEditTask = { taskId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = screen.planRoomId)) },
                             onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },

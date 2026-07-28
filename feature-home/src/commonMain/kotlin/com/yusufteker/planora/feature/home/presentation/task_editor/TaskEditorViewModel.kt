@@ -245,6 +245,22 @@ class TaskEditorViewModel(
                     description = finalNote,
                     deadlineDateMs = sharedDate ?: getCurrentTimeMs()
                 )
+
+                if (parentId != null && sharedDate == null) {
+                    viewModelScope.launch {
+                        planRepository.observeAllTasks().collect { tasks ->
+                            val parentItem = tasks.find { it.id == parentId }
+                            if (parentItem != null) {
+                                val parentStartTime = parentItem.startTime
+                                _state.update { currentState ->
+                                    if (sharedDate == null) {
+                                        currentState.copy(deadlineDateMs = parentStartTime)
+                                    } else currentState
+                                }
+                            }
+                        }
+                    }
+                }
                 
                 // Eğer baska bir görevden kopyalanıyorsa orijinal görevin detaylarını çekip önceden doldur
                 if (!copyFromTaskId.isNullOrBlank()) {

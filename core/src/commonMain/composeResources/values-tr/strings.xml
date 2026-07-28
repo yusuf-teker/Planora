@@ -591,4 +591,7 @@
     <string name="title_quick_duplicate">Hedef Gün ve Saati Seçin</string>
     <string name="msg_duplicated_successfully">Başarıyla kopyalandı!</string>
     <string name="action_postpone_tomorrow">Yarına Ertele</string>
+    <string name="action_create_subtask">Alt Görev Ekle</string>
+    <string name="no_sub_tasks_added">Henüz bir alt görev eklenmemiş.</string>
+    <string name="sub_task_owner_label">Atanan: %1$s</string>
 </resources>
