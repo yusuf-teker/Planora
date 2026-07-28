@@ -13,6 +13,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import com.yusufteker.planora.core.database.clearAll
+import com.yusufteker.planora.core.network.parseApiException
 
 import com.yusufteker.planora.core.database.PlanoraDatabase
 
@@ -41,7 +42,7 @@ class AuthRepositoryImpl(
             sessionPreferences.setLastLoggedUserId(response.userId.toString())
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
-            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl)
+            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl, username = response.username)
             Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}'" })
             
             try {
@@ -53,8 +54,9 @@ class AuthRepositoryImpl(
             Result.success(response)
         } catch (e: Exception) {
             // Ağ hatası, yanlış şifre (401) veya sunucu kapalıysa (500) hata olarak döner.
-            Napier.e("Login request failed with exception: ${e.message}", e, tag = "HTTP_LOG")
-            Result.failure(e)
+            val parsed = e.parseApiException()
+            Napier.e("Login request failed with exception: ${parsed.message}", parsed, tag = "HTTP_LOG")
+            Result.failure(parsed)
         }
     }
 
@@ -69,7 +71,7 @@ class AuthRepositoryImpl(
             }
             sessionPreferences.setLastLoggedUserId(response.userId.toString())
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
-            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl)
+            sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl, username = response.username)
             
             try {
                 registerFcmTokenUseCase?.invoke()
@@ -79,7 +81,7 @@ class AuthRepositoryImpl(
             
             Result.success(response)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.parseApiException())
         }
     }
 
@@ -101,20 +103,21 @@ class AuthRepositoryImpl(
             // Update local DataStore upon successful server update
             val currentUserId = sessionPreferences.getUserId() ?: "guest"
             val currentProfileImageUrl = sessionPreferences.getUserProfileImageUrl()
-            sessionPreferences.saveUserProfile(currentUserId, name, avatarId, currentProfileImageUrl)
+            val currentUsername = sessionPreferences.getUserHandle()
+            sessionPreferences.saveUserProfile(currentUserId, name, avatarId, currentProfileImageUrl, username = currentUsername)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.parseApiException())
         }
     }
 
     override suspend fun fetchMyProfile(): Result<Unit> {
         return try {
             val profile = httpClient.get("auth/me").body<com.yusufteker.planora.shared.api.UserProfileResponse>()
-            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.profileImageUrl, profile.followersCount, profile.followingCount)
+            sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.profileImageUrl, profile.followersCount, profile.followingCount, username = profile.username)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.parseApiException())
         }
     }
 
@@ -126,7 +129,7 @@ class AuthRepositoryImpl(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.parseApiException())
         }
     }
 
@@ -137,8 +140,9 @@ class AuthRepositoryImpl(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            Napier.e("ForgotPassword request failed: ${e.message}", e, tag = "HTTP_LOG")
-            Result.failure(e)
+            val parsed = e.parseApiException()
+            Napier.e("ForgotPassword request failed: ${parsed.message}", parsed, tag = "HTTP_LOG")
+            Result.failure(parsed)
         }
     }
 
@@ -149,8 +153,9 @@ class AuthRepositoryImpl(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            Napier.e("ResetPassword request failed: ${e.message}", e, tag = "HTTP_LOG")
-            Result.failure(e)
+            val parsed = e.parseApiException()
+            Napier.e("ResetPassword request failed: ${parsed.message}", parsed, tag = "HTTP_LOG")
+            Result.failure(parsed)
         }
     }
 }

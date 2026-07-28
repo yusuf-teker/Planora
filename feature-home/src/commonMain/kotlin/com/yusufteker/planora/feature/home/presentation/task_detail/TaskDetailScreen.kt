@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
@@ -58,6 +59,7 @@ fun TaskDetailScreen(
     viewModel: TaskDetailViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToEditTask: (String, String?) -> Unit = { _, _ -> },
+    onNavigateToCopyTask: (String, String?) -> Unit = { _, _ -> },
     onNavigateToFocus: (String) -> Unit = {},
     onNavigateToEditNote: (String) -> Unit = {},
     onNavigateToPlanRoom: (String) -> Unit = {}
@@ -74,6 +76,7 @@ fun TaskDetailScreen(
             when (effect) {
                 is TaskDetailEffect.NavigateBack -> onNavigateBack()
                 is TaskDetailEffect.NavigateToEditTask -> onNavigateToEditTask(effect.taskId, effect.planRoomId)
+                is TaskDetailEffect.NavigateToCopyTask -> onNavigateToCopyTask(effect.taskId, effect.planRoomId)
                 is TaskDetailEffect.NavigateToFocus -> onNavigateToFocus(effect.taskId)
                 is TaskDetailEffect.ShowSnackbar -> {
                     scope.launch {
@@ -121,6 +124,20 @@ fun TaskDetailScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_copy)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(TaskDetailEvent.OnCopyClick)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
                                 leadingIcon = {

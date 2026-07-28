@@ -23,7 +23,8 @@ sealed interface TaskEditorEvent : UiEvent {
         val sharedTitle: String? = null,
         val sharedNote: String? = null,
         val sharedDate: Long? = null,
-        val sharedSender: String? = null
+        val sharedSender: String? = null,
+        val copyFromTaskId: String? = null
     ) : TaskEditorEvent
     data class OnIsOptionalChanged(val isOptional: Boolean) : TaskEditorEvent
     data class OnReminderPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent

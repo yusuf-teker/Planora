@@ -52,6 +52,12 @@ class EventDetailViewModel(
             EventDetailEvent.OnDeleteClick -> deleteEvent()
             EventDetailEvent.OnBackClick -> setEffect(EventDetailEffect.NavigateBack)
             EventDetailEvent.OnShareClick -> shareEvent()
+            EventDetailEvent.OnCopyClick -> {
+                val currentId = _state.value.eventId
+                if (currentId != null) {
+                    setEffect(EventDetailEffect.NavigateToCopyEvent(currentId, _state.value.planRoomId))
+                }
+            }
         }
     }
 
@@ -146,9 +152,9 @@ class EventDetailViewModel(
             val roomId = _state.value.planRoomId
 
             val url = if (eventId != null && roomId != null) {
-                "https://pulse.yusufteker.com/share/joinEvent?eventId=$eventId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
+                "https://planora.yusufteker.com/share/joinEvent?eventId=$eventId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
             } else {
-                "https://pulse.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                "https://planora.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
             }
 
             val shareText = if (eventId != null && roomId != null) {

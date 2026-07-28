@@ -9,7 +9,8 @@ sealed interface EventEditorEvent {
         val sharedTitle: String? = null,
         val sharedNote: String? = null,
         val sharedDate: Long? = null,
-        val sharedSender: String? = null
+        val sharedSender: String? = null,
+        val copyFromEventId: String? = null
     ) : EventEditorEvent
     data class OnTitleChange(val title: String) : EventEditorEvent
     data class OnDescriptionChange(val description: String) : EventEditorEvent

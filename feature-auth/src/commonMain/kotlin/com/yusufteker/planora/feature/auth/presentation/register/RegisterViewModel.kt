@@ -2,6 +2,7 @@ package com.yusufteker.planora.feature.auth.presentation.register
 
 import com.yusufteker.planora.core.base.BaseViewModel
 import com.yusufteker.planora.core.ui.text.UiText
+import com.yusufteker.planora.core.util.toUiText
 import com.yusufteker.planora.feature.auth.domain.usecase.RegisterUseCase
 import com.yusufteker.planora.shared.api.RegisterRequest
 import planora.core.generated.resources.Res
@@ -67,7 +68,7 @@ class RegisterViewModel(
                                 setEffect(RegisterEffect.NavigateToHome)
                             },
                             onFailure = { error ->
-                                setState { copy(emailError = UiText.StringResourceId(Res.string.error_register_failed, error.message ?: "Unknown")) }
+                                setState { copy(emailError = error.toUiText()) }
                             }
                         )
                     }

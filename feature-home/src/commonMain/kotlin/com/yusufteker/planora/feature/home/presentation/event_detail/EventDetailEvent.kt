@@ -13,4 +13,5 @@ sealed interface EventDetailEvent {
     data object OnDeleteClick : EventDetailEvent
     data object OnBackClick : EventDetailEvent
     data object OnShareClick : EventDetailEvent
+    data object OnCopyClick : EventDetailEvent
 }

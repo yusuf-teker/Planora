@@ -154,10 +154,13 @@ fun NotesScreen(
                     icon = Icons.Default.Edit,
                     title = stringResource(Res.string.empty_notes_title),
                     description = stringResource(Res.string.empty_notes_desc),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).padding(bottom = 100.dp)
                 )
             } else if (state.notes.isEmpty() && state.searchQuery.isNotEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxSize().weight(1f).padding(bottom = 100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(stringResource(Res.string.notes_no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {

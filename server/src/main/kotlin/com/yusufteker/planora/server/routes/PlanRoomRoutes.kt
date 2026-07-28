@@ -7,6 +7,8 @@ import com.yusufteker.planora.server.database.tables.PlanRoomsTable
 import com.yusufteker.planora.server.database.tables.UserEntity
 import com.yusufteker.planora.server.database.tables.TaskSharedRoomsTable
 import com.yusufteker.planora.server.database.tables.TaskEntity
+import com.yusufteker.planora.server.util.respondError
+import com.yusufteker.planora.shared.api.ApiErrorCode
 import com.yusufteker.planora.shared.api.CreatePlanRoomRequest
 import com.yusufteker.planora.shared.api.InviteUserRequest
 import com.yusufteker.planora.shared.api.PlanRoomDto
@@ -142,13 +144,13 @@ fun Route.planRoomRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
                 
                 if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    call.respondError(HttpStatusCode.Unauthorized, ApiErrorCode.UNAUTHORIZED, "Unauthorized")
                     return@post
                 }
 
                 val request = call.receiveNullable<CreatePlanRoomRequest>()
                 if (request == null || request.name.isBlank()) {
-                    call.respond(HttpStatusCode.BadRequest, "Room name cannot be empty")
+                    call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.ROOM_NAME_EMPTY, "Room name cannot be empty")
                     return@post
                 }
 
@@ -197,7 +199,7 @@ fun Route.planRoomRoutes() {
                 if (newRoom != null) {
                     call.respond(HttpStatusCode.Created, newRoom)
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, "Failed to create room")
+                    call.respondError(HttpStatusCode.InternalServerError, ApiErrorCode.INTERNAL_SERVER_ERROR, "Failed to create room")
                 }
             }
 
@@ -207,19 +209,19 @@ fun Route.planRoomRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
                 
                 if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                    call.respondError(HttpStatusCode.Unauthorized, ApiErrorCode.UNAUTHORIZED, "Unauthorized")
                     return@put
                 }
                 
                 val roomId = call.parameters["roomId"]
                 if (roomId == null) {
-                    call.respond(HttpStatusCode.BadRequest, "Missing roomId")
+                    call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.BAD_REQUEST, "Missing roomId")
                     return@put
                 }
                 
                 val request = call.receiveNullable<com.yusufteker.planora.shared.api.RenamePlanRoomRequest>()
                 if (request == null || request.name.isBlank()) {
-                    call.respond(HttpStatusCode.BadRequest, "Room name cannot be empty")
+                    call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.ROOM_NAME_EMPTY, "Room name cannot be empty")
                     return@put
                 }
                 
@@ -245,7 +247,7 @@ fun Route.planRoomRoutes() {
                 if (updated) {
                     call.respond(HttpStatusCode.OK)
                 } else {
-                    call.respond(HttpStatusCode.Forbidden, "Room not found or you don't have permission to edit")
+                    call.respondError(HttpStatusCode.Forbidden, ApiErrorCode.ROOM_PERMISSION_DENIED, "Room not found or you don't have permission to edit")
                 }
             }
 

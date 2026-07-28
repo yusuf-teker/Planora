@@ -35,7 +35,8 @@ data class EventEditorState(
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
     val roomMembers: List<com.yusufteker.planora.shared.api.UserProfileResponse> = emptyList(),
-    val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList()
+    val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),
+    val isCopyMode: Boolean = false
 )
 
 private fun LocalTime.plusHours(hours: Int): LocalTime {

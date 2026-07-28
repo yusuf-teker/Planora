@@ -8,6 +8,8 @@ import com.yusufteker.planora.server.database.tables.UsersTable
 import com.yusufteker.planora.server.security.HashingService
 import com.yusufteker.planora.server.security.TokenService
 import com.yusufteker.planora.server.service.EmailService
+import com.yusufteker.planora.server.util.respondError
+import com.yusufteker.planora.shared.api.ApiErrorCode
 import com.yusufteker.planora.shared.api.AuthRequest
 import com.yusufteker.planora.shared.api.AuthResponse
 import com.yusufteker.planora.shared.api.RefreshTokenRequest
@@ -47,9 +49,9 @@ fun Route.authRoutes() {
             }
             if (existingUser != null) {
                 if (existingUser.email == request.email) {
-                    call.respond(HttpStatusCode.Conflict, "Email already in use")
+                    call.respondError(HttpStatusCode.Conflict, ApiErrorCode.EMAIL_IN_USE, "Email already in use")
                 } else {
-                    call.respond(HttpStatusCode.Conflict, "Username already in use")
+                    call.respondError(HttpStatusCode.Conflict, ApiErrorCode.USERNAME_IN_USE, "Username already in use")
                 }
                 return@post
             }
@@ -89,7 +91,7 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.avatarId, newUser.profileImageUrl))
+            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.username, newUser.avatarId, newUser.profileImageUrl))
         }
 
         // --- 2. LOGIN ENDPOINT ---
@@ -105,7 +107,7 @@ fun Route.authRoutes() {
 
             // Kullanıcı yoksa veya uygulamanın gönderdiği şifrenin hash'i DB'deki hash ile eşleşmiyorsa hata dönüyoruz.
             if (user == null || !HashingService.verifyPassword(request.password, user.passwordHash)) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
+                call.respondError(HttpStatusCode.Unauthorized, ApiErrorCode.INVALID_CREDENTIALS, "Invalid credentials")
                 return@post
             }
             // email ve şifre doğru ise token üretiyoruz ve kullanıcıya dönüyoruz.
@@ -122,7 +124,7 @@ fun Route.authRoutes() {
                 }
             }
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.avatarId, user.profileImageUrl))
+            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl))
         }
 
         // --- 3. REFRESH TOKEN ENDPOINT ---
@@ -138,7 +140,7 @@ fun Route.authRoutes() {
 
             // Token veritabanında yoksa veya süresi dolmuşsa geçersiz kılıyoruz.
             if (refreshTokenEntity == null || refreshTokenEntity.expiresAt.isBefore(Instant.now())) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid or expired refresh token")
+                call.respondError(HttpStatusCode.Unauthorized, ApiErrorCode.INVALID_REFRESH_TOKEN, "Invalid or expired refresh token")
                 return@post
             }
 
@@ -156,7 +158,7 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.avatarId, user.profileImageUrl))
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl))
         }
 
         // --- 4. FORGOT PASSWORD ENDPOINT ---
@@ -208,7 +210,7 @@ fun Route.authRoutes() {
             }
 
             if (user == null) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid reset code or email")
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.INVALID_RESET_CODE, "Invalid reset code or email")
                 return@post
             }
 
@@ -220,7 +222,7 @@ fun Route.authRoutes() {
             }
 
             if (resetTokenEntity == null || resetTokenEntity.expiresAt.isBefore(Instant.now())) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid or expired reset code")
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_RESET_CODE, "Invalid or expired reset code")
                 return@post
             }
 
@@ -237,7 +239,7 @@ fun Route.authRoutes() {
             }
 
             if (user == null) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid reset code or email")
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.INVALID_RESET_CODE, "Invalid reset code or email")
                 return@post
             }
 
@@ -249,7 +251,7 @@ fun Route.authRoutes() {
             }
 
             if (resetTokenEntity == null || resetTokenEntity.expiresAt.isBefore(Instant.now())) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid or expired reset code")
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_RESET_CODE, "Invalid or expired reset code")
                 return@post
             }
 

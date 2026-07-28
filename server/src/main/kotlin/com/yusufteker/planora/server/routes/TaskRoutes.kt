@@ -246,12 +246,21 @@ fun Route.taskRoutes() {
                         val creatorName = org.jetbrains.exposed.sql.transactions.transaction {
                             com.yusufteker.planora.server.database.tables.UsersTable.selectAll().where { com.yusufteker.planora.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.planora.server.database.tables.UsersTable.name) ?: "Birisi"
                         }
+                        val isEvent = request.type == com.yusufteker.planora.shared.api.TaskType.EVENT
+                        val titleStr = if (isEvent) "Yeni Etkinlik" else "Yeni Görev"
+                        val bodyStr = if (isEvent) "$creatorName seni '${request.title}' etkinliğine ekledi." else "$creatorName seni '${request.title}' görevine atadı."
+                        val pushType = if (isEvent) "event_assignment" else "task_assignment"
+                        
                         toAdd.forEach { addedUserId ->
                             routeScope.launch {
                                 com.yusufteker.planora.server.service.FcmService.sendPushToUser(
                                     userId = addedUserId,
-                                    title = "Yeni Görev",
-                                    body = "$creatorName seni '${request.title}' planına ekledi."
+                                    title = titleStr,
+                                    body = bodyStr,
+                                    data = mapOf(
+                                        "type" to pushType,
+                                        "taskId" to (newTaskDto.id)
+                                    )
                                 )
                             }
                         }
@@ -319,13 +328,23 @@ fun Route.taskRoutes() {
                     val creatorName = org.jetbrains.exposed.sql.transactions.transaction {
                         UsersTable.selectAll().where { UsersTable.id eq userId }.firstOrNull()?.get(UsersTable.name) ?: "Birisi"
                     }
+                    val isEvent = request.type == com.yusufteker.planora.shared.api.TaskType.EVENT
+                    val titleStr = if (isEvent) "Yeni Etkinlik" else "Yeni Görev"
+                    val bodyStr = if (isEvent) "$creatorName seni '${request.title}' etkinliğine ekledi." else "$creatorName seni '${request.title}' görevine atadı."
+                    val pushType = if (isEvent) "event_assignment" else "task_assignment"
+                    val taskIdStr = taskId
+                    
                     toAdd.forEach { addedUserId ->
                         if (addedUserId != userId) {
                             routeScope.launch {
                                 com.yusufteker.planora.server.service.FcmService.sendPushToUser(
                                     userId = addedUserId,
-                                    title = "Yeni Görev",
-                                    body = "$creatorName seni '${request.title}' planına ekledi."
+                                    title = titleStr,
+                                    body = bodyStr,
+                                    data = mapOf(
+                                        "type" to pushType,
+                                        "taskId" to taskIdStr
+                                    )
                                 )
                             }
                         }

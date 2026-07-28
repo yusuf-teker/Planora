@@ -27,28 +27,30 @@ class ProfileViewModel(
             val flow1 = combine(
                 sessionPreferences.userIdFlow,
                 sessionPreferences.userNameFlow,
+                sessionPreferences.userHandleFlow,
                 sessionPreferences.userAvatarFlow
-            ) { id, name, avatar -> Triple(id, name, avatar) }
+            ) { id, name, username, avatar -> ProfileDataPart1(id, name, username, avatar) }
             
             val flow2 = combine(
                 sessionPreferences.userProfileImageUrlFlow,
                 sessionPreferences.followersCountFlow,
                 sessionPreferences.followingCountFlow
-            ) { url, followers, following -> Triple(url, followers, following) }
+            ) { url, followers, following -> ProfileDataPart2(url, followers, following) }
             
-            combine(flow1, flow2) { (userId, name, avatarId), (profileImageUrl, followers, following) ->
-                ProfileData(userId, name, avatarId, profileImageUrl, followers, following)
+            combine(flow1, flow2) { part1, part2 ->
+                ProfileData(part1.userId, part1.name, part1.username, part1.avatarId, part2.profileImageUrl, part2.followers, part2.following)
             }
             .collect { data ->
                 val isLoggedIn = data.userId != null
                 setState { copy(isLoggedIn = isLoggedIn) }
-                Napier.d(tag = "Screen", message = { "DataStore Flow geldi → isim='${data.name}', avatar='${data.avatarId}', isLoggedIn=$isLoggedIn" })
+                Napier.d(tag = "Screen", message = { "DataStore Flow geldi → isim='${data.name}', handle='${data.username}', avatar='${data.avatarId}', isLoggedIn=$isLoggedIn" })
                 // Only update from datastore if it's my profile and hasn't been loaded from network yet
                 if (state.value.isMyProfile && state.value.profileId == null) {
                     val guestName = getString(Res.string.profile_guest)
                     setState {
                         copy(
                             name = data.name ?: guestName,
+                            username = data.username ?: "",
                             avatarId = data.avatarId ?: "avatar_1",
                             profileImageUrl = data.profileImageUrl,
                             followersCount = data.followersCount,
@@ -60,9 +62,23 @@ class ProfileViewModel(
         }
     }
     
+    private data class ProfileDataPart1(
+        val userId: String?,
+        val name: String?,
+        val username: String?,
+        val avatarId: String?
+    )
+    
+    private data class ProfileDataPart2(
+        val profileImageUrl: String?,
+        val followers: Int,
+        val following: Int
+    )
+
     private data class ProfileData(
         val userId: String?,
         val name: String?,
+        val username: String?,
         val avatarId: String?,
         val profileImageUrl: String?,
         val followersCount: Int,
@@ -123,11 +139,11 @@ class ProfileViewModel(
                         isLoading = true, 
                         profileId = userIdToLoad,
                         isMyProfile = isMyProfile,
-                        // Only clear if it's a different profile
-                        name = if (isSameProfile) name else "",
-                        avatarId = if (isSameProfile) avatarId else "",
-                        profileImageUrl = if (isSameProfile) profileImageUrl else null,
-                        username = if (isSameProfile) username else "",
+                        // Only clear if it's a different profile and not my profile
+                        name = if (isSameProfile || isMyProfile) name else "",
+                        avatarId = if (isSameProfile || isMyProfile) avatarId else "",
+                        profileImageUrl = if (isSameProfile || isMyProfile) profileImageUrl else null,
+                        username = if (isSameProfile || isMyProfile) username else "",
                         followersCount = if (isSameProfile) followersCount else 0,
                         followingCount = if (isSameProfile) followingCount else 0,
                         postsCount = if (isSameProfile) postsCount else 0,
@@ -137,12 +153,14 @@ class ProfileViewModel(
                 launch {
                     if (isMyProfile) {
                         val localName = sessionPreferences.getUserName()
+                        val localHandle = sessionPreferences.getUserHandle()
                         val localAvatar = sessionPreferences.getUserAvatar()
                         val localProfileImageUrl = sessionPreferences.getUserProfileImageUrl()
                         if (localName != null) {
                             setState {
                                 copy(
                                     name = localName,
+                                    username = localHandle ?: username,
                                     avatarId = localAvatar ?: "avatar_1",
                                     profileImageUrl = localProfileImageUrl
                                 )
@@ -172,7 +190,8 @@ class ProfileViewModel(
                                     avatarId = profile.avatarId,
                                     profileImageUrl = profile.profileImageUrl,
                                     followersCount = profile.followersCount,
-                                    followingCount = profile.followingCount
+                                    followingCount = profile.followingCount,
+                                    username = profile.username
                                 )
                             }
                         }

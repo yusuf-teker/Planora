@@ -378,6 +378,7 @@ fun App() {
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
                             onNavigateToEditTask = { taskId, roomId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = roomId)) },
+                            onNavigateToCopyTask = { taskId, roomId -> navigator.navigate(Screen.TaskEditor(copyFromTaskId = taskId, planRoomId = roomId)) },
                             onNavigateToFocus = { id -> navigator.navigate(Screen.Focus(taskId = id)) },
                             onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },
                             onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
@@ -386,9 +387,9 @@ fun App() {
 
                     entry<Screen.TaskEditor> { screen ->
                         val viewModel = koinViewModel<TaskEditorViewModel>(
-                            key = "task_editor_${screen.taskId}_${screen.planRoomId}_${screen.parentId}"
+                            key = "task_editor_${screen.taskId}_${screen.copyFromTaskId}_${screen.planRoomId}_${screen.parentId}"
                         )
-                        LaunchedEffect(screen.taskId, screen.planRoomId, screen.parentId, screen.sharedTitle) {
+                        LaunchedEffect(screen.taskId, screen.copyFromTaskId, screen.planRoomId, screen.parentId, screen.sharedTitle) {
                             viewModel.onEvent(TaskEditorEvent.OnLoadTask(
                                 taskId = screen.taskId, 
                                 planRoomId = screen.planRoomId, 
@@ -396,7 +397,8 @@ fun App() {
                                 sharedTitle = screen.sharedTitle,
                                 sharedNote = screen.sharedNote,
                                 sharedDate = screen.sharedDate,
-                                sharedSender = screen.sharedSender
+                                sharedSender = screen.sharedSender,
+                                copyFromTaskId = screen.copyFromTaskId
                             ))
                         }
                         TaskEditorScreen(
@@ -447,13 +449,14 @@ fun App() {
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() },
                             onNavigateToEditEvent = { eventId, roomId -> navigator.navigate(Screen.EventEditor(eventId = eventId, planRoomId = roomId)) },
+                            onNavigateToCopyEvent = { eventId, roomId -> navigator.navigate(Screen.EventEditor(copyFromEventId = eventId, planRoomId = roomId)) },
                             onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
                         )
                     }
 
                     entry<Screen.EventEditor> { screen ->
                         val viewModel = koinViewModel<EventEditorViewModel>(
-                            key = screen.eventId ?: "new_event",
+                            key = screen.eventId ?: "new_event_${screen.copyFromEventId}",
                             parameters = { parametersOf(screen.eventId) }
                         )
                         LaunchedEffect(screen) {
@@ -463,7 +466,8 @@ fun App() {
                                 sharedTitle = screen.sharedTitle,
                                 sharedNote = screen.sharedNote,
                                 sharedDate = screen.sharedDate,
-                                sharedSender = screen.sharedSender
+                                sharedSender = screen.sharedSender,
+                                copyFromEventId = screen.copyFromEventId
                             ))
                         }
                         EventEditorScreen(

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
+import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.TaskVisibility
@@ -95,7 +96,8 @@ class TaskEditorViewModel(
                 sharedTitle = event.sharedTitle,
                 sharedNote = event.sharedNote,
                 sharedDate = event.sharedDate,
-                sharedSender = event.sharedSender
+                sharedSender = event.sharedSender,
+                copyFromTaskId = event.copyFromTaskId
             )
             is TaskEditorEvent.TitleChanged -> { 
                 _state.update { it.copy(title = event.title) } 
@@ -184,7 +186,7 @@ class TaskEditorViewModel(
                     val note = _state.value.description.encodeUrlParameter()
                     val date = _state.value.deadlineDateMs
                     val senderEncoded = sender.encodeUrlParameter()
-                    val url = "https://pulse.yusufteker.com/share/task?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                    val url = "https://planora.yusufteker.com/share/task?title=$title&note=$note&date=$date&sender=$senderEncoded"
                     val shareText = """
                         $sender sana bir görev paylaştı:
                         
@@ -212,7 +214,8 @@ class TaskEditorViewModel(
         sharedTitle: String? = null,
         sharedNote: String? = null,
         sharedDate: Long? = null,
-        sharedSender: String? = null
+        sharedSender: String? = null,
+        copyFromTaskId: String? = null
     ) {
         // Varsa önceki dinleme/yükleme coroutine'ini iptal et (Mükerrer akışları önler)
         loadJob?.cancel()
@@ -242,6 +245,42 @@ class TaskEditorViewModel(
                     description = finalNote,
                     deadlineDateMs = sharedDate ?: getCurrentTimeMs()
                 )
+                
+                // Eğer baska bir görevden kopyalanıyorsa orijinal görevin detaylarını çekip önceden doldur
+                if (!copyFromTaskId.isNullOrBlank()) {
+                    val copyBaseId = copyFromTaskId.extractBaseTaskId()
+                    planRepository.observeAllTasks().collect { tasks ->
+                        val sourceTask = tasks.find { it.id == copyBaseId && it.type == TaskType.TASK }
+                        if (sourceTask != null) {
+                            val details = sourceTask.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task
+                            val ruleObj = try {
+                                sourceTask.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.planora.shared.api.RecurrenceRule>(it) }
+                            } catch (e: Exception) { null }
+
+                            val targetRoomId = planRoomId ?: sourceTask.sharedRoomIds.firstOrNull()
+                            if (targetRoomId != null) {
+                                loadRoomMembers(targetRoomId)
+                            }
+
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    id = null, // Yeni kayıt olarak kalsın!
+                                    isCopyMode = true,
+                                    title = sourceTask.title,
+                                    description = sourceTask.description ?: "",
+                                    deadlineDateMs = details?.deadline ?: sourceTask.endTime ?: getCurrentTimeMs(),
+                                    priority = details?.priority ?: TaskPriority.MEDIUM,
+                                    isOptional = sourceTask.isOptional,
+                                    isRecurring = sourceTask.isRecurring,
+                                    recurrenceRule = ruleObj,
+                                    reminders = sourceTask.reminders,
+                                    planRoomId = targetRoomId
+                                )
+                            }
+                        }
+                    }
+                    return@launch
+                }
                 
                 // Oda üyelerini yükle
                 if (planRoomId != null) {

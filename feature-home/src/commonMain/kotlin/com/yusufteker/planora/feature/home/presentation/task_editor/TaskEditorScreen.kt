@@ -92,7 +92,16 @@ fun TaskEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.id == null) stringResource(Res.string.title_new_task) else stringResource(Res.string.action_edit), fontWeight = FontWeight.SemiBold) },
+                title = { 
+                    Text(
+                        text = when {
+                            state.isCopyMode -> stringResource(Res.string.title_copy_task)
+                            state.id == null -> stringResource(Res.string.title_new_task)
+                            else -> stringResource(Res.string.action_edit)
+                        }, 
+                        fontWeight = FontWeight.SemiBold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(TaskEditorEvent.OnBackClick) }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.back))

@@ -98,7 +98,8 @@ sealed interface Screen {
         val sharedTitle: String? = null,
         val sharedNote: String? = null,
         val sharedDate: Long? = null,
-        val sharedSender: String? = null
+        val sharedSender: String? = null,
+        val copyFromTaskId: String? = null
     ) : Screen
 
     @Serializable
@@ -127,7 +128,8 @@ sealed interface Screen {
         val sharedTitle: String? = null,
         val sharedNote: String? = null,
         val sharedDate: Long? = null,
-        val sharedSender: String? = null
+        val sharedSender: String? = null,
+        val copyFromEventId: String? = null
     ) : Screen
     
     @Serializable

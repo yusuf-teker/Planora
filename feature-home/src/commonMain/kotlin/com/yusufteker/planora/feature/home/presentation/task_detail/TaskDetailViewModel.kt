@@ -60,6 +60,12 @@ class TaskDetailViewModel(
             TaskDetailEvent.OnDeleteClick -> deleteTask()
             TaskDetailEvent.OnBackClick -> setEffect(TaskDetailEffect.NavigateBack)
             TaskDetailEvent.OnShareClick -> shareTask()
+            TaskDetailEvent.OnCopyClick -> {
+                val taskId = _state.value.taskId
+                if (taskId != null) {
+                    setEffect(TaskDetailEffect.NavigateToCopyTask(taskId, _state.value.planRoomId))
+                }
+            }
         }
     }
 
@@ -212,9 +218,9 @@ class TaskDetailViewModel(
             val roomId = _state.value.planRoomId
 
             val url = if (taskId != null && roomId != null) {
-                "https://pulse.yusufteker.com/share/joinTask?taskId=$taskId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
+                "https://planora.yusufteker.com/share/joinTask?taskId=$taskId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
             } else {
-                "https://pulse.yusufteker.com/share/task?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                "https://planora.yusufteker.com/share/task?title=$title&note=$note&date=$date&sender=$senderEncoded"
             }
 
             val shareText = """

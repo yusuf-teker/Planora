@@ -17,4 +17,5 @@ sealed interface TaskDetailEvent {
     data object OnDeleteClick : TaskDetailEvent
     data object OnBackClick : TaskDetailEvent
     data object OnShareClick : TaskDetailEvent
+    data object OnCopyClick : TaskDetailEvent
 }

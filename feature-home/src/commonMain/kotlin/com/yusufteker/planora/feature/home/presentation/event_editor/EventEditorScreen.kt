@@ -82,7 +82,16 @@ fun EventEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.id == null) stringResource(Res.string.title_new_event) else stringResource(Res.string.title_event_editor), fontWeight = FontWeight.SemiBold) },
+                title = { 
+                    Text(
+                        text = when {
+                            state.isCopyMode -> stringResource(Res.string.title_copy_event)
+                            state.id == null -> stringResource(Res.string.title_new_event)
+                            else -> stringResource(Res.string.title_event_editor)
+                        }, 
+                        fontWeight = FontWeight.SemiBold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(EventEditorEvent.OnBackClick) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))

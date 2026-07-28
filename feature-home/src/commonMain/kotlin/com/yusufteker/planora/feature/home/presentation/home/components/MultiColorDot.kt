@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MultiColorDot(
     colors: List<Color>,
-    size: Dp = 6.dp,
+    size: Dp = 8.dp,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier.size(size)) {

@@ -28,6 +28,7 @@ class SessionPreferences(
 
     // Keys for DataStore (Profile info)
     private val userNameKey = stringPreferencesKey("user_name")
+    private val userHandleKey = stringPreferencesKey("user_handle")
     private val userAvatarKey = stringPreferencesKey("user_avatar")
     private val userProfileImageUrlKey = stringPreferencesKey("user_profile_image_url")
     private val userIdKey = stringPreferencesKey("user_id")
@@ -42,8 +43,6 @@ class SessionPreferences(
     private val viewOptionKey = stringPreferencesKey("view_option")
     private val lastSeenOverviewIndexKey = intPreferencesKey("last_seen_overview_index")
 
-
-
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
     }
@@ -55,6 +54,9 @@ class SessionPreferences(
     // Flow tabanlı: DataStore değişince otomatik güncellenir
     val userNameFlow: kotlinx.coroutines.flow.Flow<String?> =
         dataStore.data.map { it[userNameKey] }.distinctUntilChanged()
+
+    val userHandleFlow: kotlinx.coroutines.flow.Flow<String?> =
+        dataStore.data.map { it[userHandleKey] }.distinctUntilChanged()
 
     val userAvatarFlow: kotlinx.coroutines.flow.Flow<String?> =
         dataStore.data.map { it[userAvatarKey] }.distinctUntilChanged()
@@ -105,6 +107,10 @@ class SessionPreferences(
 
     suspend fun getUserName(): String? {
         return dataStore.data.map { it[userNameKey] }.first()
+    }
+
+    suspend fun getUserHandle(): String? {
+        return dataStore.data.map { it[userHandleKey] }.first()
     }
 
     suspend fun getUserAvatar(): String? {
@@ -173,10 +179,13 @@ class SessionPreferences(
         return secureSettings.settings.getStringOrNull(fcmTokenKeyString)
     }
 
-    suspend fun saveUserProfile(userId: String, name: String, avatarId: String, profileImageUrl: String?, followersCount: Int = 0, followingCount: Int = 0) {
+    suspend fun saveUserProfile(userId: String, name: String, avatarId: String, profileImageUrl: String?, followersCount: Int = 0, followingCount: Int = 0, username: String? = null) {
         dataStore.edit { prefs ->
             prefs[userIdKey] = userId
             prefs[userNameKey] = name
+            if (!username.isNullOrBlank()) {
+                prefs[userHandleKey] = username
+            }
             prefs[userAvatarKey] = avatarId
             if (profileImageUrl != null) {
                 prefs[userProfileImageUrlKey] = profileImageUrl
@@ -209,6 +218,7 @@ class SessionPreferences(
         dataStore.edit { prefs ->
             prefs.remove(userIdKey)
             prefs.remove(userNameKey)
+            prefs.remove(userHandleKey)
             prefs.remove(userAvatarKey)
             prefs.remove(userProfileImageUrlKey)
             prefs.remove(followersCountKey)

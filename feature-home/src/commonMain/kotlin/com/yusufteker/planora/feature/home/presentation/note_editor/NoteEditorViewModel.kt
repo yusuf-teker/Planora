@@ -75,7 +75,7 @@ class NoteEditorViewModel(
                     val sender = sessionPreferences.getUserName() ?: ""
                     val note = _state.value.content.encodeUrlParameter()
                     val senderEncoded = sender.encodeUrlParameter()
-                    val url = "https://pulse.yusufteker.com/share/note?note=$note&sender=$senderEncoded"
+                    val url = "https://planora.yusufteker.com/share/note?note=$note&sender=$senderEncoded"
                     val shareText = """
                         $sender sana bir not paylaştı:
                         

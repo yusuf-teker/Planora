@@ -34,6 +34,7 @@ data class AuthResponse(
     val refreshToken: String,
     val userId: Int,
     val name: String,
+    val username: String = "",
     val avatarId: String,
     val profileImageUrl: String? = null
 )

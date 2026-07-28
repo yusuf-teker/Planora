@@ -129,13 +129,29 @@ fun PlanRoomDetailScreen(
         }
     }
     
+    var pendingRoomCropImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+
     val roomImagePickerLauncher = rememberAppImagePickerLauncher(
         onResult = { bytes ->
             if (bytes != null) {
-                viewModel.onEvent(PlanRoomDetailEvent.OnRoomImageSelected(bytes))
+                pendingRoomCropImageBytes = bytes
             }
         }
     )
+
+    pendingRoomCropImageBytes?.let { rawBytes ->
+        com.yusufteker.planora.core.ui.components.ImageCropDialog(
+            imageBytes = rawBytes,
+            isCircular = false,
+            onImageCropped = { croppedBytes ->
+                pendingRoomCropImageBytes = null
+                viewModel.onEvent(PlanRoomDetailEvent.OnRoomImageSelected(croppedBytes))
+            },
+            onDismiss = {
+                pendingRoomCropImageBytes = null
+            }
+        )
+    }
 
     Scaffold(
         topBar = {

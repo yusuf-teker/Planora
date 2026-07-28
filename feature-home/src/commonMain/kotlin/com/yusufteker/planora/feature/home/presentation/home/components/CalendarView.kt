@@ -2,6 +2,7 @@ package com.yusufteker.planora.feature.home.presentation.home.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -48,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yusufteker.planora.core.theme.PlanoraTheme
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.TaskDto
@@ -262,6 +265,7 @@ fun CalendarView(
                         if (selectedDate != null && selectedDate.monthNumber == monthDate.monthNumber && selectedDate.year == monthDate.year) {
                             val holidayName = holidays[selectedDate]
                             if (!holidayName.isNullOrBlank()) {
+                                val isSelectedNewYear = selectedDate.monthNumber == 1 && selectedDate.dayOfMonth == 1
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Card(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -277,11 +281,18 @@ fun CalendarView(
                                             horizontal = 14.dp, vertical = 10.dp
                                         ), verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = "🎉 ",
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Column {
+                                        if (isSelectedNewYear) {
+                                            Box(modifier = Modifier.size(44.dp)) {
+                                                NewYearSnow(modifier = Modifier.fillMaxSize())
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                        } else {
+                                            Text(
+                                                text = "🎉 ",
+                                                style = MaterialTheme.typography.titleMedium
+                                            )
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = stringResource(Res.string.holiday_label),
                                                 style = MaterialTheme.typography.labelSmall,
@@ -467,13 +478,22 @@ private fun CalendarDayCell(
     }
 
     Box(
-        modifier = modifier.aspectRatio(0.8f).padding(2.dp).clip(RoundedCornerShape(8.dp))
-            .background(
-                if (isNewYear) Color.Transparent else backgroundColor
-            ).clickable(onClick = onClick)
-
+        modifier = modifier
+            .aspectRatio(0.8f)
+            .padding(2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
     ) {
-
+        if (isNewYear) {
+            Text(
+                text = "🎄",
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 2.dp)
+            )
+        }
 
         Column(
             modifier = Modifier.fillMaxSize().padding(4.dp),
@@ -481,15 +501,15 @@ private fun CalendarDayCell(
             verticalArrangement = Arrangement.Top
         ) {
             Box(
-                modifier = Modifier.size(24.dp).clip(CircleShape).background(
-                         Color.Transparent
-                    ), contentAlignment = Alignment.Center
+                modifier = Modifier.size(24.dp).clip(CircleShape).background(Color.Transparent),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = date.dayOfMonth.toString(),
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = if (isToday || isHoliday) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isToday || isHoliday || isNewYear) FontWeight.Bold else FontWeight.Normal,
                     color = when {
+                        isNewYear && !isSelected -> MaterialTheme.colorScheme.primary
                         isHoliday -> MaterialTheme.colorScheme.primary
                         isToday -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.onBackground
@@ -504,11 +524,7 @@ private fun CalendarDayCell(
             val sharedTasks =
                 tasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
 
-            if (isNewYear){
-                NewYearSnow(modifier = Modifier.fillMaxSize())
-
-            }
-            else if (myTasks.isNotEmpty() || sharedTasks.isNotEmpty() || sharedColors.isNotEmpty()) {
+            if (myTasks.isNotEmpty() || sharedTasks.isNotEmpty() || sharedColors.isNotEmpty()) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -523,7 +539,7 @@ private fun CalendarDayCell(
                             val count = minOf(myTasks.size, 3)
                             repeat(count) {
                                 Box(
-                                    modifier = Modifier.padding(horizontal = 1.dp).size(4.dp)
+                                    modifier = Modifier.padding(horizontal = 1.dp).size(8.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.primary)
                                 )
@@ -546,7 +562,7 @@ private fun CalendarDayCell(
                             repeat(count) {
                                 MultiColorDot(
                                     colors = sharedDotColors,
-                                    size = 4.dp,
+                                    size = 8.dp,
                                     modifier = Modifier.padding(horizontal = 1.dp)
                                 )
                             }
@@ -563,7 +579,7 @@ private fun CalendarDayCell(
                             val count = minOf(sharedColors.size, 3)
                             for (i in 0 until count) {
                                 Box(
-                                    modifier = Modifier.padding(horizontal = 1.dp).size(4.dp)
+                                    modifier = Modifier.padding(horizontal = 1.dp).size(8.dp)
                                         .clip(CircleShape).background(sharedColors[i])
                                 )
                             }

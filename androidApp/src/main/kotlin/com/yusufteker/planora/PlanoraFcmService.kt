@@ -105,6 +105,10 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
                 }
                 handleGeneralNotification(message)
             }
+            "event_assignment", "task_assignment" -> {
+                handleSyncTasksTrigger()
+                handleGeneralNotification(message)
+            }
             else -> handleGeneralNotification(message)
         }
     }

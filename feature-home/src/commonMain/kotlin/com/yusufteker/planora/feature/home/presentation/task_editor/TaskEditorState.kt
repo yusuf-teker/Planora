@@ -34,6 +34,7 @@ data class TaskEditorState(
     val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val isCopyMode: Boolean = false
 
 ) : UiState

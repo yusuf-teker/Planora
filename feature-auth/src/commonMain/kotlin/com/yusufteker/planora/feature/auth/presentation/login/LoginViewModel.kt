@@ -2,6 +2,7 @@ package com.yusufteker.planora.feature.auth.presentation.login
 
 import com.yusufteker.planora.core.base.BaseViewModel
 import com.yusufteker.planora.core.ui.text.UiText
+import com.yusufteker.planora.core.util.toUiText
 import com.yusufteker.planora.feature.auth.domain.usecase.LoginUseCase
 import com.yusufteker.planora.shared.api.AuthRequest
 import planora.core.generated.resources.Res
@@ -57,7 +58,7 @@ class LoginViewModel(
                                 // Hata durumunda UI'da hatayı göster
                                 analyticsManager.logEvent("login_failure", mapOf("reason" to (error.message ?: "Unknown")))
                                 analyticsManager.logException(error)
-                                setState { copy(identifierError = UiText.StringResourceId(Res.string.error_login_failed, error.message ?: "Unknown")) }
+                                setState { copy(identifierError = error.toUiText()) }
                             }
                         )
                     }

@@ -22,6 +22,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.yusufteker.planora.shared.api.extractBaseTaskId
 
 /**
  * ViewModel for creating and editing events in Planora.
@@ -57,7 +58,8 @@ class EventEditorViewModel(
                 sharedTitle = event.sharedTitle,
                 sharedNote = event.sharedNote,
                 sharedDate = event.sharedDate,
-                sharedSender = event.sharedSender
+                sharedSender = event.sharedSender,
+                copyFromEventId = event.copyFromEventId
             )
             is EventEditorEvent.OnTitleChange -> {
                 _state.update { it.copy(title = event.title) }
@@ -156,9 +158,9 @@ class EventEditorViewModel(
                     val roomId = _state.value.planRoomId
                     
                     val url = if (eventId != null && roomId != null) {
-                        "https://pulse.yusufteker.com/share/joinEvent?eventId=$eventId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
+                        "https://planora.yusufteker.com/share/joinEvent?eventId=$eventId&roomId=$roomId&title=$title&note=$note&date=$date&sender=$senderEncoded"
                     } else {
-                        "https://pulse.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
+                        "https://planora.yusufteker.com/share/event?title=$title&note=$note&date=$date&sender=$senderEncoded"
                     }
                     
                     val shareText = if (eventId != null && roomId != null) {
@@ -195,7 +197,8 @@ class EventEditorViewModel(
         sharedTitle: String? = null,
         sharedNote: String? = null,
         sharedDate: Long? = null,
-        sharedSender: String? = null
+        sharedSender: String? = null,
+        copyFromEventId: String? = null
     ) {
         if (eventId == null) {
             viewModelScope.launch {
@@ -225,6 +228,38 @@ class EventEditorViewModel(
                     startDateTimeMs = startTime,
                     endDateTimeMs = endTime
                 )
+
+                if (!copyFromEventId.isNullOrBlank()) {
+                    val copyBaseId = copyFromEventId.extractBaseTaskId()
+                    planRepository.observeAllTasks().collect { tasks ->
+                        val sourceEvent = tasks.find { it.id == copyBaseId && it.type == TaskType.EVENT }
+                        if (sourceEvent != null) {
+                            val details = sourceEvent.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Event
+                            val ruleObj = try {
+                                sourceEvent.recurrenceRule?.let { Json.decodeFromString<com.yusufteker.planora.shared.api.RecurrenceRule>(it) }
+                            } catch (e: Exception) { null }
+
+                            val targetRoomId = planRoomId ?: sourceEvent.sharedRoomIds.firstOrNull()
+
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    id = null,
+                                    isCopyMode = true,
+                                    title = sourceEvent.title,
+                                    description = sourceEvent.description ?: "",
+                                    location = details?.location ?: "",
+                                    startDateTimeMs = sourceEvent.startTime ?: startTime,
+                                    endDateTimeMs = sourceEvent.endTime ?: endTime,
+                                    isRecurring = sourceEvent.isRecurring,
+                                    recurrenceRule = ruleObj,
+                                    reminders = sourceEvent.reminders,
+                                    planRoomId = targetRoomId
+                                )
+                            }
+                        }
+                    }
+                    return@launch
+                }
                 if (planRoomId != null) {
                     planRepository.observeAllPlanRooms().collect { rooms ->
                         val room = rooms.find { it.id == planRoomId }

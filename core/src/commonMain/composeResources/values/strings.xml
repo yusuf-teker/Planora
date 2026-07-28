@@ -11,6 +11,9 @@
     <string name="back">Back</string>
     <string name="hide_password">Hide password</string>
     <string name="show_password">Show password</string>
+    <string name="crop_image_title">Crop Photo</string>
+    <string name="crop_image_instructions">Drag and pinch to position your photo</string>
+    <string name="crop_confirm">Crop &amp; Save</string>
 
     <!-- Auth -->
     <string name="action_login">Log in</string>
@@ -561,6 +564,27 @@
     <string name="time_bucket_this_month">This Month</string>
     <string name="time_bucket_future">Upcoming</string>
     <string name="time_bucket_past">Past</string>
+
+    <!-- Standardized API & System Error Messages -->
+    <string name="error_email_in_use">This email address is already in use.</string>
+    <string name="error_username_in_use">This username is already taken.</string>
+    <string name="error_invalid_credentials">Invalid email or password.</string>
+    <string name="error_invalid_refresh_token">Your session has expired. Please log in again.</string>
+    <string name="error_invalid_reset_code">Invalid verification code.</string>
+    <string name="error_expired_reset_code">Verification code has expired.</string>
+    <string name="error_room_not_found">Plan room not found.</string>
+    <string name="error_room_permission_denied">You do not have permission for this room operation.</string>
+    <string name="error_room_already_member">User is already a member of this room.</string>
+    <string name="error_room_invitation_not_found">Invitation not found or already responded to.</string>
+    <string name="error_user_not_found">User not found.</string>
+    <string name="error_unauthorized">Unauthorized access. Please log in.</string>
+    <string name="error_forbidden">Access denied.</string>
+    <string name="error_bad_request">Invalid request parameters.</string>
+    <string name="error_network">Unable to connect to server. Please check your internet connection.</string>
+    <string name="error_generic">An unexpected error occurred. Please try again.</string>
+    <string name="action_copy">Duplicate</string>
+    <string name="title_copy_task">Duplicate Task</string>
+    <string name="title_copy_event">Duplicate Event</string>
 </resources>
 
 
