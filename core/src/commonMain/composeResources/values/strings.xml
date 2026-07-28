@@ -45,6 +45,9 @@
     <string name="action_skip">Skip</string>
     <string name="action_next">Next</string>
     <string name="action_start">Start</string>
+    <string name="action_complete">Complete</string>
+
+
 
     <!-- Main / Home -->
     <string name="tab_home">Home</string>
@@ -585,6 +588,10 @@
     <string name="action_copy">Duplicate</string>
     <string name="title_copy_task">Duplicate Task</string>
     <string name="title_copy_event">Duplicate Event</string>
+    <string name="action_quick_duplicate">Quick Duplicate to Date...</string>
+    <string name="title_quick_duplicate">Select Target Date &amp; Time</string>
+    <string name="msg_duplicated_successfully">Duplicated successfully!</string>
+    <string name="action_postpone_tomorrow">Postpone to Tomorrow</string>
 </resources>
 
 

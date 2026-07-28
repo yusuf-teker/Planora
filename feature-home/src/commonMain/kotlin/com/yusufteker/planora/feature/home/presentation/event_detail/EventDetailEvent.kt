@@ -14,4 +14,5 @@ sealed interface EventDetailEvent {
     data object OnBackClick : EventDetailEvent
     data object OnShareClick : EventDetailEvent
     data object OnCopyClick : EventDetailEvent
+    data class OnQuickDuplicate(val targetDateMs: Long) : EventDetailEvent
 }

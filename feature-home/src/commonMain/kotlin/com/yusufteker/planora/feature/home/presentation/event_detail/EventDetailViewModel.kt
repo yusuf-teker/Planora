@@ -17,6 +17,12 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import com.yusufteker.planora.shared.api.CreateTaskRequest
+import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskVisibility
+import org.jetbrains.compose.resources.getString
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
 
 /**
  * ViewModel for viewing Event details in read-only mode.
@@ -57,6 +63,43 @@ class EventDetailViewModel(
                 if (currentId != null) {
                     setEffect(EventDetailEffect.NavigateToCopyEvent(currentId, _state.value.planRoomId))
                 }
+            }
+            is EventDetailEvent.OnQuickDuplicate -> quickDuplicateEvent(event.targetDateMs)
+        }
+    }
+
+    private fun quickDuplicateEvent(targetDateMs: Long) {
+        viewModelScope.launch {
+            val current = _state.value
+            val duration = current.endDateTimeMs - current.startDateTimeMs
+            val newEndTime = targetDateMs + if (duration > 0) duration else 3600000L
+            val request = CreateTaskRequest(
+                title = current.title,
+                description = current.description.ifBlank { null },
+                startTime = targetDateMs,
+                endTime = newEndTime,
+                type = TaskType.EVENT,
+                status = TaskStatus.PENDING,
+                visibility = if (current.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                sharedRoomIds = current.planRoomId?.let { listOf(it) } ?: emptyList(),
+                isRecurring = false,
+                recurrenceRule = null,
+                isFlexible = false,
+                isOptional = false,
+                isPostponable = false,
+                isAllDay = false,
+                reminders = current.reminders,
+                participants = current.participants.associate { it.userId to it.name },
+                specificDetails = ItemDetails.Event(
+                    location = current.location
+                )
+            )
+            val result = planRepository.createTask(request, triggerSync = true)
+            if (result.isSuccess) {
+                val msg = getString(Res.string.msg_duplicated_successfully)
+                setEffect(EventDetailEffect.ShowToast(msg))
+            } else {
+                setEffect(EventDetailEffect.ShowToast("Hata oluştu"))
             }
         }
     }

@@ -63,11 +63,15 @@ import planora.core.generated.resources.time_bucket_this_month
 import planora.core.generated.resources.time_bucket_this_week
 import planora.core.generated.resources.time_bucket_today
 
+import com.yusufteker.planora.feature.home.presentation.components.SwipeableTaskItem
+
 @Composable
 fun TimelineSection(
     state: HomeState,
     onTaskClick: (TaskDto) -> Unit,
     onTaskDelete: (String) -> Unit = {},
+    onTaskToggleStatus: ((TaskDto) -> Unit)? = null,
+    onTaskQuickDuplicate: ((TaskDto) -> Unit)? = null,
     onLoadMore: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -245,8 +249,11 @@ fun TimelineSection(
 
                 if (isMine) {
                     SwipeToDeleteWrapper(
+                        modifier = Modifier.padding(vertical = 6.dp),
                         shape = RoundedCornerShape(24.dp),
-                        onDelete = { onTaskDelete(task.id) }
+                        onDelete = { onTaskDelete(task.id) },
+                        onToggleStatus = if (onTaskToggleStatus != null) { { onTaskToggleStatus(task) } } else null,
+                        onQuickDuplicate = if (onTaskQuickDuplicate != null) { { onTaskQuickDuplicate(task) } } else null
                     ) {
                         TimelineTaskCard(
                             task = task,
@@ -259,6 +266,7 @@ fun TimelineSection(
                     }
                 } else {
                     TimelineTaskCard(
+                        modifier = Modifier.padding(vertical = 6.dp),
                         task = task,
                         showDate = state.viewOption == TimelineViewOption.RELATIVE,
                         sharedUserAvatar = creatorUser?.avatarId,

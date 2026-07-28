@@ -48,8 +48,20 @@ import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
 import com.yusufteker.planora.shared.api.TaskType
 
+/**
+ * Görev/Etkinlik kartı görsel bileşeni.
+ *
+ * @param modifier Dış düzenleyici (padding, hizalama vb.)
+ * @param task Gösterilecek görev nesnesi
+ * @param showDate Tarih etiketinin gösterilip gösterilmeyeceği
+ * @param sharedUserAvatar Ortak kullanıcının avatar kimliği
+ * @param sharedUserColor Ortak kullanıcının renk bilgisi
+ * @param sharedUserProfileImageUrl Ortak kullanıcının profil resmi URL'si
+ * @param onClick Kart tıklama olay dinleyicisi
+ */
 @Composable
 fun TimelineTaskCard(
+    modifier: Modifier = Modifier,
     task: TaskDto,
     showDate: Boolean = false,
     sharedUserAvatar: String? = null,
@@ -86,9 +98,8 @@ fun TimelineTaskCard(
     val isMultiDay = task.endTime != null && startDateStr != endDateStr
 
     com.yusufteker.planora.core.ui.components.GlassCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
             .graphicsLayer { alpha = animatedAlpha },
         shape = RoundedCornerShape(24.dp),
         borderGradient = listOf(

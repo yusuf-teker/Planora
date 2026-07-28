@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,11 +64,11 @@ fun HomeScreen(
             }
 
             is HomeEffect.NavigateToCreateTask -> {
-                rootNavigator.navigate(Screen.TaskEditor(taskId = null))
+                rootNavigator.navigate(Screen.TaskEditor(taskId = null, sharedDate = effect.initialDateMs))
             }
 
             is HomeEffect.NavigateToCreateEvent -> {
-                rootNavigator.navigate(Screen.EventEditor(eventId = null))
+                rootNavigator.navigate(Screen.EventEditor(eventId = null, sharedDate = effect.initialDateMs))
             }
 
             is HomeEffect.NavigateToTaskDetail -> {
@@ -93,6 +94,7 @@ fun HomeScreen(
     }
 
     var isFabExpanded by remember { mutableStateOf(false) }
+    var quickDuplicateTask by remember { mutableStateOf<com.yusufteker.planora.shared.api.TaskDto?>(null) }
 
     if (state.isPreferencesLoading || !state.hasLoadedTasks) {
         Column(
@@ -146,8 +148,10 @@ fun HomeScreen(
                 SharedUserChipRow(
                     accessibleUsers = state.accessibleUsers,
                     selectedUserIds = state.selectedSharedUserIds,
+                    isMyTasksSelected = state.isMyTasksSelected,
                     currentUserAvatarId = state.currentUserAvatarId,
                     currentUserProfileImageUrl = state.currentUserProfileImageUrl,
+                    onToggleMyUser = { viewModel.onEvent(HomeEvent.ToggleMyUser) },
                     onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
                 )
 
@@ -170,6 +174,12 @@ fun HomeScreen(
                         onTaskDelete = { taskId ->
                             viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
                         },
+                        onTaskToggleStatus = { task ->
+                            viewModel.onEvent(HomeEvent.ToggleTaskCompletion(task))
+                        },
+                        onTaskQuickDuplicate = { task ->
+                            quickDuplicateTask = task
+                        },
                         onLoadMore = {
                             viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
                         },
@@ -191,6 +201,19 @@ fun HomeScreen(
         com.yusufteker.planora.feature.home.presentation.home.components.SharedTaskDetailDialog(
             task = task,
             onDismiss = { viewModel.onEvent(HomeEvent.DismissSharedTaskDetail) }
+        )
+    }
+
+    quickDuplicateTask?.let { task ->
+        val initialMs = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+        com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet(
+            initialTimeMs = initialMs,
+            sheetState = rememberModalBottomSheetState(),
+            onDismissRequest = { quickDuplicateTask = null },
+            onDateTimeSelected = { selectedMs ->
+                quickDuplicateTask = null
+                viewModel.onEvent(HomeEvent.QuickDuplicateTask(task, selectedMs))
+            }
         )
     }
 }

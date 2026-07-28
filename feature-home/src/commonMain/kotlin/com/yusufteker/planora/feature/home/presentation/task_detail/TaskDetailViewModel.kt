@@ -17,6 +17,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import com.yusufteker.planora.shared.api.CreateTaskRequest
+import com.yusufteker.planora.shared.api.TaskVisibility
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
+import org.jetbrains.compose.resources.getString
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.*
 
 /**
  * ViewModel for TaskDetailScreen (Read-only view of a Task with completion toggling and actions).
@@ -65,6 +71,42 @@ class TaskDetailViewModel(
                 if (taskId != null) {
                     setEffect(TaskDetailEffect.NavigateToCopyTask(taskId, _state.value.planRoomId))
                 }
+            }
+            is TaskDetailEvent.OnQuickDuplicate -> quickDuplicateTask(event.targetDateMs)
+        }
+    }
+
+    private fun quickDuplicateTask(targetDateMs: Long) {
+        viewModelScope.launch {
+            val currentTask = _state.value
+            val request = CreateTaskRequest(
+                title = currentTask.title,
+                description = currentTask.description.ifBlank { null },
+                startTime = targetDateMs,
+                endTime = null,
+                type = TaskType.TASK,
+                status = TaskStatus.PENDING,
+                visibility = if (currentTask.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                sharedRoomIds = currentTask.planRoomId?.let { listOf(it) } ?: emptyList(),
+                isRecurring = false,
+                recurrenceRule = null,
+                isFlexible = true,
+                isOptional = currentTask.task?.isOptional ?: false,
+                isPostponable = true,
+                isAllDay = false,
+                reminders = currentTask.reminders,
+                participants = currentTask.participants.associate { it.userId to it.name },
+                specificDetails = ItemDetails.Task(
+                    priority = currentTask.priority,
+                    deadline = targetDateMs
+                )
+            )
+            val result = planRepository.createTask(request, triggerSync = true)
+            if (result.isSuccess) {
+                val msg = getString(Res.string.msg_duplicated_successfully)
+                setEffect(TaskDetailEffect.ShowSnackbar(msg))
+            } else {
+                setEffect(TaskDetailEffect.ShowSnackbar("Hata oluştu"))
             }
         }
     }

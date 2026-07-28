@@ -35,10 +35,14 @@ fun CalendarSection(
 
     val tasksByDate = remember(
         state.allFetchedTasks,
-        state.filterOptions
+        state.filterOptions,
+        state.isMyTasksSelected
     ) {
-
-        var filteredTasks = state.allFetchedTasks
+        var filteredTasks = if (state.isMyTasksSelected) {
+            state.allFetchedTasks
+        } else {
+            state.allFetchedTasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
+        }
 
         if (!state.filterOptions.showCompleted) {
             filteredTasks =

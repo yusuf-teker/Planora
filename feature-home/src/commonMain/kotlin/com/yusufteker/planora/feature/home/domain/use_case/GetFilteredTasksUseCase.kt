@@ -17,6 +17,7 @@ class GetFilteredTasksUseCase {
         myTasks: List<TaskDto>,
         sharedTasksMap: Map<Int, List<TaskDto>>,
         selectedUsers: Set<Int>,
+        isIncludeMyTasks: Boolean = true,
         options: TimelineFilterOptions,
         viewOption: TimelineViewOption,
         selectedCalendarDate: LocalDate?,
@@ -26,7 +27,13 @@ class GetFilteredTasksUseCase {
         val sharedTasks = selectedUsers.flatMap { userId ->
             sharedTasksMap[userId] ?: emptyList()
         }
-        var filtered = (myTasks + sharedTasks)
+        val myTasksToInclude = if (isIncludeMyTasks) {
+            myTasks
+        } else {
+            // Sadece bireysel (kişisel) görevleri hariç tut, ortak görevler kalsın
+            myTasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
+        }
+        var filtered = (myTasksToInclude + sharedTasks)
             .distinctBy { it.id }
             .filter { it.parentId == null }
             .sortedBy { task ->

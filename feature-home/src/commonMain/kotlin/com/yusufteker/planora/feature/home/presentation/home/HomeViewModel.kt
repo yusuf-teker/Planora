@@ -7,6 +7,7 @@ import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.extractBaseTaskId
 
@@ -268,11 +269,13 @@ class HomeViewModel(
                 }
             }
             is HomeEvent.CreateTaskClicked -> {
-                setEffect(HomeEffect.NavigateToCreateTask)
+                val selectedDateMs = state.value.selectedCalendarDate?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()
+                setEffect(HomeEffect.NavigateToCreateTask(initialDateMs = selectedDateMs))
             }
             
             is HomeEvent.CreateEventClicked -> {
-                setEffect(HomeEffect.NavigateToCreateEvent)
+                val selectedDateMs = state.value.selectedCalendarDate?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()
+                setEffect(HomeEffect.NavigateToCreateEvent(initialDateMs = selectedDateMs))
             }
             
             is HomeEvent.ViewOptionChanged -> {
@@ -396,6 +399,59 @@ class HomeViewModel(
                 }
             }
             
+            is HomeEvent.QuickDuplicateTask -> {
+                launch {
+                    val task = event.task
+                    val targetMs = event.targetDateMs
+                    
+                    val updatedSpecificDetails = when (task.type) {
+                        TaskType.TASK -> {
+                            val originalTaskDetails = task.specificDetails as? ItemDetails.Task
+                            ItemDetails.Task(
+                                priority = originalTaskDetails?.priority ?: TaskPriority.MEDIUM,
+                                subtasks = originalTaskDetails?.subtasks ?: emptyList(),
+                                deadline = targetMs,
+                                estimatedMinutes = originalTaskDetails?.estimatedMinutes
+                            )
+                        }
+                        else -> task.specificDetails
+                    }
+
+                    val updatedEndTime = when (task.type) {
+                        TaskType.TASK, TaskType.NOTE, TaskType.FOLDER -> null
+                        TaskType.EVENT -> {
+                            if (task.endTime != null && task.startTime > 0) {
+                                val duration = task.endTime!! - task.startTime
+                                if (duration > 0) targetMs + duration else targetMs + 3600000L
+                            } else {
+                                null
+                            }
+                        }
+                    }
+
+                    val request = CreateTaskRequest(
+                        title = task.title,
+                        description = task.description,
+                        startTime = targetMs,
+                        endTime = updatedEndTime,
+                        type = task.type,
+                        status = com.yusufteker.planora.shared.api.TaskStatus.PENDING,
+                        visibility = task.visibility,
+                        sharedRoomIds = task.sharedRoomIds,
+                        isRecurring = false,
+                        recurrenceRule = null,
+                        isFlexible = task.isFlexible,
+                        isOptional = task.isOptional,
+                        isPostponable = task.isPostponable,
+                        isAllDay = task.isAllDay,
+                        reminders = task.reminders,
+                        participants = task.participants.associate { it.userId to it.name },
+                        specificDetails = updatedSpecificDetails
+                    )
+                    planRepository.createTask(request, triggerSync = true)
+                }
+            }
+            
             is HomeEvent.TimelineItemClicked -> {
                 val isMine = state.value.allFetchedTasks.any { it.id == event.task.id }
                 if (isMine) {
@@ -414,6 +470,26 @@ class HomeViewModel(
                 setState { copy(selectedSharedTask = null) }
             }
             
+            is HomeEvent.ToggleMyUser -> {
+                val currentlySelected = state.value.isMyTasksSelected
+                val otherSelectedUsers = state.value.selectedSharedUserIds
+                // Eğer kendisi seçiliyse, sadece en az 1 başka kullanıcı seçili ise kaldırmaya izin var
+                val newIsMySelected = if (currentlySelected) {
+                    if (otherSelectedUsers.isNotEmpty()) false else true
+                } else {
+                    true
+                }
+
+                if (newIsMySelected != currentlySelected) {
+                    setState {
+                        copy(
+                            isMyTasksSelected = newIsMySelected,
+                            upcomingTasks = getFilteredTasks(isIncludeMy = newIsMySelected)
+                        )
+                    }
+                }
+            }
+
             is HomeEvent.ToggleSharedUser -> {
                 val userId = event.userId
                 val currentSelected = state.value.selectedSharedUserIds
@@ -422,9 +498,22 @@ class HomeViewModel(
                 } else {
                     currentSelected + userId
                 }
-                
-                setState { copy(selectedSharedUserIds = newSelected) }
-                
+
+                val currentIsMySelected = state.value.isMyTasksSelected
+                // Eğer diğer kullanıcılar silindiyse ve hiç seçili kullanıcı kalmadıysa, kendini otomatik seç
+                val finalIsMySelected = if (newSelected.isEmpty() && !currentIsMySelected) {
+                    true
+                } else {
+                    currentIsMySelected
+                }
+
+                setState {
+                    copy(
+                        selectedSharedUserIds = newSelected,
+                        isMyTasksSelected = finalIsMySelected
+                    )
+                }
+
                 if (newSelected.contains(userId) && !state.value.sharedTasksByUser.containsKey(userId)) {
                     launch {
                         val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
@@ -436,7 +525,11 @@ class HomeViewModel(
                                 newMap[userId] = tasks
                                 copy(
                                     sharedTasksByUser = newMap,
-                                    upcomingTasks = getFilteredTasks(sharedTasksMap = newMap, selectedUsers = newSelected)
+                                    upcomingTasks = getFilteredTasks(
+                                        sharedTasksMap = newMap,
+                                        selectedUsers = newSelected,
+                                        isIncludeMy = finalIsMySelected
+                                    )
                                 )
                             }
                         }
@@ -444,12 +537,15 @@ class HomeViewModel(
                 } else {
                     setState {
                         copy(
-                            upcomingTasks = getFilteredTasks(selectedUsers = newSelected)
+                            upcomingTasks = getFilteredTasks(
+                                selectedUsers = newSelected,
+                                isIncludeMy = finalIsMySelected
+                            )
                         )
                     }
                 }
             }
-            
+
             is HomeEvent.OnDeleteTask -> {
                 launch {
                     val result = planRepository.deleteTask(event.taskId)
@@ -460,11 +556,12 @@ class HomeViewModel(
             }
         }
     }
-    
+
     private fun HomeState.getFilteredTasks(
         myTasks: List<TaskDto> = this.allFetchedTasks,
         sharedTasksMap: Map<Int, List<TaskDto>> = this.sharedTasksByUser,
         selectedUsers: Set<Int> = this.selectedSharedUserIds,
+        isIncludeMy: Boolean = this.isMyTasksSelected,
         options: TimelineFilterOptions = this.filterOptions,
         viewOpt: TimelineViewOption = this.viewOption,
         calendarDate: LocalDate? = this.selectedCalendarDate,
@@ -474,6 +571,7 @@ class HomeViewModel(
             myTasks = myTasks,
             sharedTasksMap = sharedTasksMap,
             selectedUsers = selectedUsers,
+            isIncludeMyTasks = isIncludeMy,
             options = options,
             viewOption = viewOpt,
             selectedCalendarDate = calendarDate,

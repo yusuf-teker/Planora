@@ -558,6 +558,7 @@ fun PlanRoomDetailScreen(
                                             val profile = state.memberProfiles[task.creatorId]
                                             val hasParticipants = task.participants.isNotEmpty()
                                             com.yusufteker.planora.feature.home.presentation.home.components.TimelineTaskCard(
+                                                modifier = Modifier.padding(vertical = 4.dp),
                                                 task = task,
                                                 showDate = false,
                                                 sharedUserAvatar = if (hasParticipants) null else profile?.avatarId,

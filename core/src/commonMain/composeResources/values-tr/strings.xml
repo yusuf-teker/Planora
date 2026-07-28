@@ -45,6 +45,9 @@
     <string name="action_skip">Atla</string>
     <string name="action_next">İleri</string>
     <string name="action_start">Başla</string>
+    <string name="action_complete">Tamamla</string>
+
+
 
     <!-- Main / Home -->
     <string name="tab_home">Ana Sayfa</string>
@@ -584,4 +587,8 @@
     <string name="action_copy">Kopyala</string>
     <string name="title_copy_task">Görevi Kopyala</string>
     <string name="title_copy_event">Etkinliği Kopyala</string>
+    <string name="action_quick_duplicate">Hızlı Güne Kopyala...</string>
+    <string name="title_quick_duplicate">Hedef Gün ve Saati Seçin</string>
+    <string name="msg_duplicated_successfully">Başarıyla kopyalandı!</string>
+    <string name="action_postpone_tomorrow">Yarına Ertele</string>
 </resources>

@@ -23,6 +23,7 @@ data class HomeState(
     val hasLoadedTasks: Boolean = false,
     val accessibleUsers: List<AccessibleUser> = emptyList(),
     val selectedSharedUserIds: Set<Int> = emptySet(),
+    val isMyTasksSelected: Boolean = true,
     val sharedTasksByUser: Map<Int, List<TaskDto>> = emptyMap(),
     val selectedSharedTask: TaskDto? = null,
     val currentUserAvatarId: String? = null,

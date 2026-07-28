@@ -387,9 +387,9 @@ fun App() {
 
                     entry<Screen.TaskEditor> { screen ->
                         val viewModel = koinViewModel<TaskEditorViewModel>(
-                            key = "task_editor_${screen.taskId}_${screen.copyFromTaskId}_${screen.planRoomId}_${screen.parentId}"
+                            key = "task_editor_${screen.taskId}_${screen.copyFromTaskId}_${screen.planRoomId}_${screen.parentId}_${screen.sharedDate}"
                         )
-                        LaunchedEffect(screen.taskId, screen.copyFromTaskId, screen.planRoomId, screen.parentId, screen.sharedTitle) {
+                        LaunchedEffect(screen.taskId, screen.copyFromTaskId, screen.planRoomId, screen.parentId, screen.sharedTitle, screen.sharedDate) {
                             viewModel.onEvent(TaskEditorEvent.OnLoadTask(
                                 taskId = screen.taskId, 
                                 planRoomId = screen.planRoomId, 
@@ -456,7 +456,7 @@ fun App() {
 
                     entry<Screen.EventEditor> { screen ->
                         val viewModel = koinViewModel<EventEditorViewModel>(
-                            key = screen.eventId ?: "new_event_${screen.copyFromEventId}",
+                            key = screen.eventId ?: "new_event_${screen.copyFromEventId}_${screen.sharedDate}",
                             parameters = { parametersOf(screen.eventId) }
                         )
                         LaunchedEffect(screen) {

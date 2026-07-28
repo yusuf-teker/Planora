@@ -69,6 +69,7 @@ fun TaskDetailScreen(
     val scrollState = rememberScrollState()
     val shareManager = org.koin.compose.koinInject<com.yusufteker.planora.core.share.ShareManager>()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showQuickDuplicateSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         val scope = this
@@ -124,6 +125,20 @@ fun TaskDetailScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_quick_duplicate)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showQuickDuplicateSheet = true
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_copy)) },
                                 leadingIcon = {
@@ -891,6 +906,18 @@ fun TaskDetailScreen(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text(stringResource(Res.string.cancel))
                 }
+            }
+        )
+    }
+
+    if (showQuickDuplicateSheet) {
+        com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet(
+            initialTimeMs = state.dueDateMs,
+            sheetState = rememberModalBottomSheetState(),
+            onDismissRequest = { showQuickDuplicateSheet = false },
+            onDateTimeSelected = { selectedMs ->
+                showQuickDuplicateSheet = false
+                viewModel.onEvent(TaskDetailEvent.OnQuickDuplicate(selectedMs))
             }
         )
     }

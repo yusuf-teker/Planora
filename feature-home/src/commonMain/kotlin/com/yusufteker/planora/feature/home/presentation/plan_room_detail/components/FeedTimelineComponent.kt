@@ -93,6 +93,7 @@ fun FeedTimelineComponent(
                 val hasParticipants = task.participants.isNotEmpty()
                 
                 TimelineTaskCard(
+                    modifier = Modifier.padding(vertical = 6.dp),
                     task = task, 
                     showDate = false,
                     sharedUserAvatar = if (hasParticipants) null else profile?.avatarId,

@@ -8,8 +8,8 @@ import com.yusufteker.planora.core.base.UiEffect
 sealed interface HomeEffect : UiEffect {
     data object NavigateToProfile : HomeEffect
     data object NavigateToSettings : HomeEffect
-    data object NavigateToCreateTask : HomeEffect
-    data object NavigateToCreateEvent : HomeEffect
+    data class NavigateToCreateTask(val initialDateMs: Long? = null) : HomeEffect
+    data class NavigateToCreateEvent(val initialDateMs: Long? = null) : HomeEffect
     data class NavigateToTaskDetail(val taskId: String) : HomeEffect
     data class NavigateToTaskEditor(val taskId: String) : HomeEffect
     data class NavigateToEventDetail(val eventId: String) : HomeEffect
