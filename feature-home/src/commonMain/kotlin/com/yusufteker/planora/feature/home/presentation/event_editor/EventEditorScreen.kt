@@ -102,7 +102,7 @@ fun EventEditorScreen(
                 actions = {
                     if (state.id != null) {
                         IconButton(onClick = { viewModel.onEvent(EventEditorEvent.OnShareClick) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Paylaş", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.action_share), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     
@@ -116,7 +116,7 @@ fun EventEditorScreen(
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(
                                     Icons.Default.MoreVert,
-                                    contentDescription = "Daha Fazla",
+                                    contentDescription = stringResource(Res.string.button_more),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -198,12 +198,12 @@ fun EventEditorScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "Ortak Oda Etkinliği",
+                                        text = stringResource(Res.string.shared_room_event_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                                     )
                                     Text(
-                                        text = state.planRoomName ?: "Bağlı Oda",
+                                        text = state.planRoomName ?: stringResource(Res.string.linked_room_label),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -213,7 +213,7 @@ fun EventEditorScreen(
                             if (state.planRoomId != null) {
                                 Icon(
                                     imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = "Odaya Git",
+                                    contentDescription = stringResource(Res.string.go_to_room_label),
                                     tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
                                     modifier = Modifier.size(20.dp)
                                 )

@@ -594,4 +594,12 @@
     <string name="action_create_subtask">Alt Görev Ekle</string>
     <string name="no_sub_tasks_added">Henüz bir alt görev eklenmemiş.</string>
     <string name="sub_task_owner_label">Atanan: %1$s</string>
+
+    <!-- Performance optimization: Localized hardcoded strings -->
+    <string name="error_task_status_update">Görev durumu güncellenemedi</string>
+    <string name="error_task_delete">Görev silinemedi</string>
+    <string name="button_more">Daha Fazla</string>
+    <string name="shared_room_event_label">Ortak Oda Etkinliği</string>
+    <string name="linked_room_label">Bağlı Oda</string>
+    <string name="go_to_room_label">Odaya Git</string>
 </resources>

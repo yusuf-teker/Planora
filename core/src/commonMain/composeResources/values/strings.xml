@@ -595,6 +595,12 @@
     <string name="action_create_subtask">Create Sub-task</string>
     <string name="no_sub_tasks_added">No sub-tasks added yet.</string>
     <string name="sub_task_owner_label">Assigned to: %1$s</string>
+
+    <!-- Performance optimization: Localized hardcoded strings -->
+    <string name="error_task_status_update">Could not update task status</string>
+    <string name="error_task_delete">Could not delete task</string>
+    <string name="button_more">More</string>
+    <string name="shared_room_event_label">Shared Room Event</string>
+    <string name="linked_room_label">Linked Room</string>
+    <string name="go_to_room_label">Go to Room</string>
 </resources>
-
-

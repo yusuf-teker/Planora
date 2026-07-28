@@ -50,9 +50,10 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         }
 
         install(HttpTimeout) {
-            requestTimeoutMillis = 90000L
-            connectTimeoutMillis = 90000L
-            socketTimeoutMillis = 90000L
+            requestTimeoutMillis = 30000L   // 30 sn (genel istek)
+            connectTimeoutMillis = 15000L   // 15 sn (bağlantı)
+            socketTimeoutMillis = 30000L    // 30 sn (socket)
+            // NOT: AI Chat gibi uzun süren istekler için per-request timeout override kullanılmalıdır.
         }
 
         install(Logging) {

@@ -20,10 +20,8 @@ import kotlinx.coroutines.flow.retryWhen
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-// Yeni
 import kotlinx.datetime.Instant
 import kotlinx.datetime.atStartOfDayIn
-import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.feature.home.domain.use_case.GetFilteredTasksUseCase
 import com.yusufteker.planora.feature.home.domain.use_case.getEarliestEventDateInMonth
 import com.yusufteker.planora.feature.home.domain.use_case.SubmitSmartInputUseCase
@@ -63,8 +61,9 @@ class HomeViewModel(
         setState { copy(visibleCalendarMonth = currentMonthStart) }
         fetchedMonths.add(currentMonthStart)
 
-        // -3 ile +3 yıl aralığındaki tüm tatilleri çek (örn: 2023 - 2029)
-        for (y in (today.year - 3)..(today.year + 3)) {
+        // Başlangıçta sadece ±1 yıl aralığındaki tatilleri çek.
+        // Diğer yıllar kullanıcı takvimde o yıla gittiğinde lazy yüklenir (CalendarMonthChanged event'i).
+        for (y in (today.year - 1)..(today.year + 1)) {
             loadHolidaysForYear(y)
         }
         // Load stored filter options and view option.
@@ -130,8 +129,10 @@ class HomeViewModel(
                         planRepository.observeTasksForRange(fromTimeMs = range.first, toTimeMs = range.second)
                     }
                     .retryWhen { cause, attempt ->
-                        Napier.w("observeTasksForRange ERROR: ${cause.message}")
-                        kotlinx.coroutines.delay(500)
+                        if (cause is kotlinx.coroutines.CancellationException) throw cause
+                        Napier.w("observeTasksForRange ERROR (attempt $attempt): ${cause.message}")
+                        if (attempt >= 5) return@retryWhen false
+                        kotlinx.coroutines.delay(minOf(500L * (attempt + 1), 5000L))
                         true
                     }
                     .collect { tasks ->
@@ -142,10 +143,6 @@ class HomeViewModel(
                             }
                         val wasLoadingMore = state.value.isLoadingMoreFutureTasks
                         val previousCount = state.value.allFetchedTasks.size
-
-                        if (wasLoadingMore) {
-                            kotlinx.coroutines.delay(1000)
-                        }
 
                         // Determine whether initial task load has finished:
                         // If DB already has tasks (cached/offline data) OR initial network fetch completed.

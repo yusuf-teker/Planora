@@ -579,31 +579,9 @@ class PlanRepositoryImpl(
                 val newStatus = if (isCompleted) TaskStatus.COMPLETED.name else TaskStatus.PENDING.name
                 database.planoraDatabaseQueries.updateTaskStatus(newStatus, 0L, actualTaskId)
 
-                // Arka planda sunucuya senkronize et
-                val dto = mapTaskEntityToDto(task)
-                val request = CreateTaskRequest(
-                    title = dto.title,
-                    description = dto.description,
-                    startTime = dto.startTime,
-                    endTime = dto.endTime,
-                    type = dto.type,
-                    status = TaskStatus.valueOf(newStatus),
-                    visibility = dto.visibility,
-                    sharedRoomIds = dto.sharedRoomIds,
-                    isRecurring = dto.isRecurring,
-                    recurrenceRule = dto.recurrenceRule,
-                    isFlexible = dto.isFlexible,
-                    isOptional = dto.isOptional,
-                    isPostponable = dto.isPostponable,
-                    isAllDay = dto.isAllDay,
-                    aiMetadata = dto.aiMetadata,
-                    reminders = dto.reminders,
-                    participants = dto.participants.associate { it.userId to it.name },
-                    specificDetails = dto.specificDetails,
-                    tags = dto.tags,
-                    color = dto.color,
-                    parentId = dto.parentId?.let { getActualTaskId(it) } ?: dto.parentId
-                )
+                // Arka planda sunucuya senkronize et — buildRequestFromEntity ile request oluştur
+                val updatedTask = database.planoraDatabaseQueries.getTaskById(actualTaskId).executeAsOneOrNull() ?: task
+                val request = buildRequestFromEntity(updatedTask)
                 scope.launch(Dispatchers.IO) {
                     try {
                         planApi.updateTask(actualTaskId, request)
@@ -665,10 +643,10 @@ class PlanRepositoryImpl(
         // Recurring görevler her zaman dahil edilir çünkü occurrence'ları aralık içine düşebilir.
         val tasksFlow = database.planoraDatabaseQueries.getTasksForRangeOrRecurring(fromTime = fromTimeMs, toTime = toTimeMs).asFlow().mapToList(Dispatchers.IO)
         val exceptionsFlow = database.planoraDatabaseQueries.getAllTaskExceptions().asFlow().mapToList(Dispatchers.IO)
+        // Performans: Shared room eşlemelerini de reactive Flow olarak gözlemle (senkron sorgu yerine)
+        val sharedRoomsFlow = database.planoraDatabaseQueries.getAllTaskSharedRooms().asFlow().mapToList(Dispatchers.IO)
 
-        return combine(tasksFlow, exceptionsFlow) { taskEntities, exceptionEntities ->
-            // Performans: Tüm shared room eşlemelerini tek sorguda al (N+1 sorgu çözümü)
-            val allSharedRooms = database.planoraDatabaseQueries.getAllTaskSharedRooms().executeAsList()
+        return combine(tasksFlow, exceptionsFlow, sharedRoomsFlow) { taskEntities, exceptionEntities, allSharedRooms ->
             val sharedRoomsByTaskId = allSharedRooms.groupBy({ it.taskId }, { it.roomId })
             val result = mutableListOf<TaskDto>()
 
@@ -1005,8 +983,12 @@ class PlanRepositoryImpl(
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { entities ->
+                // Performans: Tüm üyeleri tek sorguda çek (N+1 sorgu çözümü)
+                val allMembers = database.planoraDatabaseQueries.getAllPlanRoomMembers().executeAsList()
+                val membersByRoom = allMembers.groupBy { it.roomId }
+
                 entities.map { entity ->
-                    val members = database.planoraDatabaseQueries.getMembersForRoom(entity.id).executeAsList().map { memberEntity ->
+                    val members = (membersByRoom[entity.id] ?: emptyList()).map { memberEntity ->
                         com.yusufteker.planora.shared.api.PlanRoomMemberDto(
                             roomId = memberEntity.roomId,
                             userId = memberEntity.userId.toInt(),

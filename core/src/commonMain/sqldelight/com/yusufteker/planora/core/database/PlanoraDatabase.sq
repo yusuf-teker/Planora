@@ -227,10 +227,10 @@ ORDER BY startTime ASC;
 -- Bu sorgu, getAllTasks() yerine kullanılarak tam tablo taramasını önler.
 -- Recurring görevler her zaman dahil edilir çünkü startTime aralık dışında olsa bile
 -- occurrence'ları aralık içine düşebilir.
+-- NOT: status filtresi burada uygulanmaz; Kotlin tarafında GetFilteredTasksUseCase içinde yapılır.
 getTasksForRangeOrRecurring:
 SELECT * FROM taskEntity
 WHERE isRecurring = 1
-   OR status != 'COMPLETED'
    OR (COALESCE(endTime, startTime) >= :fromTime AND startTime <= :toTime)
 ORDER BY startTime ASC;
 
