@@ -22,6 +22,7 @@
     <!-- Daily Digest Notifications -->
     <string name="digest_morning_title">🌅 Günaydın! Bugünkü Planların</string>
     <string name="digest_morning_body_tasks">Bugün %1$d görevin var. İlk görev: %2$s</string>
+    <string name="digest_morning_body_events">Günün Etkinlikleri: %1$s</string>
     <string name="digest_morning_body_empty">Bugün henüz planlanmış görevin yok. Yeni bir hedef eklemek ister misin?</string>
 
     <string name="digest_afternoon_title">☀️ Gün Ortası Kontrolü</string>

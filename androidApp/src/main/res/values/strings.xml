@@ -22,6 +22,7 @@
     <!-- Daily Digest Notifications -->
     <string name="digest_morning_title">🌅 Good Morning! Today\'s Plans</string>
     <string name="digest_morning_body_tasks">You have %1$d task(s) today. First up: %2$s</string>
+    <string name="digest_morning_body_events">Today\'s Events: %1$s</string>
     <string name="digest_morning_body_empty">No tasks scheduled for today yet. Want to add a new goal?</string>
 
     <string name="digest_afternoon_title">☀️ Afternoon Check-in</string>

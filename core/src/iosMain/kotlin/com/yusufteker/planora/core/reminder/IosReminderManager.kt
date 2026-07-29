@@ -152,29 +152,66 @@ class IosReminderManager : ReminderManager {
     }
 
     private fun scheduleDailyDigests(tasks: List<TaskDto>) {
-        val uncompletedTasks = tasks.filter { it.status != TaskStatus.COMPLETED }
+        val topLevelUncompleted = tasks.filter { it.status != TaskStatus.COMPLETED && it.parentId == null }
+        val uncompletedTasks = topLevelUncompleted.filter { it.type == TaskType.TASK }
         val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+
+        val timeZone = kotlinx.datetime.TimeZone.currentSystemDefault()
+        val todayDate = kotlinx.datetime.Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone).date
 
         // 1. Morning Digest (09:00)
         val todayTasks = uncompletedTasks.filter { task ->
             val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-            baseTime in (now - 12 * 3600 * 1000L)..(now + 24 * 3600 * 1000L)
+            val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
+            taskDate == todayDate
         }
+
         if (todayTasks.isNotEmpty()) {
             val earliestTask = todayTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
             scheduleCalendarDigest(
                 identifier = "planora_digest_morning",
                 hour = 9,
-                title = "☀️ Günaydın!",
-                body = "Bugün tamamlanması gereken ${todayTasks.size} görevin bulunuyor.",
+                title = "🌅 Günaydın! Bugünkü Planların",
+                body = "Bugün ${todayTasks.size} görevin var. İlk görev: ${earliestTask?.title ?: ""}",
                 deepLinkUrl = earliestTask?.let { "planora://share/task?taskId=${it.id}" }
             )
+        } else {
+            // Check events today starting at/after 09:00 AM
+            val todayEventsAfterNine = topLevelUncompleted.filter { task ->
+                if (task.type != TaskType.EVENT) return@filter false
+                val taskDateTime = kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime).toLocalDateTime(timeZone)
+                taskDateTime.date == todayDate && taskDateTime.hour >= 9
+            }.sortedBy { it.startTime }
+
+            if (todayEventsAfterNine.isNotEmpty()) {
+                val eventTitlesStr = todayEventsAfterNine.joinToString(" ➔ ") { it.title }
+                val earliestEvent = todayEventsAfterNine.firstOrNull()
+                scheduleCalendarDigest(
+                    identifier = "planora_digest_morning",
+                    hour = 9,
+                    title = "🌅 Günaydın! Bugünkü Planların",
+                    body = "Günün Etkinlikleri: $eventTitlesStr",
+                    deepLinkUrl = earliestEvent?.let { "planora://share/task?taskId=${it.id}" }
+                )
+            } else {
+                scheduleCalendarDigest(
+                    identifier = "planora_digest_morning",
+                    hour = 9,
+                    title = "🌅 Günaydın! Bugünkü Planların",
+                    body = "Bugün henüz planlanmış görevin yok. Yeni bir hedef eklemek ister misin?",
+                    deepLinkUrl = null
+                )
+            }
         }
 
         // 2. Overdue Check (12:00)
         val overdueTasks = uncompletedTasks.filter { task ->
             val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-            baseTime in (now - 3 * 24 * 3600 * 1000L) until now
+            val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
+            taskDate < todayDate && taskDate >= kotlinx.datetime.LocalDate(todayDate.year, todayDate.month, todayDate.dayOfMonth).let {
+                // Last 3 days
+                kotlinx.datetime.Instant.fromEpochMilliseconds(now - 3 * 24 * 3600 * 1000L).toLocalDateTime(timeZone).date
+            }
         }
         if (overdueTasks.isNotEmpty()) {
             val urgentTask = overdueTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
@@ -193,8 +230,8 @@ class IosReminderManager : ReminderManager {
             scheduleCalendarDigest(
                 identifier = "planora_digest_afternoon",
                 hour = 16,
-                title = "🌆 Akşamüstü Kontrolü",
-                body = "Günün bitimine yaklaşırken: Bugün tamamlanması gereken ${todayTasks.size} görevin henüz bitmedi.",
+                title = "☀️ Gün Ortası Kontrolü",
+                body = "Günün geri kalanı için ${todayTasks.size} tamamlanmamış görevin var.",
                 deepLinkUrl = nextTask?.let { "planora://share/task?taskId=${it.id}" }
             )
         }

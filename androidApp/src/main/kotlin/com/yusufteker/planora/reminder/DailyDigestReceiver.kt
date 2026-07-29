@@ -13,6 +13,7 @@ import com.yusufteker.planora.MainActivity
 import com.yusufteker.planora.R
 import com.yusufteker.planora.core.database.PlanoraDatabase
 import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskType
 import io.github.aakira.napier.Napier
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -42,14 +43,18 @@ class DailyDigestReceiver : BroadcastReceiver(), KoinComponent {
         Napier.d("DailyDigestReceiver triggered with type=$digestType", tag = "DailyDigestReceiver")
 
         try {
-            val allTasks = database.planoraDatabaseQueries.getAllTasks().executeAsList()
-            val uncompletedTasks = allTasks.filter { entity ->
-                entity.status != TaskStatus.COMPLETED.name
+            val allEntities = database.planoraDatabaseQueries.getAllTasks().executeAsList()
+            // Only top-level uncompleted entities
+            val topLevelUncompleted = allEntities.filter { entity ->
+                entity.status != TaskStatus.COMPLETED.name && entity.parentId == null
+            }
+            val uncompletedTasks = topLevelUncompleted.filter { entity ->
+                entity.type == TaskType.TASK.name
             }
 
             val nowCalendar = Calendar.getInstance()
-            
-            // Start of today
+
+            // Start of today (00:00:00.000)
             val startOfToday = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -57,7 +62,15 @@ class DailyDigestReceiver : BroadcastReceiver(), KoinComponent {
                 set(Calendar.MILLISECOND, 0)
             }.timeInMillis
 
-            // End of today
+            // 09:00 AM today (09:00:00.000)
+            val nineAmToday = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 9)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+
+            // End of today (23:59:59.999)
             val endOfToday = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 23)
                 set(Calendar.MINUTE, 59)
@@ -76,7 +89,7 @@ class DailyDigestReceiver : BroadcastReceiver(), KoinComponent {
 
             when (digestType) {
                 DailyDigestScheduler.DIGEST_TYPE_MORNING -> {
-                    // Today's uncompleted tasks
+                    // 1. Today's uncompleted tasks
                     val todayTasks = uncompletedTasks.filter { task ->
                         task.startTime in startOfToday..endOfToday
                     }
@@ -87,6 +100,25 @@ class DailyDigestReceiver : BroadcastReceiver(), KoinComponent {
                         val body = context.getString(R.string.digest_morning_body_tasks, todayTasks.size, earliestTask?.title ?: "")
                         val deepLinkUrl = earliestTask?.let { "planora://share/task?taskId=${it.id}" }
                         showDigestNotification(context, title, body, deepLinkUrl, notificationId = 2001)
+                    } else {
+                        // 2. If no tasks, check events today starting at/after 09:00
+                        val todayEventsAfterNine = topLevelUncompleted.filter { entity ->
+                            entity.type == TaskType.EVENT.name && entity.startTime in nineAmToday..endOfToday
+                        }.sortedBy { it.startTime }
+
+                        if (todayEventsAfterNine.isNotEmpty()) {
+                            val eventTitlesStr = todayEventsAfterNine.joinToString(" ➔ ") { it.title }
+                            val title = context.getString(R.string.digest_morning_title)
+                            val body = context.getString(R.string.digest_morning_body_events, eventTitlesStr)
+                            val earliestEvent = todayEventsAfterNine.firstOrNull()
+                            val deepLinkUrl = earliestEvent?.let { "planora://share/task?taskId=${it.id}" }
+                            showDigestNotification(context, title, body, deepLinkUrl, notificationId = 2001)
+                        } else {
+                            // 3. No tasks or events
+                            val title = context.getString(R.string.digest_morning_title)
+                            val body = context.getString(R.string.digest_morning_body_empty)
+                            showDigestNotification(context, title, body, null, notificationId = 2001)
+                        }
                     }
                 }
 
@@ -108,7 +140,7 @@ class DailyDigestReceiver : BroadcastReceiver(), KoinComponent {
                 DailyDigestScheduler.DIGEST_TYPE_AFTERNOON -> {
                     // Remaining uncompleted tasks for today
                     val remainingTodayTasks = uncompletedTasks.filter { task ->
-                        task.startTime in nowCalendar.timeInMillis..endOfToday || task.startTime in startOfToday..endOfToday
+                        task.startTime in startOfToday..endOfToday
                     }
 
                     if (remainingTodayTasks.isNotEmpty()) {
