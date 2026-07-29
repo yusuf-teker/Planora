@@ -146,6 +146,19 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun sendRegisterCode(email: String, username: String): Result<Unit> {
+        return try {
+            httpClient.post("auth/send-register-code") {
+                setBody(com.yusufteker.planora.shared.api.SendRegisterCodeRequest(email, username))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val parsed = e.parseApiException()
+            Napier.e("SendRegisterCode request failed: ${parsed.message}", parsed, tag = "HTTP_LOG")
+            Result.failure(parsed)
+        }
+    }
+
     override suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit> {
         return try {
             httpClient.post("auth/reset-password") {

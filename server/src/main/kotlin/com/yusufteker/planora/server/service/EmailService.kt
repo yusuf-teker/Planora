@@ -169,6 +169,33 @@ object EmailService {
     }
 
     /**
+     * Sends an email verification OTP code to a user registering a new account.
+     *
+     * @param toEmail Recipient email address.
+     * @param verificationCode 6-digit OTP verification code.
+     * @return `true` if email was dispatched successfully, `false` otherwise.
+     */
+    suspend fun sendRegistrationVerificationEmail(toEmail: String, verificationCode: String): Boolean {
+        val subject = "Planora - Hesap Doğrulama Kodu / Account Verification Code"
+        val htmlContent = """
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                <h2 style="color: #6200EE; text-align: center;">Planora App</h2>
+                <p>Merhaba,</p>
+                <p>Planora kayıt işleminizi tamamlamak için aşağıdaki 6 haneli e-posta doğrulama kodunu kullanabilirsiniz:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; text-align: center; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">
+                    $verificationCode
+                </div>
+                <p style="margin-top: 20px;">Bu kod <strong>15 dakika</strong> boyunca geçerlidir. Eğer siz kayıt olmadıysanız bu e-postayı dikkate almayınız.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="font-size: 12px; color: #888; text-align: center;">Planora Team</p>
+            </div>
+        """.trimIndent()
+
+        return sendEmail(toEmail, subject, htmlContent)
+    }
+
+
+    /**
      * Sends an account welcome / verification email to a newly registered user.
      *
      * @param toEmail Recipient email address.

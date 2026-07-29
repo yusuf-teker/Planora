@@ -22,6 +22,7 @@ val authModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get(), get(), get(), get()) }
     singleOf(::LoginUseCase)
     singleOf(::RegisterUseCase)
+    singleOf(::SendRegisterCodeUseCase)
     singleOf(::AutoLoginUseCase)
     singleOf(::LogoutUseCase)
 

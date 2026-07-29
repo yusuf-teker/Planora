@@ -15,9 +15,12 @@ data class RegisterState(
     val confirmPassword: String = "",
     val isPasswordVisible: Boolean = false,
     val isConfirmPasswordVisible: Boolean = false,
+    val isCodeSent: Boolean = false,
+    val code: String = "",
     val nameError: UiText? = null,
     val usernameError: UiText? = null,
     val emailError: UiText? = null,
     val passwordError: UiText? = null,
-    val confirmPasswordError: UiText? = null
+    val confirmPasswordError: UiText? = null,
+    val codeError: UiText? = null
 ) : UiState

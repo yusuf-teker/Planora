@@ -36,19 +36,19 @@ import kotlinx.coroutines.launch
 fun Route.authRoutes() {
     route("/auth") {
         
-        // --- 1. REGISTER ENDPOINT ---
-        post("/register") { // auth/register geldiğinde
-            // Client'tan (Uygulamadan) gelen JSON verisini Kotlin objesine dönüştürüyoruz.
-            val request = call.receive<RegisterRequest>()
-            
-            // Veritabanında (Exposed ORM kullanarak) bu email veya username daha önce alınmış mı kontrol ediyoruz.
+        // --- 0. SEND REGISTER CODE ENDPOINT ---
+        post("/send-register-code") {
+            val request = call.receive<com.yusufteker.planora.shared.api.SendRegisterCodeRequest>()
+            val cleanEmail = request.email.trim().lowercase()
+            val cleanUsername = request.username.trim().lowercase()
+
             val existingUser = dbQuery {
                 UserEntity.find { 
-                    (UsersTable.email eq request.email) or (UsersTable.username eq request.username)
+                    (UsersTable.email.lowerCase() eq cleanEmail) or (UsersTable.username.lowerCase() eq cleanUsername)
                 }.firstOrNull()
             }
             if (existingUser != null) {
-                if (existingUser.email == request.email) {
+                if (existingUser.email.equals(cleanEmail, ignoreCase = true)) {
                     call.respondError(HttpStatusCode.Conflict, ApiErrorCode.EMAIL_IN_USE, "Email already in use")
                 } else {
                     call.respondError(HttpStatusCode.Conflict, ApiErrorCode.USERNAME_IN_USE, "Username already in use")
@@ -56,11 +56,74 @@ fun Route.authRoutes() {
                 return@post
             }
 
-            // Güvenlik: Gelen düz metin şifreyi BCrypt ile geri döndürülemez şekilde hashliyoruz.
+            val verificationCode = (100000..999999).random().toString()
+            val expiresAt = Instant.now().plus(java.time.Duration.ofMinutes(15))
+
+            dbQuery {
+                com.yusufteker.planora.server.database.tables.EmailVerificationTokenEntity.find {
+                    com.yusufteker.planora.server.database.tables.EmailVerificationTokensTable.email eq cleanEmail
+                }.forEach { it.delete() }
+
+                com.yusufteker.planora.server.database.tables.EmailVerificationTokenEntity.new {
+                    this.email = cleanEmail
+                    this.token = verificationCode
+                    this.expiresAt = expiresAt
+                    this.createdAt = Instant.now()
+                }
+            }
+
+            CoroutineScope(Dispatchers.IO).launch {
+                EmailService.sendRegistrationVerificationEmail(cleanEmail, verificationCode)
+            }
+
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Verification code sent to email"))
+        }
+
+        // --- 1. REGISTER ENDPOINT ---
+        post("/register") { // auth/register geldiğinde
+            val request = call.receive<RegisterRequest>()
+            val cleanEmail = request.email.trim().lowercase()
+            val cleanUsername = request.username.trim().lowercase()
+
+            // Veritabanında email veya username daha önce alınmış mı kontrol ediyoruz.
+            val existingUser = dbQuery {
+                UserEntity.find { 
+                    (UsersTable.email.lowerCase() eq cleanEmail) or (UsersTable.username.lowerCase() eq cleanUsername)
+                }.firstOrNull()
+            }
+            if (existingUser != null) {
+                if (existingUser.email.equals(cleanEmail, ignoreCase = true)) {
+                    call.respondError(HttpStatusCode.Conflict, ApiErrorCode.EMAIL_IN_USE, "Email already in use")
+                } else {
+                    call.respondError(HttpStatusCode.Conflict, ApiErrorCode.USERNAME_IN_USE, "Username already in use")
+                }
+                return@post
+            }
+
+            // Doğrulama kodunu kontrol ediyoruz.
+            val tokenEntity = dbQuery {
+                com.yusufteker.planora.server.database.tables.EmailVerificationTokenEntity.find {
+                    (com.yusufteker.planora.server.database.tables.EmailVerificationTokensTable.email eq cleanEmail) and
+                    (com.yusufteker.planora.server.database.tables.EmailVerificationTokensTable.token eq request.code)
+                }.firstOrNull()
+            }
+
+            if (tokenEntity == null) {
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.INVALID_VERIFICATION_CODE, "Invalid verification code")
+                return@post
+            }
+
+            if (tokenEntity.expiresAt.isBefore(Instant.now())) {
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_VERIFICATION_CODE, "Expired verification code")
+                return@post
+            }
+
+            // Güvenlik: Gelen düz metin şifreyi BCrypt ile hashliyoruz.
             val hashedPassword = HashingService.hashPassword(request.password)
             
             // Veritabanına yeni bir kullanıcı kaydediyoruz.
             val newUser = dbQuery {
+                tokenEntity.delete() // Kullanılan token'ı sil
                 UserEntity.new {
                     name = request.name
                     username = request.username
@@ -71,7 +134,6 @@ fun Route.authRoutes() {
             }
 
             // Kayıt olan kullanıcı için hemen yetkilendirme (Access) ve yenileme (Refresh) token'ları üretiyoruz.
-            // accessToken -> userId, email,expirationDate,  hashli secret içerir. 2 saat geçerlidir.
             val accessToken = TokenService.generateAccessToken(newUser.id.value, newUser.email)
             val refreshToken = TokenService.generateRefreshToken()
 

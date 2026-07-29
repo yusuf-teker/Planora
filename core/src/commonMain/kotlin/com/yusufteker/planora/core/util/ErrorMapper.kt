@@ -12,6 +12,8 @@ import planora.core.generated.resources.error_generic
 import planora.core.generated.resources.error_invalid_credentials
 import planora.core.generated.resources.error_invalid_refresh_token
 import planora.core.generated.resources.error_invalid_reset_code
+import planora.core.generated.resources.error_invalid_verification_code
+import planora.core.generated.resources.error_expired_verification_code
 import planora.core.generated.resources.error_network
 import planora.core.generated.resources.error_room_already_member
 import planora.core.generated.resources.error_room_invitation_not_found
@@ -36,6 +38,8 @@ fun Throwable.toUiText(): UiText {
                 ApiErrorCode.INVALID_REFRESH_TOKEN -> UiText.StringResourceId(Res.string.error_invalid_refresh_token)
                 ApiErrorCode.INVALID_RESET_CODE -> UiText.StringResourceId(Res.string.error_invalid_reset_code)
                 ApiErrorCode.EXPIRED_RESET_CODE -> UiText.StringResourceId(Res.string.error_expired_reset_code)
+                ApiErrorCode.INVALID_VERIFICATION_CODE -> UiText.StringResourceId(Res.string.error_invalid_verification_code)
+                ApiErrorCode.EXPIRED_VERIFICATION_CODE -> UiText.StringResourceId(Res.string.error_expired_verification_code)
                 ApiErrorCode.ROOM_NOT_FOUND -> UiText.StringResourceId(Res.string.error_room_not_found)
                 ApiErrorCode.ROOM_NAME_EMPTY -> UiText.StringResourceId(Res.string.error_room_name_empty)
                 ApiErrorCode.ROOM_PERMISSION_DENIED -> UiText.StringResourceId(Res.string.error_room_permission_denied)

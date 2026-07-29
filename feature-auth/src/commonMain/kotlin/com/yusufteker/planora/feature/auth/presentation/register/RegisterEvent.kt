@@ -11,8 +11,11 @@ sealed interface RegisterEvent : UiEvent {
     data class EmailChanged(val email: String) : RegisterEvent
     data class PasswordChanged(val password: String) : RegisterEvent
     data class ConfirmPasswordChanged(val confirmPassword: String) : RegisterEvent
+    data class CodeChanged(val code: String) : RegisterEvent
     data object TogglePasswordVisibility : RegisterEvent
+    data object SendCodeClicked : RegisterEvent
     data object RegisterClicked : RegisterEvent
     data object LoginClicked : RegisterEvent
+    data object BackToFormClicked : RegisterEvent
     data object ClearForm : RegisterEvent
 }

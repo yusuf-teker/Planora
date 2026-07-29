@@ -575,6 +575,12 @@
     <string name="error_invalid_refresh_token">Your session has expired. Please log in again.</string>
     <string name="error_invalid_reset_code">Invalid verification code.</string>
     <string name="error_expired_reset_code">Verification code has expired.</string>
+    <string name="error_invalid_verification_code">Invalid verification code.</string>
+    <string name="error_expired_verification_code">Verification code has expired.</string>
+    <string name="register_step2_subtitle">Enter the 6-digit code sent to your email to verify your account.</string>
+    <string name="action_send_register_code">Send Verification Code</string>
+    <string name="action_verify_and_register">Verify &amp; Register</string>
+    <string name="register_code_sent_success">A 6-digit verification code has been sent to your email.</string>
     <string name="error_room_not_found">Plan room not found.</string>
     <string name="error_room_permission_denied">You do not have permission for this room operation.</string>
     <string name="error_room_already_member">User is already a member of this room.</string>

@@ -574,6 +574,12 @@
     <string name="error_invalid_refresh_token">Oturum süreniz doldu. Lütfen tekrar giriş yapın.</string>
     <string name="error_invalid_reset_code">Geçersiz doğrulama kodu.</string>
     <string name="error_expired_reset_code">Doğrulama kodunun süresi doldu.</string>
+    <string name="error_invalid_verification_code">Geçersiz doğrulama kodu.</string>
+    <string name="error_expired_verification_code">Doğrulama kodunun süresi doldu.</string>
+    <string name="register_step2_subtitle">Hesabınızı doğrulamak için e-postanıza gönderilen 6 haneli kodu giriniz.</string>
+    <string name="action_send_register_code">Doğrulama Kodu Gönder</string>
+    <string name="action_verify_and_register">Doğrula ve Kaydol</string>
+    <string name="register_code_sent_success">E-postanıza 6 haneli doğrulama kodu gönderildi.</string>
     <string name="error_room_not_found">Plan odası bulunamadı.</string>
     <string name="error_room_permission_denied">Bu oda işlemi için yetkiniz bulunmuyor.</string>
     <string name="error_room_already_member">Kullanıcı zaten bu odanın üyesi.</string>

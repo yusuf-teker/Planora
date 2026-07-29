@@ -50,6 +50,11 @@ interface AuthRepository {
     suspend fun forgotPassword(email: String): Result<Unit>
 
     /**
+     * Requests a registration verification OTP code to be sent to the user's email.
+     */
+    suspend fun sendRegisterCode(email: String, username: String): Result<Unit>
+
+    /**
      * Resets the user's password using the received OTP code.
      */
     suspend fun resetPassword(email: String, code: String, newPassword: String): Result<Unit>

@@ -18,6 +18,9 @@ class RegisterUseCase(private val authRepository: AuthRepository) {
         if (request.password.length < 6) {
             return Result.failure(IllegalArgumentException("Password must be at least 6 characters."))
         }
+        if (request.code.isBlank() || request.code.length != 6) {
+            return Result.failure(IllegalArgumentException("Verification code must be 6 digits."))
+        }
         
         return authRepository.register(request)
     }

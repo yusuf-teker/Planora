@@ -12,6 +12,15 @@ data class AuthRequest(
 )
 
 /**
+ * Request payload sent by client to request a registration OTP verification code.
+ */
+@Serializable
+data class SendRegisterCodeRequest(
+    val email: String,
+    val username: String
+)
+
+/**
  * Represent the data sent by the client when registering a new account.
  */
 @Serializable
@@ -19,8 +28,10 @@ data class RegisterRequest(
     val name: String,
     val username: String,
     val email: String,
-    val password: String
+    val password: String,
+    val code: String
 )
+
 
 /**
  * The response sent back from the server containing tokens upon successful auth.
