@@ -21,6 +21,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.Instant
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.atStartOfDayIn
 import com.yusufteker.planora.feature.home.domain.use_case.GetFilteredTasksUseCase
 import com.yusufteker.planora.feature.home.domain.use_case.getEarliestEventDateInMonth
@@ -152,8 +153,7 @@ class HomeViewModel(
                             val nowMs = getCurrentTimeMs()
                             val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date
                             val visibleMonth = visibleCalendarMonth ?: LocalDate(todayDate.year, todayDate.monthNumber, 1)
-                            val monthTasks = getFilteredTasks(myTasks = filteredTasks, calendarMonth = visibleMonth, calendarDate = null)
-                            val selectedDate = selectedCalendarDate ?: getEarliestEventDateInMonth(monthTasks, visibleMonth)
+                            val selectedDate = selectedCalendarDate ?: todayDate
                             copy(
                                 allFetchedTasks = filteredTasks,
                                 selectedCalendarDate = selectedDate,
@@ -266,12 +266,34 @@ class HomeViewModel(
                 }
             }
             is HomeEvent.CreateTaskClicked -> {
-                val selectedDateMs = state.value.selectedCalendarDate?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()
+                val zone = TimeZone.currentSystemDefault()
+                val nowMs = getCurrentTimeMs()
+                val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
+                val targetDate = state.value.selectedCalendarDate ?: nowLdt.date
+                val initialLdt = kotlinx.datetime.LocalDateTime(
+                    year = targetDate.year,
+                    monthNumber = targetDate.monthNumber,
+                    dayOfMonth = targetDate.dayOfMonth,
+                    hour = nowLdt.hour,
+                    minute = nowLdt.minute
+                )
+                val selectedDateMs = initialLdt.toInstant(zone).toEpochMilliseconds()
                 setEffect(HomeEffect.NavigateToCreateTask(initialDateMs = selectedDateMs))
             }
             
             is HomeEvent.CreateEventClicked -> {
-                val selectedDateMs = state.value.selectedCalendarDate?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()
+                val zone = TimeZone.currentSystemDefault()
+                val nowMs = getCurrentTimeMs()
+                val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
+                val targetDate = state.value.selectedCalendarDate ?: nowLdt.date
+                val initialLdt = kotlinx.datetime.LocalDateTime(
+                    year = targetDate.year,
+                    monthNumber = targetDate.monthNumber,
+                    dayOfMonth = targetDate.dayOfMonth,
+                    hour = nowLdt.hour,
+                    minute = nowLdt.minute
+                )
+                val selectedDateMs = initialLdt.toInstant(zone).toEpochMilliseconds()
                 setEffect(HomeEffect.NavigateToCreateEvent(initialDateMs = selectedDateMs))
             }
             
@@ -281,11 +303,7 @@ class HomeViewModel(
                     val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date
                     val visibleMonth = visibleCalendarMonth ?: LocalDate(todayDate.year, todayDate.monthNumber, 1)
                     val monthTasks = getFilteredTasks(myTasks = allFetchedTasks, viewOpt = event.option, calendarMonth = visibleMonth, calendarDate = null)
-                    val selectedDate = if (event.option == TimelineViewOption.CALENDAR && selectedCalendarDate == null) {
-                        getEarliestEventDateInMonth(monthTasks, visibleMonth)
-                    } else {
-                        selectedCalendarDate
-                    }
+                    val selectedDate = selectedCalendarDate ?: todayDate
                     copy(
                         viewOption = event.option,
                         selectedCalendarDate = selectedDate,
@@ -300,7 +318,7 @@ class HomeViewModel(
             
             is HomeEvent.CalendarDateSelected -> {
                 setState {
-                    val newDate = if (selectedCalendarDate == event.date) null else event.date
+                    val newDate = event.date
                     copy(
                         selectedCalendarDate = newDate,
                         upcomingTasks = getFilteredTasks(calendarDate = newDate)

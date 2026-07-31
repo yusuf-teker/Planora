@@ -155,7 +155,7 @@ fun HomeScreen(
                     onToggleUser = { viewModel.onEvent(HomeEvent.ToggleSharedUser(it)) }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Calendar View
                 if (state.viewOption == TimelineViewOption.CALENDAR) {

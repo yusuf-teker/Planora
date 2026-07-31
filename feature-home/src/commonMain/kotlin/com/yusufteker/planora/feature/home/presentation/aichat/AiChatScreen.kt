@@ -30,6 +30,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
 
@@ -45,6 +50,17 @@ fun AiChatScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
+    var textFieldValue by remember { mutableStateOf(TextFieldValue(state.inputText)) }
+
+    LaunchedEffect(state.inputText) {
+        if (state.inputText != textFieldValue.text) {
+            textFieldValue = TextFieldValue(
+                text = state.inputText,
+                selection = TextRange(state.inputText.length)
+            )
+        }
+    }
 
     LaunchedEffect(listState.isScrollInProgress) {
         if (listState.isScrollInProgress) {
@@ -168,8 +184,11 @@ fun AiChatScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
-                            value = state.inputText,
-                            onValueChange = { viewModel.onEvent(AiChatEvent.InputTextChanged(it)) },
+                            value = textFieldValue,
+                            onValueChange = { newValue ->
+                                textFieldValue = newValue
+                                viewModel.onEvent(AiChatEvent.InputTextChanged(newValue.text))
+                            },
                             placeholder = { Text(stringResource(Res.string.ai_chat_placeholder)) },
                             modifier = Modifier.weight(1f).focusRequester(focusRequester),
                             shape = RoundedCornerShape(24.dp),

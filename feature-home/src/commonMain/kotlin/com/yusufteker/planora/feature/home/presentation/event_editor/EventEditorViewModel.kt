@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toInstant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.yusufteker.planora.shared.api.extractBaseTaskId
@@ -217,7 +219,24 @@ class EventEditorViewModel(
                 }
                 
                 val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
-                val startTime = sharedDate ?: now
+                val zone = TimeZone.currentSystemDefault()
+                val startTime = if (sharedDate != null) {
+                    val sharedLdt = Instant.fromEpochMilliseconds(sharedDate).toLocalDateTime(zone)
+                    if (sharedLdt.hour == 0 && sharedLdt.minute == 0) {
+                        val nowLdt = Instant.fromEpochMilliseconds(now).toLocalDateTime(zone)
+                        kotlinx.datetime.LocalDateTime(
+                            year = sharedLdt.year,
+                            monthNumber = sharedLdt.monthNumber,
+                            dayOfMonth = sharedLdt.dayOfMonth,
+                            hour = nowLdt.hour,
+                            minute = nowLdt.minute
+                        ).toInstant(zone).toEpochMilliseconds()
+                    } else {
+                        sharedDate
+                    }
+                } else {
+                    now
+                }
                 val endTime = startTime + 3600000L // +1 hour
 
                 _state.value = EventEditorState(

@@ -63,6 +63,7 @@
     <string name="day_fri">Cum</string>
     <string name="day_sat">Cmt</string>
     <string name="day_sun">Paz</string>
+    <string name="all_day_tasks">Tüm Gün</string>
 
     <!-- Profile -->
     <string name="profile_choose_avatar">Avatar Seç</string>

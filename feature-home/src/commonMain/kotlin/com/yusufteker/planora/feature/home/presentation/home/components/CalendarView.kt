@@ -165,7 +165,7 @@ fun CalendarView(
     Column(modifier = modifier.fillMaxWidth()) {
         // Header (Optional, if we want to keep the chevron navigation to jump months)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -314,47 +314,13 @@ fun CalendarView(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            if (hasLoadedTasks && upcomingTasks.isEmpty()) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = stringResource(Res.string.empty_events_today),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } else {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    upcomingTasks.forEach { task ->
-                                        val creatorUser =
-                                            accessibleUsers.find { it.userId == task.creatorId }
-                                        val creatorColor = creatorUser?.color?.let {
-                                            try {
-                                                androidx.compose.ui.graphics.Color(
-                                                    it.removePrefix("#")
-                                                        .toLong(16) or 0x00000000FF000000
-                                                )
-                                            } catch (e: Exception) {
-                                                null
-                                            }
-                                        }
-
-                                        TimelineTaskCard(
-                                            modifier = Modifier.padding(vertical = 6.dp),
-                                            task = task,
-                                            showDate = false,
-                                            sharedUserAvatar = creatorUser?.avatarId,
-                                            sharedUserColor = creatorColor,
-                                            sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
-                                            onClick = { onTaskClick(task) })
-                                    }
-                                }
-                            }
+                            DayScheduleGrid(
+                                selectedDate = selectedDate,
+                                tasks = upcomingTasks,
+                                accessibleUsers = accessibleUsers,
+                                onTaskClick = onTaskClick,
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             Spacer(modifier = Modifier.height(16.dp))
                             Divider(color = MaterialTheme.colorScheme.surfaceVariant)

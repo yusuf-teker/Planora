@@ -64,6 +64,7 @@
     <string name="day_fri">Fri</string>
     <string name="day_sat">Sat</string>
     <string name="day_sun">Sun</string>
+    <string name="all_day_tasks">All-Day</string>
 
     <!-- Profile -->
     <string name="profile_choose_avatar">Choose Avatar</string>
