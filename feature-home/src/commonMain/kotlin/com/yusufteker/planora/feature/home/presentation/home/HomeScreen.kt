@@ -30,7 +30,7 @@ import com.yusufteker.planora.core.navigation.LocalMainNavigator
 import com.yusufteker.planora.core.navigation.Screen
 import com.yusufteker.planora.core.navigation.Screen.MainDestination
 import com.yusufteker.planora.core.utils.TimelineViewOption
-import com.yusufteker.planora.feature.home.presentation.home.components.CalendarSection
+import com.yusufteker.planora.feature.home.presentation.home.components.calendar.CalendarSection
 import com.yusufteker.planora.feature.home.presentation.home.components.FilterBottomSheetComponent
 import com.yusufteker.planora.feature.home.presentation.home.components.HomeFabMenu
 import com.yusufteker.planora.feature.home.presentation.home.components.HomeTopBar

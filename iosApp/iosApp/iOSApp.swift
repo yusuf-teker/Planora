@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 import FoundationModels
 import ComposeApp
 import FirebaseCore
@@ -78,6 +79,7 @@ struct PlanoraApp: App {
 
     init() {
         setupAiBridge()
+        setupWidgetBridge()
     }
     var body: some Scene {
         WindowGroup { 
@@ -85,8 +87,18 @@ struct PlanoraApp: App {
                 .onOpenURL { url in
                     DeepLinkManager.shared.emitLink(link: url.absoluteString)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    IosWidgetBridge.shared.syncWidgetData()
+                }
         }
     }
+}
+
+func setupWidgetBridge() {
+    IosWidgetBridge.shared.onWidgetDataReloadRequested = {
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+    IosWidgetBridge.shared.syncWidgetData()
 }
 
 @available(iOS 26.0, *)

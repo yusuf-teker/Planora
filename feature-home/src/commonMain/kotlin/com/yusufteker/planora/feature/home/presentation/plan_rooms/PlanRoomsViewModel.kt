@@ -24,6 +24,8 @@ import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 
+import kotlinx.coroutines.flow.combine
+
 class PlanRoomsViewModel(
     private val planRepository: PlanRepository,
     private val profileRepository: ProfileRepository,
@@ -31,11 +33,37 @@ class PlanRoomsViewModel(
 ) : BaseViewModel<PlanRoomsState, PlanRoomsEvent, PlanRoomsEffect>(PlanRoomsState()) {
 
     init {
-        // Observe rooms from local DB continuously
+        // Observe rooms and tasks from local DB continuously to ensure member list includes task participants/creators
         viewModelScope.launch {
-            planRepository.observeAllPlanRooms().collect { rooms ->
-                setState { copy(rooms = rooms) }
-                loadMissingMemberProfiles(rooms)
+            combine(
+                planRepository.observeAllPlanRooms(),
+                planRepository.observeAllTasks()
+            ) { rooms, tasks ->
+                rooms.map { room ->
+                    val roomTasks = tasks.filter { it.sharedRoomIds.contains(room.id) }
+                    val existingMemberUserIds = room.members.map { it.userId }.toSet()
+                    val extraUserIds = roomTasks.flatMap { t -> t.participants.map { it.userId } + t.creatorId }
+                        .filter { it > 0 && !existingMemberUserIds.contains(it) }
+                        .toSet()
+
+                    if (extraUserIds.isNotEmpty()) {
+                        val mergedMembers = room.members + extraUserIds.map { extraId ->
+                            com.yusufteker.planora.shared.api.PlanRoomMemberDto(
+                                roomId = room.id,
+                                userId = extraId,
+                                status = com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED,
+                                role = com.yusufteker.planora.shared.api.RoomMemberRole.MEMBER,
+                                joinedAt = null
+                            )
+                        }
+                        room.copy(members = mergedMembers)
+                    } else {
+                        room
+                    }
+                }
+            }.collect { mergedRooms ->
+                setState { copy(rooms = mergedRooms) }
+                loadMissingMemberProfiles(mergedRooms)
             }
         }
 

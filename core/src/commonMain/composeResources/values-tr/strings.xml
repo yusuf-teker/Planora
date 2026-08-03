@@ -64,6 +64,11 @@
     <string name="day_sat">Cmt</string>
     <string name="day_sun">Paz</string>
     <string name="all_day_tasks">Tüm Gün</string>
+    <string name="calendar_mode_year">Yıl</string>
+    <string name="calendar_mode_month">Ay</string>
+    <string name="calendar_mode_week">Hafta</string>
+    <string name="calendar_mode_day">Gün</string>
+    <string name="events_count_format">%1$d Etkinlik</string>
 
     <!-- Profile -->
     <string name="profile_choose_avatar">Avatar Seç</string>
@@ -609,4 +614,12 @@
     <string name="shared_room_event_label">Ortak Oda Etkinliği</string>
     <string name="linked_room_label">Bağlı Oda</string>
     <string name="go_to_room_label">Odaya Git</string>
+
+    <!-- Widget Strings -->
+    <string name="widget_month_name">Planora Ay Takvimi</string>
+    <string name="widget_today_name">Planora Bugünün Görevleri</string>
+    <string name="widget_this_week">Bu Hafta</string>
+    <string name="widget_month_desc">Görev noktaları ve tarih gezintisi sunan tam ay takvimi görünümü.</string>
+    <string name="widget_today_desc">Bugünün ajandası ve aktif görevleri.</string>
+    <string name="widget_no_tasks_today">Bugün için planlanmış görev yok.</string>
 </resources>

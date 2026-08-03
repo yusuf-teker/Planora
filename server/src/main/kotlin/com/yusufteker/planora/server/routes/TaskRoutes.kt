@@ -597,9 +597,15 @@ fun Route.taskRoutes() {
                                 ) 
                             }
 
+                        val taskCreatorId = try {
+                            entity.readValues[com.yusufteker.planora.server.database.tables.TasksTable.creatorId].value
+                        } catch (e: Exception) {
+                            try { entity.creator.id.value } catch (e2: Exception) { 0 }
+                        }
+
                         TaskDto(
                             id = entity.id.value,
-                            creatorId = entity.creator.id.value,
+                            creatorId = taskCreatorId,
                             title = entity.title,
                             description = entity.description,
                             startTime = entity.startTime,
@@ -702,9 +708,15 @@ fun Route.taskRoutes() {
                                 ) 
                             }
 
+                        val taskCreatorId = try {
+                            entity.readValues[com.yusufteker.planora.server.database.tables.TasksTable.creatorId].value
+                        } catch (e: Exception) {
+                            try { entity.creator.id.value } catch (e2: Exception) { 0 }
+                        }
+
                         TaskDto(
                             id = entity.id.value,
-                            creatorId = entity.creator.id.value,
+                            creatorId = taskCreatorId,
                             title = entity.title,
                             description = entity.description,
                             startTime = entity.startTime,

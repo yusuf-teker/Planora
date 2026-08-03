@@ -63,8 +63,16 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         val dataString = intent?.dataString
-        println("DEEPLINK DEBUG: MainActivity handleIntent dataString='$dataString'")
-        if (dataString != null) {
+        val selectedDate = intent?.getStringExtra(com.yusufteker.planora.android.widget.PlanoraWidgetUpdater.EXTRA_SELECTED_DATE)
+        val taskId = intent?.getStringExtra(com.yusufteker.planora.android.widget.PlanoraWidgetUpdater.EXTRA_TASK_ID)
+
+        println("DEEPLINK DEBUG: MainActivity handleIntent dataString='$dataString', selectedDate='$selectedDate', taskId='$taskId'")
+
+        if (selectedDate != null) {
+            DeepLinkManager.emitLink("planora://share/calendar?date=$selectedDate")
+        } else if (taskId != null) {
+            DeepLinkManager.emitLink("planora://share/task?taskId=$taskId")
+        } else if (dataString != null) {
             DeepLinkManager.emitLink(dataString)
         }
     }

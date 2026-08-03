@@ -360,14 +360,23 @@ fun PlanRoomDetailScreen(
                         )
                     } else {
                         val acceptedMembers = remember(state.memberProfiles, state.roomMembers) {
-                            if (state.roomMembers.isEmpty()) {
-                                state.memberProfiles.values.toList()
+                            val acceptedUserIds = if (state.roomMembers.isEmpty()) {
+                                state.memberProfiles.keys
                             } else {
-                                val acceptedUserIds = state.roomMembers
+                                state.roomMembers
                                     .filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
                                     .map { it.userId }
                                     .toSet()
-                                state.memberProfiles.values.filter { acceptedUserIds.contains(it.id) }
+                            }
+
+                            acceptedUserIds.mapNotNull { userId ->
+                                state.memberProfiles[userId] ?: UserProfileResponse(
+                                    id = userId,
+                                    name = "Kullanıcı $userId",
+                                    username = "",
+                                    email = "",
+                                    avatarId = "default"
+                                )
                             }
                         }
 

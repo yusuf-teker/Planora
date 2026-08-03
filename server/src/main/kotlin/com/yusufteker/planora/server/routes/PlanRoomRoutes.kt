@@ -123,10 +123,16 @@ fun Route.planRoomRoutes() {
 
                         // 4.3: Odanın temel bilgileri (roomEntity) ile o odanın ayıklanmış üyelerini (roomMembers)
                         // tek bir ana pakette (PlanRoomDto) birleştiriyoruz. Frontend'e gidecek olan asıl liste bu paketlerden oluşuyor.
+                        val creatorId = try {
+                            roomEntity.readValues[PlanRoomsTable.creatorId].value
+                        } catch (e: Exception) {
+                            try { roomEntity.creator.id.value } catch (e2: Exception) { 0 }
+                        }
+
                         PlanRoomDto(
                             id = roomId,
                             name = roomEntity.name,
-                            creatorId = roomEntity.creator.id.value,
+                            creatorId = creatorId,
                             createdAt = roomEntity.createdAt,
                             imageUrl = roomEntity.imageUrl,
                             members = roomMembers

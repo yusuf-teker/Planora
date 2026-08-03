@@ -34,15 +34,15 @@ fun <T> WheelPicker(
     val initialIndex = items.indexOf(selectedItem).takeIf { it >= 0 } ?: 0
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-    val isScrollInProgress = listState.isScrollInProgress
 
-    LaunchedEffect(isScrollInProgress) {
-        if (!isScrollInProgress) {
-            val centerIndex = listState.firstVisibleItemIndex
-            if (centerIndex in items.indices) {
-                onItemSelected(items[centerIndex])
+    // Continuously report center item index changes to onItemSelected in real time via snapshotFlow
+    LaunchedEffect(items, listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { centerIndex ->
+                if (centerIndex in items.indices) {
+                    onItemSelected(items[centerIndex])
+                }
             }
-        }
     }
     
     // When selectedItem changes externally, animate to it
@@ -99,6 +99,13 @@ fun WheelDatePicker(
     var selectedYear by remember { mutableStateOf(currentDate.year) }
     var selectedMonth by remember { mutableStateOf(currentDate.monthNumber) }
     var selectedDay by remember { mutableStateOf(currentDate.dayOfMonth) }
+
+    LaunchedEffect(initialDateMillis) {
+        val date = Instant.fromEpochMilliseconds(initialDateMillis).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        selectedYear = date.year
+        selectedMonth = date.monthNumber
+        selectedDay = date.dayOfMonth
+    }
 
     val minDate = minDateMillis?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val maxDate = maxDateMillis?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date }
@@ -209,6 +216,11 @@ fun WheelTimePicker(
 ) {
     var selectedHour by remember { mutableStateOf(initialHour) }
     var selectedMinute by remember { mutableStateOf(initialMinute) }
+
+    LaunchedEffect(initialHour, initialMinute) {
+        selectedHour = initialHour
+        selectedMinute = initialMinute
+    }
 
     LaunchedEffect(selectedHour, selectedMinute) {
         onTimeSelected(selectedHour, selectedMinute)

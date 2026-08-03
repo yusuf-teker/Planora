@@ -84,6 +84,27 @@
                 <action android:name="com.yusufteker.planora.ACTION_DAILY_DIGEST" />
             </intent-filter>
         </receiver>
+
+
+        <!-- Today Widget Receiver -->
+        <receiver
+            android:name=".android.widget.PlanoraTodayWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_today_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.yusufteker.planora.ACTION_REFRESH_WIDGETS" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/planora_today_widget_info" />
+        </receiver>
+
+        <!-- Today Tasks RemoteViewsService -->
+        <service
+            android:name=".android.widget.TodayTasksRemoteViewsService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
 
 </manifest>

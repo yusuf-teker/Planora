@@ -31,6 +31,10 @@ sealed class DeepLinkResult {
         val roomId: String
     ) : DeepLinkResult()
 
+    data class NavigateToCalendar(
+        val dateString: String? = null
+    ) : DeepLinkResult()
+
     data object NavigateToPlanRooms : DeepLinkResult()
 
     data object InvalidOrIgnored : DeepLinkResult()
@@ -104,6 +108,9 @@ class ProcessDeepLinkUseCase(
                         sharedNote = note,
                         sharedSender = sender
                     )
+                }
+                "calendar" -> {
+                    DeepLinkResult.NavigateToCalendar(dateString = url.parameters["date"])
                 }
                 "roomInvite" -> {
                     DeepLinkResult.NavigateToPlanRooms

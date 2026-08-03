@@ -140,7 +140,17 @@ class PlanRoomDetailViewModel(
         }
     }
     
+    private var loadRoomJob: kotlinx.coroutines.Job? = null
+
     private fun loadRoom(roomId: String) {
+        if (currentState.roomId == roomId && loadRoomJob?.isActive == true) {
+            // Already observing this room, just refresh network data once
+            viewModelScope.launch { planRepository.fetchRoomTasks(roomId) }
+            viewModelScope.launch { planRepository.fetchMyRooms() }
+            return
+        }
+
+        loadRoomJob?.cancel()
         setState { copy(roomId = roomId, isLoading = true, isMembersLoading = true) }
         
         // Default calendar month if not set
@@ -153,65 +163,128 @@ class PlanRoomDetailViewModel(
             setState { copy(calendarCurrentMonth = monthStart, calendarSelectedDate = earliest) }
         }
         
-        // 1. Observe all rooms to get this room's details (name, members)
-        viewModelScope.launch {
-            planRepository.observeAllPlanRooms().collect { rooms ->
-                val room = rooms.find { it.id == roomId }
-                if (room != null) {
-                    val myUserId = sessionPreferences.getUserId() ?: ""
-                    val isCreator = room.creatorId.toString() == myUserId
-                    setState { 
-                        copy(
-                            roomName = room.name, 
-                            roomImageUrl = room.imageUrl, 
-                            isRoomCreator = isCreator, 
-                            myUserId = myUserId,
-                            creatorId = room.creatorId,
-                            roomMembers = room.members,
-                            isLoading = false
-                        ) 
-                    }
-                    
-                    // Fetch missing profiles for members concurrently
-                    val currentProfiles = currentState.memberProfiles.toMutableMap()
-                    val validMemberUserIds = room.members.map { it.userId }.toSet()
-                    currentProfiles.keys.retainAll(validMemberUserIds)
+        loadRoomJob = viewModelScope.launch {
+            // 1. Observe all rooms to get this room's details (name, members)
+            launch {
+                planRepository.observeAllPlanRooms().collect { rooms ->
+                    val room = rooms.find { it.id == roomId }
+                    if (room != null) {
+                        val myUserId = sessionPreferences.getUserId() ?: ""
+                        val isCreator = room.creatorId.toString() == myUserId
+                        setState { 
+                            copy(
+                                roomName = room.name, 
+                                roomImageUrl = room.imageUrl, 
+                                isRoomCreator = isCreator, 
+                                myUserId = myUserId,
+                                creatorId = room.creatorId,
+                                roomMembers = room.members,
+                                isLoading = false
+                            ) 
+                        }
+                        
+                        // Fetch missing profiles for members concurrently
+                        val currentProfiles = currentState.memberProfiles.toMutableMap()
+                        val validMemberUserIds = room.members.map { it.userId }.toSet()
+                        currentProfiles.keys.retainAll(validMemberUserIds)
 
-                    val missingMemberIds = room.members.map { it.userId }.filter { !currentProfiles.containsKey(it) }
-                    
-                    if (missingMemberIds.isNotEmpty()) {
-                        val deferredProfiles = missingMemberIds.map { userId ->
-                            async {
-                                userId to profileRepository.getProfile(userId.toString())
+                        val missingMemberIds = room.members.map { it.userId }.filter { !currentProfiles.containsKey(it) }
+                        
+                        if (missingMemberIds.isNotEmpty()) {
+                            val deferredProfiles = missingMemberIds.map { userId ->
+                                async {
+                                    userId to profileRepository.getProfile(userId.toString())
+                                }
                             }
-                        }
-                        val results = deferredProfiles.awaitAll()
-                        results.forEach { (userId, result) ->
-                            result.onSuccess { profile ->
-                                currentProfiles[userId] = profile
+                            val results = deferredProfiles.awaitAll()
+                            results.forEach { (userId, result) ->
+                                result.onSuccess { profile ->
+                                    currentProfiles[userId] = profile
+                                }.onFailure {
+                                    if (!currentProfiles.containsKey(userId)) {
+                                        val participantInfo = currentState.roomTasks
+                                            .flatMap { it.participants }
+                                            .find { it.userId == userId }
+                                        currentProfiles[userId] = UserProfileResponse(
+                                            id = userId,
+                                            name = participantInfo?.name ?: "Kullanıcı $userId",
+                                            username = "",
+                                            email = "",
+                                            avatarId = participantInfo?.avatarId ?: "default",
+                                            profileImageUrl = participantInfo?.profileImageUrl
+                                        )
+                                    }
+                                }
                             }
+                            setState { copy(memberProfiles = currentProfiles.toMap(), isMembersLoading = false) }
+                        } else {
+                            setState { copy(memberProfiles = currentProfiles.toMap(), isMembersLoading = false) }
                         }
-                        setState { copy(memberProfiles = currentProfiles.toMap(), isMembersLoading = false) }
                     } else {
-                        setState { copy(memberProfiles = currentProfiles.toMap(), isMembersLoading = false) }
+                        setState { copy(isLoading = false, isMembersLoading = false) }
                     }
-                } else {
-                    setState { copy(isLoading = false, isMembersLoading = false) }
+                }
+            }
+
+            // 2. Observe all tasks to filter tasks belonging to this room
+            launch {
+                planRepository.observeAllTasks().collect { tasks ->
+                    val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) && it.parentId == null }
+                    val month = currentState.calendarCurrentMonth ?: kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.planora.core.utils.getCurrentTimeMs()).toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                    val earliest = getEarliestEventDateInMonth(roomTasks, month)
+
+                    val currentProfiles = currentState.memberProfiles.toMutableMap()
+                    var profilesUpdated = false
+                    roomTasks.forEach { task ->
+                        task.participants.forEach { participant ->
+                            if (!currentProfiles.containsKey(participant.userId)) {
+                                currentProfiles[participant.userId] = UserProfileResponse(
+                                    id = participant.userId,
+                                    name = participant.name,
+                                    username = "",
+                                    email = "",
+                                    avatarId = participant.avatarId ?: "default",
+                                    profileImageUrl = participant.profileImageUrl
+                                )
+                                profilesUpdated = true
+                            }
+                        }
+                    }
+
+                    val existingMemberUserIds = currentState.roomMembers.map { it.userId }.toSet()
+                    val extraUserIds = roomTasks.flatMap { t -> t.participants.map { it.userId } + t.creatorId }
+                        .filter { it > 0 && !existingMemberUserIds.contains(it) }
+                        .toSet()
+
+                    val updatedRoomMembers = if (extraUserIds.isNotEmpty()) {
+                        currentState.roomMembers + extraUserIds.map { extraId ->
+                            com.yusufteker.planora.shared.api.PlanRoomMemberDto(
+                                roomId = roomId,
+                                userId = extraId,
+                                status = com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED,
+                                role = com.yusufteker.planora.shared.api.RoomMemberRole.MEMBER,
+                                joinedAt = null
+                            )
+                        }
+                    } else {
+                        currentState.roomMembers
+                    }
+
+                    if (profilesUpdated) {
+                        setState { copy(roomTasks = roomTasks, calendarSelectedDate = currentState.calendarSelectedDate ?: earliest, memberProfiles = currentProfiles.toMap(), roomMembers = updatedRoomMembers) }
+                    } else {
+                        setState { copy(roomTasks = roomTasks, calendarSelectedDate = currentState.calendarSelectedDate ?: earliest, roomMembers = updatedRoomMembers) }
+                    }
                 }
             }
         }
-        viewModelScope.launch {
-            planRepository.observeAllTasks().collect { tasks ->
-                val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) && it.parentId == null }
-                val month = currentState.calendarCurrentMonth ?: kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.planora.core.utils.getCurrentTimeMs()).toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-                val earliest = getEarliestEventDateInMonth(roomTasks, month)
-                setState { copy(roomTasks = roomTasks, calendarSelectedDate = currentState.calendarSelectedDate ?: earliest) }
-            }
-        }
         
-        // 3. Fetch from network
+        // 3. Fetch network data once on load
         viewModelScope.launch {
             planRepository.fetchRoomTasks(roomId)
+        }
+        viewModelScope.launch {
+            planRepository.fetchMyRooms()
         }
     }
     

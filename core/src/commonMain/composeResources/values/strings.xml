@@ -65,6 +65,11 @@
     <string name="day_sat">Sat</string>
     <string name="day_sun">Sun</string>
     <string name="all_day_tasks">All-Day</string>
+    <string name="calendar_mode_year">Year</string>
+    <string name="calendar_mode_month">Month</string>
+    <string name="calendar_mode_week">Week</string>
+    <string name="calendar_mode_day">Day</string>
+    <string name="events_count_format">%1$d Events</string>
 
     <!-- Profile -->
     <string name="profile_choose_avatar">Choose Avatar</string>
@@ -610,4 +615,12 @@
     <string name="shared_room_event_label">Shared Room Event</string>
     <string name="linked_room_label">Linked Room</string>
     <string name="go_to_room_label">Go to Room</string>
+
+    <!-- Widget Strings -->
+    <string name="widget_month_name">Planora Month Calendar</string>
+    <string name="widget_today_name">Planora Today Tasks</string>
+    <string name="widget_this_week">This Week</string>
+    <string name="widget_month_desc">Full month calendar view with task dots and date navigation.</string>
+    <string name="widget_today_desc">Today\'s agenda and active tasks.</string>
+    <string name="widget_no_tasks_today">No tasks scheduled for today.</string>
 </resources>

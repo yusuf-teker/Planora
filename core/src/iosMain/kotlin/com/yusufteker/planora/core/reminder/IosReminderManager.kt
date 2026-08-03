@@ -5,8 +5,12 @@ import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSDateComponents
+import platform.Foundation.currentLocale
+import platform.Foundation.languageCode
+import platform.Foundation.preferredLanguages
 import platform.UserNotifications.UNAuthorizationOptionAlert
 import platform.UserNotifications.UNAuthorizationOptionBadge
 import platform.UserNotifications.UNAuthorizationOptionSound
@@ -159,6 +163,9 @@ class IosReminderManager : ReminderManager {
         val timeZone = kotlinx.datetime.TimeZone.currentSystemDefault()
         val todayDate = kotlinx.datetime.Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone).date
 
+        val isTr = isTurkishLocale()
+        val strings = ReminderStrings(isTr)
+
         // 1. Morning Digest (09:00)
         val todayTasks = uncompletedTasks.filter { task ->
             val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
@@ -171,8 +178,8 @@ class IosReminderManager : ReminderManager {
             scheduleCalendarDigest(
                 identifier = "planora_digest_morning",
                 hour = 9,
-                title = "🌅 Günaydın! Bugünkü Planların",
-                body = "Bugün ${todayTasks.size} görevin var. İlk görev: ${earliestTask?.title ?: ""}",
+                title = strings.digestMorningTitle,
+                body = strings.digestMorningTasks(todayTasks.size, earliestTask?.title ?: ""),
                 deepLinkUrl = earliestTask?.let { "planora://share/task?taskId=${it.id}" }
             )
         } else {
@@ -189,16 +196,16 @@ class IosReminderManager : ReminderManager {
                 scheduleCalendarDigest(
                     identifier = "planora_digest_morning",
                     hour = 9,
-                    title = "🌅 Günaydın! Bugünkü Planların",
-                    body = "Günün Etkinlikleri: $eventTitlesStr",
+                    title = strings.digestMorningTitle,
+                    body = strings.digestMorningEvents(eventTitlesStr),
                     deepLinkUrl = earliestEvent?.let { "planora://share/task?taskId=${it.id}" }
                 )
             } else {
                 scheduleCalendarDigest(
                     identifier = "planora_digest_morning",
                     hour = 9,
-                    title = "🌅 Günaydın! Bugünkü Planların",
-                    body = "Bugün henüz planlanmış görevin yok. Yeni bir hedef eklemek ister misin?",
+                    title = strings.digestMorningTitle,
+                    body = strings.digestMorningEmpty,
                     deepLinkUrl = null
                 )
             }
@@ -218,8 +225,8 @@ class IosReminderManager : ReminderManager {
             scheduleCalendarDigest(
                 identifier = "planora_digest_overdue",
                 hour = 12,
-                title = "⚠️ Geciken Görev Uyarısı!",
-                body = "Son 3 gün içinde henüz tamamlanmamış ${overdueTasks.size} görevin bulunuyor.",
+                title = strings.overdueTitle,
+                body = strings.overdueBody(overdueTasks.size),
                 deepLinkUrl = urgentTask?.let { "planora://share/task?taskId=${it.id}" }
             )
         }
@@ -230,8 +237,8 @@ class IosReminderManager : ReminderManager {
             scheduleCalendarDigest(
                 identifier = "planora_digest_afternoon",
                 hour = 16,
-                title = "☀️ Gün Ortası Kontrolü",
-                body = "Günün geri kalanı için ${todayTasks.size} tamamlanmamış görevin var.",
+                title = strings.afternoonTitle,
+                body = strings.afternoonBody(todayTasks.size),
                 deepLinkUrl = nextTask?.let { "planora://share/task?taskId=${it.id}" }
             )
         }
@@ -282,14 +289,11 @@ class IosReminderManager : ReminderManager {
         reminderMinutes: Int,
         taskType: TaskType
     ) {
-        val style = notificationStyleFor(taskType)
+        val isTr = isTurkishLocale()
+        val strings = ReminderStrings(isTr)
+        val style = notificationStyleFor(taskType, strings)
 
-        val timeText = when {
-            reminderMinutes == 0 -> "Şimdi"
-            reminderMinutes % 1440 == 0 -> "${reminderMinutes / 1440} gün sonra"
-            reminderMinutes % 60 == 0 -> "${reminderMinutes / 60} saat sonra"
-            else -> "$reminderMinutes dakika sonra"
-        }
+        val timeText = strings.reminderTimeText(reminderMinutes)
 
         val content = UNMutableNotificationContent().apply {
             setTitle("${style.emoji} ${style.titlePrefix}")
@@ -339,27 +343,79 @@ private data class NotificationStyle(
     val categoryId: String
 )
 
-private fun notificationStyleFor(taskType: TaskType): NotificationStyle {
+private fun notificationStyleFor(taskType: TaskType, strings: ReminderStrings): NotificationStyle {
     return when (taskType) {
         TaskType.TASK -> NotificationStyle(
             emoji = "✅",
-            titlePrefix = "Görev Hatırlatıcı",
+            titlePrefix = strings.titlePrefixFor(TaskType.TASK),
             threadId = "planora_task_thread",
             categoryId = "PLANORA_TASK_CATEGORY"
         )
 
         TaskType.EVENT -> NotificationStyle(
             emoji = "📅",
-            titlePrefix = "Etkinlik Hatırlatıcı",
+            titlePrefix = strings.titlePrefixFor(TaskType.EVENT),
             threadId = "planora_event_thread",
             categoryId = "PLANORA_EVENT_CATEGORY"
         )
 
         else -> NotificationStyle(
             emoji = "⏰",
-            titlePrefix = "Hatırlatıcı",
+            titlePrefix = strings.titlePrefixFor(TaskType.NOTE),
             threadId = "planora_general_thread",
             categoryId = "PLANORA_GENERAL_CATEGORY"
         )
+    }
+}
+
+private class ReminderStrings(val isTr: Boolean) {
+    val digestMorningTitle: String = if (isTr) "🌅 Günaydın! Bugünkü Planların" else "🌅 Good Morning! Today's Plans"
+
+    fun digestMorningTasks(count: Int, firstTitle: String): String =
+        if (isTr) "Bugün $count görevin var. İlk görev: $firstTitle"
+        else "You have $count task(s) today. First up: $firstTitle"
+
+    fun digestMorningEvents(eventsStr: String): String =
+        if (isTr) "Günün Etkinlikleri: $eventsStr"
+        else "Today's Events: $eventsStr"
+
+    val digestMorningEmpty: String =
+        if (isTr) "Bugün henüz planlanmış görevin yok. Yeni bir hedef eklemek ister misin?"
+        else "No tasks scheduled for today yet. Want to add a new goal?"
+
+    val overdueTitle: String = if (isTr) "⚠️ Geciken Görev Uyarısı!" else "⚠️ Overdue Tasks Alert!"
+
+    fun overdueBody(count: Int): String =
+        if (isTr) "Son 3 gün içinde henüz tamamlanmamış $count görevin bulunuyor."
+        else "You have $count overdue task(s) from the last 3 days."
+
+    val afternoonTitle: String = if (isTr) "☀️ Gün Ortası Kontrolü" else "☀️ Afternoon Check-in"
+
+    fun afternoonBody(count: Int): String =
+        if (isTr) "Günün geri kalanı için $count tamamlanmamış görevin var."
+        else "You have $count remaining task(s) for the rest of the day."
+
+    fun reminderTimeText(minutes: Int): String = when {
+        minutes == 0 -> if (isTr) "Şimdi" else "Now"
+        minutes % 1440 == 0 -> if (isTr) "${minutes / 1440} gün sonra" else "In ${minutes / 1440} day(s)"
+        minutes % 60 == 0 -> if (isTr) "${minutes / 60} saat sonra" else "In ${minutes / 60} hour(s)"
+        else -> if (isTr) "$minutes dakika sonra" else "In $minutes minute(s)"
+    }
+
+    fun titlePrefixFor(taskType: TaskType): String = when (taskType) {
+        TaskType.TASK -> if (isTr) "Görev Hatırlatıcı" else "Task Reminder"
+        TaskType.EVENT -> if (isTr) "Etkinlik Hatırlatıcı" else "Event Reminder"
+        else -> if (isTr) "Hatırlatıcı" else "Reminder"
+    }
+}
+
+private fun isTurkishLocale(): Boolean {
+    return try {
+        val preferred = platform.Foundation.NSLocale.preferredLanguages.firstOrNull() as? String
+        val current = platform.Foundation.NSLocale.currentLocale.languageCode
+        val lang = preferred ?: current
+        lang?.lowercase()?.startsWith("tr") == true
+    } catch (e: Exception) {
+        false
     }
 }

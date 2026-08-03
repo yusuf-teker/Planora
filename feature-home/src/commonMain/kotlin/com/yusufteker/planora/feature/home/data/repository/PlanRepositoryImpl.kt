@@ -101,6 +101,21 @@ class PlanRepositoryImpl(
         }
     }
 
+    private var dataChangeListener: (() -> Unit)? = null
+
+    fun setDataChangeListener(listener: (() -> Unit)?) {
+        dataChangeListener = listener
+    }
+
+    private fun notifyDataChanged() {
+        try {
+            dataChangeListener?.invoke()
+            com.yusufteker.planora.core.utils.NotificationSyncBridge.triggerWidgetUpdate()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     // ─────────────────────────────────────────
     // GÖREV YAZMA İŞLEMLERİ (Create / Update / Delete)
     // ─────────────────────────────────────────
@@ -137,6 +152,7 @@ class PlanRepositoryImpl(
             if (triggerSync) {
                 scope.launch(Dispatchers.IO) { syncPendingChanges() }
             }
+            notifyDataChanged()
             Result.success(localDto)
         } catch (e: Exception) {
             Napier.e(e) { "PlanRepositoryImpl.createTask FAILED: ${e.message}" }
@@ -178,6 +194,7 @@ class PlanRepositoryImpl(
             if (triggerSync) {
                 scope.launch(Dispatchers.IO) { syncPendingChanges() }
             }
+            notifyDataChanged()
             Result.success(Unit)
         } catch (e: Exception) {
             Napier.e(e) { "PlanRepositoryImpl.updateTask FAILED: taskId=$taskId, message=${e.message}" }
@@ -192,6 +209,7 @@ class PlanRepositoryImpl(
                 isPinned = if (isPinned) 1L else 0L,
                 id = actualTaskId
             )
+            notifyDataChanged()
             Result.success(Unit)
         } catch (e: Exception) {
             Napier.e(e) { "PlanRepositoryImpl.toggleTaskPinLocal FAILED: taskId=$taskId, message=${e.message}" }
@@ -222,6 +240,7 @@ class PlanRepositoryImpl(
                     Napier.e(e) { "PlanRepositoryImpl.deleteTask remote sync failed for $actualTaskId: ${e.message}" }
                 }
             }
+            notifyDataChanged()
             Result.success(Unit)
         } catch (e: Exception) {
             Napier.e(e) { "PlanRepositoryImpl.deleteTask FAILED: taskId=$taskId, message=${e.message}" }
@@ -503,6 +522,7 @@ class PlanRepositoryImpl(
                     }
                 }
             }
+            notifyDataChanged()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -601,6 +621,7 @@ class PlanRepositoryImpl(
                 )
                 // TODO: Recurring task exception'larını sunucuya senkronize et.
             }
+            notifyDataChanged()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

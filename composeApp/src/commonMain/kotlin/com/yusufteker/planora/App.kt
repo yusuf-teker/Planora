@@ -217,6 +217,9 @@ fun App() {
                             )
                         )
                     }
+                    is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToCalendar -> {
+                        navigator.setRoot(Screen.Main(initialDestination = "Home"))
+                    }
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToPlanRooms -> {
                         navigator.setRoot(Screen.Main(initialDestination = "PlanRooms"))
                     }
