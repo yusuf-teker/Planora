@@ -328,7 +328,7 @@ fun EventEditorScreen(
                         val names = state.participants.values.joinToString(", ")
                         val participantSummary = if (names.isBlank()) stringResource(Res.string.option_not_selected) else names
                         FormRow(
-                            label = stringResource(Res.string.assignees_label),
+                            label = stringResource(Res.string.participants_label),
                             value = participantSummary,
                             onClick = { viewModel.onEvent(EventEditorEvent.OnParticipantPickerVisibilityChanged(true)) }
                         )
@@ -526,7 +526,7 @@ fun EventEditorScreen(
 
     if (state.isParticipantPickerVisible) {
         ParticipantPickerSheet(
-            title = stringResource(Res.string.assignees_label),
+            title = stringResource(Res.string.participants_label),
             roomMembers = state.roomMembers,
             selectedParticipantIds = state.participants.keys,
             sheetState = participantSheetState,

@@ -67,6 +67,8 @@ kotlin {
             api(libs.kotlinx.coroutines.core)
             api(libs.kotlinx.datetime)
             api(libs.compose.materialIconsExtended)
+            implementation(libs.kotlinx.datetime)
+
 
             // DataStore
             api(libs.datastore.preferences.core)

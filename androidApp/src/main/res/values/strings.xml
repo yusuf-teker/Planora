@@ -38,11 +38,12 @@
     <string name="digest_evening_body_all_done">Congratulations! You completed all your plans today.</string>
     <!-- Widget Strings -->
     <string name="widget_month_name">Planora Month Calendar</string>
-    <string name="widget_today_name">Planora Today Tasks</string>
+    <string name="widget_today_name">Today</string>
     <string name="widget_this_week">This Week</string>
     <string name="widget_month_desc">Full month calendar view with task dots and date navigation.</string>
     <string name="widget_today_desc">Today\'s agenda and active tasks.</string>
     <string name="widget_no_tasks_today">No tasks scheduled for today.</string>
+    <string name="widget_no_tasks_this_week">No tasks scheduled for this week.</string>
     <string name="widget_no_tasks_selected_day">No tasks or events scheduled for this day.</string>
     <string name="widget_open_app">Open App</string>
     <string name="widget_task_label">Task</string>

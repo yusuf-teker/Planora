@@ -25,9 +25,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * ADIM 3 — Bulut tabanlı (Gemini API) AI Yöneticisi.
@@ -81,11 +81,53 @@ class CloudAiManager {
         }
     }
 
-    private val systemPrompt: String
-        get() {
-            val now = Instant.fromEpochMilliseconds(com.yusufteker.planora.core.utils.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault())
-            val tz = TimeZone.currentSystemDefault().id
-            return """
+    private fun buildSystemPrompt(context: AiChatContext): String {
+        val now = Instant
+            .fromEpochMilliseconds(com.yusufteker.planora.core.utils.getCurrentTimeMs())
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+        val tz = TimeZone.currentSystemDefault().id
+
+        // ── Ortak Odalar ──
+        val roomsBlock = if (context.sharedRooms.isNotEmpty()) {
+            context.sharedRooms.joinToString("\n") { room ->
+                val members = if (room.memberNames.isNotEmpty()) room.memberNames.joinToString(", ") else "bilinmiyor"
+                "- Oda: '${room.roomName}' (id: ${room.roomId}), Üyeler: $members"
+            }
+        } else {
+            "Yok"
+        }
+
+        // ── Mevcut Görevler ──
+        val tasksBlock = if (context.myTasks.isNotEmpty()) {
+            context.myTasks.take(30).joinToString("\n") { task ->
+                val startTime = task.startTime
+                val timeStr = if (startTime != null) {
+                    val local = Instant.fromEpochMilliseconds(startTime).toLocalDateTime(TimeZone.currentSystemDefault())
+                    val endTime = task.endTime
+                    val endStr = if (endTime != null) {
+                        val endLocal = Instant.fromEpochMilliseconds(endTime).toLocalDateTime(TimeZone.currentSystemDefault())
+                        " - ${endLocal.hour.toString().padStart(2, '0')}:${endLocal.minute.toString().padStart(2, '0')}"
+                    } else {
+                        ""
+                    }
+                    "${local.dayOfMonth}.${local.monthNumber}.${local.year} ${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}$endStr"
+                } else {
+                    "zaman belirtilmemiş"
+                }
+                "- '${task.title}' (${task.type.name}, $timeStr)"
+            }
+        } else {
+            "Yok"
+        }
+
+        // ── Erişilebilir Kullanıcılar ──
+        val usersBlock = if (context.accessibleUsers.isNotEmpty()) {
+            context.accessibleUsers.joinToString(", ") { "${it.second} (id:${it.first})" }
+        } else {
+            "Yok"
+        }
+
+        return """
         Sen Planora adlı görev/not asistanısın. Yerel zaman: $now ($tz)
         KURALLAR:
         1. KISITLAMA: Yalnızca görev, etkinlik ve not oluşturmakla görevlisin. Kullanıcı başka bir soru sorarsa veya sohbet etmek isterse ASLA CEVAP VERME. intent=CHAT yap ve replyText'te "Ben sadece görev, etkinlik ve not oluşturmak için buradayım." de.
@@ -97,8 +139,38 @@ class CloudAiManager {
         7. Hatırlatıcı süreleri istenmişse 'reminders' dizisi içinde dakika cinsinden dön (örn 1 saat için 60, 1 gün için 1440).
         8. Tekrar eden bir işlemse 'recurrenceRule' içinde RRULE formatında dön (örn: FREQ=DAILY).
         9. Eğer bir mekan/konum belirtilmişse 'location' alanında dön.
+        10. ORTAK ODALAR: Kullanıcı bir arkadaşıyla/kişiyle birlikte bir etkinlik yapacağını söylerse (örn: "Dilberle tenise gidicem"), o kişinin hangi ortak odada olduğunu aşağıdaki odalardan bul ve 'sharedRoomId' alanına o odanın id'sini yaz. Ayrıca o kişinin userId'sini 'participantUserIds' dizisine ekle. Eğer kişi hiçbir odada yoksa 'sharedRoomId' boş bırak.
+        11. MEVCUT GÖREVLER: Kullanıcı "tenisten sonra fitnessa gidicem" gibi ardışık planlama yaparsa, aşağıdaki mevcut görevlere bak. Tenis 8-9 arasıysa fitness'ı 9-10 arasına ata. Çakışma olmamasına dikkat et.
+        12. Erişilebilir kullanıcılar listesindeki isimleri kullanıcı mesajındaki isimlerle eşleştir (örn: "Dilber" → id:5).
+        13. AÇIKLAMA (description): Kullanıcının mesajını AYNEN kopyalama! Düzgün, okunaklı ve özet bir açıklama yaz. Örn: "Dilberle yürüyüş yapacağım" → "Dilber ile birlikte yürüyüş yapılacak." "Yarın akşam 8'de tenis dersi var, sonra fitnessa gidicem" → "Akşam 8'de tenis dersi, ardından fitness seansı." Kısa ve öz ol, 1-2 cümle yeterli.
+
+        ORTAK ODALARIN:
+        $roomsBlock
+
+        MEVCUT GÖREVLERİN:
+        $tasksBlock
+
+        ERİŞİLEBİLİR KULLANICILAR:
+        $usersBlock
         """.trimIndent()
+    }
+
+    /**
+     * YENİ: AI description döndürmezse düzgün bir açıklama oluşturur.
+     */
+    private fun buildFallbackDescription(originalInput: String, participantNames: List<String>): String {
+        val participantStr = if (participantNames.isNotEmpty()) {
+            participantNames.joinToString(", ")
+        } else {
+            null
         }
+        val clean = originalInput.trim().replace(Regex("\\s+"), " ")
+        return when {
+            participantStr != null && clean.length > 10 -> "$participantStr ile birlikte $clean yapılacak."
+            clean.length > 10 -> "$clean yapılacak."
+            else -> clean
+        }
+    }
 
     /**
      * ADIM 3'ün giriş noktası. Kota doluysa veya API anahtarı yoksa hiç denemeden
@@ -123,6 +195,8 @@ class CloudAiManager {
             } else {
                 input.take(500)
             }
+
+            val systemPrompt = buildSystemPrompt(context)
 
             val requestBody = buildJsonObject {
                 put("contents", JsonArray(listOf(
@@ -166,6 +240,13 @@ class CloudAiManager {
                                         put("nullable", JsonPrimitive(true))
                                     })
                                     put("location", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                    // YENİ: Ortak oda ve katılımcılar
+                                    put("sharedRoomId", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                                    put("participantUserIds", buildJsonObject {
+                                        put("type", JsonPrimitive("ARRAY"))
+                                        put("items", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
+                                        put("nullable", JsonPrimitive(true))
+                                    })
                                 })
                                 put("required", JsonArray(listOf(JsonPrimitive("title"), JsonPrimitive("taskType"))))
                             })
@@ -191,7 +272,7 @@ class CloudAiManager {
 
             if (textResponse != null) {
                 println("CloudApi: Extracted Text = $textResponse")
-                return parseJsonResponse(textResponse, input)
+                return parseJsonResponse(textResponse, input, context)
             } else {
                 println("CloudApi: textResponse is null!")
             }
@@ -204,7 +285,7 @@ class CloudAiManager {
     }
 
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
-    private fun parseJsonResponse(jsonString: String, originalInput: String): AiChatResult {
+    private fun parseJsonResponse(jsonString: String, originalInput: String, context: AiChatContext): AiChatResult {
         val json = Json {
             ignoreUnknownKeys = true
             allowTrailingComma = true
@@ -294,6 +375,30 @@ class CloudAiManager {
         val locationStr = getString(entitiesJson, "location")
         val locationVal = if (locationStr == "null" || locationStr.isNullOrEmpty()) null else locationStr
 
+        // ── YENİ: Ortak oda ve katılımcı ID'leri ──
+        val sharedRoomIdStr = getString(entitiesJson, "sharedRoomId")
+        val sharedRoomIdVal = if (sharedRoomIdStr == "null" || sharedRoomIdStr.isNullOrEmpty()) null else sharedRoomIdStr
+
+        val participantIdsElement = entitiesJson?.get("participantUserIds")
+        val participantIdsArray = if (participantIdsElement is JsonArray) participantIdsElement else null
+        val extractedParticipantIds = participantIdsArray?.mapNotNull {
+            if (it is JsonPrimitive && it !is kotlinx.serialization.json.JsonNull) it.content.toIntOrNull() else null
+        } ?: emptyList()
+
+        // Kullanıcının kendisi de her zaman katılımcıdır (event için)
+        val participantUserIds = if (taskType == TaskType.EVENT && context.currentUserId > 0) {
+            (listOf(context.currentUserId) + extractedParticipantIds).distinct()
+        } else {
+            extractedParticipantIds
+        }
+
+        // Katılımcı isimlerini context'ten çöz
+        val participantNames = participantUserIds.mapNotNull { uid ->
+            context.accessibleUsers.find { it.first == uid }?.second
+                ?: context.followedUsers.find { it.first == uid }?.second
+                ?: if (uid == context.currentUserId) "Ben" else null
+        }
+
         val remindersElement = entitiesJson?.get("reminders")
         val remindersArray = if (remindersElement is JsonArray) remindersElement else null
         val parsedReminders = remindersArray?.mapNotNull { 
@@ -313,24 +418,38 @@ class CloudAiManager {
             endDateTime = endDateTimeMs,
             isAllDay = false,
             location = locationVal,
-            participants = emptyList(),
+            participants = participantNames,
             priority = TaskPriority.MEDIUM,
             recurrenceRule = recurrenceRuleVal,
             tags = emptyList(),
             estimatedMinutes = null,
-            confidence = 1.0f
+            confidence = 1.0f,
+            sharedRoomId = sharedRoomIdVal,
+            participantUserIds = participantUserIds
         )
 
         val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
         val taskRequest = if (shouldCreate) {
+            // Katılımcı haritası: userId → isim
+            val participantMap = participantUserIds.associateWith { uid ->
+                context.accessibleUsers.find { it.first == uid }?.second
+                    ?: context.followedUsers.find { it.first == uid }?.second
+                    ?: if (uid == context.currentUserId) "Ben" else "PENDING"
+            }
+
             com.yusufteker.planora.shared.api.CreateTaskRequest(
                 title = entities.title,
-                description = entities.description ?: originalInput.take(500),
+                description = entities.description ?: buildFallbackDescription(originalInput, participantNames),
                 startTime = entities.dateTime ?: nowMs,
                 endTime = entities.endDateTime,
                 type = taskType,
                 status = com.yusufteker.planora.shared.api.TaskStatus.PENDING,
-                visibility = com.yusufteker.planora.shared.api.TaskVisibility.PRIVATE,
+                visibility = if (sharedRoomIdVal != null) {
+                    com.yusufteker.planora.shared.api.TaskVisibility.ROOM_SHARED
+                } else {
+                    com.yusufteker.planora.shared.api.TaskVisibility.PRIVATE
+                },
+                sharedRoomIds = if (sharedRoomIdVal != null) listOf(sharedRoomIdVal) else emptyList(),
                 isRecurring = recurrenceRuleVal != null,
                 recurrenceRule = recurrenceRuleVal,
                 isFlexible = entities.dateTime == null,
@@ -345,7 +464,7 @@ class CloudAiManager {
                     TaskType.NOTE -> com.yusufteker.planora.shared.api.ItemDetails.Note()
                     TaskType.FOLDER -> null
                 },
-                participants = emptyMap(),
+                participants = participantMap,
                 color = when (taskType) {
                     TaskType.TASK -> "#4CAF50"
                     TaskType.EVENT -> "#2196F3"

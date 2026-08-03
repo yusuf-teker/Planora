@@ -224,10 +224,19 @@ class RuleBasedNlpEngine {
         val tags = extractTags(lowerInput)
         val isAllDay = lowerInput.contains("tüm gün") || lowerInput.contains("all day")
 
+        // ── YENİ: Ortak oda ve katılımcı ID'leri ──
+        var (sharedRoomId, participantUserIds) = extractRoomAndParticipants(original, context, participants)
+
+        // Kullanıcının kendisi de event için katılımcıdır
+        val type = inferType(lowerInput)
+        if (type == TaskType.EVENT && context.currentUserId > 0) {
+            participantUserIds = (listOf(context.currentUserId) + participantUserIds).distinct()
+        }
+
         // Başlık: zaman/niyet kelimelerinden arındırılmış hali
         val title = extractCleanTitle(original)
-        // Açıklama: başlıktan sonrası varsa
-        val description = if (original.length > 80) original.substring(80).trim() else null
+        // Açıklama: düzgün, okunaklı bir açıklama oluştur
+        val description = buildCleanDescription(original, lowerInput, participants)
         
         // Confidence Hesaplaması
         var conf = 0.6f
@@ -253,7 +262,7 @@ class RuleBasedNlpEngine {
         return ExtractedEntities(
             title = title,
             description = description,
-            type = inferType(lowerInput),
+            type = type,
             dateTime = dateTime,
             endDateTime = if (isAllDay && dateTime != null) dateTime + 86_400_000 else null,
             isAllDay = isAllDay,
@@ -263,8 +272,110 @@ class RuleBasedNlpEngine {
             recurrenceRule = extractRecurrence(lowerInput),
             tags = tags,
             estimatedMinutes = extractDuration(lowerInput),
-            confidence = conf
+            confidence = conf,
+            sharedRoomId = sharedRoomId,
+            participantUserIds = participantUserIds
         )
+    }
+
+    /**
+     * YENİ: Kullanıcı mesajından düzgün, okunaklı bir açıklama oluşturur.
+     * "Dilberle yürüyüş yapacağım" → "Dilber ile birlikte yürüyüş yapılacak."
+     */
+    private fun buildCleanDescription(
+        original: String,
+        lowerInput: String,
+        participants: List<String>
+    ): String? {
+        // Kısa mesajlar için açıklama gerekmez
+        if (original.length < 15) return null
+
+        // Katılımcı isimlerini bul
+        val participantStr = if (participants.isNotEmpty()) {
+            participants.joinToString(", ")
+        } else {
+            null
+        }
+
+        // Aktivite kelimesini bul (title'dan)
+        val title = extractCleanTitle(original)
+        val activity = title.lowercase()
+
+        // "ile/le/la" kalıbıyla birlikte yapılan aktivite
+        return when {
+            participantStr != null && activity.isNotBlank() && activity != "yeni görev" -> {
+                "$participantStr ile birlikte $activity yapılacak."
+            }
+            activity.isNotBlank() && activity != "yeni görev" -> {
+                "$activity yapılacak."
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * YENİ: Kullanıcı mesajındaki isimleri ortak odalarla eşleştirir.
+     * "Dilberle tenise gidicem" → Dilber'in olduğu odayı bulur.
+     * @return (sharedRoomId, participantUserIds)
+     */
+    private fun extractRoomAndParticipants(
+        original: String,
+        context: AiChatContext,
+        participants: List<String>
+    ): Pair<String?, List<Int>> {
+        if (context.sharedRooms.isEmpty()) return null to emptyList()
+
+        // Katılımcı isimlerini oda üyeleriyle eşleştir
+        val matchedUserIds = mutableListOf<Int>()
+        var matchedRoomId: String? = null
+
+        for (participantName in participants) {
+            // Önce erişilebilir kullanıcılarda ara
+            val accessibleMatch = context.accessibleUsers.find {
+                it.second.equals(participantName, ignoreCase = true) ||
+                it.second.contains(participantName, ignoreCase = true) ||
+                participantName.contains(it.second, ignoreCase = true)
+            }
+            if (accessibleMatch != null) {
+                matchedUserIds.add(accessibleMatch.first)
+                // Bu kullanıcının olduğu odayı bul
+                val room = context.sharedRooms.find { room ->
+                    room.memberNames.any { it.equals(accessibleMatch.second, ignoreCase = true) }
+                }
+                if (room != null && matchedRoomId == null) {
+                    matchedRoomId = room.roomId
+                }
+                continue
+            }
+
+            // Takip edilen kullanıcılarda ara
+            val followedMatch = context.followedUsers.find {
+                it.second.equals(participantName, ignoreCase = true) ||
+                it.second.contains(participantName, ignoreCase = true) ||
+                participantName.contains(it.second, ignoreCase = true)
+            }
+            if (followedMatch != null) {
+                matchedUserIds.add(followedMatch.first)
+                val room = context.sharedRooms.find { room ->
+                    room.memberNames.any { it.equals(followedMatch.second, ignoreCase = true) }
+                }
+                if (room != null && matchedRoomId == null) {
+                    matchedRoomId = room.roomId
+                }
+            }
+        }
+
+        // Oda adıyla eşleştirme (örn: "tenis odasında buluşalım")
+        if (matchedRoomId == null) {
+            for (room in context.sharedRooms) {
+                if (original.lowercase().contains(room.roomName.lowercase())) {
+                    matchedRoomId = room.roomId
+                    break
+                }
+            }
+        }
+
+        return matchedRoomId to matchedUserIds.distinct()
     }
 
     private fun extractCleanTitle(input: String): String {
@@ -582,7 +693,33 @@ class RuleBasedNlpEngine {
             }
         }
 
-        return participants
+        // YENİ: "Dilberle tenise gidicem", "Dilber'le tenis", "Dilber ile tenis" gibi ifadeler
+        // Erişilebilir kullanıcıların isimlerini mesajda ara
+        val allKnownNames = (context.accessibleUsers.mapNotNull { it.second } + context.followedUsers.mapNotNull { it.second })
+            .distinct()
+            .sortedByDescending { it.length } // En uzun isim önce eşleşsin
+
+        for (name in allKnownNames) {
+            if (name.length < 2) continue
+            // "Dilberle", "Dilber'le", "Dilber ile", "Dilber'le", "Dilberle" gibi varyasyonlar
+            val namePattern = Regex("""${Regex.escape(name)}(?:'?le|'?yle| ile|'la|'yla|'la| ile birlikte| ile beraber)""", RegexOption.IGNORE_CASE)
+            if (namePattern.containsMatchIn(input) && name !in participants) {
+                participants.add(name)
+            }
+        }
+
+        // YENİ: "Dilberle tenise gidicem" gibi — isim + "le/la" eki + aktivite
+        // Bu, "Dilberle" ifadesini "Dilber" + "le" olarak yakalar
+        for (name in allKnownNames) {
+            if (name.length < 2) continue
+            // "Dilberle", "Dilber'le", "Dilberla", "Dilber'la" — isim + ek
+            val nameWithSuffix = Regex("""${Regex.escape(name)}['’]?(le|la|yle|yla)\b""", RegexOption.IGNORE_CASE)
+            if (nameWithSuffix.containsMatchIn(input) && name !in participants) {
+                participants.add(name)
+            }
+        }
+
+        return participants.distinct()
     }
 
     // ── Öncelik Çıkarımı ──
@@ -801,6 +938,14 @@ class RuleBasedNlpEngine {
             }
         }
 
+        // YENİ: participantUserIds'den de katılımcıları ekle
+        for (uid in entities.participantUserIds) {
+            val name = context.accessibleUsers.find { it.first == uid }?.second
+                ?: context.followedUsers.find { it.first == uid }?.second
+                ?: if (uid == context.currentUserId) "Ben" else "PENDING"
+            participantMap[uid] = name
+        }
+
         // Renk seçimi (türe göre)
         val color = when (taskType) {
             TaskType.TASK -> "#4CAF50"
@@ -809,14 +954,22 @@ class RuleBasedNlpEngine {
             TaskType.FOLDER -> "#9E9E9E"
         }
 
+        // Ortak oda ID'si (nullable → non-null)
+        val sharedRoomId = entities.sharedRoomId
+
         return CreateTaskRequest(
             title = entities.title,
-            description = entities.description ?: originalInput.take(500),
+            description = entities.description ?: buildCleanDescription(originalInput, originalInput.lowercase(), entities.participants),
             startTime = entities.dateTime ?: nowMs,
             endTime = entities.endDateTime,
             type = taskType,
             status = com.yusufteker.planora.shared.api.TaskStatus.PENDING,
-            visibility = com.yusufteker.planora.shared.api.TaskVisibility.PRIVATE,
+            visibility = if (sharedRoomId != null) {
+                com.yusufteker.planora.shared.api.TaskVisibility.ROOM_SHARED
+            } else {
+                com.yusufteker.planora.shared.api.TaskVisibility.PRIVATE
+            },
+            sharedRoomIds = if (sharedRoomId != null) listOf(sharedRoomId) else emptyList(),
             isRecurring = entities.recurrenceRule != null,
             recurrenceRule = entities.recurrenceRule,
             isFlexible = entities.dateTime == null,

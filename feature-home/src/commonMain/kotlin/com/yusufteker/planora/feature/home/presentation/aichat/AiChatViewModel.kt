@@ -9,7 +9,9 @@ import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
 
 import com.yusufteker.planora.shared.ai.AiChatContext
-import kotlinx.coroutines.flow.collectLatest
+import com.yusufteker.planora.shared.ai.MyTaskInfo
+import com.yusufteker.planora.shared.ai.SharedRoomInfo
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.getString
@@ -179,6 +181,48 @@ class AiChatViewModel(
             emptyList()
         }
 
+        // Takvim erişimi olan kullanıcılar (isimleriyle birlikte)
+        val accessibleUsers = try {
+            planRepository.observeAccessibleUsers().first()
+                .map { it.userId.toInt() to (it.name.ifBlank { it.username }) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        // Ortak odalar ve üye isimleri
+        val sharedRooms = try {
+            planRepository.observeAllPlanRooms().first().map { room ->
+                // Oda üyelerinin isimlerini bul: accessibleUsers + followedUsers ile eşleştir
+                val memberNames = room.members
+                    .filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
+                    .mapNotNull { member ->
+                        accessibleUsers.find { it.first == member.userId }?.second
+                            ?: followedUsers.find { it.first == member.userId }?.second
+                    }
+                SharedRoomInfo(
+                    roomId = room.id,
+                    roomName = room.name,
+                    memberNames = memberNames
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        // Kullanıcının mevcut görevleri (çakışma tespiti için)
+        val myTasks = try {
+            planRepository.observeAllTasks().first().map { task ->
+                MyTaskInfo(
+                    title = task.title,
+                    startTime = task.startTime,
+                    endTime = task.endTime,
+                    type = task.type
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
         val recentMessages = state.value.messages
             .filter { !it.isLoading }
             .takeLast(4)
@@ -187,7 +231,10 @@ class AiChatViewModel(
         return AiChatContext(
             currentUserId = currentUserId,
             followedUsers = followedUsers,
-            recentMessages = recentMessages
+            recentMessages = recentMessages,
+            sharedRooms = sharedRooms,
+            myTasks = myTasks,
+            accessibleUsers = accessibleUsers
         )
     }
 

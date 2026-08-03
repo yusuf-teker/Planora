@@ -3,11 +3,14 @@ package com.yusufteker.planora.android.widget
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import com.yusufteker.planora.R
 
 /**
  * Helper object for notifying Android Home Screen Widgets when task or calendar data changes.
+ *
+ * Uses [AppWidgetManager.notifyAppWidgetViewDataChanged] to refresh list data
+ * without triggering a full widget rebuild (which would cause visible flicker
+ * and reset tab toggle state).
  */
 object PlanoraWidgetUpdater {
 
@@ -18,21 +21,18 @@ object PlanoraWidgetUpdater {
     const val EXTRA_TASK_ID = "extra_task_id"
 
     /**
-     * Broadcasts an intent to trigger immediate update of all Planora home screen widgets.
+     * Refreshes all Planora home screen widgets' list data.
+     *
+     * This only triggers [android.widget.RemoteViewsService.RemoteViewsFactory.onDataSetChanged]
+     * to reload task items — it does NOT rebuild the widget layout, so the toggle tab
+     * state is preserved and there's no visible flicker.
      */
     fun updateAllWidgets(context: Context) {
         try {
-            val todayIntent = Intent(context, PlanoraTodayWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                val ids = AppWidgetManager.getInstance(context).getAppWidgetIds(
-                    ComponentName(context, PlanoraTodayWidgetProvider::class.java)
-                )
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-            }
-            context.sendBroadcast(todayIntent)
-
             val manager = AppWidgetManager.getInstance(context)
-            val todayIds = manager.getAppWidgetIds(ComponentName(context, PlanoraTodayWidgetProvider::class.java))
+            val todayIds = manager.getAppWidgetIds(
+                ComponentName(context, PlanoraTodayWidgetProvider::class.java)
+            )
             if (todayIds.isNotEmpty()) {
                 manager.notifyAppWidgetViewDataChanged(todayIds, R.id.widget_today_list)
             }

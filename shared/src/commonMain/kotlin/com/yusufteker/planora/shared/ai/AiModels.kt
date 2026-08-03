@@ -34,7 +34,10 @@ data class ExtractedEntities(
     val tags: List<String> = emptyList(),
     val checklist: List<String> = emptyList(),
     val estimatedMinutes: Int? = null,
-    val confidence: Float = 0.5f
+    val confidence: Float = 0.5f,
+    // YENİ: Ortak oda ve katılımcı ID'leri
+    val sharedRoomId: String? = null,
+    val participantUserIds: List<Int> = emptyList()
 )
 
 /**
@@ -56,7 +59,32 @@ data class AiChatResult(
 data class AiChatContext(
     val currentUserId: Int,
     val followedUsers: List<Pair<Int, String>> = emptyList(), // (userId, username)
-    val recentMessages: List<String> = emptyList()
+    val recentMessages: List<String> = emptyList(),
+    // YENİ: Ortak odalar (oda adı + üye isimleri)
+    val sharedRooms: List<SharedRoomInfo> = emptyList(),
+    // YENİ: Kullanıcının mevcut görevleri (çakışma tespiti için)
+    val myTasks: List<MyTaskInfo> = emptyList(),
+    // YENİ: Takvim erişimi olan kullanıcılar (userId, isim)
+    val accessibleUsers: List<Pair<Int, String>> = emptyList()
+)
+
+/**
+ * AI'ın ortak oda hakkında bilmesi gereken bilgiler.
+ */
+data class SharedRoomInfo(
+    val roomId: String,
+    val roomName: String,
+    val memberNames: List<String> = emptyList() // Üye isimleri (kullanıcı adları)
+)
+
+/**
+ * AI'ın mevcut görevler hakkında bilmesi gereken bilgiler.
+ */
+data class MyTaskInfo(
+    val title: String,
+    val startTime: Long? = null,
+    val endTime: Long? = null,
+    val type: TaskType = TaskType.TASK
 )
 
 // File cleaned up

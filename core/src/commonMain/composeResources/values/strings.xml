@@ -623,4 +623,5 @@
     <string name="widget_month_desc">Full month calendar view with task dots and date navigation.</string>
     <string name="widget_today_desc">Today\'s agenda and active tasks.</string>
     <string name="widget_no_tasks_today">No tasks scheduled for today.</string>
+    <string name="widget_no_tasks_this_week">No tasks scheduled for this week.</string>
 </resources>

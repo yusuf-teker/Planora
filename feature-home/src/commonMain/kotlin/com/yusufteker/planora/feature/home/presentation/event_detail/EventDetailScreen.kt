@@ -754,7 +754,7 @@ fun EventDetailScreen(
                     }
                 }
 
-                // Participants Section (Sorumlular, moved to bottom)
+                // Participants Section (Katılımcılar, moved to bottom)
                 if (state.participants.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -769,7 +769,7 @@ fun EventDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = stringResource(Res.string.assignees_label),
+                                text = stringResource(Res.string.participants_label),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary

@@ -45,7 +45,7 @@ datastore = "1.1.7"
 # Kotlinx
 kotlinx-serialization = "1.8.1"
 kotlinx-coroutines = "1.10.2"
-kotlinx-datetime = "0.6.2"
+kotlinx-datetime = "0.7.1"
 
 # Coil
 coil = "3.2.0"

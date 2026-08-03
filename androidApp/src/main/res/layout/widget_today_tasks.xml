@@ -16,6 +16,7 @@
         android:orientation="horizontal">
 
         <LinearLayout
+            android:id="@+id/widget_header_title_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -41,6 +42,10 @@
         </LinearLayout>
 
         <!-- Mode Toggle Tabs: Bugün / Bu Hafta -->
+        <!-- Single tab set. Selection is shown via background + text color (set via
+             RemoteViews setBackgroundResource/setTextColor), which is reliable on all
+             launchers — unlike setViewVisibility. This keeps the switch fixed in the
+             top-right with a constant width/position. -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -69,7 +74,8 @@
                 android:paddingVertical="5dp"
                 android:text="Bu Hafta"
                 android:textColor="#9CA3AF"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 

@@ -51,8 +51,10 @@ class TodayTasksRemoteViewsFactory(
             val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val mode = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                prefs.getString(KEY_VIEW_MODE + appWidgetId, "TODAY") ?: "TODAY"
-            } else "TODAY"
+                prefs.getString(KEY_VIEW_MODE + appWidgetId, null)
+            } else {
+                null
+            } ?: prefs.getString("view_mode_global", "TODAY") ?: "TODAY"
 
             val db = database ?: return
             
@@ -88,7 +90,7 @@ class TodayTasksRemoteViewsFactory(
 
                 if (entity.type == "TASK" && entity.specificDetails != null) {
                     try {
-                        val json = org.json.JSONObject(entity.specificDetails)
+                        val json = org.json.JSONObject(entity.specificDetails!!)
                         if (json.has("deadline") && !json.isNull("deadline")) {
                             val deadline = json.getLong("deadline")
                             actualStartTime = deadline
