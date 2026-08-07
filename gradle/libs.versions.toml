@@ -57,6 +57,8 @@ napier = "2.7.1"
 multiplatformSettings = "1.1.1"
 androidxSecurityCrypto = "1.1.0-alpha06"
 dotenv = "6.5.1"
+buildkonfig = "0.17.0"
+
 
 # Testing
 junit = "4.13.2"
@@ -198,3 +200,4 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services-plugin" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version = "3.0.2" }
+buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }

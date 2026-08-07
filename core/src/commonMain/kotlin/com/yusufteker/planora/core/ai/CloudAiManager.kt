@@ -56,9 +56,11 @@ class CloudAiManager {
         }
     }
 
-    private val apiKey = "AQ.Ab8RN6LKIQM4eTpJELREuE6re4VTL2nJt5WvSiCxvsHfptebpQ"
+    private val apiKey: String get() = com.yusufteker.planora.core.config.AppConfig.geminiApiKey
     private val model = "gemini-2.5-flash"
-    private val apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+    private val apiUrl: String get() = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+
+
 
     // ── ADIM 3 Kota Koruması ──────────────────────────────────
     // Kullanıcıya özel kısıtlama: 2 dakikada maksimum 5 mesaj

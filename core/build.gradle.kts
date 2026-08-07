@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,7 +8,9 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.buildkonfig)
 }
+
 
 kotlin {
     listOf(
@@ -139,3 +142,29 @@ tasks.matching { it.name == "copyAndroidMainComposeResourcesToAndroidAssets" }.c
         prop?.set(dir)
     } catch (e: Exception) {}
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+buildkonfig {
+    packageName = "com.yusufteker.planora.core.config"
+    objectName = "BuildConfig"
+
+    defaultConfigs {
+        buildConfigField(
+            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
+            "GEMINI_API_KEY",
+            localProperties.getProperty("GEMINI_API_KEY") ?: System.getenv("GEMINI_API_KEY") ?: ""
+        )
+        buildConfigField(
+            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
+            "API_NINJAS_KEY",
+            localProperties.getProperty("API_NINJAS_KEY") ?: System.getenv("API_NINJAS_KEY") ?: ""
+        )
+    }
+}
+
