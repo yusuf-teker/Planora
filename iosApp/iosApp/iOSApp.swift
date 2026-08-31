@@ -57,7 +57,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         if let type = userInfo["type"] as? String {
             IosNotificationBridge.shared.handlePushData(type: type)
         }
-        completionHandler([[.banner, .list, .sound]])
+        completionHandler([.banner, .list, .sound, .badge])
     }
 
     func userNotificationCenter(

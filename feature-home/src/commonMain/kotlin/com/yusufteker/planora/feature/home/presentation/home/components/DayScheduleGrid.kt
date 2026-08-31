@@ -78,7 +78,7 @@ fun DayScheduleGrid(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Tüm Gün (All-Day) Etkinlikler Bölümü
         if (allDayTasks.isNotEmpty()) {
@@ -138,7 +138,7 @@ fun DayScheduleGrid(
 }
 
 /**
- * Tüm gün etkinliklerini üstte kompakt yatay liste halinde gösterir.
+ * Tüm gün etkinliklerini üstte şık ve ferah bir liste halinde gösterir.
  */
 @Composable
 private fun AllDayTasksSection(
@@ -148,51 +148,70 @@ private fun AllDayTasksSection(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         )
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = stringResource(Res.string.all_day_tasks),
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
             )
+            Spacer(modifier = Modifier.height(4.dp))
 
-            allDayTasks.forEach { task ->
-                val typeColor = getTaskTypeColor(task.type)
-                val creatorUser = accessibleUsers.find { it.userId == task.creatorId }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                allDayTasks.forEach { task ->
+                    val typeColor = getTaskTypeColor(task.type)
+                    val creatorUser = accessibleUsers.find { it.userId == task.creatorId }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(typeColor.copy(alpha = 0.15f))
-                        .border(1.dp, typeColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                        .clickable { onTaskClick(task) }
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(typeColor.copy(alpha = 0.12f))
+                            .border(1.dp, typeColor.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                            .clickable { onTaskClick(task) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(20.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(typeColor)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = task.title,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
 
-                    // Katılımcı avatarları
-                    ParticipantAvatarsRow(
-                        task = task,
-                        creatorUser = creatorUser
-                    )
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Katılımcı avatarları
+                        ParticipantAvatarsRow(
+                            task = task,
+                            creatorUser = creatorUser,
+                            avatarSize = 22.dp
+                        )
+                    }
                 }
             }
         }
@@ -200,9 +219,9 @@ private fun AllDayTasksSection(
 }
 
 /**
- * Ultra Kompakt Tek Satırlı Etkinlik Kartı.
+ * Ferah ve Okunaklı Saatlik Etkinlik / Görev Kartı.
  *
- * Saat rozeti, tür renk indikatörü, başlık ve katılımcı avatarlarını TEK BİR SATIRDA birleştirir.
+ * Saat rozeti, tür renk indikatörü, başlık ve katılımcı avatarlarını dengeli ve okunaklı bir boyutta gösterir.
  *
  * @param task Etkinlik verisi
  * @param creatorUser Oluşturan kullanıcı bilgisi
@@ -217,9 +236,9 @@ private fun CompactHourlyEventCard(
     val typeColor = getTaskTypeColor(task.type)
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
     val containerBg = if (isDark) {
-        typeColor.copy(alpha = 0.15f)
+        typeColor.copy(alpha = 0.16f)
     } else {
-        typeColor.copy(alpha = 0.08f)
+        typeColor.copy(alpha = 0.09f)
     }
 
     val primaryTime = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
@@ -227,18 +246,20 @@ private fun CompactHourlyEventCard(
     val endStr = task.endTime?.let { formatTime(it) }
     val timeSpanText = if (endStr != null) "$startStr - $endStr" else startStr
 
+    val location = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Event)?.location
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = containerBg),
-        border = androidx.compose.foundation.BorderStroke(1.dp, typeColor.copy(alpha = 0.25f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, typeColor.copy(alpha = 0.28f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -246,59 +267,75 @@ private fun CompactHourlyEventCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .background(typeColor.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .background(typeColor.copy(alpha = 0.22f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.AccessTime,
                     contentDescription = null,
                     tint = typeColor,
-                    modifier = Modifier.size(11.dp)
+                    modifier = Modifier.size(13.dp)
                 )
-                Spacer(modifier = Modifier.width(3.dp))
+                Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = timeSpanText,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     ),
                     color = typeColor
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // 2. Orta: Tür Çubuğu + Başlık
+            // 2. Orta: Tür Çubuğu + Başlık (+ Varsa Konum)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
                 Box(
                     modifier = Modifier
-                        .width(3.dp)
-                        .height(12.dp)
+                        .width(4.dp)
+                        .height(if (!location.isNullOrBlank()) 32.dp else 22.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(typeColor)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!location.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = location,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             // 3. Sağ: Katılımcı Görselleri
             ParticipantAvatarsRow(
                 task = task,
-                creatorUser = creatorUser
+                creatorUser = creatorUser,
+                avatarSize = 24.dp
             )
         }
     }
@@ -310,14 +347,15 @@ private fun CompactHourlyEventCard(
 @Composable
 private fun ParticipantAvatarsRow(
     task: TaskDto,
-    creatorUser: AccessibleUser?
+    creatorUser: AccessibleUser?,
+    avatarSize: androidx.compose.ui.unit.Dp = 24.dp
 ) {
     val participantsList = task.participants
     val hasParticipants = participantsList.size > 1
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy((-6).dp)
+        horizontalArrangement = Arrangement.spacedBy((-8).dp)
     ) {
         if (hasParticipants) {
             participantsList.take(3).forEachIndexed { index, participant ->
@@ -325,26 +363,27 @@ private fun ParticipantAvatarsRow(
                     avatarId = participant.avatarId,
                     profileImageUrl = participant.profileImageUrl,
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(avatarSize)
                         .clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
+                        .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
                         .zIndex(3f - index)
                 )
             }
             if (participantsList.size > 3) {
                 Box(
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(avatarSize)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
+                        .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
                         .zIndex(0f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "+${participantsList.size - 3}",
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 8.sp,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -360,9 +399,9 @@ private fun ParticipantAvatarsRow(
                 avatarId = creatorUser.avatarId,
                 profileImageUrl = creatorUser.profileImageUrl,
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(avatarSize)
                     .clip(CircleShape)
-                    .border(1.dp, creatorColor, CircleShape)
+                    .border(1.5.dp, creatorColor, CircleShape)
             )
         }
     }

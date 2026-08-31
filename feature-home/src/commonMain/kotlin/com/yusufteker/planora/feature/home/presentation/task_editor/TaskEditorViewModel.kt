@@ -265,6 +265,8 @@ class TaskEditorViewModel(
                 // Eğer baska bir görevden kopyalanıyorsa orijinal görevin detaylarını çekip önceden doldur
                 if (!copyFromTaskId.isNullOrBlank()) {
                     val copyBaseId = copyFromTaskId.extractBaseTaskId()
+                    val instanceTimestamp = copyFromTaskId.substringAfterLast("_").toLongOrNull()
+
                     planRepository.observeAllTasks().collect { tasks ->
                         val sourceTask = tasks.find { it.id == copyBaseId && it.type == TaskType.TASK }
                         if (sourceTask != null) {
@@ -278,18 +280,22 @@ class TaskEditorViewModel(
                                 loadRoomMembers(targetRoomId)
                             }
 
+                            val targetDeadline = instanceTimestamp ?: details?.deadline ?: sourceTask.startTime
+
                             _state.update { currentState ->
                                 currentState.copy(
                                     id = null, // Yeni kayıt olarak kalsın!
                                     isCopyMode = true,
                                     title = sourceTask.title,
                                     description = sourceTask.description ?: "",
-                                    deadlineDateMs = details?.deadline ?: sourceTask.endTime ?: getCurrentTimeMs(),
+                                    originalStartTime = targetDeadline,
+                                    deadlineDateMs = targetDeadline,
                                     priority = details?.priority ?: TaskPriority.MEDIUM,
                                     isOptional = sourceTask.isOptional,
                                     isRecurring = sourceTask.isRecurring,
                                     recurrenceRule = ruleObj,
                                     reminders = sourceTask.reminders,
+                                    participants = sourceTask.participants.associate { it.userId to it.name },
                                     planRoomId = targetRoomId
                                 )
                             }
@@ -465,7 +471,7 @@ class TaskEditorViewModel(
      * Mevcut UI State'inden API ve Veritabanı için CreateTaskRequest nesnesi hazırlar.
      */
     private fun buildCreateTaskRequest(state: TaskEditorState): com.yusufteker.planora.shared.api.CreateTaskRequest {
-        val now = state.originalStartTime ?: getCurrentTimeMs()
+        val now = state.originalStartTime ?: state.deadlineDateMs ?: getCurrentTimeMs()
         val recurrenceStr = state.recurrenceRule?.let { Json.encodeToString(it) }
 
         return com.yusufteker.planora.shared.api.CreateTaskRequest(

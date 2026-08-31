@@ -232,22 +232,14 @@ fun Route.taskRoutes() {
                 }
 
                 if (newTaskDto != null) {
-                    // Trigger FCM sync for room members if shared
-                    if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
-                        request.sharedRoomIds.forEach { roomId ->
-                            routeScope.launch {
-                                com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
-                            }
-                        }
+                    val creatorName = org.jetbrains.exposed.sql.transactions.transaction {
+                        com.yusufteker.planora.server.database.tables.UsersTable.selectAll().where { com.yusufteker.planora.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.planora.server.database.tables.UsersTable.name) ?: "Birisi"
                     }
-                    
+                    val isEvent = request.type == com.yusufteker.planora.shared.api.TaskType.EVENT
+
                     // Send push notifications to newly added participants
                     val toAdd = request.participants.keys.filter { it != userId }
                     if (toAdd.isNotEmpty()) {
-                        val creatorName = org.jetbrains.exposed.sql.transactions.transaction {
-                            com.yusufteker.planora.server.database.tables.UsersTable.selectAll().where { com.yusufteker.planora.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.planora.server.database.tables.UsersTable.name) ?: "Birisi"
-                        }
-                        val isEvent = request.type == com.yusufteker.planora.shared.api.TaskType.EVENT
                         val titleStr = if (isEvent) "Yeni Etkinlik" else "Yeni Görev"
                         val bodyStr = if (isEvent) "$creatorName seni '${request.title}' etkinliğine ekledi." else "$creatorName seni '${request.title}' görevine atadı."
                         val pushType = if (isEvent) "event_assignment" else "task_assignment"
@@ -263,6 +255,46 @@ fun Route.taskRoutes() {
                                         "taskId" to (newTaskDto.id)
                                     )
                                 )
+                            }
+                        }
+                    }
+
+                    // Trigger FCM sync and room notifications for room members if shared
+                    if (request.visibility == TaskVisibility.ROOM_SHARED && request.sharedRoomIds.isNotEmpty()) {
+                        request.sharedRoomIds.forEach { roomId ->
+                            routeScope.launch {
+                                com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
+
+                                // Notify room members who are not direct participants
+                                val (roomName, otherMemberIds) = org.jetbrains.exposed.sql.transactions.transaction {
+                                    val rName = com.yusufteker.planora.server.database.tables.PlanRoomEntity.findById(roomId)?.name ?: "Oda"
+                                    val members = com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.selectAll().where {
+                                        (com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.roomId eq roomId) and
+                                        (com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.status eq com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED)
+                                    }.map { it[com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.userId] }
+                                        .filter { it != userId && !toAdd.contains(it) }
+                                    Pair(rName, members)
+                                }
+
+                                if (otherMemberIds.isNotEmpty()) {
+                                    val roomTitle = if (isEvent) "Yeni Oda Etkinliği" else "Yeni Oda Görevi"
+                                    val itemLabel = if (isEvent) "etkinlik" else "görev"
+                                    val roomBody = "$creatorName, '$roomName' odasında yeni bir $itemLabel paylaştı: '${request.title}'"
+                                    val roomPushType = if (isEvent) "room_event" else "room_task"
+
+                                    otherMemberIds.forEach { memberId ->
+                                        com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                                            userId = memberId,
+                                            title = roomTitle,
+                                            body = roomBody,
+                                            data = mapOf(
+                                                "type" to roomPushType,
+                                                "taskId" to newTaskDto.id,
+                                                "roomId" to roomId
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

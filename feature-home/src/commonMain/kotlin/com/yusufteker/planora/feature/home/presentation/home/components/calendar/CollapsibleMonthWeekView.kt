@@ -359,7 +359,7 @@ fun CollapsibleMonthWeekView(
                                         )
                                     }
 
-                                    if (!isSelected && (hasMyTasks || hasMySharedTasks || hasOtherTasks)) {
+                                    if (hasMyTasks || hasMySharedTasks || hasOtherTasks) {
                                         val activeGroupCount = (if (hasMyTasks) 1 else 0) +
                                                 (if (hasMySharedTasks) 1 else 0) +
                                                 (if (hasOtherTasks) 1 else 0)

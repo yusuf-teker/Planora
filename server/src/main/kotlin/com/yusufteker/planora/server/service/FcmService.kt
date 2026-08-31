@@ -206,6 +206,21 @@ object FcmService {
     }
 
     /**
+     * Sends a push notification to multiple users.
+     */
+    suspend fun sendPushToUsers(
+        userIds: List<Int>,
+        title: String,
+        body: String,
+        data: Map<String, String> = emptyMap()
+    ) {
+        if (userIds.isEmpty() || !ensureInitialized()) return
+        userIds.distinct().forEach { userId ->
+            sendPushToUser(userId, title, body, data)
+        }
+    }
+
+    /**
      * Sends a data-only FCM message to all ACCEPTED members of a plan room,
      * optionally excluding the user who triggered the action.
      *
@@ -246,10 +261,21 @@ object FcmService {
 
         logger.info("Sending sync_tasks trigger to ${allTokens.size} devices in room $roomId")
 
+        val apnsConfig = com.google.firebase.messaging.ApnsConfig.builder()
+            .putHeader("apns-priority", "5")
+            .putHeader("apns-push-type", "background")
+            .setAps(
+                com.google.firebase.messaging.Aps.builder()
+                    .setContentAvailable(true)
+                    .build()
+            )
+            .build()
+
         allTokens.forEach { (token, memberId) ->
             try {
                 val message = Message.builder()
                     .setToken(token)
+                    .setApnsConfig(apnsConfig)
                     .putData("type", "sync_tasks")
                     .putData("roomId", roomId)
                     .build()
@@ -277,6 +303,8 @@ object FcmService {
     ) {
         try {
             val apnsConfig = com.google.firebase.messaging.ApnsConfig.builder()
+                .putHeader("apns-priority", "10")
+                .putHeader("apns-push-type", "alert")
                 .setAps(
                     com.google.firebase.messaging.Aps.builder()
                         .setAlert(
@@ -287,6 +315,7 @@ object FcmService {
                         )
                         .setSound("default")
                         .setBadge(1)
+                        .setContentAvailable(true)
                         .build()
                 )
                 .build()

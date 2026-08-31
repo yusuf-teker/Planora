@@ -19,6 +19,7 @@ import io.ktor.server.response.respond
 import io.ktor.http.HttpStatusCode
 import org.jetbrains.exposed.sql.SortOrder
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 fun Route.commentRoutes() {
     // "auth-jwt" ile bu rotadaki işlemlerin sadece giriş yapmış kullanıcılar tarafından erişilmesini sağlıyoruz.
@@ -128,10 +129,18 @@ fun Route.commentRoutes() {
                     try { UUID.fromString(it) } catch(e: Exception) { null } 
                 }
 
+                var pushPostAuthorId: Int? = null
+                var pushParentAuthorId: Int? = null
+                var pushCommenterName: String = ""
+
                 val newCommentDto = dbQuery {
                     val user = UserEntity.findById(userId) ?: return@dbQuery null
                     val post = PostEntity.findById(postId) ?: return@dbQuery null
                     val parentComment = parentId?.let { CommentEntity.findById(it) }
+
+                    pushPostAuthorId = post.author.id.value
+                    pushParentAuthorId = parentComment?.author?.id?.value
+                    pushCommenterName = user.name
 
                     // Yeni bir kayıt oluştur (INSERT işlemi)
                     val newComment = CommentEntity.new {
@@ -165,6 +174,27 @@ fun Route.commentRoutes() {
                 if (newCommentDto == null) {
                     call.respond(HttpStatusCode.NotFound, "Post or User not found")
                 } else {
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        val snippet = if (request.content.length > 50) request.content.take(50) + "..." else request.content
+
+                        if (pushPostAuthorId != null && pushPostAuthorId != userId) {
+                            com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                                userId = pushPostAuthorId!!,
+                                title = "Yeni Yorum",
+                                body = "$pushCommenterName gönderine yorum yaptı: \"$snippet\"",
+                                data = mapOf("type" to "post_comment", "postId" to postId.toString())
+                            )
+                        }
+
+                        if (pushParentAuthorId != null && pushParentAuthorId != userId && pushParentAuthorId != pushPostAuthorId) {
+                            com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                                userId = pushParentAuthorId!!,
+                                title = "Yeni Yanıt",
+                                body = "$pushCommenterName yorumuna yanıt verdi: \"$snippet\"",
+                                data = mapOf("type" to "comment_reply", "postId" to postId.toString())
+                            )
+                        }
+                    }
                     call.respond(HttpStatusCode.Created, newCommentDto)
                 }
             }

@@ -512,6 +512,7 @@
 				);
 				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusufteker.planora.Planora;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_CXX_INTEROPERABILITY_MODE = default;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

@@ -250,6 +250,8 @@ class EventEditorViewModel(
 
                 if (!copyFromEventId.isNullOrBlank()) {
                     val copyBaseId = copyFromEventId.extractBaseTaskId()
+                    val instanceTimestamp = copyFromEventId.substringAfterLast("_").toLongOrNull()
+
                     planRepository.observeAllTasks().collect { tasks ->
                         val sourceEvent = tasks.find { it.id == copyBaseId && it.type == TaskType.EVENT }
                         if (sourceEvent != null) {
@@ -260,6 +262,20 @@ class EventEditorViewModel(
 
                             val targetRoomId = planRoomId ?: sourceEvent.sharedRoomIds.firstOrNull()
 
+                            val sourceEndTime = sourceEvent.endTime
+                            val duration = if (sourceEndTime != null && sourceEndTime > sourceEvent.startTime) {
+                                sourceEndTime - sourceEvent.startTime
+                            } else {
+                                3600000L
+                            }
+
+                            val eventStart = instanceTimestamp ?: sourceEvent.startTime
+                            val eventEnd = if (instanceTimestamp != null) {
+                                instanceTimestamp + duration
+                            } else {
+                                sourceEndTime ?: (eventStart + duration)
+                            }
+
                             _state.update { currentState ->
                                 currentState.copy(
                                     id = null,
@@ -267,11 +283,12 @@ class EventEditorViewModel(
                                     title = sourceEvent.title,
                                     description = sourceEvent.description ?: "",
                                     location = details?.location ?: "",
-                                    startDateTimeMs = sourceEvent.startTime ?: startTime,
-                                    endDateTimeMs = sourceEvent.endTime ?: endTime,
+                                    startDateTimeMs = eventStart,
+                                    endDateTimeMs = eventEnd,
                                     isRecurring = sourceEvent.isRecurring,
                                     recurrenceRule = ruleObj,
                                     reminders = sourceEvent.reminders,
+                                    participants = sourceEvent.participants.associate { it.userId to it.name },
                                     planRoomId = targetRoomId
                                 )
                             }
