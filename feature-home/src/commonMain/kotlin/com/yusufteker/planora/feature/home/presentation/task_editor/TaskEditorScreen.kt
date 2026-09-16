@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -275,39 +276,75 @@ fun TaskEditorScreen(
                 }
 
                 FormSection {
-                    val deadlineText = state.deadlineDateMs?.let { ms ->
-                        if (state.isRecurring && state.recurrenceRule != null) {
-                            when (val rule = state.recurrenceRule) {
-                                is com.yusufteker.planora.shared.api.RecurrenceRule.Yearly -> "${formatShortDate(ms)} ${formatTime(ms)}"
-                                is com.yusufteker.planora.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) formatTime(ms) else "${formatShortDate(ms)} ${formatTime(ms)}"
-                                else -> formatTime(ms)
+                    // Tarih ve Saat Belirle Switch'i
+                    FormSwitchRow(
+                        label = stringResource(Res.string.task_editor_has_deadline_title),
+                        checked = state.hasDeadline,
+                        onCheckedChange = { viewModel.onEvent(TaskEditorEvent.OnHasDeadlineToggled(it)) }
+                    )
+
+                    if (state.hasDeadline) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        val deadlineText = state.deadlineDateMs?.let { ms ->
+                            if (state.isRecurring && state.recurrenceRule != null) {
+                                when (val rule = state.recurrenceRule) {
+                                    is com.yusufteker.planora.shared.api.RecurrenceRule.Yearly -> "${formatShortDate(ms)} ${formatTime(ms)}"
+                                    is com.yusufteker.planora.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) formatTime(ms) else "${formatShortDate(ms)} ${formatTime(ms)}"
+                                    else -> formatTime(ms)
+                                }
+                            } else {
+                                "${formatShortDate(ms)} ${formatTime(ms)}"
                             }
-                        } else {
-                            "${formatShortDate(ms)} ${formatTime(ms)}"
+                        } ?: stringResource(Res.string.option_not_selected)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FormRow(
+                                label = if (isTimeOnly) stringResource(Res.string.time_label) else stringResource(Res.string.deadline_label),
+                                value = deadlineText,
+                                onClick = { viewModel.onEvent(TaskEditorEvent.OnDeadlinePickerVisibilityChanged(true)) },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
-                    } ?: stringResource(Res.string.option_not_selected)
 
-                    FormRow(
-                        label = if (isTimeOnly) stringResource(Res.string.time_label) else stringResource(Res.string.deadline_label),
-                        value = deadlineText,
-                        onClick = { viewModel.onEvent(TaskEditorEvent.OnDeadlinePickerVisibilityChanged(true)) }
-                    )
-                    
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
-                    
-                    val repeatText = when (val rule = state.recurrenceRule) {
-                        null -> stringResource(Res.string.repeat_none)
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Daily -> stringResource(Res.string.repeat_daily)
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Weekly -> stringResource(Res.string.repeat_weekly_pattern, rule.daysOfWeek.size.toString())
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) stringResource(Res.string.repeat_monthly_last_day) else stringResource(Res.string.repeat_monthly)
-                        is com.yusufteker.planora.shared.api.RecurrenceRule.Yearly -> stringResource(Res.string.repeat_yearly)
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        val repeatText = when (val rule = state.recurrenceRule) {
+                            null -> stringResource(Res.string.repeat_none)
+                            is com.yusufteker.planora.shared.api.RecurrenceRule.Daily -> stringResource(Res.string.repeat_daily)
+                            is com.yusufteker.planora.shared.api.RecurrenceRule.Weekly -> stringResource(Res.string.repeat_weekly_pattern, rule.daysOfWeek.size.toString())
+                            is com.yusufteker.planora.shared.api.RecurrenceRule.Monthly -> if (rule.isLastDay) stringResource(Res.string.repeat_monthly_last_day) else stringResource(Res.string.repeat_monthly)
+                            is com.yusufteker.planora.shared.api.RecurrenceRule.Yearly -> stringResource(Res.string.repeat_yearly)
+                        }
+
+                        FormRow(
+                            label = stringResource(Res.string.repeat_label),
+                            value = repeatText,
+                            onClick = { viewModel.onEvent(TaskEditorEvent.OnRepeatPickerVisibilityChanged(true)) }
+                        )
+                    } else {
+                        // Zamansız to-do bilgilendirme ipucu
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.task_editor_unscheduled_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                        }
                     }
-
-                    FormRow(
-                        label = stringResource(Res.string.repeat_label),
-                        value = repeatText,
-                        onClick = { viewModel.onEvent(TaskEditorEvent.OnRepeatPickerVisibilityChanged(true)) }
-                    )
                 }
 
                 // Options Section
@@ -327,13 +364,15 @@ fun TaskEditorScreen(
                         onCheckedChange = { viewModel.onEvent(TaskEditorEvent.OnIsOptionalChanged(it)) }
                     )
                     
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
+                    if (state.hasDeadline) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
 
-                    FormRow(
-                        label = stringResource(Res.string.reminders_label),
-                        value = if (state.reminders.isNotEmpty()) stringResource(Res.string.reminders_selected_count_pattern, state.reminders.size.toString()) else stringResource(Res.string.repeat_none),
-                        onClick = { viewModel.onEvent(TaskEditorEvent.OnReminderPickerVisibilityChanged(true)) }
-                    )
+                        FormRow(
+                            label = stringResource(Res.string.reminders_label),
+                            value = if (state.reminders.isNotEmpty()) stringResource(Res.string.reminders_selected_count_pattern, state.reminders.size.toString()) else stringResource(Res.string.repeat_none),
+                            onClick = { viewModel.onEvent(TaskEditorEvent.OnReminderPickerVisibilityChanged(true)) }
+                        )
+                    }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(horizontal = 16.dp))
 

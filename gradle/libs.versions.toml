@@ -59,9 +59,14 @@ androidxSecurityCrypto = "1.1.0-alpha06"
 dotenv = "6.5.1"
 buildkonfig = "0.17.0"
 
-
-# Testing
+# Testing & Baseline Profiles
 junit = "4.13.2"
+androidx-baselineprofile = "1.5.0-rc01"
+androidx-benchmark-macro = "1.5.0-rc01"
+androidx-profileinstaller = "1.4.1"
+androidx-test-uiautomator = "2.3.0"
+androidx-test-ext-junit = "1.2.1"
+androidx-test-runner = "1.6.2"
 
 # Push
 
@@ -71,6 +76,7 @@ gitlive-firebase = "2.1.0"
 google-ai-edge = "0.9.0"
 
 compottie = "2.2.4"
+leakcanary = "2.14"
 
 [libraries]
 # Kotlin
@@ -163,14 +169,20 @@ androidx-security-crypto = { module = "androidx.security:security-crypto", versi
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
 # Coil
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
-# Testing
+# Testing & Baseline Profiles
 junit = { module = "junit:junit", version.ref = "junit" }
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "androidx-profileinstaller" }
+androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark-macro" }
+androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-test-uiautomator" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-ext-junit" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
 
 peekaboo-image-picker = { module = "io.github.onseok:peekaboo-image-picker", version.ref = "peekaboo" }
 
@@ -188,10 +200,13 @@ mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.r
 
 compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
 compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
+leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+androidTest = { id = "com.android.test", version.ref = "agp" }
+androidBaselineProfile = { id = "androidx.baselineprofile", version.ref = "androidx-baselineprofile" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

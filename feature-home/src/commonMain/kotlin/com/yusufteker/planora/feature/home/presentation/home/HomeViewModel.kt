@@ -27,7 +27,10 @@ import com.yusufteker.planora.feature.home.domain.use_case.GetFilteredTasksUseCa
 import com.yusufteker.planora.feature.home.domain.use_case.getEarliestEventDateInMonth
 import com.yusufteker.planora.feature.home.domain.use_case.SubmitSmartInputUseCase
 import com.yusufteker.planora.feature.home.presentation.home.HomeEffect.*
+import com.yusufteker.planora.feature.home.data.mapper.toCreateTaskRequest
 import com.yusufteker.planora.shared.api.TaskDto
+import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.isUnscheduled
 import io.github.aakira.napier.Napier
 
 /**
@@ -315,6 +318,19 @@ class HomeViewModel(
                     sessionPreferences.saveViewOption(event.option)
                 }
             }
+
+            is HomeEvent.TypeFilterChanged -> {
+                setState {
+                    copy(
+                        typeFilter = event.filter,
+                        upcomingTasks = getFilteredTasks(typeFilter = event.filter)
+                    )
+                }
+            }
+
+            is HomeEvent.QuickCreateTask -> {
+                quickCreateTask(event.title)
+            }
             
             is HomeEvent.CalendarDateSelected -> {
                 setState {
@@ -569,8 +585,39 @@ class HomeViewModel(
                     }
                 }
             }
+
+            is HomeEvent.ChangeTaskPriority -> {
+                launch {
+                    val currentDetails = event.task.specificDetails as? ItemDetails.Task
+                    val newDetails = ItemDetails.Task(
+                        priority = event.newPriority,
+                        subtasks = currentDetails?.subtasks ?: emptyList(),
+                        deadline = currentDetails?.deadline,
+                        estimatedMinutes = currentDetails?.estimatedMinutes
+                    )
+                    val request = event.task.toCreateTaskRequest().copy(specificDetails = newDetails)
+                    val result = planRepository.updateTask(event.task.id, request)
+                    if (result.isFailure) {
+                        setState { copy(error = result.exceptionOrNull()?.message ?: "Öncelik güncellenemedi") }
+                    }
+                }
+            }
+
+            is HomeEvent.ToggleTaskPin -> {
+                launch {
+                    val result = planRepository.toggleTaskPinLocal(event.taskId, event.isPinned)
+                    if (result.isFailure) {
+                        setState { copy(error = result.exceptionOrNull()?.message ?: "Sabitleme durumu güncellenemedi") }
+                    }
+                }
+            }
+
+            is HomeEvent.MoveTaskOrder -> {
+                moveTaskOrder(event.task, event.isUp)
+            }
         }
     }
+
 
     private fun HomeState.getFilteredTasks(
         myTasks: List<TaskDto> = this.allFetchedTasks,
@@ -579,6 +626,7 @@ class HomeViewModel(
         isIncludeMy: Boolean = this.isMyTasksSelected,
         options: TimelineFilterOptions = this.filterOptions,
         viewOpt: TimelineViewOption = this.viewOption,
+        typeFilter: com.yusufteker.planora.core.utils.TimelineTypeFilter = this.typeFilter,
         calendarDate: LocalDate? = this.selectedCalendarDate,
         calendarMonth: LocalDate? = this.visibleCalendarMonth
     ): List<TaskDto> {
@@ -589,9 +637,105 @@ class HomeViewModel(
             isIncludeMyTasks = isIncludeMy,
             options = options,
             viewOption = viewOpt,
+            typeFilter = typeFilter,
             selectedCalendarDate = calendarDate,
             visibleCalendarMonth = calendarMonth
         )
+    }
+
+    /**
+     * Kullanıcının Görevler merkezinden modal açmadan tek satırda yazdığı to-do öğesini
+     * zamansız (backlog) olarak yerel veritabanına ve sunucuya ekler.
+     *
+     * @param title Eklenmek istenen yapılacak iş başlığı.
+     */
+    private fun quickCreateTask(title: String) {
+        if (title.isBlank()) return
+        launch {
+            val now = getCurrentTimeMs()
+            val request = com.yusufteker.planora.shared.api.CreateTaskRequest(
+                title = title.trim(),
+                description = null,
+                startTime = now,
+                endTime = null,
+                type = com.yusufteker.planora.shared.api.TaskType.TASK,
+                status = com.yusufteker.planora.shared.api.TaskStatus.PENDING,
+                visibility = com.yusufteker.planora.shared.api.TaskVisibility.PRIVATE,
+                sharedRoomIds = emptyList(),
+                isRecurring = false,
+                recurrenceRule = null,
+                isFlexible = true,
+                isOptional = false,
+                isPostponable = true,
+                isAllDay = false,
+                reminders = emptyList(),
+                participants = emptyMap(),
+                specificDetails = com.yusufteker.planora.shared.api.ItemDetails.Task(
+                    priority = com.yusufteker.planora.shared.api.TaskPriority.MEDIUM,
+                    deadline = null
+                ),
+                parentId = null,
+                tags = emptyList(),
+                color = null,
+                isPinned = false
+            )
+            val result = planRepository.createTask(request)
+            if (result.isFailure) {
+                showSnackbar(
+                    result.exceptionOrNull()?.message ?: "Görev eklenemedi",
+                    com.yusufteker.planora.core.snackbar.SnackbarType.ERROR
+                )
+            }
+        }
+    }
+
+    /**
+     * Yapılacaklar havuzundaki (backlog) zamansız bir görevin sırasını yukarı veya aşağı taşır.
+     * Görevlerin sıralaması `isPinned DESC, startTime DESC` şeklinde tutulur.
+     * Komşu öğe ile zaman damgası ve gerekirse sabitleme durumu takas edilir ve yerel veritabanına kaydedilir.
+     *
+     * @param task Sırası değiştirilecek görev.
+     * @param isUp True ise yukarı (daha öne), false ise aşağı (daha geriye) taşır.
+     */
+    private fun moveTaskOrder(task: TaskDto, isUp: Boolean) {
+        launch {
+            val unscheduledTasks = state.value.allFetchedTasks
+                .filter { it.type == TaskType.TASK && it.isUnscheduled() && it.status != TaskStatus.COMPLETED }
+                .sortedWith(compareByDescending<TaskDto> { it.isPinned }.thenByDescending { it.startTime })
+
+            val currentIndex = unscheduledTasks.indexOfFirst { it.id == task.id }
+            if (currentIndex == -1) return@launch
+
+            val targetIndex = if (isUp) currentIndex - 1 else currentIndex + 1
+            if (targetIndex !in unscheduledTasks.indices) return@launch
+
+            val targetTask = unscheduledTasks[targetIndex]
+
+            if (task.isPinned == targetTask.isPinned) {
+                if (task.startTime != targetTask.startTime) {
+                    val reqCurrent = task.toCreateTaskRequest().copy(startTime = targetTask.startTime)
+                    val reqTarget = targetTask.toCreateTaskRequest().copy(startTime = task.startTime)
+                    planRepository.updateTask(task.id, reqCurrent)
+                    planRepository.updateTask(targetTask.id, reqTarget)
+                } else {
+                    val newStartTime = if (isUp) targetTask.startTime + 1000L else targetTask.startTime - 1000L
+                    val reqCurrent = task.toCreateTaskRequest().copy(startTime = newStartTime)
+                    planRepository.updateTask(task.id, reqCurrent)
+                }
+            } else {
+                if (isUp && !task.isPinned && targetTask.isPinned) {
+                    val newStartTime = targetTask.startTime + 1000L
+                    val reqCurrent = task.toCreateTaskRequest().copy(isPinned = true, startTime = newStartTime)
+                    planRepository.updateTask(task.id, reqCurrent)
+                    planRepository.toggleTaskPinLocal(task.id, true)
+                } else if (!isUp && task.isPinned && !targetTask.isPinned) {
+                    val newStartTime = targetTask.startTime - 1000L
+                    val reqCurrent = task.toCreateTaskRequest().copy(isPinned = false, startTime = newStartTime)
+                    planRepository.updateTask(task.id, reqCurrent)
+                    planRepository.toggleTaskPinLocal(task.id, false)
+                }
+            }
+        }
     }
 
     private fun loadHolidaysForYear(year: Int) {

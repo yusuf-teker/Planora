@@ -169,40 +169,99 @@ fun WheelDatePicker(
         stringResource(Res.string.month_dec)
     )
 
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        // Highlight background for the selected row
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .height(40.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+    val shortDayNames = mapOf(
+        DayOfWeek.MONDAY to stringResource(Res.string.day_mon),
+        DayOfWeek.TUESDAY to stringResource(Res.string.day_tue),
+        DayOfWeek.WEDNESDAY to stringResource(Res.string.day_wed),
+        DayOfWeek.THURSDAY to stringResource(Res.string.day_thu),
+        DayOfWeek.FRIDAY to stringResource(Res.string.day_fri),
+        DayOfWeek.SATURDAY to stringResource(Res.string.day_sat),
+        DayOfWeek.SUNDAY to stringResource(Res.string.day_sun)
+    )
+
+    val fullDayNames = mapOf(
+        DayOfWeek.MONDAY to stringResource(Res.string.day_monday),
+        DayOfWeek.TUESDAY to stringResource(Res.string.day_tuesday),
+        DayOfWeek.WEDNESDAY to stringResource(Res.string.day_wednesday),
+        DayOfWeek.THURSDAY to stringResource(Res.string.day_thursday),
+        DayOfWeek.FRIDAY to stringResource(Res.string.day_friday),
+        DayOfWeek.SATURDAY to stringResource(Res.string.day_saturday),
+        DayOfWeek.SUNDAY to stringResource(Res.string.day_sunday)
+    )
+
+    val selectedDayOfWeek = try {
+        fullDayNames[LocalDate(selectedYear, selectedMonth, selectedDay).dayOfWeek] ?: ""
+    } catch (_: Exception) { "" }
+    val selectedMonthName = monthNames.getOrElse(selectedMonth - 1) { "" }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+            modifier = Modifier.padding(bottom = 16.dp)
         ) {
-            WheelPicker(
-                items = years,
-                selectedItem = selectedYear,
-                onItemSelected = { selectedYear = it },
-                itemToString = { it.toString() },
-                modifier = Modifier.weight(1f)
+            Text(
+                text = if (selectedDayOfWeek.isNotEmpty()) {
+                    "$selectedDayOfWeek, $selectedDay $selectedMonthName $selectedYear"
+                } else {
+                    "$selectedDay $selectedMonthName $selectedYear"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
-            WheelPicker(
-                items = months,
-                selectedItem = selectedMonth,
-                onItemSelected = { selectedMonth = it },
-                itemToString = { monthNames[it - 1] },
-                modifier = Modifier.weight(1f)
+        }
+
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            // Highlight background for the selected row
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .height(40.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                    )
             )
-            WheelPicker(
-                items = days,
-                selectedItem = selectedDay,
-                onItemSelected = { selectedDay = it },
-                itemToString = { it.toString() },
-                modifier = Modifier.weight(1f)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                WheelPicker(
+                    items = days,
+                    selectedItem = selectedDay,
+                    onItemSelected = { selectedDay = it },
+                    itemToString = { day ->
+                        try {
+                            val dow = LocalDate(selectedYear, selectedMonth, day).dayOfWeek
+                            val shortName = shortDayNames[dow] ?: ""
+                            "$day $shortName"
+                        } catch (_: Exception) {
+                            day.toString()
+                        }
+                    },
+                    modifier = Modifier.weight(1.3f)
+                )
+                WheelPicker(
+                    items = months,
+                    selectedItem = selectedMonth,
+                    onItemSelected = { selectedMonth = it },
+                    itemToString = { monthNames[it - 1] },
+                    modifier = Modifier.weight(1.1f)
+                )
+                WheelPicker(
+                    items = years,
+                    selectedItem = selectedYear,
+                    onItemSelected = { selectedYear = it },
+                    itemToString = { it.toString() },
+                    modifier = Modifier.weight(1.0f)
+                )
+            }
         }
     }
 }

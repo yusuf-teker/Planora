@@ -35,7 +35,9 @@ import com.yusufteker.planora.feature.home.presentation.home.components.FilterBo
 import com.yusufteker.planora.feature.home.presentation.home.components.HomeFabMenu
 import com.yusufteker.planora.feature.home.presentation.home.components.HomeTopBar
 import com.yusufteker.planora.feature.home.presentation.home.components.SharedUserChipRow
+import com.yusufteker.planora.feature.home.presentation.home.components.TasksHubSection
 import com.yusufteker.planora.feature.home.presentation.home.components.TimelineSection
+import com.yusufteker.planora.feature.home.presentation.home.components.TypeFilterChipRow
 
 /**
  * Home screen composable.
@@ -157,34 +159,58 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Calendar View
-                if (state.viewOption == TimelineViewOption.CALENDAR) {
-                    CalendarSection(
-                        state = state, 
-                        onEvent = viewModel::onEvent,
-                        modifier = Modifier.weight(1f)
+                // 1-Dokunuş Hızlı Tip Filtresi (Tümü / Etkinlikler / Görevler) - Akış ve Takvim modlarında aktif
+                if (state.viewOption == TimelineViewOption.DATE || state.viewOption == TimelineViewOption.CALENDAR) {
+                    TypeFilterChipRow(
+                        selectedFilter = state.typeFilter,
+                        onFilterSelected = { viewModel.onEvent(HomeEvent.TypeFilterChanged(it)) }
                     )
-                } else {
-                    // Timeline
-                    TimelineSection(
-                        state = state, 
-                        onTaskClick = {
-                            viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
-                        },
-                        onTaskDelete = { taskId ->
-                            viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
-                        },
-                        onTaskToggleStatus = { task ->
-                            viewModel.onEvent(HomeEvent.ToggleTaskCompletion(task))
-                        },
-                        onTaskQuickDuplicate = { task ->
-                            quickDuplicateTask = task
-                        },
-                        onLoadMore = {
-                            viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
-                        },
-                        modifier = Modifier.weight(1f).fillMaxWidth()
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                // View Option Switch
+                when (state.viewOption) {
+                    TimelineViewOption.CALENDAR -> {
+                        CalendarSection(
+                            state = state, 
+                            onEvent = viewModel::onEvent,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    TimelineViewOption.TASKS -> {
+                        TasksHubSection(
+                            state = state,
+                            onTaskClick = { viewModel.onEvent(HomeEvent.TimelineItemClicked(it)) },
+                            onTaskToggleStatus = { viewModel.onEvent(HomeEvent.ToggleTaskCompletion(it)) },
+                            onTaskDelete = { viewModel.onEvent(HomeEvent.OnDeleteTask(it)) },
+                            onQuickCreateTask = { viewModel.onEvent(HomeEvent.QuickCreateTask(it)) },
+                            onTaskTogglePin = { taskId, isPinned -> viewModel.onEvent(HomeEvent.ToggleTaskPin(taskId, isPinned)) },
+                            onTaskChangePriority = { task, newPriority -> viewModel.onEvent(HomeEvent.ChangeTaskPriority(task, newPriority)) },
+                            onMoveTaskOrder = { task, isUp -> viewModel.onEvent(HomeEvent.MoveTaskOrder(task, isUp)) },
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
+                    }
+                    TimelineViewOption.DATE -> {
+                        TimelineSection(
+                            state = state, 
+                            onTaskClick = {
+                                viewModel.onEvent(HomeEvent.TimelineItemClicked(it))
+                            },
+                            onTaskDelete = { taskId ->
+                                viewModel.onEvent(HomeEvent.OnDeleteTask(taskId))
+                            },
+                            onTaskToggleStatus = { task ->
+                                viewModel.onEvent(HomeEvent.ToggleTaskCompletion(task))
+                            },
+                            onTaskQuickDuplicate = { task ->
+                                quickDuplicateTask = task
+                            },
+                            onLoadMore = {
+                                viewModel.onEvent(HomeEvent.LoadMoreFutureTasks)
+                            },
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -205,7 +231,10 @@ fun HomeScreen(
     }
 
     quickDuplicateTask?.let { task ->
-        val initialMs = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+        val rawTimeMs = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+        val initialMs = remember(task.id) {
+            com.yusufteker.planora.core.utils.getTodayWithOriginalTime(rawTimeMs)
+        }
         com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet(
             initialTimeMs = initialMs,
             sheetState = rememberModalBottomSheetState(),

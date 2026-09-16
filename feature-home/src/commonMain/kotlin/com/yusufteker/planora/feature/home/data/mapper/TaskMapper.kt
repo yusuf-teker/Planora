@@ -71,3 +71,38 @@ fun PlanoraDatabaseQueries.insertTaskFromRequest(
         isSynced = isSynced
     )
 }
+
+/**
+ * Converts a [TaskDto] domain object into a [CreateTaskRequest] payload.
+ * Useful for updating existing task instances while preserving all existing metadata.
+ *
+ * @receiver The [TaskDto] to convert.
+ * @return A new [CreateTaskRequest] instance populated with data from this DTO.
+ */
+fun TaskDto.toCreateTaskRequest(): CreateTaskRequest {
+    return CreateTaskRequest(
+        title = title,
+        description = description,
+        startTime = startTime,
+        endTime = endTime,
+        type = type,
+        status = status,
+        visibility = visibility,
+        sharedRoomIds = sharedRoomIds,
+        isRecurring = isRecurring,
+        recurrenceRule = recurrenceRule,
+        isFlexible = isFlexible,
+        isOptional = isOptional,
+        isPostponable = isPostponable,
+        isAllDay = isAllDay,
+        parentId = parentId,
+        aiMetadata = aiMetadata,
+        reminders = reminders,
+        specificDetails = specificDetails,
+        tags = tags,
+        color = color,
+        participants = participants.associate { it.userId to it.name },
+        isPinned = isPinned
+    )
+}
+

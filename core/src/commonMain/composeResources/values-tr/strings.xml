@@ -372,9 +372,36 @@
     <string name="filter_member_all">Tüm Üyeler</string>
 
     <!-- Timeline View Options -->
-    <string name="timeline_option_date">Tarih</string>
-    <string name="timeline_option_period">Periyot</string>
+    <string name="timeline_option_date">Akış</string>
     <string name="timeline_option_calendar">Takvim</string>
+    <string name="timeline_option_tasks">Görevler</string>
+
+    <!-- Type Filters -->
+    <string name="filter_type_all">Tümü</string>
+    <string name="filter_type_events">Etkinlikler</string>
+    <string name="filter_type_tasks">Görevler</string>
+
+    <!-- Tasks Hub -->
+    <string name="tasks_hub_title">Görevler &amp; Yapılacaklar</string>
+    <string name="tasks_hub_quick_add_placeholder">Bir yapılacak iş ekle...</string>
+    <string name="tasks_hub_action_add">Ekle</string>
+    <string name="tasks_hub_section_unscheduled">Yapılacaklar Havuzu</string>
+    <string name="tasks_hub_section_scheduled">Planlanmış Görevler</string>
+    <string name="tasks_hub_section_completed">Tamamlananlar</string>
+    <string name="tasks_hub_empty_unscheduled">Zamansız yapılacak iş yok. Yukarıdan hemen ekleyin!</string>
+    <string name="tasks_hub_empty_scheduled">Yaklaşan planlanmış görev bulunmuyor.</string>
+    <string name="tasks_hub_clear_deadline">Tarih/Saati Kaldır</string>
+    <string name="time_bucket_unscheduled">Yapılacaklar Havuzu</string>
+    <string name="tasks_tab_backlog">Yapılacaklar Havuzu</string>
+    <string name="tasks_tab_scheduled">Planlanmış</string>
+    <string name="task_editor_has_deadline_title">Tarih ve Saat Belirle</string>
+    <string name="task_editor_has_deadline_desc">Görevi takvime ve belirli bir teslim saatine bağla</string>
+    <string name="task_editor_unscheduled_hint">Bu görev belirli bir zamana bağlı olmadan Yapılacaklar Havuzu\'na kaydedilecektir.</string>
+    <string name="action_move_up">Yukarı Taşı</string>
+    <string name="action_move_down">Aşağı Taşı</string>
+    <string name="action_pin">Başa Sabitle</string>
+    <string name="action_unpin">Sabitlemeyi Kaldır</string>
+    <string name="action_change_priority">Önceliği Değiştir</string>
 
     <!-- Additional UI Localizations -->
     <string name="profile_calendar_access_requests">Takvim Erişim İstekleri</string>
@@ -623,4 +650,5 @@
     <string name="widget_today_desc">Bugünün ajandası ve aktif görevleri.</string>
     <string name="widget_no_tasks_today">Bugün için planlanmış görev yok.</string>
     <string name="widget_no_tasks_this_week">Bu hafta için planlanmış görev yok.</string>
+    <string name="action_go_to_today">Bugüne Git</string>
 </resources>

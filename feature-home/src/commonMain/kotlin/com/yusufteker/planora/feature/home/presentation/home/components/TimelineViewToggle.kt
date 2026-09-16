@@ -31,8 +31,16 @@ import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.timeline_option_calendar
 import planora.core.generated.resources.timeline_option_date
-import planora.core.generated.resources.timeline_option_period
+import planora.core.generated.resources.timeline_option_tasks
 
+/**
+ * Ana ekranda Akış (Tarih), Takvim ve Görevler modları arasında geçiş yapılmasını sağlayan
+ * animasyonlu segmented kontrol bileşeni.
+ *
+ * @param selected Seçili olan görünüm modu ([TimelineViewOption]).
+ * @param onSelected Mod değiştiğinde çağrılan lambda.
+ * @param modifier Dış düzenleyici.
+ */
 @Composable
 fun TimelineViewToggle(
     selected: TimelineViewOption,
@@ -42,8 +50,8 @@ fun TimelineViewToggle(
     val options = TimelineViewOption.entries
     val selectedIndex = when (selected) {
         TimelineViewOption.DATE -> 0
-        TimelineViewOption.RELATIVE -> 1
-        TimelineViewOption.CALENDAR -> 2
+        TimelineViewOption.CALENDAR -> 1
+        TimelineViewOption.TASKS -> 2
     }
 
     BoxWithConstraints(
@@ -105,8 +113,8 @@ fun TimelineViewToggle(
                     Text(
                         text = when (option) {
                             TimelineViewOption.DATE -> stringResource(Res.string.timeline_option_date)
-                            TimelineViewOption.RELATIVE -> stringResource(Res.string.timeline_option_period)
                             TimelineViewOption.CALENDAR -> stringResource(Res.string.timeline_option_calendar)
+                            TimelineViewOption.TASKS -> stringResource(Res.string.timeline_option_tasks)
                         },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,

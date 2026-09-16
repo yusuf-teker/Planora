@@ -259,9 +259,9 @@ class SessionPreferences(
 
      suspend fun getViewOption(): TimelineViewOption {
          return try {
-             TimelineViewOption.valueOf(dataStore.data.map { it[viewOptionKey] }.first() ?: TimelineViewOption.RELATIVE.name)
+             TimelineViewOption.valueOf(dataStore.data.map { it[viewOptionKey] }.first() ?: TimelineViewOption.DATE.name)
          } catch (e: Exception) {
-             TimelineViewOption.RELATIVE
+             TimelineViewOption.DATE
          }
     }
     suspend fun saveViewOption(timelineViewOption: TimelineViewOption) {

@@ -6,15 +6,21 @@ import dev.gitlive.firebase.crashlytics.crashlytics
 
 actual class AnalyticsManager {
     actual fun logEvent(name: String, parameters: Map<String, Any>) {
-        Firebase.analytics.logEvent(name, parameters)
+        try {
+            Firebase.analytics.logEvent(name, parameters)
+        } catch (_: Throwable) {}
     }
 
     actual fun setUserId(userId: String) {
-        Firebase.analytics.setUserId(userId)
-        Firebase.crashlytics.setUserId(userId)
+        try {
+            Firebase.analytics.setUserId(userId)
+            Firebase.crashlytics.setUserId(userId)
+        } catch (_: Throwable) {}
     }
 
     actual fun logException(exception: Throwable) {
-        Firebase.crashlytics.recordException(exception)
+        try {
+            Firebase.crashlytics.recordException(exception)
+        } catch (_: Throwable) {}
     }
 }

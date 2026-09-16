@@ -13,6 +13,7 @@ data class TaskEditorState(
     val title: String = "",
     val description: String = "",
     val originalStartTime: Long? = null,
+    val hasDeadline: Boolean = true,
     val deadlineDateMs: Long? = null,
     val planRoomId: String? = null,
     val planRoomName: String? = null,

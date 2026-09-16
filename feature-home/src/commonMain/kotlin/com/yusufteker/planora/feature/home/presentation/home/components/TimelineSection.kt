@@ -28,6 +28,7 @@ import planora.core.generated.resources.no_tasks
 import planora.core.generated.resources.today
 import planora.core.generated.resources.tomorrow
 import planora.core.generated.resources.load_more_future_tasks
+import planora.core.generated.resources.action_go_to_today
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -62,6 +63,8 @@ import planora.core.generated.resources.time_bucket_past
 import planora.core.generated.resources.time_bucket_this_month
 import planora.core.generated.resources.time_bucket_this_week
 import planora.core.generated.resources.time_bucket_today
+import planora.core.generated.resources.time_bucket_unscheduled
+import com.yusufteker.planora.shared.api.isUnscheduled
 
 import com.yusufteker.planora.feature.home.presentation.components.SwipeableTaskItem
 
@@ -78,48 +81,33 @@ fun TimelineSection(
     // Performans: groupBy sonucunu remember ile sarıp her frame'de tekrar hesaplamayı önle
     val todayLabel = stringResource(Res.string.today)
     val tomorrowLabel = stringResource(Res.string.tomorrow)
-    val bucketToday = stringResource(Res.string.time_bucket_today)
-    val bucketThisWeek = stringResource(Res.string.time_bucket_this_week)
-    val bucketThisMonth = stringResource(Res.string.time_bucket_this_month)
-    val bucketFuture = stringResource(Res.string.time_bucket_future)
-    val bucketPast = stringResource(Res.string.time_bucket_past)
+    val bucketUnscheduled = stringResource(Res.string.time_bucket_unscheduled)
 
     val grouped = remember(state.upcomingTasks, state.viewOption, state.selectedCalendarDate) {
-        state.upcomingTasks.groupBy<TaskDto, String> { task ->
+        state.upcomingTasks
+            .filter { !it.isUnscheduled() }
+            .groupBy<TaskDto, String> { task ->
+                val time = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
 
-            val time =
-                (task.specificDetails as? ItemDetails.Task)?.deadline
-                    ?: task.startTime
-
-            when (state.viewOption) {
-
-                TimelineViewOption.DATE -> {
-                    when {
-                        isToday(time) -> todayLabel
-                        isTomorrow(time) -> tomorrowLabel
-                        else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+                when (state.viewOption) {
+                    TimelineViewOption.CALENDAR -> {
+                        if (state.selectedCalendarDate != null) {
+                            formatShortDate(time)
+                        } else {
+                            "${formatDayName(time)}, ${formatShortDate(time)}"
+                        }
                     }
-                }
 
-                TimelineViewOption.CALENDAR -> {
-                    if (state.selectedCalendarDate != null) {
-                        formatShortDate(time)
-                    } else {
-                        "${formatDayName(time)}, ${formatShortDate(time)}"
-                    }
-                }
-
-                TimelineViewOption.RELATIVE -> {
-                    when (getRelativeTimeBucket(time)) {
-                        TimeBucket.TODAY -> bucketToday
-                        TimeBucket.THIS_WEEK -> bucketThisWeek
-                        TimeBucket.THIS_MONTH -> bucketThisMonth
-                        TimeBucket.FUTURE -> bucketFuture
-                        TimeBucket.PAST -> bucketPast
+                    TimelineViewOption.DATE,
+                    TimelineViewOption.TASKS -> {
+                        when {
+                            isToday(time) -> todayLabel
+                            isTomorrow(time) -> tomorrowLabel
+                            else -> "${formatDayName(time)}, ${formatShortDate(time)}"
+                        }
                     }
                 }
             }
-        }
     }
 
     // Don't show empty state until the first data load has completed.
@@ -139,17 +127,19 @@ fun TimelineSection(
         return
     }
 
-    // Performans: targetTodayIndex hesaplamasını remember ile sar
-    val targetTodayIndex = remember(grouped) {
+    // targetScrollIndex hesaplamasını remember ile sar
+    val targetScrollIndex = remember(grouped, state.viewOption) {
         val nowMs = getCurrentTimeMs()
         val timeZone = TimeZone.currentSystemDefault()
         val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
 
         var todayIndex = -1
         var firstUpcomingIndex = -1
+        var lastGroupHeaderIndex = 0
         var currentIndex = 0
 
         for ((_, tasks) in grouped) {
+            lastGroupHeaderIndex = currentIndex
             var groupHasToday = false
             var groupHasUpcoming = false
 
@@ -179,7 +169,11 @@ fun TimelineSection(
             currentIndex += tasks.size // Items
         }
 
-        if (todayIndex != -1) todayIndex else firstUpcomingIndex
+        when {
+            todayIndex != -1 -> todayIndex
+            firstUpcomingIndex != -1 -> firstUpcomingIndex
+            else -> lastGroupHeaderIndex
+        }
     }
 
     // Performans: O(n) any{} arama yerine O(1) Set lookup kullan
@@ -188,36 +182,38 @@ fun TimelineSection(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    var hasScrolledToToday by remember(state.viewOption) { mutableStateOf(false) }
+    var lastScrolledViewOption by remember { mutableStateOf<TimelineViewOption?>(null) }
+    var hasScrolledWithData by remember { mutableStateOf(false) }
 
-    LaunchedEffect(targetTodayIndex, state.hasLoadedTasks) {
-        if (!hasScrolledToToday && state.hasLoadedTasks && targetTodayIndex > 0) {
-            listState.scrollToItem(targetTodayIndex)
-            hasScrolledToToday = true
+    LaunchedEffect(state.viewOption, state.hasLoadedTasks, targetScrollIndex, grouped.isNotEmpty()) {
+        if (state.hasLoadedTasks && grouped.isNotEmpty()) {
+            if (lastScrolledViewOption != state.viewOption || !hasScrolledWithData) {
+                listState.scrollToItem(targetScrollIndex)
+                lastScrolledViewOption = state.viewOption
+                hasScrolledWithData = true
+            }
         }
     }
 
-    val showFab by remember(targetTodayIndex) {
+    val showFab by remember(targetScrollIndex) {
         derivedStateOf {
-            if (targetTodayIndex == -1) return@derivedStateOf false
             val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
             
             val firstVisible = visibleItemsInfo.first().index
             val lastVisible = visibleItemsInfo.last().index
 
-            targetTodayIndex !in firstVisible..lastVisible
+            targetScrollIndex !in firstVisible..lastVisible
         }
     }
 
-    val isTodayAbove by remember(targetTodayIndex) {
+    val isTargetAbove by remember(targetScrollIndex) {
         derivedStateOf {
-            if (targetTodayIndex == -1) return@derivedStateOf false
             val visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             if (visibleItemsInfo.isEmpty()) return@derivedStateOf false
             
             val firstVisible = visibleItemsInfo.first().index
-            targetTodayIndex < firstVisible
+            targetScrollIndex < firstVisible
         }
     }
 
@@ -257,7 +253,7 @@ fun TimelineSection(
                     ) {
                         TimelineTaskCard(
                             task = task,
-                            showDate = state.viewOption == TimelineViewOption.RELATIVE,
+                            showDate = false,
                             sharedUserAvatar = creatorUser?.avatarId,
                             sharedUserColor = creatorColor,
                             sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
@@ -268,7 +264,7 @@ fun TimelineSection(
                     TimelineTaskCard(
                         modifier = Modifier.padding(vertical = 6.dp),
                         task = task,
-                        showDate = state.viewOption == TimelineViewOption.RELATIVE,
+                        showDate = false,
                         sharedUserAvatar = creatorUser?.avatarId,
                         sharedUserColor = creatorColor,
                         sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
@@ -316,6 +312,10 @@ fun TimelineSection(
                     }
                 }
             }
+
+            item(key = "timeline_bottom_spacer") {
+                Spacer(modifier = Modifier.fillParentMaxHeight(0.85f))
+            }
         }
     }
 
@@ -323,9 +323,7 @@ fun TimelineSection(
         FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
-                    if (targetTodayIndex != -1) {
-                        listState.animateScrollToItem(targetTodayIndex)
-                    }
+                    listState.animateScrollToItem(targetScrollIndex)
                 }
             },
             modifier = Modifier
@@ -336,8 +334,8 @@ fun TimelineSection(
             shape = androidx.compose.foundation.shape.CircleShape
         ) {
             Icon(
-                imageVector = if (isTodayAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                contentDescription = "Go to Today"
+                imageVector = if (isTargetAbove) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                contentDescription = stringResource(Res.string.action_go_to_today)
             )
         }
     }

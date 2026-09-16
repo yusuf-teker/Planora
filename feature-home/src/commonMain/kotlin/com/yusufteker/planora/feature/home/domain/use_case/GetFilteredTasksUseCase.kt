@@ -1,16 +1,24 @@
 package com.yusufteker.planora.feature.home.domain.use_case
 
+import com.yusufteker.planora.core.utils.TimelineTypeFilter
 import com.yusufteker.planora.core.utils.TimelineViewOption
 import com.yusufteker.planora.feature.home.presentation.home.TimelineFilterOptions
 import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.extractBaseTaskId
+import com.yusufteker.planora.shared.api.isUnscheduled
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+/**
+ * Görev ve etkinlik listesini kullanıcının seçtiği görünüm modu ([TimelineViewOption]),
+ * tür filtresi ([TimelineTypeFilter]), oda filtreleri ve takvim tarihlerine göre
+ * süzen use case sınıfı.
+ */
 class GetFilteredTasksUseCase {
 
     operator fun invoke(
@@ -20,6 +28,7 @@ class GetFilteredTasksUseCase {
         isIncludeMyTasks: Boolean = true,
         options: TimelineFilterOptions,
         viewOption: TimelineViewOption,
+        typeFilter: TimelineTypeFilter = TimelineTypeFilter.ALL,
         selectedCalendarDate: LocalDate?,
         visibleCalendarMonth: LocalDate?
     ): List<TaskDto> {
@@ -40,17 +49,30 @@ class GetFilteredTasksUseCase {
                 (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
             }
 
-        // 2. Room tasks filter
+        // 2. Type filter (Tümü / Sadece Etkinlik / Sadece Görev)
+        // Eğer TASKS görünümündeysek otomatik olarak sadece TASK tipi gösterilir.
+        if (viewOption == TimelineViewOption.TASKS) {
+            filtered = filtered.filter { it.type == TaskType.TASK }
+        } else {
+            when (typeFilter) {
+                TimelineTypeFilter.ALL -> Unit
+                TimelineTypeFilter.EVENTS_ONLY -> filtered = filtered.filter { it.type == TaskType.EVENT }
+                TimelineTypeFilter.TASKS_ONLY -> filtered = filtered.filter { it.type == TaskType.TASK }
+            }
+        }
+
+        // 3. Room tasks filter
         if (!options.showRoomTasks) {
             filtered = filtered.filter { it.sharedRoomIds.isEmpty() }
         }
 
-        // 3. Completed filter
-        if (!options.showCompleted) {
+        // 4. Completed filter
+        // Görevler (TASKS) hub'ında tamamlananlar ayrı açılır/kapanır bölümde gösterileceği için orada filtrelenmez.
+        if (!options.showCompleted && viewOption != TimelineViewOption.TASKS) {
             filtered = filtered.filter { it.status != TaskStatus.COMPLETED }
         }
 
-        // 3. Recurring next-only filter
+        // 5. Recurring next-only filter
         if (options.showOnlyNextRecurring) {
             val uniqueTasks = mutableListOf<TaskDto>()
             val seenRecurringBaseIds = mutableSetOf<String>()
@@ -69,9 +91,12 @@ class GetFilteredTasksUseCase {
             filtered = uniqueTasks
         }
 
-        // 4. Calendar filtering
+        // 6. Calendar filtering
         if (viewOption == TimelineViewOption.CALENDAR) {
             filtered = filtered.filter { task ->
+                // Zamansız to-do'lar takvim ızgarasında gösterilmez
+                if (task.isUnscheduled()) return@filter false
+
                 val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
                 val taskStartDate = Instant.fromEpochMilliseconds(effectiveTime)
                     .toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -92,6 +117,11 @@ class GetFilteredTasksUseCase {
                     true
                 }
             }
+        }
+
+        // 7. Akış (DATE) görünümünde zamansız görevler (to-do backlog) yer almaz, sadece planlanmış tarihli ögeler gösterilir.
+        if (viewOption == TimelineViewOption.DATE) {
+            filtered = filtered.filter { !it.isUnscheduled() }
         }
 
         return filtered

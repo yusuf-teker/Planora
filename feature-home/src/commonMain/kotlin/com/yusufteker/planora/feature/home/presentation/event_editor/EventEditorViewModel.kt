@@ -270,11 +270,8 @@ class EventEditorViewModel(
                             }
 
                             val eventStart = instanceTimestamp ?: sourceEvent.startTime
-                            val eventEnd = if (instanceTimestamp != null) {
-                                instanceTimestamp + duration
-                            } else {
-                                sourceEndTime ?: (eventStart + duration)
-                            }
+                            val todayStart = com.yusufteker.planora.core.utils.getTodayWithOriginalTime(eventStart)
+                            val todayEnd = todayStart + duration
 
                             _state.update { currentState ->
                                 currentState.copy(
@@ -283,8 +280,8 @@ class EventEditorViewModel(
                                     title = sourceEvent.title,
                                     description = sourceEvent.description ?: "",
                                     location = details?.location ?: "",
-                                    startDateTimeMs = eventStart,
-                                    endDateTimeMs = eventEnd,
+                                    startDateTimeMs = todayStart,
+                                    endDateTimeMs = todayEnd,
                                     isRecurring = sourceEvent.isRecurring,
                                     recurrenceRule = ruleObj,
                                     reminders = sourceEvent.reminders,

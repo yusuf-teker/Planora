@@ -372,9 +372,36 @@
     <string name="filter_member_all">All Members</string>
 
     <!-- Timeline View Options -->
-    <string name="timeline_option_date">Date</string>
-    <string name="timeline_option_period">Period</string>
+    <string name="timeline_option_date">Timeline</string>
     <string name="timeline_option_calendar">Calendar</string>
+    <string name="timeline_option_tasks">Tasks</string>
+
+    <!-- Type Filters -->
+    <string name="filter_type_all">All</string>
+    <string name="filter_type_events">Events</string>
+    <string name="filter_type_tasks">Tasks</string>
+
+    <!-- Tasks Hub -->
+    <string name="tasks_hub_title">Tasks &amp; To-Dos</string>
+    <string name="tasks_hub_quick_add_placeholder">Add a to-do item...</string>
+    <string name="tasks_hub_action_add">Add</string>
+    <string name="tasks_hub_section_unscheduled">To-Do Backlog</string>
+    <string name="tasks_hub_section_scheduled">Scheduled Tasks</string>
+    <string name="tasks_hub_section_completed">Completed</string>
+    <string name="tasks_hub_empty_unscheduled">No unscheduled tasks. Type above to add one!</string>
+    <string name="tasks_hub_empty_scheduled">No scheduled tasks upcoming.</string>
+    <string name="tasks_hub_clear_deadline">Clear Deadline</string>
+    <string name="time_bucket_unscheduled">To-Do Backlog</string>
+    <string name="tasks_tab_backlog">To-Do Backlog</string>
+    <string name="tasks_tab_scheduled">Scheduled</string>
+    <string name="task_editor_has_deadline_title">Schedule with Date &amp; Time</string>
+    <string name="task_editor_has_deadline_desc">Assign a specific date and deadline</string>
+    <string name="task_editor_unscheduled_hint">This task will be placed in your To-Do Backlog without calendar dates.</string>
+    <string name="action_move_up">Move Up</string>
+    <string name="action_move_down">Move Down</string>
+    <string name="action_pin">Pin to top</string>
+    <string name="action_unpin">Unpin</string>
+    <string name="action_change_priority">Change Priority</string>
 
     <!-- Additional UI Localizations -->
     <string name="profile_calendar_access_requests">Calendar Access Requests</string>
@@ -624,4 +651,5 @@
     <string name="widget_today_desc">Today\'s agenda and active tasks.</string>
     <string name="widget_no_tasks_today">No tasks scheduled for today.</string>
     <string name="widget_no_tasks_this_week">No tasks scheduled for this week.</string>
+    <string name="action_go_to_today">Go to Today</string>
 </resources>

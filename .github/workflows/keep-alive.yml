@@ -1,0 +1,25 @@
+name: Render Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs every 14 minutes to prevent Render free instance from sleeping (spins down after 15 mins)
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping:
+    name: Ping Render Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Server
+        run: |
+          echo "Pinging Planora backend..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s" https://pulse-7b4z.onrender.com/ping)
+          echo "$RESPONSE"
+          
+          if echo "$RESPONSE" | grep -q "HTTP_STATUS:200"; then
+            echo "✅ Server is alive and responding!"
+          else
+            echo "⚠️ Server ping did not return 200 OK. Response: $RESPONSE"
+            exit 1
+          fi

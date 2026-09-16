@@ -110,7 +110,32 @@ class TaskEditorViewModel(
             
             is TaskEditorEvent.OnDeadlinePickerVisibilityChanged -> _state.update { it.copy(isDeadlinePickerVisible = event.isVisible) }
             is TaskEditorEvent.OnDeadlineSelected -> { 
-                _state.update { it.copy(deadlineDateMs = event.dateMs, isDeadlinePickerVisible = false) } 
+                _state.update { 
+                    it.copy(
+                        deadlineDateMs = event.dateMs, 
+                        hasDeadline = event.dateMs != null,
+                        isDeadlinePickerVisible = false
+                    ) 
+                } 
+                _saveTrigger.tryEmit(Unit)
+            }
+            is TaskEditorEvent.OnHasDeadlineToggled -> {
+                _state.update {
+                    if (event.hasDeadline) {
+                        it.copy(
+                            hasDeadline = true,
+                            deadlineDateMs = it.deadlineDateMs ?: getCurrentTimeMs()
+                        )
+                    } else {
+                        it.copy(
+                            hasDeadline = false,
+                            deadlineDateMs = null,
+                            isRecurring = false,
+                            recurrenceRule = null,
+                            reminders = emptyList()
+                        )
+                    }
+                }
                 _saveTrigger.tryEmit(Unit)
             }
             
@@ -237,13 +262,15 @@ class TaskEditorViewModel(
                     }
                 }
 
+                val initialDeadline = sharedDate
                 _state.value = TaskEditorState(
                     planRoomId = planRoomId, 
                     parentId = parentId, 
                     participants = defaultParticipants,
                     title = sharedTitle ?: "",
                     description = finalNote,
-                    deadlineDateMs = sharedDate ?: getCurrentTimeMs()
+                    hasDeadline = initialDeadline != null,
+                    deadlineDateMs = initialDeadline
                 )
 
                 if (parentId != null && sharedDate == null) {
@@ -281,6 +308,7 @@ class TaskEditorViewModel(
                             }
 
                             val targetDeadline = instanceTimestamp ?: details?.deadline ?: sourceTask.startTime
+                            val todayDeadline = com.yusufteker.planora.core.utils.getTodayWithOriginalTime(targetDeadline)
 
                             _state.update { currentState ->
                                 currentState.copy(
@@ -288,8 +316,8 @@ class TaskEditorViewModel(
                                     isCopyMode = true,
                                     title = sourceTask.title,
                                     description = sourceTask.description ?: "",
-                                    originalStartTime = targetDeadline,
-                                    deadlineDateMs = targetDeadline,
+                                    originalStartTime = todayDeadline,
+                                    deadlineDateMs = todayDeadline,
                                     priority = details?.priority ?: TaskPriority.MEDIUM,
                                     isOptional = sourceTask.isOptional,
                                     isRecurring = sourceTask.isRecurring,
@@ -366,6 +394,7 @@ class TaskEditorViewModel(
                             title = newTitle,
                             description = newDescription,
                             originalStartTime = task.startTime,
+                            hasDeadline = newDeadline != null,
                             deadlineDateMs = newDeadline,
                             planRoomId = actualPlanRoomId,
                             status = task.status,
@@ -471,8 +500,9 @@ class TaskEditorViewModel(
      * Mevcut UI State'inden API ve Veritabanı için CreateTaskRequest nesnesi hazırlar.
      */
     private fun buildCreateTaskRequest(state: TaskEditorState): com.yusufteker.planora.shared.api.CreateTaskRequest {
-        val now = state.originalStartTime ?: state.deadlineDateMs ?: getCurrentTimeMs()
-        val recurrenceStr = state.recurrenceRule?.let { Json.encodeToString(it) }
+        val effectiveDeadline = if (state.hasDeadline) state.deadlineDateMs else null
+        val now = state.originalStartTime ?: effectiveDeadline ?: getCurrentTimeMs()
+        val recurrenceStr = if (state.hasDeadline) state.recurrenceRule?.let { Json.encodeToString(it) } else null
 
         return com.yusufteker.planora.shared.api.CreateTaskRequest(
             title = state.title,
@@ -483,18 +513,18 @@ class TaskEditorViewModel(
             status = state.status,
             visibility = if (state.planRoomId != null) TaskVisibility.ROOM_SHARED else (state.originalTask?.visibility ?: TaskVisibility.PRIVATE),
             sharedRoomIds = state.planRoomId?.let { listOf(it) } ?: emptyList(),
-            isRecurring = state.isRecurring || state.recurrenceRule != null,
+            isRecurring = if (state.hasDeadline) (state.isRecurring || state.recurrenceRule != null) else false,
             recurrenceRule = recurrenceStr,
-            isFlexible = state.originalTask?.isFlexible ?: true,
+            isFlexible = !state.hasDeadline || (state.originalTask?.isFlexible ?: true),
             isOptional = state.isOptional,
             isPostponable = state.originalTask?.isPostponable ?: true,
             isAllDay = state.originalTask?.isAllDay ?: false,
-            reminders = state.reminders,
+            reminders = if (state.hasDeadline) state.reminders else emptyList(),
             participants = state.participants,
             specificDetails = com.yusufteker.planora.shared.api.ItemDetails.Task(
                 subtasks = state.originalTask?.specificDetails?.let { (it as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.subtasks } ?: emptyList(),
                 priority = state.priority,
-                deadline = state.deadlineDateMs
+                deadline = effectiveDeadline
             ),
             parentId = state.parentId,
             tags = state.originalTask?.tags ?: emptyList(),

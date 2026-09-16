@@ -35,3 +35,6 @@ include(":feature-auth")
 include(":feature-home")
 include(":shared")
 include(":server")
+
+// Android Baseline Profile üretimi ve performans testleri için özel modül
+include(":baselineprofile")

@@ -549,7 +549,7 @@ fun TaskDetailScreen(
                 }
 
                 // Date & Time Details Card (NO Title Header, Icon on Top/Left, Label: "Deadline")
-                val dateMs = state.dueDateMs ?: state.startTimeMs
+                val dateMs = state.dueDateMs
                 if (dateMs != null || state.isRecurring || state.reminders.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -911,8 +911,11 @@ fun TaskDetailScreen(
     }
 
     if (showQuickDuplicateSheet) {
+        val initialCopyMs = remember(state.dueDateMs) {
+            com.yusufteker.planora.core.utils.getTodayWithOriginalTime(state.dueDateMs)
+        }
         com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet(
-            initialTimeMs = state.dueDateMs,
+            initialTimeMs = initialCopyMs,
             sheetState = rememberModalBottomSheetState(),
             onDismissRequest = { showQuickDuplicateSheet = false },
             onDateTimeSelected = { selectedMs ->

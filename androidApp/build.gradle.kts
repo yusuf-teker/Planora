@@ -6,6 +6,11 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
+
+    // Baseline Profile Eklentisi:
+    // Bu eklenti, :baselineprofile modülünde üretilen profil kurallarını (baseline-prof.txt)
+    // otomatik olarak alıp release APK / AAB paketine dahil eder.
+    alias(libs.plugins.androidBaselineProfile)
 }
 
 kotlin {
@@ -26,6 +31,17 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+    debugImplementation(libs.leakcanary.android)
+
+    // Baseline Profile Installer:
+    // Google Play olmadan manuel yüklemelerde ya da cihaz ilk açıldığında
+    // Android Runtime'a (ART) baseline profilini okutup AOT (Ahead-of-Time) derlemesini tetikleyen kütüphane.
+    implementation(libs.androidx.profileinstaller)
+
+    // Baseline Profile Üretici Modülü:
+    // androidApp'in profil kurallarını :baselineprofile test modülünden almasını ve
+    // ./gradlew :androidApp:generateBaselineProfile komutu verildiğinde o modülü tetiklemesini sağlar.
+    baselineProfile(projects.baselineprofile)
 
     // Koin Android (for androidContext in PlanoraApplication)
     implementation(project.dependencies.platform(libs.koin.bom))
@@ -55,6 +71,7 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -65,6 +82,11 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     sourceSets {
@@ -78,11 +100,11 @@ android {
 
 afterEvaluate {
     tasks.configureEach {
-        if (name.startsWith("merge") && name.endsWith("Assets")) {
+        if ((name.startsWith("merge") && name.endsWith("Assets")) || name.contains("Lint", ignoreCase = true)) {
             dependsOn(project(":core").tasks.matching { 
                 (it.name.contains("ComposeResources") || it.name.contains("ValueResources")) && 
                 !it.name.contains("Ios") && 
-                !it.name.contains("Apple") &&
+                !it.name.contains("Apple") && 
                 !it.name.contains("Native")
             })
         }

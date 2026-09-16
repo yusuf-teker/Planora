@@ -143,6 +143,16 @@ data class TaskDto(
     val isSynced: Boolean = true
 )
 
+/**
+ * Görevin belirli bir tarih ve saati (teslim tarihi/deadline) bulunmayan
+ * serbest/zamansız bir yapılacak iş (to-do backlog) olup olmadığını döner.
+ */
+fun TaskDto.isUnscheduled(): Boolean {
+    if (type != TaskType.TASK) return false
+    val details = specificDetails as? ItemDetails.Task
+    return details?.deadline == null
+}
+
 @Serializable
 data class TaskParticipantDto(
     val userId: Int,

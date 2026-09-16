@@ -16,6 +16,8 @@ sealed interface HomeEvent : UiEvent {
     data object CreateEventClicked : HomeEvent
     data class TimelineItemClicked(val task: com.yusufteker.planora.shared.api.TaskDto) : HomeEvent
     data class ViewOptionChanged(val option: TimelineViewOption) : HomeEvent
+    data class TypeFilterChanged(val filter: com.yusufteker.planora.core.utils.TimelineTypeFilter) : HomeEvent
+    data class QuickCreateTask(val title: String) : HomeEvent
     data class FilterOptionChanged(val filterOptions: TimelineFilterOptions) : HomeEvent
     data class ToggleFilterSheet(val isVisible: Boolean) : HomeEvent
     data class ToggleTaskCompletion(val task: com.yusufteker.planora.shared.api.TaskDto) : HomeEvent
@@ -26,5 +28,9 @@ sealed interface HomeEvent : UiEvent {
     data class ToggleSharedUser(val userId: Int) : HomeEvent
     data object ToggleMyUser : HomeEvent
     data object DismissSharedTaskDetail : HomeEvent
+    data class ChangeTaskPriority(val task: com.yusufteker.planora.shared.api.TaskDto, val newPriority: com.yusufteker.planora.shared.api.TaskPriority) : HomeEvent
+    data class ToggleTaskPin(val taskId: String, val isPinned: Boolean) : HomeEvent
+    data class MoveTaskOrder(val task: com.yusufteker.planora.shared.api.TaskDto, val isUp: Boolean) : HomeEvent
     data object LoadMoreFutureTasks : HomeEvent
 }
+

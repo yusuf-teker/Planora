@@ -117,8 +117,19 @@ fun DateTimePickerSheet(
                     text = stringResource(Res.string.title_select_time),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
+                if (!timeOnly) {
+                    Text(
+                        text = com.yusufteker.planora.core.utils.formatFullDate(selectedDateMillis),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(18.dp))
+                }
                 WheelTimePicker(
                     initialHour = selectedHour,
                     initialMinute = selectedMinute,

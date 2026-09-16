@@ -60,7 +60,15 @@ fun Application.module() {
     // 5. API rotalarını yönlendir.
     routing {
         get("/") {
-            call.respondText("Planora Server is Running!", status = io.ktor.http.HttpStatusCode.OK)
+            call.respondText("Planora Server is Running!", status = HttpStatusCode.OK)
+        }
+        // Lightweight ping endpoint for keep-alive and uptime monitoring
+        get("/ping") {
+            call.respondText("pong", status = HttpStatusCode.OK)
+        }
+        // Health check endpoint
+        get("/health") {
+            call.respondText("OK", status = HttpStatusCode.OK)
         }
         appConfigRoutes()
         authRoutes()

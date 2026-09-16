@@ -10,7 +10,9 @@ import com.yusufteker.planora.feature.home.presentation.home.HomeEvent
 import com.yusufteker.planora.feature.home.presentation.home.HomeState
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.extractBaseTaskId
+import com.yusufteker.planora.shared.api.isUnscheduled
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -44,6 +46,14 @@ fun CalendarSection(
             state.allFetchedTasks
         } else {
             state.allFetchedTasks.filter { it.participants.size > 1 || it.sharedRoomIds.isNotEmpty() }
+        }
+
+        // Notlar, klasörler, alt ögeler ve belirli bir teslim tarihi olmayan (zamansız to-do) ögeler takvimde yer almaz.
+        filteredTasks = filteredTasks.filter {
+            it.type != TaskType.NOTE &&
+            it.type != TaskType.FOLDER &&
+            it.parentId == null &&
+            !it.isUnscheduled()
         }
 
         if (!state.filterOptions.showCompleted) {
@@ -93,9 +103,10 @@ fun CalendarSection(
         val result = mutableMapOf<Int, Map<LocalDate, List<TaskDto>>>()
         for ((userId, rawUserTasks) in state.sharedTasksByUser) {
             var filteredUserTasks = rawUserTasks.filter {
-                it.type != com.yusufteker.planora.shared.api.TaskType.NOTE &&
-                it.type != com.yusufteker.planora.shared.api.TaskType.FOLDER &&
-                it.parentId == null
+                it.type != TaskType.NOTE &&
+                it.type != TaskType.FOLDER &&
+                it.parentId == null &&
+                !it.isUnscheduled()
             }
 
             if (!state.filterOptions.showCompleted) {

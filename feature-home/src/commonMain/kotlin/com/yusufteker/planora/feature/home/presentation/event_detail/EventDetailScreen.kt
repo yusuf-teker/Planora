@@ -852,8 +852,11 @@ fun EventDetailScreen(
     }
 
     if (showQuickDuplicateSheet) {
+        val initialCopyMs = remember(state.startDateTimeMs) {
+            com.yusufteker.planora.core.utils.getTodayWithOriginalTime(state.startDateTimeMs)
+        }
         com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet(
-            initialTimeMs = state.startDateTimeMs,
+            initialTimeMs = initialCopyMs,
             sheetState = rememberModalBottomSheetState(),
             onDismissRequest = { showQuickDuplicateSheet = false },
             onDateTimeSelected = { selectedMs ->
