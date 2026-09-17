@@ -8,7 +8,12 @@ import com.yusufteker.planora.shared.api.PlanRoomDto
 import com.yusufteker.planora.shared.api.TaskDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import app.cash.turbine.test
+import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskType
+import com.yusufteker.planora.shared.api.TaskVisibility
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -22,6 +27,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -29,17 +35,20 @@ import kotlin.time.Duration.Companion.milliseconds
  * FocusViewModel için sahte (Fake) PlanRepository.
  */
 private class FakePlanRepository : PlanRepository {
+    var completeTaskResult: Result<Unit> = Result.success(Unit)
+    var tasksFlow: Flow<List<TaskDto>> = emptyFlow()
+
     override suspend fun createTask(request: CreateTaskRequest, triggerSync: Boolean): Result<TaskDto> = Result.failure(Exception())
     override suspend fun updateTask(taskId: String, request: CreateTaskRequest, triggerSync: Boolean): Result<Unit> = Result.success(Unit)
     override suspend fun toggleTaskPinLocal(taskId: String, isPinned: Boolean): Result<Unit> = Result.success(Unit)
     override suspend fun deleteTask(taskId: String): Result<Unit> = Result.success(Unit)
-    override suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun completeTaskInstance(taskId: String, dateMs: Long, isCompleted: Boolean): Result<Unit> = completeTaskResult
     override suspend fun joinTask(taskId: String, roomId: String): Result<Unit> = Result.success(Unit)
     override suspend fun fetchMyTasks(fromTime: Long?, toTime: Long?): Result<Unit> = Result.success(Unit)
     override suspend fun fetchRoomTasks(roomId: String, fromTime: Long?, toTime: Long?): Result<Unit> = Result.success(Unit)
     override suspend fun syncPendingChanges(): Result<Unit> = Result.success(Unit)
     override suspend fun autoScheduleTasks(taskIds: List<String>): Result<Unit> = Result.success(Unit)
-    override fun observeAllTasks(): Flow<List<TaskDto>> = emptyFlow()
+    override fun observeAllTasks(): Flow<List<TaskDto>> = tasksFlow
     override fun observeTasksForRange(fromTimeMs: Long, toTimeMs: Long): Flow<List<TaskDto>> = emptyFlow()
     override suspend fun fetchMyRooms(): Result<Unit> = Result.success(Unit)
     override suspend fun createPlanRoom(request: CreatePlanRoomRequest): Result<PlanRoomDto> = Result.failure(Exception())
@@ -82,8 +91,23 @@ class FocusViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): FocusViewModel {
-        return FocusViewModel(FakePlanRepository())
+    private fun createViewModel(repo: FakePlanRepository = FakePlanRepository()): FocusViewModel {
+        return FocusViewModel(repo)
+    }
+
+    private fun createDummyTask(id: String, title: String): TaskDto {
+        return TaskDto(
+            id = id,
+            creatorId = 1,
+            title = title,
+            description = null,
+            startTime = 1000L,
+            endTime = 2000L,
+            type = TaskType.TASK,
+            status = TaskStatus.PENDING,
+            visibility = TaskVisibility.PRIVATE,
+            sharedRoomIds = emptyList()
+        )
     }
 
     @Test
@@ -199,5 +223,180 @@ class FocusViewModelTest {
         assertEquals(0, viewModel.state.value.timeRemainingSeconds)
         assertFalse(viewModel.state.value.isRunning)
         assertTrue(viewModel.state.value.isFinished)
+    }
+
+    // ========================================================================
+    // 3. KONU: Flow & Turbine (app.cash.turbine) Testleri
+    // ========================================================================
+    // Turbine, Kotlin Flow'larını (StateFlow, SharedFlow, cold Flow) test etmek
+    // için geliştirilmiş resmi Cash App kütüphanesidir.
+    //
+    // Neden Turbine kullanmalıyız?
+    // 1. flow.collect { } ile elle coroutine açıp listeye doldurmak karmaşıktır ve
+    //    özellikle SharedFlow gibi tek seferlik hot akışlarda yarış durumlarına (race condition)
+    //    veya kaçırılan event'lere yol açar.
+    // 2. Turbine `flow.test { }` bloğu ile emisyonları bir kuyrukta toplar.
+    //    - awaitItem(): Sıradaki yayılan elemanı anında bekleyip yakalar.
+    //    - expectNoEvents(): Beklenmedik başka bir event olmadığını doğrular.
+    //    - cancelAndIgnoreRemainingEvents(): İlgili adımlar bittiğinde akışı güvenle kapatır.
+    // ========================================================================
+
+    @Test
+    fun `Turbine ile StateFlow durum degisimleri adim adim yakalanip dogrulanmalidir`() = runTest {
+        val viewModel = createViewModel()
+
+        // StateFlow her zaman son bir değere (initial state) sahiptir.
+        // viewModel.state.test { ... } bloğuna girdiğimiz anda ilk item kuyruğa girer.
+        viewModel.state.test {
+            // 1. Adım: Başlangıç state'ini yakala
+            val initialState = awaitItem()
+            assertEquals(25, initialState.selectedDurationMinutes)
+            assertEquals(1500, initialState.timeRemainingSeconds)
+            assertFalse(initialState.isRunning)
+
+            // 2. Adım: Kullanıcı süreyi 40 dakika yapıyor
+            viewModel.setFocusDuration(40)
+
+            // StateFlow güncellendi, sıradaki yeni state'i yakala:
+            val durationUpdatedState = awaitItem()
+            assertEquals(40, durationUpdatedState.selectedDurationMinutes)
+            assertEquals(2400, durationUpdatedState.timeRemainingSeconds)
+
+            // 3. Adım: Kullanıcı sayacı başlatıyor
+            viewModel.toggleTimer()
+
+            // Sayacın çalışmaya başladığı (isRunning = true) state'ini yakala:
+            val runningState = awaitItem()
+            assertTrue(runningState.isRunning)
+
+            // O anda başka beklenmedik bir event olmamalı:
+            expectNoEvents()
+
+            // Dinlemeyi temiz bir şekilde sonlandırıyoruz:
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Turbine ile SharedFlow tek seferlik basarili tamamlama eventi NavigateBack yakalanmalidir`() = runTest {
+        // Arrange: Başarılı sonuç dönecek fake repository ve viewModel
+        val fakeRepo = FakePlanRepository().apply {
+            completeTaskResult = Result.success(Unit)
+        }
+        val viewModel = createViewModel(fakeRepo)
+
+        // Bir görev seçili olsun:
+        viewModel.loadTask("task_123")
+        runCurrent()
+
+        // SharedFlow'lar tek seferlik (one-time event) ve genelde replay=0 akışlardır.
+        // Bu yüzden ÖNCE effect.test { } bloğu ile dinlemeye başlamalıyız,
+        // ARDINDAN aksiyonu tetiklemeliyiz!
+        viewModel.effect.test {
+            // Act: Görevi tamamla
+            viewModel.completeTask()
+            runCurrent()
+
+            // Assert: awaitItem() ile yayılmış olan NavigateBack effect'ini yakalıyoruz
+            val effect = awaitItem()
+            assertEquals(FocusEffect.NavigateBack, effect)
+
+            // Başka bir effect yayılmamış olmalıdır:
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `Turbine ile SharedFlow hata durumunda ShowSnackbar eventi yakalanmalidir`() = runTest {
+        // Arrange: Hata fırlatan fake repository
+        val fakeRepo = FakePlanRepository().apply {
+            completeTaskResult = Result.failure(RuntimeException("Ağ bağlantısı koptu"))
+        }
+        val viewModel = createViewModel(fakeRepo)
+
+        viewModel.loadTask("task_error_case")
+        runCurrent()
+
+        viewModel.effect.test {
+            // Act: Görevi tamamlama başarısız olacak
+            viewModel.completeTask()
+            runCurrent()
+
+            // Assert: Hata snackbar effect'ini yakala ve mesajı doğrula
+            val effect = awaitItem()
+            assertTrue(effect is FocusEffect.ShowSnackbar)
+            assertEquals("Görev tamamlanamadı. Lütfen tekrar deneyin.", effect.message)
+
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `completeTask sirasinda StateFlow isCompleting gecisi Turbine ile adim adim yakalanmalidir`() = runTest {
+        val fakeRepo = FakePlanRepository().apply {
+            completeTaskResult = Result.success(Unit)
+        }
+        val viewModel = createViewModel(fakeRepo)
+        viewModel.loadTask("task_loading_test")
+        runCurrent()
+
+        // completeTask çağrıldığında: isCompleting false -> true -> false geçişi yapar.
+        // Turbine ile bu ara durumları kaçırmadan sırayla doğrularız:
+        viewModel.state.test {
+            // Mevcut state (isCompleting = false):
+            val initial = awaitItem()
+            assertFalse(initial.isCompleting)
+
+            // Act: Görevi tamamla
+            viewModel.completeTask()
+            runCurrent()
+
+            // 1. Ara durum: isCompleting = true (yükleme başladı)
+            val loadingState = awaitItem()
+            assertTrue(loadingState.isCompleting)
+
+            // 2. Son durum: isCompleting = false (yükleme bitti)
+            val finishedState = awaitItem()
+            assertFalse(finishedState.isCompleting)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Repository Flow akisindan gelen gorev listesi ViewModel StateFlow'una adim adim yansimalidir`() = runTest {
+        val tasksSharedFlow = MutableSharedFlow<List<TaskDto>>()
+        val fakeRepo = FakePlanRepository().apply {
+            tasksFlow = tasksSharedFlow
+        }
+        val viewModel = createViewModel(fakeRepo)
+
+        viewModel.state.test {
+            // 1. Başlangıç state'i (taskId null, taskTitle varsayılan olarak "Odak Zamanı")
+            val initial = awaitItem()
+            assertNull(initial.taskId)
+            assertEquals("Odak Zamanı", initial.taskTitle)
+
+            // 2. loadTask çağrılıyor:
+            viewModel.loadTask("task_pulse_101")
+            runCurrent()
+
+            // State güncellendi ve taskId set edildi:
+            val stateWithTaskId = awaitItem()
+            assertEquals("task_pulse_101", stateWithTaskId.taskId)
+
+            // 3. Repository Flow'u yeni bir task listesi yayıyor (emit):
+            val sampleTasks = listOf(
+                createDummyTask(id = "task_pulse_101", title = "Turbine ile Flow Testi Öğren")
+            )
+            tasksSharedFlow.emit(sampleTasks)
+            runCurrent()
+
+            // 4. ViewModel bu Flow'u collect edip taskTitle'ı güncelledi!
+            val updatedState = awaitItem()
+            assertEquals("Turbine ile Flow Testi Öğren", updatedState.taskTitle)
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

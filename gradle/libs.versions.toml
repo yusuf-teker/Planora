@@ -61,6 +61,7 @@ buildkonfig = "0.17.0"
 
 # Testing & Baseline Profiles
 junit = "4.13.2"
+turbine = "1.2.0"
 androidx-baselineprofile = "1.5.0-rc01"
 androidx-benchmark-macro = "1.5.0-rc01"
 androidx-profileinstaller = "1.4.1"
@@ -178,6 +179,7 @@ coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.re
 
 # Testing & Baseline Profiles
 junit = { module = "junit:junit", version.ref = "junit" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "androidx-profileinstaller" }
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark-macro" }
 androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-test-uiautomator" }

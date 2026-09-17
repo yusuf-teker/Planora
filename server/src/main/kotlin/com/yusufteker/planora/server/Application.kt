@@ -4,11 +4,13 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.get
+import io.ktor.server.routing.head
 import com.yusufteker.planora.server.database.DatabaseFactory
 import com.yusufteker.planora.server.plugins.configureSecurity
 import com.yusufteker.planora.server.plugins.configureCallLogging
@@ -62,13 +64,22 @@ fun Application.module() {
         get("/") {
             call.respondText("Planora Server is Running!", status = HttpStatusCode.OK)
         }
+        head("/") {
+            call.respond(HttpStatusCode.OK)
+        }
         // Lightweight ping endpoint for keep-alive and uptime monitoring
         get("/ping") {
             call.respondText("pong", status = HttpStatusCode.OK)
         }
+        head("/ping") {
+            call.respond(HttpStatusCode.OK)
+        }
         // Health check endpoint
         get("/health") {
             call.respondText("OK", status = HttpStatusCode.OK)
+        }
+        head("/health") {
+            call.respond(HttpStatusCode.OK)
         }
         appConfigRoutes()
         authRoutes()
