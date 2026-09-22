@@ -47,6 +47,9 @@ import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
 import com.yusufteker.planora.shared.api.TaskType
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import com.yusufteker.planora.core.ui.components.getOptimizedCloudinaryUrl
 
 /**
  * Görev/Etkinlik kartı görsel bileşeni.
@@ -54,6 +57,8 @@ import com.yusufteker.planora.shared.api.TaskType
  * @param modifier Dış düzenleyici (padding, hizalama vb.)
  * @param task Gösterilecek görev nesnesi
  * @param showDate Tarih etiketinin gösterilip gösterilmeyeceği
+ * @param roomImageUrl Görevin ait olduğu odanın görsel URL'si
+ * @param roomName Görevin ait olduğu odanın adı
  * @param sharedUserAvatar Ortak kullanıcının avatar kimliği
  * @param sharedUserColor Ortak kullanıcının renk bilgisi
  * @param sharedUserProfileImageUrl Ortak kullanıcının profil resmi URL'si
@@ -64,6 +69,8 @@ fun TimelineTaskCard(
     modifier: Modifier = Modifier,
     task: TaskDto,
     showDate: Boolean = false,
+    roomImageUrl: String? = null,
+    roomName: String? = null,
     sharedUserAvatar: String? = null,
     sharedUserColor: Color? = null,
     sharedUserProfileImageUrl: String? = null,
@@ -187,21 +194,23 @@ fun TimelineTaskCard(
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            // Header: Type Chip & Date
+            // Header: Type Chip & Date & Room Avatar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Type Chip
+                    // Type Chip (completed durumunda TASK yazısının üstü çizili olur)
                     Text(
                         text = task.type.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = typeColor,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                        ),
+                        color = if (isCompleted) typeColor.copy(alpha = 0.7f) else typeColor,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
-                            .background(typeColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                            .background(typeColor.copy(alpha = if (isCompleted) 0.08f else 0.15f), RoundedCornerShape(6.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                     
@@ -249,28 +258,40 @@ fun TimelineTaskCard(
 
                     if (task.sharedRoomIds.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(6.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.tertiaryContainer,
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Group,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(12.dp)
+                        if (!roomImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = getOptimizedCloudinaryUrl(roomImageUrl),
+                                contentDescription = roomName ?: "Room",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                                contentScale = ContentScale.Crop
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = stringResource(Res.string.shared_room_task_upper),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                fontWeight = FontWeight.Bold
-                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.tertiaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!roomName.isNullOrBlank()) {
+                                    Text(
+                                        text = roomName.take(1).uppercase(),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Group,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

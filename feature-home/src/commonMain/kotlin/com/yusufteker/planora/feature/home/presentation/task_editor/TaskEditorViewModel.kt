@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import com.yusufteker.planora.shared.api.RoomMemberStatus
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.getString
 import planora.core.generated.resources.Res
@@ -422,21 +423,45 @@ class TaskEditorViewModel(
      * Odanın üyelerini planRepository üzerinden çeker ve profil bilgilerini tamamlar.
      * `CoroutineScope` üzerinden extension fonksiyon olarak tanımlanmıştır.
      * Bu sayede üst coroutine (loadJob) iptal edildiğinde akış dinleme otomatik olarak sonlanır.
+     * Yeni bir görev oluşturulurken odadaki tüm üyeler varsayılan olarak katılımcı olarak eklenir.
      */
     private fun CoroutineScope.loadRoomMembers(planRoomId: String) {
         launch {
             _state.update { it.copy(isRoomMembersLoading = true) }
+            var defaultParticipantsApplied = false
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == planRoomId }
                 if (room != null) {
+                    val validMembers = room.members.filter { it.status != RoomMemberStatus.DECLINED }
                     val profiles = kotlinx.coroutines.coroutineScope {
-                        room.members.map { member ->
+                        validMembers.map { member ->
                             async {
                                 profileRepository.getProfile(member.userId.toString()).getOrNull()
                             }
                         }.awaitAll().filterNotNull()
                     }
-                    _state.update { it.copy(roomMembers = profiles, isRoomMembersLoading = false) }
+                    _state.update { currentState ->
+                        val isNewTask = currentState.id == null && !currentState.isCopyMode
+                        val newParticipants = if (!defaultParticipantsApplied && isNewTask && profiles.isNotEmpty()) {
+                            defaultParticipantsApplied = true
+                            val map = profiles.associate { p -> p.id to p.name }.toMutableMap()
+                            val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                            val currentUserName = sessionPreferences.getUserName()
+                            if (currentUserId != null && currentUserName != null && !map.containsKey(currentUserId)) {
+                                map[currentUserId] = currentUserName
+                            }
+                            map
+                        } else {
+                            currentState.participants
+                        }
+
+                        currentState.copy(
+                            roomMembers = profiles,
+                            isRoomMembersLoading = false,
+                            planRoomName = currentState.planRoomName ?: room.name,
+                            participants = newParticipants
+                        )
+                    }
                 } else {
                     _state.update { it.copy(isRoomMembersLoading = false) }
                 }

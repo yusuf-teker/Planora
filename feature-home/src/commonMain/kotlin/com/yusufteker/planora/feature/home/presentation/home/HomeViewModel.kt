@@ -193,6 +193,17 @@ class HomeViewModel(
             planRepository.fetchAccessibleUsers()
         }
 
+        // Observe plan rooms to associate room metadata with tasks
+        launch {
+            planRepository.observeAllPlanRooms().collect { rooms ->
+                setState { copy(planRooms = rooms.associateBy { it.id }) }
+            }
+        }
+
+        launch {
+            planRepository.fetchMyRooms()
+        }
+
         launch {
             planRepository.observeAccessibleUsers().collect { entities ->
                 val users = entities.map {

@@ -31,7 +31,8 @@ data class HomeState(
     val currentUserProfileImageUrl: String? = null,
     val yearsAhead: Int = 3,
     val isLoadingMoreFutureTasks: Boolean = false,
-    val holidays: Map<kotlinx.datetime.LocalDate, String> = emptyMap()
+    val holidays: Map<kotlinx.datetime.LocalDate, String> = emptyMap(),
+    val planRooms: Map<String, com.yusufteker.planora.shared.api.PlanRoomDto> = emptyMap()
 ) : UiState
 
 data class AccessibleUser(

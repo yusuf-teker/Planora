@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -520,56 +521,96 @@ fun PlanRoomDetailScreen(
                                 FeedTimelineComponent(
                                     tasks = filteredTasks,
                                     memberProfiles = state.memberProfiles,
+                                    roomImageUrl = state.roomImageUrl,
+                                    roomName = state.roomName,
                                     onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
                                 )
                             }
                         }
                     } else {
                         // CALENDAR TAB
-                        val month = state.calendarCurrentMonth ?: kotlinx.datetime.LocalDate(2026, 7, 1)
-                        Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                            CalendarComponent(
-                                currentMonth = month,
-                                selectedDate = state.calendarSelectedDate,
-                                tasks = filteredTasks,
-                                memberProfiles = state.memberProfiles,
-                                onDateSelected = { date -> viewModel.onEvent(PlanRoomDetailEvent.OnCalendarDateSelected(date)) },
-                                onPreviousMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnCalendarPreviousMonth) },
-                                onNextMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnCalendarNextMonth) }
-                            )
-                            
-                            val selectedDate = state.calendarSelectedDate
-                            if (selectedDate != null) {
-                                val dayTasks = filteredTasks.filter { task ->
-                                    val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime)
-                                        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-                                    taskDate == selectedDate
-                                }
-                                Text(
-                                    text = "${selectedDate.dayOfMonth} ${getMonthNameRes(selectedDate.monthNumber)}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                                )
-                                if (dayTasks.isEmpty()) {
-                                    Text(
-                                        text = stringResource(Res.string.empty_events_today),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        val timeZone = remember { kotlinx.datetime.TimeZone.currentSystemDefault() }
+                        val nowMs = remember { com.yusufteker.planora.core.utils.getCurrentTimeMs() }
+                        val today = remember(nowMs) {
+                            kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
+                        }
+                        val month = state.calendarCurrentMonth ?: kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
+
+                        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 96.dp)
+                            ) {
+                                item {
+                                    CalendarComponent(
+                                        currentMonth = month,
+                                        selectedDate = state.calendarSelectedDate,
+                                        tasks = filteredTasks,
+                                        memberProfiles = state.memberProfiles,
+                                        onDateSelected = { date -> viewModel.onEvent(PlanRoomDetailEvent.OnCalendarDateSelected(date)) },
+                                        onPreviousMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnCalendarPreviousMonth) },
+                                        onNextMonth = { viewModel.onEvent(PlanRoomDetailEvent.OnCalendarNextMonth) }
                                     )
-                                } else {
-                                    LazyColumn(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
+                                }
+                                
+                                val selectedDate = state.calendarSelectedDate
+                                if (selectedDate != null) {
+                                    val dayTasks = filteredTasks.filter { task ->
+                                        val effectiveTime = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
+                                        val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(effectiveTime)
+                                            .toLocalDateTime(timeZone).date
+                                        taskDate == selectedDate
+                                    }
+
+                                    item {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${selectedDate.dayOfMonth} ${getMonthNameRes(selectedDate.monthNumber)} ${selectedDate.year}",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            ) {
+                                                Text(
+                                                    text = stringResource(Res.string.events_count_format, dayTasks.size),
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 11.sp
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (dayTasks.isEmpty()) {
+                                        item {
+                                            Text(
+                                                text = stringResource(Res.string.empty_events_today),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                    } else {
                                         items(dayTasks, key = { it.id }) { task ->
                                             val profile = state.memberProfiles[task.creatorId]
                                             val hasParticipants = task.participants.isNotEmpty()
                                             com.yusufteker.planora.feature.home.presentation.home.components.TimelineTaskCard(
-                                                modifier = Modifier.padding(vertical = 4.dp),
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                                                 task = task,
                                                 showDate = false,
+                                                roomImageUrl = state.roomImageUrl,
+                                                roomName = state.roomName,
                                                 sharedUserAvatar = if (hasParticipants) null else profile?.avatarId,
                                                 sharedUserColor = null,
                                                 sharedUserProfileImageUrl = if (hasParticipants) null else profile?.profileImageUrl,

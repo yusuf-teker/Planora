@@ -3,9 +3,6 @@ package com.yusufteker.planora.feature.home.presentation.plan_room_detail.compon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.UserProfileResponse
 import kotlinx.datetime.*
@@ -29,12 +27,18 @@ import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
 
+/**
+ * Plan odası takvim görünümü bileşeni.
+ *
+ * Ay navigasyonu, haftanın günleri ve gün hücrelerini görüntüler.
+ * Gün hücreleri dashboard takvimi ile birebir aynı görsel dilde (32dp yuvarlak ve 5dp etkinlik noktaları) sunulur.
+ */
 @Composable
 fun CalendarComponent(
     currentMonth: LocalDate,
     selectedDate: LocalDate?,
     tasks: List<TaskDto>,
-    memberProfiles: Map<Int, UserProfileResponse>,
+    memberProfiles: Map<Int, UserProfileResponse> = emptyMap(),
     onDateSelected: (LocalDate) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit
@@ -80,50 +84,71 @@ fun CalendarComponent(
             stringResource(Res.string.day_sun)
         )
         Row(modifier = Modifier.fillMaxWidth()) {
-            daysOfWeek.forEach { day ->
+            daysOfWeek.forEachIndexed { idx, day ->
                 Text(
                     text = day,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = if (idx >= 5) Color(0xFF60A5FA) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Calendar Grid
+        // Calendar Rows (Non-lazy layout for smooth outer scrolling)
         val days = remember(currentMonth) { getCalendarDays(currentMonth) }
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
+        val dayRows = remember(days) { days.chunked(7) }
+        val timeZone = remember { TimeZone.currentSystemDefault() }
+        val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+        val today = remember(nowMs) {
+            Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
+        }
+
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(days) { date ->
-                if (date != null) {
-                    val isSelected = date == selectedDate
-                    val isToday = date == kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.planora.core.utils.getCurrentTimeMs()).toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    
-                    // Find tasks for this day
-                    val dayTasks = tasks.filter { task ->
-                        val taskDate = Instant.fromEpochMilliseconds(task.startTime)
-                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                        taskDate == date
+            dayRows.forEach { rowDays ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    rowDays.forEach { date ->
+                        if (date != null) {
+                            val isSelected = date == selectedDate
+                            val isToday = date == today
+                            
+                            // Find tasks for this day
+                            val dayTasks = tasks.filter { task ->
+                                val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                                val taskDate = Instant.fromEpochMilliseconds(effectiveTime)
+                                    .toLocalDateTime(timeZone).date
+                                taskDate == date
+                            }
+                            
+                            Box(modifier = Modifier.weight(1f)) {
+                                CalendarCell(
+                                    date = date,
+                                    isSelected = isSelected,
+                                    isToday = isToday,
+                                    tasks = dayTasks,
+                                    onClick = { onDateSelected(date) }
+                                )
+                            }
+                        } else {
+                            Box(modifier = Modifier.weight(1f).aspectRatio(1.1f))
+                        }
                     }
-                    
-                    CalendarCell(
-                        date = date,
-                        isSelected = isSelected,
-                        isToday = isToday,
-                        tasks = dayTasks,
-                        memberProfiles = memberProfiles,
-                        onClick = { onDateSelected(date) }
-                    )
-                } else {
-                    Box(modifier = Modifier.aspectRatio(1f)) // Empty cell
+                    if (rowDays.size < 7) {
+                        repeat(7 - rowDays.size) {
+                            Box(modifier = Modifier.weight(1f).aspectRatio(1.1f))
+                        }
+                    }
                 }
             }
         }
@@ -136,94 +161,68 @@ fun CalendarCell(
     isSelected: Boolean,
     isToday: Boolean,
     tasks: List<TaskDto>,
-    memberProfiles: Map<Int, UserProfileResponse>,
     onClick: () -> Unit
 ) {
-    val bgColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        isToday -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+    val bg = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.primaryContainer
         else -> Color.Transparent
     }
-    
+
     val textColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-        isToday -> MaterialTheme.colorScheme.onSecondaryContainer
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
+        date.dayOfWeek.isoDayNumber >= 6 -> Color(0xFF60A5FA)
         else -> MaterialTheme.colorScheme.onSurface
     }
-    
+
     Column(
         modifier = Modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
-            .background(bgColor)
-            .clickable(onClick = onClick)
-            .padding(2.dp),
+            .fillMaxWidth()
+            .aspectRatio(1.1f)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
-            color = textColor,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        // Overlapping Avatars for tasks
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(bg),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "${date.dayOfMonth}",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 14.sp
+                ),
+                color = textColor
+            )
+        }
+
         if (tasks.isNotEmpty()) {
-            val creators = tasks.map { it.creatorId }.distinct().take(3)
+            Spacer(modifier = Modifier.height(2.dp))
             Row(
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                creators.forEachIndexed { index, creatorId ->
-                    val profile = memberProfiles[creatorId]
-                    val initial = profile?.name?.take(1)?.uppercase() ?: "?"
-                    
+                val count = minOf(tasks.size, 3)
+                repeat(count) { idx ->
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
-                            .offset(x = if (index > 0) (-4 * index).dp else 0.dp)
+                            .size(5.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary)
-                            .padding(1.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.tertiaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = initial,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
-                
-                if (creators.size == 3 && tasks.map { it.creatorId }.distinct().size > 3) {
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .offset(x = (-4 * 3).dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .padding(1.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "+",
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    )
+                    if (idx < count - 1) {
+                        Spacer(modifier = Modifier.width(2.dp))
                     }
                 }
             }
+        } else {
+            Spacer(modifier = Modifier.height(7.dp))
         }
     }
 }
@@ -249,7 +248,7 @@ fun getCalendarDays(month: LocalDate): List<LocalDate?> {
         days.add(LocalDate(month.year, month.month, i))
     }
     
-    // Fill the rest of the grid row with nulls (optional, LazyVerticalGrid handles it, but good for completeness)
+    // Fill the rest of the grid row with nulls
     val remaining = 7 - (days.size % 7)
     if (remaining < 7) {
         for (i in 1..remaining) {

@@ -109,14 +109,20 @@ class PlanRoomDetailViewModel(
             PlanRoomDetailEvent.OnCalendarPreviousMonth -> {
                 val current = currentState.calendarCurrentMonth ?: return
                 val prev = current.minus(1, DateTimeUnit.MONTH)
-                val earliest = getEarliestEventDateInMonth(currentState.roomTasks, prev)
-                setState { copy(calendarCurrentMonth = prev, calendarSelectedDate = earliest) }
+                val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+                val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs)
+                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                val selected = if (prev.year == today.year && prev.monthNumber == today.monthNumber) today else prev
+                setState { copy(calendarCurrentMonth = prev, calendarSelectedDate = selected) }
             }
             PlanRoomDetailEvent.OnCalendarNextMonth -> {
                 val current = currentState.calendarCurrentMonth ?: return
                 val next = current.plus(1, DateTimeUnit.MONTH)
-                val earliest = getEarliestEventDateInMonth(currentState.roomTasks, next)
-                setState { copy(calendarCurrentMonth = next, calendarSelectedDate = earliest) }
+                val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+                val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs)
+                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                val selected = if (next.year == today.year && next.monthNumber == today.monthNumber) today else next
+                setState { copy(calendarCurrentMonth = next, calendarSelectedDate = selected) }
             }
             PlanRoomDetailEvent.OnCopyInviteLinkClick -> {
                 viewModelScope.launch {
@@ -153,14 +159,13 @@ class PlanRoomDetailViewModel(
         loadRoomJob?.cancel()
         setState { copy(roomId = roomId, isLoading = true, isMembersLoading = true) }
         
-        // Default calendar month if not set
+        // Default calendar month and date to today
         if (currentState.calendarCurrentMonth == null) {
             val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
             val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs)
                 .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
             val monthStart = kotlinx.datetime.LocalDate(today.year, today.monthNumber, 1)
-            val earliest = getEarliestEventDateInMonth(currentState.roomTasks, monthStart)
-            setState { copy(calendarCurrentMonth = monthStart, calendarSelectedDate = earliest) }
+            setState { copy(calendarCurrentMonth = monthStart, calendarSelectedDate = today) }
         }
         
         loadRoomJob = viewModelScope.launch {
@@ -230,8 +235,10 @@ class PlanRoomDetailViewModel(
             launch {
                 planRepository.observeAllTasks().collect { tasks ->
                     val roomTasks = tasks.filter { it.sharedRoomIds.contains(roomId) && it.parentId == null }
-                    val month = currentState.calendarCurrentMonth ?: kotlinx.datetime.Instant.fromEpochMilliseconds(com.yusufteker.planora.core.utils.getCurrentTimeMs()).toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-                    val earliest = getEarliestEventDateInMonth(roomTasks, month)
+                    val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+                    val today = kotlinx.datetime.Instant.fromEpochMilliseconds(nowMs)
+                        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+                    val selectedDate = currentState.calendarSelectedDate ?: today
 
                     val currentProfiles = currentState.memberProfiles.toMutableMap()
                     var profilesUpdated = false
@@ -271,9 +278,9 @@ class PlanRoomDetailViewModel(
                     }
 
                     if (profilesUpdated) {
-                        setState { copy(roomTasks = roomTasks, calendarSelectedDate = currentState.calendarSelectedDate ?: earliest, memberProfiles = currentProfiles.toMap(), roomMembers = updatedRoomMembers) }
+                        setState { copy(roomTasks = roomTasks, calendarSelectedDate = selectedDate, memberProfiles = currentProfiles.toMap(), roomMembers = updatedRoomMembers) }
                     } else {
-                        setState { copy(roomTasks = roomTasks, calendarSelectedDate = currentState.calendarSelectedDate ?: earliest, roomMembers = updatedRoomMembers) }
+                        setState { copy(roomTasks = roomTasks, calendarSelectedDate = selectedDate, roomMembers = updatedRoomMembers) }
                     }
                 }
             }

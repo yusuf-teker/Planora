@@ -18,6 +18,11 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.Instant
@@ -25,6 +30,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.yusufteker.planora.shared.api.extractBaseTaskId
+import com.yusufteker.planora.shared.api.RoomMemberStatus
 
 /**
  * ViewModel for creating and editing events in Planora.
@@ -43,6 +49,7 @@ class EventEditorViewModel(
     val effect = _effect.asSharedFlow()
 
     private val _saveTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    private var loadJob: Job? = null
 
     init {
         @OptIn(kotlinx.coroutines.FlowPreview::class)
@@ -202,8 +209,10 @@ class EventEditorViewModel(
         sharedSender: String? = null,
         copyFromEventId: String? = null
     ) {
-        if (eventId == null) {
-            viewModelScope.launch {
+        loadJob?.cancel()
+
+        loadJob = viewModelScope.launch {
+            if (eventId == null) {
                 val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
                 val currentUserName = sessionPreferences.getUserName()
                 val defaultParticipants = if (currentUserId != null && currentUserName != null && planRoomId != null) {
@@ -261,6 +270,9 @@ class EventEditorViewModel(
                             } catch (e: Exception) { null }
 
                             val targetRoomId = planRoomId ?: sourceEvent.sharedRoomIds.firstOrNull()
+                            if (targetRoomId != null) {
+                                loadRoomMembers(targetRoomId)
+                            }
 
                             val sourceEndTime = sourceEvent.endTime
                             val duration = if (sourceEndTime != null && sourceEndTime > sourceEvent.startTime) {
@@ -294,50 +306,29 @@ class EventEditorViewModel(
                     return@launch
                 }
                 if (planRoomId != null) {
-                    planRepository.observeAllPlanRooms().collect { rooms ->
-                        val room = rooms.find { it.id == planRoomId }
-                        if (room != null) {
-                            val membersList = mutableListOf<com.yusufteker.planora.shared.api.UserProfileResponse>()
-                            room.members.forEach { member ->
-                                profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
-                                    membersList.add(profile)
-                                }
-                            }
-                            _state.update { it.copy(roomMembers = membersList, planRoomName = room.name) }
-                        }
-                    }
+                    loadRoomMembers(planRoomId)
                 }
+                return@launch
             }
-            return
-        }
 
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, id = eventId, planRoomId = planRoomId) }
+            // --- ETKİNLİK DÜZENLEME MODU (eventId != null) ---
+            val baseId = eventId.extractBaseTaskId()
+            _state.update { it.copy(isLoading = true, id = baseId, planRoomId = planRoomId) }
 
             if (planRoomId != null) {
-                viewModelScope.launch {
-                    planRepository.observeAllPlanRooms().collect { rooms ->
-                        val room = rooms.find { it.id == planRoomId }
-                        if (room != null) {
-                            val membersList = mutableListOf<com.yusufteker.planora.shared.api.UserProfileResponse>()
-                            room.members.forEach { member ->
-                                profileRepository.getProfile(member.userId.toString()).onSuccess { profile ->
-                                    membersList.add(profile)
-                                }
-                            }
-                            _state.update { it.copy(roomMembers = membersList) }
-                        }
-                    }
-                }
+                loadRoomMembers(planRoomId)
             }
 
             planRepository.observeAllTasks().collect { tasks ->
-                val task = tasks.find { it.id == eventId && it.type == TaskType.EVENT }
-                val subItemsList = tasks.filter { it.parentId == eventId }
+                val task = tasks.find { it.id == baseId && it.type == TaskType.EVENT }
+                val subItemsList = tasks.filter { it.parentId == baseId }
                 
                 if (task != null) {
                     val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()
                     if (actualPlanRoomId != null) {
+                        if (_state.value.roomMembers.isEmpty()) {
+                            loadRoomMembers(actualPlanRoomId)
+                        }
                         viewModelScope.launch {
                             planRepository.observeAllPlanRooms().collect { rooms ->
                                 val name = rooms.find { it.id == actualPlanRoomId }?.name
@@ -373,6 +364,52 @@ class EventEditorViewModel(
                     }
                 } else {
                     _state.update { it.copy(isLoading = false, error = "Etkinlik bulunamadı") }
+                }
+            }
+        }
+    }
+
+    /**
+     * Odanın üyelerini planRepository üzerinden çeker ve profil bilgilerini tamamlar.
+     * `CoroutineScope` üzerinden extension fonksiyon olarak tanımlanmıştır.
+     * Yeni bir etkinlik oluşturulurken odadaki tüm üyeler varsayılan olarak katılımcı olarak eklenir.
+     */
+    private fun CoroutineScope.loadRoomMembers(planRoomId: String) {
+        launch {
+            var defaultParticipantsApplied = false
+            planRepository.observeAllPlanRooms().collect { rooms ->
+                val room = rooms.find { it.id == planRoomId }
+                if (room != null) {
+                    val validMembers = room.members.filter { it.status != RoomMemberStatus.DECLINED }
+                    val profiles = coroutineScope {
+                        validMembers.map { member ->
+                            async {
+                                profileRepository.getProfile(member.userId.toString()).getOrNull()
+                            }
+                        }.awaitAll().filterNotNull()
+                    }
+
+                    _state.update { currentState ->
+                        val isNewEvent = currentState.id == null && !currentState.isCopyMode
+                        val newParticipants = if (!defaultParticipantsApplied && isNewEvent && profiles.isNotEmpty()) {
+                            defaultParticipantsApplied = true
+                            val map = profiles.associate { p -> p.id to p.name }.toMutableMap()
+                            val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                            val currentUserName = sessionPreferences.getUserName()
+                            if (currentUserId != null && currentUserName != null && !map.containsKey(currentUserId)) {
+                                map[currentUserId] = currentUserName
+                            }
+                            map
+                        } else {
+                            currentState.participants
+                        }
+
+                        currentState.copy(
+                            roomMembers = profiles,
+                            planRoomName = currentState.planRoomName ?: room.name,
+                            participants = newParticipants
+                        )
+                    }
                 }
             }
         }

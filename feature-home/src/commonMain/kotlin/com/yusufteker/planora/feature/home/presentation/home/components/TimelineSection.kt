@@ -242,6 +242,8 @@ fun TimelineSection(
                 val creatorColor = creatorUser?.color?.let { 
                     try { androidx.compose.ui.graphics.Color(it.removePrefix("#").toLong(16) or 0x00000000FF000000) } catch (_: Exception) { null }
                 }
+                val firstRoomId = task.sharedRoomIds.firstOrNull()
+                val planRoom = firstRoomId?.let { state.planRooms[it] }
 
                 if (isMine) {
                     SwipeToDeleteWrapper(
@@ -254,6 +256,8 @@ fun TimelineSection(
                         TimelineTaskCard(
                             task = task,
                             showDate = false,
+                            roomImageUrl = planRoom?.imageUrl,
+                            roomName = planRoom?.name,
                             sharedUserAvatar = creatorUser?.avatarId,
                             sharedUserColor = creatorColor,
                             sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
@@ -265,6 +269,8 @@ fun TimelineSection(
                         modifier = Modifier.padding(vertical = 6.dp),
                         task = task,
                         showDate = false,
+                        roomImageUrl = planRoom?.imageUrl,
+                        roomName = planRoom?.name,
                         sharedUserAvatar = creatorUser?.avatarId,
                         sharedUserColor = creatorColor,
                         sharedUserProfileImageUrl = creatorUser?.profileImageUrl,
@@ -311,10 +317,6 @@ fun TimelineSection(
                         )
                     }
                 }
-            }
-
-            item(key = "timeline_bottom_spacer") {
-                Spacer(modifier = Modifier.fillParentMaxHeight(0.85f))
             }
         }
     }

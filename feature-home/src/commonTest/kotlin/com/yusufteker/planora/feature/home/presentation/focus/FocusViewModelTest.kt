@@ -287,7 +287,7 @@ class FocusViewModelTest {
 
         // Bir görev seçili olsun:
         viewModel.loadTask("task_123")
-        runCurrent()
+        runCurrent() // loadTask iiçinde coroutine bitene kadar bekle
 
         // SharedFlow'lar tek seferlik (one-time event) ve genelde replay=0 akışlardır.
         // Bu yüzden ÖNCE effect.test { } bloğu ile dinlemeye başlamalıyız,
@@ -295,10 +295,10 @@ class FocusViewModelTest {
         viewModel.effect.test {
             // Act: Görevi tamamla
             viewModel.completeTask()
-            runCurrent()
+            runCurrent() // complete task bittiğini garantile
 
             // Assert: awaitItem() ile yayılmış olan NavigateBack effect'ini yakalıyoruz
-            val effect = awaitItem()
+            val effect = awaitItem() // compelte task sonrasındaki navigate back'i yakala
             assertEquals(FocusEffect.NavigateBack, effect)
 
             // Başka bir effect yayılmamış olmalıdır:
