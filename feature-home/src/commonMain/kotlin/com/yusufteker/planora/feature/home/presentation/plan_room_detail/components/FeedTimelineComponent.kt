@@ -27,9 +27,8 @@ import com.yusufteker.planora.feature.home.presentation.home.components.Timeline
 /**
  * Plan odası akış zaman çizelgesi bileşeni (FeedTimelineComponent).
  *
- * Varsayılan olarak geçerli ay ve sonraki görevleri gösterir.
- * Bu aydan önceye ait geçmiş görevler varsa "Geçmiş etkinlikleri göster" seçeneği sunar.
- * "Geçmiş etkinlikleri göster" tıklandığında liste yüklenir ve en son etkinliklerin bulunduğu alta odaklanır.
+ * Akışta odadaki tüm görev ve etkinlikleri yeniden eskiye (en son eklenen / en güncel tarih en üstte)
+ * olacak şekilde listeler.
  */
 @Composable
 fun FeedTimelineComponent(
@@ -39,8 +38,6 @@ fun FeedTimelineComponent(
     roomName: String? = null,
     onTaskClick: (TaskDto) -> Unit = {}
 ) {
-    var showPastTasks by remember { mutableStateOf(false) }
-    var pendingScrollToBottom by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val timeZone = remember { TimeZone.currentSystemDefault() }
@@ -48,31 +45,10 @@ fun FeedTimelineComponent(
         val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
         Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
     }
-    val startOfCurrentMonth = remember(today) {
-        LocalDate(today.year, today.monthNumber, 1)
-    }
 
-    // Bu aydan daha eski geçmiş görevler var mı?
-    val hasOlderTasks = remember(tasks, startOfCurrentMonth) {
-        tasks.any { task ->
-            val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-            val taskDate = Instant.fromEpochMilliseconds(effectiveTime).toLocalDateTime(timeZone).date
-            taskDate < startOfCurrentMonth
-        }
-    }
-
-    val sortedTasks = remember(tasks, showPastTasks, startOfCurrentMonth) {
-        val filtered = if (showPastTasks) {
-            tasks
-        } else {
-            // Varsayılan: Bu ayın başından (1. gününden) itibaren olan tüm görevler
-            tasks.filter { task ->
-                val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-                val taskDate = Instant.fromEpochMilliseconds(effectiveTime).toLocalDateTime(timeZone).date
-                taskDate >= startOfCurrentMonth
-            }
-        }
-        filtered.sortedBy { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+    // Yeniden eskiye (En son eklenen / en güncel tarih en üstte olacak şekilde azalan sıralama)
+    val sortedTasks = remember(tasks) {
+        tasks.sortedByDescending { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
     }
 
     val groupedTasks = remember(sortedTasks) {
@@ -82,47 +58,12 @@ fun FeedTimelineComponent(
         }
     }
 
-    LaunchedEffect(sortedTasks, pendingScrollToBottom) {
-        if (pendingScrollToBottom && sortedTasks.isNotEmpty()) {
-            pendingScrollToBottom = false
-            val totalItemCount = (if (hasOlderTasks) 1 else 0) + groupedTasks.keys.size + sortedTasks.size
-            if (totalItemCount > 0) {
-                listState.scrollToItem(totalItemCount - 1)
-            }
-        }
-    }
-
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (hasOlderTasks) {
-            item(key = "past_tasks_toggle") {
-                if (!showPastTasks) {
-                    TextButton(
-                        onClick = {
-                            showPastTasks = true
-                            pendingScrollToBottom = true
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(Res.string.show_past_events))
-                    }
-                } else {
-                    TextButton(
-                        onClick = {
-                            showPastTasks = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(Res.string.hide_past_events))
-                    }
-                }
-            }
-        }
-
         if (groupedTasks.isEmpty()) {
             item(key = "empty_state") {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {

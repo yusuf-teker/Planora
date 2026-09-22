@@ -47,7 +47,9 @@ data class AuthResponse(
     val name: String,
     val username: String = "",
     val avatarId: String,
-    val profileImageUrl: String? = null
+    val profileImageUrl: String? = null,
+    val isPremium: Boolean = false,
+    val premiumUntil: String? = null
 )
 
 /**
@@ -84,7 +86,9 @@ data class UserProfileResponse(
     val isFollowedByMe: Boolean = false,
     val followRequestStatus: String? = null,
     val calendarAccessStatus: String? = null,
-    val profileImageUrl: String? = null
+    val profileImageUrl: String? = null,
+    val isPremium: Boolean = false,
+    val premiumUntil: String? = null
 )
 
 /**

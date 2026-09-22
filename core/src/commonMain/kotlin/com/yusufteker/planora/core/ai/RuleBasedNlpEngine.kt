@@ -842,9 +842,16 @@ class RuleBasedNlpEngine {
                 )
                 templates.random()
             }
+            AiIntent.CREATE_PLAN_ROOM -> {
+                "Tamamdır, '${title}' adında bir plan odası oluşturuluyor."
+            }
+            AiIntent.INVITE_TO_ROOM -> {
+                "Plan odasına davet isteğiniz iletiliyor."
+            }
+            AiIntent.REJECTED -> {
+                "Ben sadece Planora asistanıyım; görev, etkinlik, plan odası ve notlarınızı düzenlemenize yardımcı olabilirim."
+            }
             AiIntent.QUERY, AiIntent.CHAT, AiIntent.UNKNOWN -> {
-                // CHAT veya QUERY gelirse artık CREATE_TASK gibi davranıyoruz, ancak
-                // tip güvenliği için yine de metinleri tutabiliriz.
                 val templates = listOf(
                     "Bunu senin için bir görev olarak kaydettim: '${title}'.",
                     "Anlaşıldı, bunu yapacaklar listene ekliyorum: '${title}'."

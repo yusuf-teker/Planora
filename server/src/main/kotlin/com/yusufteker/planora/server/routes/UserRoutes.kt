@@ -136,7 +136,9 @@ fun Route.userRoutes() {
                             followRequestStatus = followRequest?.status,
                             calendarAccessStatus = calendarAccess?.status,
                             username = user.username,
-                            profileImageUrl = user.profileImageUrl
+                            profileImageUrl = user.profileImageUrl,
+                            isPremium = user.isPremiumActive(),
+                            premiumUntil = user.premiumUntil?.toString()
                         )
                     }
                     com.yusufteker.planora.shared.api.SearchUsersResponse(usersResponse)
@@ -192,7 +194,9 @@ fun Route.userRoutes() {
                         followRequestStatus = followRequest?.status,
                         calendarAccessStatus = calendarAccess?.status,
                         username = user.username,
-                        profileImageUrl = user.profileImageUrl
+                        profileImageUrl = user.profileImageUrl,
+                        isPremium = user.isPremiumActive(),
+                        premiumUntil = user.premiumUntil?.toString()
                     )
                 }
 
@@ -332,7 +336,9 @@ fun Route.userRoutes() {
                                 avatarId = user.avatarId,
                                 postsCount = postsCount,
                                 calendarAccessStatus = calendarAccess?.status,
-                                profileImageUrl = user.profileImageUrl
+                                profileImageUrl = user.profileImageUrl,
+                                isPremium = user.isPremiumActive(),
+                                premiumUntil = user.premiumUntil?.toString()
                             )
                         }
                 }
@@ -456,7 +462,9 @@ fun Route.userRoutes() {
                                 avatarId = user.avatarId,
                                 postsCount = postsCount,
                                 calendarAccessStatus = calendarAccess?.status,
-                                profileImageUrl = user.profileImageUrl
+                                profileImageUrl = user.profileImageUrl,
+                                isPremium = user.isPremiumActive(),
+                                premiumUntil = user.premiumUntil?.toString()
                             )
                         }
                 }

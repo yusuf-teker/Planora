@@ -8,6 +8,8 @@ import planora.core.generated.resources.ai_chat_welcome_message
 
 import kotlin.random.Random
 
+import com.yusufteker.planora.shared.ai.AiQuotaDto
+
 data class AiChatMessage(
     val id: String = "${getCurrentTimeMs()}_${Random.nextInt()}",
     val text: UiText,
@@ -24,6 +26,9 @@ data class AiChatState(
     ),
     val inputText: String = "",
     val isLoading: Boolean = false,
-
+    val quota: AiQuotaDto = AiQuotaDto(),
+    val isQuotaLoading: Boolean = false,
+    val showLimitReachedDialog: Boolean = false,
+    val fallbackUsed: Boolean = false
 ) : UiState
 

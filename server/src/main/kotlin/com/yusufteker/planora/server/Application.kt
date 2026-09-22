@@ -21,6 +21,8 @@ import com.yusufteker.planora.server.routes.userRoutes
 import com.yusufteker.planora.server.routes.planRoomRoutes
 import com.yusufteker.planora.server.routes.taskRoutes
 import com.yusufteker.planora.server.routes.calendarRoutes
+import com.yusufteker.planora.server.routes.aiRoutes
+import com.yusufteker.planora.server.routes.adminRoutes
 
 import com.yusufteker.planora.server.routes.appConfigRoutes
 import com.yusufteker.planora.server.routes.fcmTokenRoutes
@@ -90,5 +92,7 @@ fun Application.module() {
         taskRoutes()
         fcmTokenRoutes()
         calendarRoutes()
+        aiRoutes()
+        adminRoutes()
     }
 }

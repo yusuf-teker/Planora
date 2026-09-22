@@ -35,6 +35,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.yusufteker.planora.shared.api.UserProfileResponse
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.runtime.saveable.rememberSaveable
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -158,47 +164,21 @@ fun PlanRoomDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .clickable { roomImagePickerLauncher.launch() }
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (!state.roomImageUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = getOptimizedCloudinaryUrl(state.roomImageUrl!!),
-                                    contentDescription = stringResource(Res.string.room_image_desc),
-                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = stringResource(Res.string.action_change_room_image),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            if (state.isUploadingImage) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.4f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        strokeWidth = 2.dp
-                                    )
-                                }
-                            }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick) }
+                    ) {
+                        if (!state.roomImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = getOptimizedCloudinaryUrl(state.roomImageUrl!!),
+                                contentDescription = stringResource(Res.string.room_image_desc),
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = state.roomName.ifBlank { stringResource(Res.string.room_detail_default_title) },
                             maxLines = 1,
@@ -212,60 +192,11 @@ fun PlanRoomDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnInviteUserClick) }) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = stringResource(Res.string.action_invite_person))
-                    }
-                    var showMenu by remember { mutableStateOf(false) }
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more_options))
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.action_change_room_image)) },
-                            onClick = {
-                                showMenu = false
-                                roomImagePickerLauncher.launch()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.CameraAlt, contentDescription = null)
-                            }
+                    IconButton(onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick) }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(Res.string.action_edit_room)
                         )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.action_edit_room)) },
-                            onClick = {
-                                showMenu = false
-                                viewModel.onEvent(PlanRoomDetailEvent.OnEditRoomClick)
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Edit, contentDescription = null)
-                            }
-                        )
-                        if (state.isRoomCreator) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.title_delete_room_confirm), color = MaterialTheme.colorScheme.error) },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.onEvent(PlanRoomDetailEvent.OnDeleteRoomClick)
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                                }
-                            )
-                        } else {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.action_leave_room), color = MaterialTheme.colorScheme.error) },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.onEvent(PlanRoomDetailEvent.OnLeaveRoomClick)
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                                }
-                            )
-                        }
                     }
                 }
             )
@@ -332,112 +263,7 @@ fun PlanRoomDetailScreen(
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(
-                        text = stringResource(Res.string.room_members),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 8.dp)
-                    )
-                    
-                    if (state.isMembersLoading) {
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(4) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                )
-                            }
-                        }
-                    } else if (state.memberProfiles.isEmpty()) {
-                        Text(
-                            text = stringResource(Res.string.room_no_members_yet),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    } else {
-                        val acceptedMembers = remember(state.memberProfiles, state.roomMembers) {
-                            val acceptedUserIds = if (state.roomMembers.isEmpty()) {
-                                state.memberProfiles.keys
-                            } else {
-                                state.roomMembers
-                                    .filter { it.status == com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED }
-                                    .map { it.userId }
-                                    .toSet()
-                            }
 
-                            acceptedUserIds.mapNotNull { userId ->
-                                state.memberProfiles[userId] ?: UserProfileResponse(
-                                    id = userId,
-                                    name = "Kullanıcı $userId",
-                                    username = "",
-                                    email = "",
-                                    avatarId = "default"
-                                )
-                            }
-                        }
-
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            item {
-                                FilterChip(
-                                    selected = state.selectedMemberUserIdsFilter.isEmpty(),
-                                    onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(null)) },
-                                    label = { Text(stringResource(Res.string.filter_member_all)) }
-                                )
-                            }
-                            items(acceptedMembers, key = { it.id }) { user ->
-                                val isSelected = state.selectedMemberUserIdsFilter.contains(user.id)
-                                val isCreator = user.id == state.creatorId
-
-                                Box(
-                                    modifier = Modifier.clickable { 
-                                        viewModel.onEvent(PlanRoomDetailEvent.OnMemberFilterSelected(user.id))
-                                    }
-                                ) {
-                                    AvatarImage(
-                                        avatarId = user.avatarId,
-                                        profileImageUrl = user.profileImageUrl,
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .border(
-                                                width = if (isSelected) 3.dp else 1.dp,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                                shape = CircleShape
-                                            )
-                                    )
-
-                                    if (isCreator) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier
-                                                .size(16.dp)
-                                                .align(Alignment.TopEnd)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Star,
-                                                    contentDescription = stringResource(Res.string.role_creator),
-                                                    modifier = Modifier.size(10.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
                     
                     // --- TAB BAR (FEED / CALENDAR) ---
                     SecondaryTabRow(
@@ -456,52 +282,116 @@ fun PlanRoomDetailScreen(
                         )
                     }
                     
-                    // --- FILTER CHIPS & SEARCH BAR ---
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = state.taskSearchQuery,
-                            onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnTaskSearchQueryChange(it)) },
-                            placeholder = { Text(stringResource(Res.string.search_room_tasks_placeholder), style = MaterialTheme.typography.bodySmall) },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                    
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = state.selectedFilter == RoomTaskFilter.ALL,
-                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) },
-                                label = { Text(stringResource(Res.string.filter_all)) }
-                            )
-                        }
-                        item {
-                            FilterChip(
-                                selected = state.selectedFilter == RoomTaskFilter.TASKS,
-                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) },
-                                label = { Text(stringResource(Res.string.filter_tasks)) }
-                            )
-                        }
-                        item {
-                            FilterChip(
-                                selected = state.selectedFilter == RoomTaskFilter.EVENTS,
-                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) },
-                                label = { Text(stringResource(Res.string.filter_events)) }
-                            )
-                        }
-                        item {
-                            FilterChip(
-                                selected = state.selectedFilter == RoomTaskFilter.NOTES,
-                                onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) },
-                                label = { Text(stringResource(Res.string.filter_notes)) }
-                            )
+                    // --- EXPANDABLE SEARCH & FILTER CHIPS ---
+                    var isSearchExpanded by rememberSaveable { mutableStateOf(false) }
+
+                    AnimatedContent(
+                        targetState = isSearchExpanded || state.taskSearchQuery.isNotEmpty(),
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(200)) + expandHorizontally() togetherWith
+                                fadeOut(animationSpec = tween(200)) + shrinkHorizontally()
+                        },
+                        label = "search_filter_transition"
+                    ) { isExpanded ->
+                        if (isExpanded) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = state.taskSearchQuery,
+                                    onValueChange = { viewModel.onEvent(PlanRoomDetailEvent.OnTaskSearchQueryChange(it)) },
+                                    placeholder = {
+                                        Text(
+                                            stringResource(Res.string.search_room_tasks_placeholder),
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(
+                                            onClick = {
+                                                if (state.taskSearchQuery.isNotEmpty()) {
+                                                    viewModel.onEvent(PlanRoomDetailEvent.OnTaskSearchQueryChange(""))
+                                                }
+                                                isSearchExpanded = false
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = stringResource(Res.string.cancel),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        } else {
+                            LazyRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                item(key = "search_toggle_button") {
+                                    Surface(
+                                        onClick = { isSearchExpanded = true },
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Search,
+                                                contentDescription = stringResource(Res.string.search_room_tasks_placeholder),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                item(key = "filter_all") {
+                                    FilterChip(
+                                        selected = state.selectedFilter == RoomTaskFilter.ALL,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) },
+                                        label = { Text(stringResource(Res.string.filter_all)) }
+                                    )
+                                }
+                                item(key = "filter_tasks") {
+                                    FilterChip(
+                                        selected = state.selectedFilter == RoomTaskFilter.TASKS,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) },
+                                        label = { Text(stringResource(Res.string.filter_tasks)) }
+                                    )
+                                }
+                                item(key = "filter_events") {
+                                    FilterChip(
+                                        selected = state.selectedFilter == RoomTaskFilter.EVENTS,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) },
+                                        label = { Text(stringResource(Res.string.filter_events)) }
+                                    )
+                                }
+                                item(key = "filter_notes") {
+                                    FilterChip(
+                                        selected = state.selectedFilter == RoomTaskFilter.NOTES,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) },
+                                        label = { Text(stringResource(Res.string.filter_notes)) }
+                                    )
+                                }
+                            }
                         }
                     }
                     
@@ -781,6 +671,21 @@ private fun EditRoomBottomSheet(
                         .clip(CircleShape)
                         .border(2.dp, MaterialTheme.colorScheme.primaryContainer, CircleShape)
                 )
+                if (state.isUploadingImage) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
                 Surface(
                     onClick = onRoomImageClick,
                     shape = CircleShape,

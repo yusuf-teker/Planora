@@ -136,10 +136,16 @@ fun App() {
         val reminderManager = koinInject<com.yusufteker.planora.core.reminder.ReminderManager>()
         val planRepository = koinInject<com.yusufteker.planora.feature.home.domain.repository.PlanRepository>()
         val processDeepLinkUseCase = koinInject<com.yusufteker.planora.feature.home.domain.use_case.ProcessDeepLinkUseCase>()
+        val authRepository = koinInject<com.yusufteker.planora.feature.auth.domain.repository.AuthRepository>()
 
         LaunchedEffect(userId) {
             if (userId != null) {
                 registerFcmTokenUseCase()
+                try {
+                    authRepository.fetchMyProfile()
+                } catch (_: Exception) {
+                    // Ignore network failure on startup sync
+                }
                 com.yusufteker.planora.core.utils.NotificationSyncBridge.setSyncHandler {
                     planRepository.fetchMyTasks()
                 }
@@ -295,7 +301,8 @@ fun App() {
                         val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.aichat.AiChatViewModel>(key = vmKey)
                         com.yusufteker.planora.feature.home.presentation.aichat.AiChatScreen(
                             viewModel = viewModel,
-                            onNavigateBack = { navigator.pop() }
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToPremium = { navigator.navigate(Screen.Premium) }
                         )
                     }
 
@@ -491,6 +498,14 @@ fun App() {
                         com.yusufteker.planora.feature.home.presentation.focus.FocusScreen(
                             viewModel = viewModel,
                             taskId = screen.taskId,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
+
+                    entry<Screen.Premium> {
+                        val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.premium.PremiumViewModel>(key = vmKey)
+                        com.yusufteker.planora.feature.home.presentation.premium.PremiumScreen(
+                            viewModel = viewModel,
                             onNavigateBack = { navigator.pop() }
                         )
                     }

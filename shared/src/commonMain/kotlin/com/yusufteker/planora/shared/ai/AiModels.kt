@@ -4,22 +4,28 @@ import com.yusufteker.planora.shared.api.AiMetadata
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskType
+import kotlinx.serialization.Serializable
 
 /**
  * Yapay zekanın kullanıcı mesajından çıkardığı niyet türü.
  */
+@Serializable
 enum class AiIntent {
     CREATE_TASK,
     CREATE_EVENT,
     CREATE_NOTE,
+    CREATE_PLAN_ROOM,
+    INVITE_TO_ROOM,
     QUERY,
     CHAT,
+    REJECTED,
     UNKNOWN
 }
 
 /**
- * Yapay zekanın kullanıcı mesajından çıkardığı varlıklar (tarih, kişi, konum vb.).
+ * Yapay zekanın kullanıcı mesajından çıkardığı varlıklar (tarih, kişi, konum, oda vb.).
  */
+@Serializable
 data class ExtractedEntities(
     val title: String,
     val description: String? = null,
@@ -35,14 +41,18 @@ data class ExtractedEntities(
     val checklist: List<String> = emptyList(),
     val estimatedMinutes: Int? = null,
     val confidence: Float = 0.5f,
-    // YENİ: Ortak oda ve katılımcı ID'leri
     val sharedRoomId: String? = null,
-    val participantUserIds: List<Int> = emptyList()
+    val participantUserIds: List<Int> = emptyList(),
+    // Plan Odası ve Davet için alanlar
+    val targetRoomName: String? = null,
+    val targetUsername: String? = null,
+    val targetUserId: Int? = null
 )
 
 /**
- * AI işlem sonucu — ViewModel'e dönen komple yanıt.
+ * AI işlem sonucu — ViewModel'e ve istemciye dönen komple yanıt.
  */
+@Serializable
 data class AiChatResult(
     val intent: AiIntent,
     val replyText: String,
@@ -50,36 +60,42 @@ data class AiChatResult(
     val aiMetadata: AiMetadata = AiMetadata(),
     val shouldCreateTask: Boolean = false,
     val suggestedTaskRequest: CreateTaskRequest? = null,
-    val needsClarification: Boolean = false // deadline gibi eksik bilgi sorulacaksa true
+    val needsClarification: Boolean = false,
+    // Plan Odası ve Davet Eylemleri
+    val shouldCreateRoom: Boolean = false,
+    val roomNameToCreate: String? = null,
+    val shouldInviteUser: Boolean = false,
+    val inviteRoomId: String? = null,
+    val inviteUserId: Int? = null
 )
 
 /**
  * AI'ın kullanıcı ve oturum hakkında ihtiyaç duyduğu bağlam.
  */
+@Serializable
 data class AiChatContext(
     val currentUserId: Int,
     val followedUsers: List<Pair<Int, String>> = emptyList(), // (userId, username)
     val recentMessages: List<String> = emptyList(),
-    // YENİ: Ortak odalar (oda adı + üye isimleri)
     val sharedRooms: List<SharedRoomInfo> = emptyList(),
-    // YENİ: Kullanıcının mevcut görevleri (çakışma tespiti için)
     val myTasks: List<MyTaskInfo> = emptyList(),
-    // YENİ: Takvim erişimi olan kullanıcılar (userId, isim)
     val accessibleUsers: List<Pair<Int, String>> = emptyList()
 )
 
 /**
  * AI'ın ortak oda hakkında bilmesi gereken bilgiler.
  */
+@Serializable
 data class SharedRoomInfo(
     val roomId: String,
     val roomName: String,
-    val memberNames: List<String> = emptyList() // Üye isimleri (kullanıcı adları)
+    val memberNames: List<String> = emptyList()
 )
 
 /**
  * AI'ın mevcut görevler hakkında bilmesi gereken bilgiler.
  */
+@Serializable
 data class MyTaskInfo(
     val title: String,
     val startTime: Long? = null,
@@ -87,4 +103,37 @@ data class MyTaskInfo(
     val type: TaskType = TaskType.TASK
 )
 
-// File cleaned up
+/**
+ * Kullanıcının AI kullanım hakları / kota durumu.
+ *
+ * Normal (Free) Kullanıcı: Günde 1, Haftada 3
+ * Premium Kullanıcı: Günde 50, Haftada 300
+ */
+@Serializable
+data class AiQuotaDto(
+    val isPremium: Boolean = false,
+    val dailyRemaining: Int = 1,
+    val dailyLimit: Int = 1,
+    val weeklyRemaining: Int = 3,
+    val weeklyLimit: Int = 3
+)
+
+/**
+ * İstemciden Planora sunucusuna gönderilen AI sohbet isteği.
+ */
+@Serializable
+data class AiChatServerRequest(
+    val message: String,
+    val context: AiChatContext
+)
+
+/**
+ * Sunucudan dönen AI yanıtı ve güncel kota bilgisi.
+ */
+@Serializable
+data class AiChatServerResponse(
+    val result: AiChatResult? = null,
+    val quota: AiQuotaDto,
+    val quotaExceeded: Boolean = false,
+    val errorMessage: String? = null
+)

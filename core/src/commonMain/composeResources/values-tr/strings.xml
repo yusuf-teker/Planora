@@ -253,6 +253,8 @@
     <string name="ai_chip_plan_meeting_value">yarın saat 'te toplantı </string>
     <string name="ai_chip_take_note_label">📝 Not al</string>
     <string name="ai_chip_take_note_value">not al: </string>
+    <string name="ai_chip_create_room_label">🏰 Plan odası</string>
+    <string name="ai_chip_create_room_value">... adında yeni bir plan odası oluştur</string>
     <string name="info_login_required_social">Sosyal ağı görmek için giriş yapmalısınız.</string>
     <string name="title_select_date">Tarih Seçin</string>
     <string name="title_select_time">Saat Seçin</string>
@@ -482,7 +484,16 @@
     <string name="error_enter_code">Lütfen 6 haneli doğrulama kodunu girin.</string>
 
     <!-- AI Chat Welcome -->
-    <string name="ai_chat_welcome_message">Merhaba! Sana nasıl yardımcı olabilirim? Görev ekleyebilir veya not alabilirsin.</string>
+    <string name="ai_chat_welcome_message">Merhaba! Ben Planora planlama asistanın. Görev ekleyebilir, etkinlik planlayabilir, oda kurabilir veya not alabilirsin.</string>
+    <string name="ai_quota_badge_free">Günlük: %1$d/%2$d • Haftalık: %3$d/%4$d</string>
+    <string name="ai_quota_badge_premium">PREMIUM • %1$d/%2$d Günlük</string>
+    <string name="ai_chat_room_created_success">\n\n🏰 &quot;%1$s&quot; plan odası başarıyla oluşturuldu.</string>
+    <string name="ai_chat_room_created_failed">\n\n❌ Plan odası oluşturulamadı: %1$s</string>
+    <string name="ai_chat_user_invited_success">\n\n📨 Plan odası daveti başarıyla gönderildi.</string>
+    <string name="ai_chat_user_invited_failed">\n\n❌ Oda daveti gönderilemedi: %1$s</string>
+    <string name="ai_fallback_notice">\n\nℹ️ Gemini kotanız dolduğu veya çevrimdışı olunduğu için temel asistanla işlendi.</string>
+    <string name="ai_quota_limit_reached">AI Limiti Doldu</string>
+    <string name="ai_quota_limit_reached_desc">Bugünkü AI kullanım limitinize ulaştınız (%1$d/%2$d). Premium\'a geçerek günde 50, haftada 300 hakka sahip olabilirsiniz.</string>
 
     <!-- Plan Rooms Screen -->
     <string name="title_plan_rooms">Plan Odaları</string>
@@ -651,4 +662,69 @@
     <string name="widget_no_tasks_today">Bugün için planlanmış görev yok.</string>
     <string name="widget_no_tasks_this_week">Bu hafta için planlanmış görev yok.</string>
     <string name="action_go_to_today">Bugüne Git</string>
+
+    <!-- Premium / Paywall Strings (TR) -->
+    <string name="premium_title">Planora Premium</string>
+    <string name="premium_subtitle">Yapay zekanın tüm gücünü, sınırsız odaları ve gelişmiş üretkenliği keşfedin</string>
+    <string name="premium_badge_active">Premium Aktif ⭐</string>
+    <string name="premium_badge_free">Ücretsiz Plan</string>
+    <string name="premium_upgrade_action">Premium\'a Yükselt</string>
+    <string name="premium_feature_ai_title">Limitsiz Planora AI</string>
+    <string name="premium_feature_ai_desc">Günlük 50 / Haftalık 300 akıllı görev planlama ve yapay zeka sohbeti</string>
+    <string name="premium_feature_rooms_title">Sınırsız Plan Odası</string>
+    <string name="premium_feature_rooms_desc">Arkadaşlarınızla dilediğiniz kadar ortak oda kurun ve birlikte planlayın</string>
+    <string name="premium_feature_themes_title">Özel Tema ve Renkler</string>
+    <string name="premium_feature_themes_desc">Kişiselleştirilmiş renk paletleri ve koyu mod vurgularına erişin</string>
+    <string name="premium_feature_analytics_title">Gelişmiş İstatistikler</string>
+    <string name="premium_feature_analytics_desc">Detaylı takvim analizleri, alışkanlık takibi ve tamamlanma oranları</string>
+    <string name="premium_feature_sync_title">Öncelikli Bulut Senkronizasyonu</string>
+    <string name="premium_feature_sync_desc">Anlık, gecikmesiz arka plan eşitlemesi ve güvenli yedekleme</string>
+    <string name="premium_plan_monthly">Aylık</string>
+    <string name="premium_plan_annual">Yıllık</string>
+    <string name="premium_plan_monthly_price">99.99 ₺ / ay</string>
+    <string name="premium_plan_annual_price">799.99 ₺ / yıl</string>
+    <string name="premium_save_badge">%33 İndirim</string>
+    <string name="premium_popular_badge">En Popüler</string>
+    <string name="premium_cta_apple_pay">Pay ile Abone Ol</string>
+    <string name="premium_cta_google_play">Google Play ile Abone Ol</string>
+    <string name="premium_cta_credit_card">Kredi / Banka Kartı ile Öde</string>
+    <string name="premium_payment_dialog_title">Aboneliği Onayla</string>
+    <string name="premium_payment_simulation_notice">Demo / Test Modu: Bu bir simülasyondur. Kartınızdan veya mağaza hesabınızdan gerçek para çekilmez.</string>
+    <string name="premium_payment_confirm_action">Onayla ve Başlat (Simülasyon)</string>
+    <string name="premium_success_title">Premium\'a Hoş Geldiniz!</string>
+    <string name="premium_success_message">Planora Premium üyeliğiniz başarıyla aktif edildi. Sınırsız yapay zeka ve tüm ayrıcalıkların keyfini çıkarın!</string>
+    <string name="premium_card_number">Kart Numarası</string>
+    <string name="premium_card_expiry">AA/YY</string>
+    <string name="premium_card_cvv">CVV</string>
+    <string name="settings_premium_card_title">Planora Premium</string>
+    <string name="settings_premium_card_desc">50 kat AI kotası, sınırsız odalar ve profesyonel araçlar</string>
+    <string name="settings_premium_active_title">Premium Üyesiniz ⭐</string>
+    <string name="settings_premium_active_desc">Sınırsız yapay zeka ve tüm ayrıcalıklar aktif</string>
+    <string name="profile_premium_badge">Planora PRO</string>
+    <string name="premium_coming_soon_title">Ödeme Sistemi Çok Yakında</string>
+    <string name="premium_coming_soon_desc">App Store ve Google Play üzerinden uygulama içi abonelik altyapımız son test aşamasındadır. Çok yakında doğrudan mağaza üzerinden abonelik başlatabileceksiniz. Şu anda yalnızca erken erişim ve özel davetliler için aktiftir.</string>
+    <string name="premium_coming_soon_action">Anladım</string>
+
+    <!-- Profile Tier & Status -->
+    <string name="profile_tier_free">Standart Plan</string>
+    <string name="profile_upgrade_banner_title">Planora Premium\'a Yükseltin</string>
+    <string name="profile_upgrade_banner_desc">50 kat yapay zeka kotası, sınırsız odalar ve tüm pro araçlar</string>
+    <string name="profile_action_upgrade">Yükselt</string>
+    <string name="profile_tier_premium">Planora Premium Aktif</string>
+    <string name="profile_premium_expires_format">Geçerlilik: %1$s</string>
+    <string name="profile_premium_lifetime">Tam Erişim Aktif</string>
+    <string name="profile_action_manage_premium">Ayrıcalıklar</string>
+
+    <!-- Theme Color Names -->
+    <string name="theme_color_default">Klasik Gök</string>
+    <string name="theme_color_blue">Kraliyet Mavisi</string>
+    <string name="theme_color_red">Kızıl</string>
+    <string name="theme_color_green">Zümrüt</string>
+    <string name="theme_color_purple">Ametist Mor</string>
+    <string name="theme_color_pink">Canlı Pembe</string>
+    <string name="theme_color_orange">Gün Batımı</string>
+    <string name="theme_color_teal">Okyanus</string>
+    <string name="theme_color_indigo">Derin İndigo</string>
+    <string name="theme_color_amber">Kehribar Altın</string>
+    <string name="theme_color_brown">Espresso</string>
 </resources>

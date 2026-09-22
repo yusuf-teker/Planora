@@ -19,4 +19,10 @@ object AppConfig {
     // JWT
     val jwtSecret: String = dotenv["JWT_SECRET", "secret"]
     val jwtIssuer: String = dotenv["JWT_ISSUER", "planora"]
+
+    // Gemini AI Key
+    val geminiApiKey: String = System.getenv("GEMINI_API_KEY") ?: (try { dotenv["GEMINI_API_KEY"] } catch (e: Exception) { "" })
+
+    // Admin Secret Key for managing users
+    val adminSecretKey: String = System.getenv("ADMIN_SECRET_KEY") ?: (try { dotenv["ADMIN_SECRET_KEY"] } catch (e: Exception) { "planora_admin_secret_2026" })
 }

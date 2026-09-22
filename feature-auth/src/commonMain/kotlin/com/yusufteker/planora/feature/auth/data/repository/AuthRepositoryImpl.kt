@@ -43,7 +43,8 @@ class AuthRepositoryImpl(
             Napier.d(tag = "Screen", message = { "Login OK | isim: '${response.name}', avatar: '${response.avatarId}'" })
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl, username = response.username)
-            Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}'" })
+            sessionPreferences.setPremium(response.isPremium, response.premiumUntil)
+            Napier.d(tag = "Screen", message = { "DataStore'a kaydedildi: '${response.name}', isPremium=${response.isPremium}" })
             
             try {
                 registerFcmTokenUseCase?.invoke()
@@ -72,6 +73,7 @@ class AuthRepositoryImpl(
             sessionPreferences.setLastLoggedUserId(response.userId.toString())
             sessionPreferences.saveTokens(response.accessToken, response.refreshToken)
             sessionPreferences.saveUserProfile(response.userId.toString(), response.name, response.avatarId, response.profileImageUrl, username = response.username)
+            sessionPreferences.setPremium(response.isPremium, response.premiumUntil)
             
             try {
                 registerFcmTokenUseCase?.invoke()
@@ -115,6 +117,7 @@ class AuthRepositoryImpl(
         return try {
             val profile = httpClient.get("auth/me").body<com.yusufteker.planora.shared.api.UserProfileResponse>()
             sessionPreferences.saveUserProfile(profile.id.toString(), profile.name, profile.avatarId, profile.profileImageUrl, profile.followersCount, profile.followingCount, username = profile.username)
+            sessionPreferences.setPremium(profile.isPremium, profile.premiumUntil)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e.parseApiException())

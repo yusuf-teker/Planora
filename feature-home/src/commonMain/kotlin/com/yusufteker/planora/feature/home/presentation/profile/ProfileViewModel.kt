@@ -1,5 +1,6 @@
 package com.yusufteker.planora.feature.home.presentation.profile
 
+import androidx.lifecycle.viewModelScope
 import com.yusufteker.planora.core.base.BaseViewModel
 import com.yusufteker.planora.core.preferences.SessionPreferences
 import io.github.aakira.napier.Napier
@@ -8,6 +9,7 @@ import com.yusufteker.planora.core.database.PlanoraDatabase
 import com.yusufteker.planora.core.database.clearAll
 
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -15,7 +17,7 @@ import planora.core.generated.resources.*
 class ProfileViewModel(
     private val sessionPreferences: SessionPreferences,
     private val profileRepository: ProfileRepository,
-    private val database: com.yusufteker.planora.core.database.PlanoraDatabase
+    private val database: PlanoraDatabase
 ) : BaseViewModel<ProfileState, ProfileEvent, ProfileEffect>(
     initialState = ProfileState()
 ) {
@@ -57,6 +59,22 @@ class ProfileViewModel(
                             followingCount = data.followingCount
                         )
                     }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            sessionPreferences.isPremiumFlow.collect { isPrem ->
+                if (state.value.isMyProfile) {
+                    setState { copy(isPremium = isPrem) }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            sessionPreferences.premiumUntilFlow.collect { until ->
+                if (state.value.isMyProfile) {
+                    setState { copy(premiumUntil = until) }
                 }
             }
         }
@@ -193,6 +211,7 @@ class ProfileViewModel(
                                     followingCount = profile.followingCount,
                                     username = profile.username
                                 )
+                                sessionPreferences.setPremium(profile.isPremium, profile.premiumUntil)
                             }
                         }
                         setState {
@@ -208,6 +227,8 @@ class ProfileViewModel(
                                 followRequestStatus = profile.followRequestStatus,
                                 calendarAccessStatus = profile.calendarAccessStatus,
                                 isMyProfile = isMyProfile,
+                                isPremium = profile.isPremium,
+                                premiumUntil = profile.premiumUntil,
                                 isLoading = false
                             )
                         }

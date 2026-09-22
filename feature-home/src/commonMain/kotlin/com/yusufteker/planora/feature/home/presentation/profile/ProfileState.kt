@@ -22,5 +22,7 @@ data class ProfileState(
     val isLoadingRequests: Boolean = false,
     val calendarAccessStatus: String? = null,
     val pendingCalendarRequests: List<com.yusufteker.planora.shared.api.CalendarAccessRequestDto> = emptyList(),
-    val calendarGrants: List<com.yusufteker.planora.shared.api.CalendarAccessGrantDto> = emptyList()
+    val calendarGrants: List<com.yusufteker.planora.shared.api.CalendarAccessGrantDto> = emptyList(),
+    val isPremium: Boolean = false,
+    val premiumUntil: String? = null
 ) : UiState

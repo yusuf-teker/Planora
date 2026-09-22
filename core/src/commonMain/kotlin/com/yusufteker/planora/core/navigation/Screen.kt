@@ -142,6 +142,12 @@ sealed interface Screen {
     @Serializable
     data class Focus(val taskId: String? = null) : Screen
 
+    /**
+     * Planora Premium / Abonelik (Paywall) Ekranı
+     */
+    @Serializable
+    data object Premium : Screen
+
 
     /**  
      * Destinations within the Main Graph (Bottom Navigation Tabs).

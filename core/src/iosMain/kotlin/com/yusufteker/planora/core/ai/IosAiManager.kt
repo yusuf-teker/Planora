@@ -12,8 +12,8 @@ class IosAiManager(
 
     private val pipeline = AiPipeline(
         listOf(
-            IosAppleIntelligenceStep(ruleBasedEngine),
             CloudApiStep(cloudAiManager, "iOS"),
+            IosAppleIntelligenceStep(ruleBasedEngine),
             RuleBasedStep(ruleBasedEngine, "iOS", strictMode = false)
         )
     )

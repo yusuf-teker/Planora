@@ -5,6 +5,8 @@ sealed class AiChatEvent : com.yusufteker.planora.core.base.UiEvent {
     data object SendMessage : AiChatEvent()
     data object ClearChat : AiChatEvent()
     data object CancelGeneration : AiChatEvent()
+    data object DismissLimitDialog : AiChatEvent()
+    data object RefreshQuota : AiChatEvent()
 }
 
 sealed class AiChatEffect : com.yusufteker.planora.core.base.UiEffect {

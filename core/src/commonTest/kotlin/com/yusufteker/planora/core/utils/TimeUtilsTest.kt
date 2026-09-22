@@ -55,7 +55,7 @@ class TimeUtilsTest {
     }
 
     @Test
-    fun `etkinlik kopyalandiginda sure (duration) bozulmadan bugune tasinmalidir`() {
+    fun `etkinlik kopyalandiginda sure duration bozulmadan bugune tasinmalidir`() {
         // 1. Arrange: Orijinal etkinlik: Geçmişte 10:00 ile 11:30 arası (90 dakika süreli)
         val originalStart = LocalDateTime(2024, kotlinx.datetime.Month.MAY, 10, 10, 0).toInstant(tz).toEpochMilliseconds()
         val originalEnd = LocalDateTime(2024, kotlinx.datetime.Month.MAY, 10, 11, 30).toInstant(tz).toEpochMilliseconds()

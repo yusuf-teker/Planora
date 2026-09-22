@@ -13,8 +13,8 @@ class AndroidAiManager(
 
     private val pipeline = AiPipeline(
         listOf(
-            AndroidGeminiNanoStep(appContext),
             CloudApiStep(cloudAiManager, "Android"),
+            AndroidGeminiNanoStep(appContext),
             RuleBasedStep(ruleBasedEngine, "Android", strictMode = false)
         )
     )

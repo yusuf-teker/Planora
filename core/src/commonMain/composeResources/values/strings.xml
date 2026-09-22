@@ -254,6 +254,8 @@
     <string name="ai_chip_plan_meeting_value">meeting tomorrow at </string>
     <string name="ai_chip_take_note_label">📝 Take note</string>
     <string name="ai_chip_take_note_value">take note: </string>
+    <string name="ai_chip_create_room_label">🏰 Plan room</string>
+    <string name="ai_chip_create_room_value">Create a plan room named </string>
     <string name="info_login_required_social">You must log in to view the social network.</string>
     <string name="title_select_date">Select Date</string>
     <string name="title_select_time">Select Time</string>
@@ -482,7 +484,16 @@
     <string name="error_enter_code">Please enter the 6-digit verification code.</string>
 
     <!-- AI Chat Welcome -->
-    <string name="ai_chat_welcome_message">Hello! How can I help you today? You can add tasks or take notes.</string>
+    <string name="ai_chat_welcome_message">Hello! I am your Planora planning assistant. You can add tasks, schedule events, create plan rooms, or take notes.</string>
+    <string name="ai_quota_badge_free">Daily: %1$d/%2$d • Weekly: %3$d/%4$d</string>
+    <string name="ai_quota_badge_premium">PREMIUM • %1$d/%2$d Daily</string>
+    <string name="ai_chat_room_created_success">\n\n🏰 Plan room &quot;%1$s&quot; created successfully.</string>
+    <string name="ai_chat_room_created_failed">\n\n❌ Failed to create plan room: %1$s</string>
+    <string name="ai_chat_user_invited_success">\n\n📨 Invitation sent to user for the plan room.</string>
+    <string name="ai_chat_user_invited_failed">\n\n❌ Failed to send room invitation: %1$s</string>
+    <string name="ai_fallback_notice">\n\nℹ️ Gemini quota reached or offline. Processed using local assistant.</string>
+    <string name="ai_quota_limit_reached">AI Limit Reached</string>
+    <string name="ai_quota_limit_reached_desc">You have used your AI limit for today (%1$d/%2$d). Upgrade to Premium to get 50 requests per day and 300 per week.</string>
 
     <!-- Plan Rooms Screen -->
     <string name="title_plan_rooms">Plan Rooms</string>
@@ -652,4 +663,69 @@
     <string name="widget_no_tasks_today">No tasks scheduled for today.</string>
     <string name="widget_no_tasks_this_week">No tasks scheduled for this week.</string>
     <string name="action_go_to_today">Go to Today</string>
+
+    <!-- Premium / Paywall Strings -->
+    <string name="premium_title">Planora Premium</string>
+    <string name="premium_subtitle">Unlock the full power of AI, unlimited rooms &amp; advanced productivity</string>
+    <string name="premium_badge_active">Premium Active ⭐</string>
+    <string name="premium_badge_free">Free Plan</string>
+    <string name="premium_upgrade_action">Upgrade to Premium</string>
+    <string name="premium_feature_ai_title">Unlimited Planora AI</string>
+    <string name="premium_feature_ai_desc">50 daily / 300 weekly smart task scheduling &amp; AI conversations</string>
+    <string name="premium_feature_rooms_title">Unlimited Plan Rooms</string>
+    <string name="premium_feature_rooms_desc">Create unlimited shared rooms with friends &amp; collaborate in real time</string>
+    <string name="premium_feature_themes_title">Exclusive Themes &amp; Accents</string>
+    <string name="premium_feature_themes_desc">Access premium color palettes, dark accents and unique styling</string>
+    <string name="premium_feature_analytics_title">Advanced Insights</string>
+    <string name="premium_feature_analytics_desc">Deep calendar analytics, productivity trends and habit tracking</string>
+    <string name="premium_feature_sync_title">Priority Cloud Sync</string>
+    <string name="premium_feature_sync_desc">Instant real-time background sync with zero delay</string>
+    <string name="premium_plan_monthly">Monthly</string>
+    <string name="premium_plan_annual">Annual</string>
+    <string name="premium_plan_monthly_price">99.99 ₺ / month</string>
+    <string name="premium_plan_annual_price">799.99 ₺ / year</string>
+    <string name="premium_save_badge">Save 33%</string>
+    <string name="premium_popular_badge">Most Popular</string>
+    <string name="premium_cta_apple_pay">Subscribe with Pay</string>
+    <string name="premium_cta_google_play">Subscribe with Google Play</string>
+    <string name="premium_cta_credit_card">Pay with Credit / Debit Card</string>
+    <string name="premium_payment_dialog_title">Confirm Subscription</string>
+    <string name="premium_payment_simulation_notice">Demo / Test Mode: This is a sandbox simulation. No actual payment will be charged to your card or account.</string>
+    <string name="premium_payment_confirm_action">Confirm &amp; Activate (Demo)</string>
+    <string name="premium_success_title">Welcome to Premium!</string>
+    <string name="premium_success_message">Your Planora Premium membership is now active. Enjoy unlimited AI and all pro features!</string>
+    <string name="premium_card_number">Card Number</string>
+    <string name="premium_card_expiry">MM/YY</string>
+    <string name="premium_card_cvv">CVV</string>
+    <string name="settings_premium_card_title">Planora Premium</string>
+    <string name="settings_premium_card_desc">Get 50x AI limits, unlimited rooms &amp; pro tools</string>
+    <string name="settings_premium_active_title">You are a Premium Member ⭐</string>
+    <string name="settings_premium_active_desc">Unlimited AI and all pro features unlocked</string>
+    <string name="profile_premium_badge">Planora PRO</string>
+    <string name="premium_coming_soon_title">Payment System Coming Soon</string>
+    <string name="premium_coming_soon_desc">In-app subscription infrastructure (App Store &amp; Google Play) is in its final preparation phase. Direct in-app purchases will be available very soon. Currently active for early access members.</string>
+    <string name="premium_coming_soon_action">Got It</string>
+
+    <!-- Profile Tier & Status -->
+    <string name="profile_tier_free">Standard Plan</string>
+    <string name="profile_upgrade_banner_title">Unlock Planora Premium</string>
+    <string name="profile_upgrade_banner_desc">Get 50x AI quota, unlimited rooms &amp; pro tools</string>
+    <string name="profile_action_upgrade">Upgrade</string>
+    <string name="profile_tier_premium">Planora Premium Active</string>
+    <string name="profile_premium_expires_format">Valid until: %1$s</string>
+    <string name="profile_premium_lifetime">Full Active Access</string>
+    <string name="profile_action_manage_premium">Benefits</string>
+
+    <!-- Theme Color Names -->
+    <string name="theme_color_default">Classic Sky</string>
+    <string name="theme_color_blue">Royal Blue</string>
+    <string name="theme_color_red">Crimson</string>
+    <string name="theme_color_green">Emerald</string>
+    <string name="theme_color_purple">Amethyst</string>
+    <string name="theme_color_pink">Rose Pink</string>
+    <string name="theme_color_orange">Sunset</string>
+    <string name="theme_color_teal">Ocean Cyan</string>
+    <string name="theme_color_indigo">Deep Indigo</string>
+    <string name="theme_color_amber">Amber Gold</string>
+    <string name="theme_color_brown">Espresso</string>
 </resources>

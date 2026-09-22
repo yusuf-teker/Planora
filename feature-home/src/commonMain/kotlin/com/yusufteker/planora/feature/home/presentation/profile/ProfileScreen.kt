@@ -1,5 +1,6 @@
 package com.yusufteker.planora.feature.home.presentation.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,15 +25,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -73,9 +79,37 @@ import planora.core.generated.resources.profile_following_label
 import planora.core.generated.resources.profile_guest_login_prompt
 import planora.core.generated.resources.profile_leave_calendar
 import planora.core.generated.resources.profile_posts_label
+import planora.core.generated.resources.profile_premium_badge
+import planora.core.generated.resources.profile_tier_free
+import planora.core.generated.resources.profile_upgrade_banner_desc
+import planora.core.generated.resources.profile_action_upgrade
+import planora.core.generated.resources.profile_tier_premium
+import planora.core.generated.resources.profile_premium_expires_format
+import planora.core.generated.resources.profile_premium_lifetime
+import planora.core.generated.resources.profile_action_manage_premium
 import planora.core.generated.resources.profile_request_calendar_access
 import planora.core.generated.resources.settings_title
 import planora.core.generated.resources.title_notifications
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+
+/**
+ * Formats an ISO-8601 date string to DD.MM.YYYY for subscription expiry display.
+ */
+private fun formatSubscriptionDate(isoDate: String?): String? {
+    if (isoDate.isNullOrBlank()) return null
+    return try {
+        val instant = Instant.parse(isoDate)
+        val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val day = local.dayOfMonth.toString().padStart(2, '0')
+        val month = local.monthNumber.toString().padStart(2, '0')
+        val year = local.year
+        "$day.$month.$year"
+    } catch (_: Exception) {
+        if (isoDate.length >= 10) isoDate.substring(0, 10) else isoDate
+    }
+}
 
 /**
  * Profile screen composable.
@@ -191,19 +225,31 @@ fun ProfileScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
 
-                            // Centered Avatar with gradient ring border
+                            // Centered Avatar with gradient ring border (Gold if Premium)
+                            val avatarBorderBrush = if (state.isPremium) {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        androidx.compose.ui.graphics.Color(0xFFFFD700),
+                                        androidx.compose.ui.graphics.Color(0xFFFFA500),
+                                        androidx.compose.ui.graphics.Color(0xFFFF8C00)
+                                    )
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary,
+                                        MaterialTheme.colorScheme.secondary
+                                    )
+                                )
+                            }
+
                             Box(
                                 modifier = Modifier.size(96.dp).clip(CircleShape)
                                     .clickable(enabled = state.isMyProfile) {
                                         imagePickerLauncher.launch()
                                     }.border(
-                                        width = 3.dp, brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary,
-                                                MaterialTheme.colorScheme.tertiary,
-                                                MaterialTheme.colorScheme.secondary
-                                            )
-                                        ), shape = CircleShape
+                                        width = 3.dp, brush = avatarBorderBrush, shape = CircleShape
                                     ).background(MaterialTheme.colorScheme.surface).padding(3.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -249,6 +295,60 @@ fun ProfileScreen(
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                             )
 
+                            // Premium Badge or Free Tier Tag
+                            if (state.isPremium) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = androidx.compose.ui.graphics.Color(0xFFFFD700).copy(alpha = 0.15f),
+                                    border = BorderStroke(
+                                        width = 1.dp,
+                                        brush = Brush.horizontalGradient(
+                                            listOf(
+                                                androidx.compose.ui.graphics.Color(0xFFFFD700),
+                                                androidx.compose.ui.graphics.Color(0xFFFFA500)
+                                            )
+                                        )
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = androidx.compose.ui.graphics.Color(0xFFFFD700),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = stringResource(Res.string.profile_premium_badge),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                            color = androidx.compose.ui.graphics.Color(0xFFFFD700)
+                                        )
+                                    }
+                                }
+                            } else if (state.isMyProfile) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    border = BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.profile_tier_free),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
 
                             Spacer(modifier = Modifier.height(20.dp))
 
@@ -358,9 +458,185 @@ fun ProfileScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     if (state.isMyProfile) {
+                        // Prominent Membership Tier Card (Directly visible without opening Settings)
+                        if (state.isPremium) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .clickable { rootNavigator.navigate(Screen.Premium) },
+                                shape = RoundedCornerShape(22.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = androidx.compose.ui.graphics.Color(0xFFFFD700).copy(alpha = 0.12f)
+                                ),
+                                border = BorderStroke(
+                                    width = 1.2.dp,
+                                    brush = Brush.horizontalGradient(
+                                        listOf(
+                                            androidx.compose.ui.graphics.Color(0xFFFFD700),
+                                            androidx.compose.ui.graphics.Color(0xFFFFA500)
+                                        )
+                                    )
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        androidx.compose.ui.graphics.Color(0xFFFFD700),
+                                                        androidx.compose.ui.graphics.Color(0xFFFF8C00)
+                                                    )
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = androidx.compose.ui.graphics.Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(14.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(Res.string.profile_tier_premium),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                            color = androidx.compose.ui.graphics.Color(0xFFFFD700)
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        val formattedDate = formatSubscriptionDate(state.premiumUntil)
+                                        Text(
+                                            text = if (formattedDate != null) {
+                                                stringResource(Res.string.profile_premium_expires_format, formattedDate)
+                                            } else {
+                                                stringResource(Res.string.profile_premium_lifetime)
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = androidx.compose.ui.graphics.Color(0xFFFFD700).copy(alpha = 0.2f),
+                                        border = BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFFFD700).copy(alpha = 0.5f))
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.profile_action_manage_premium),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                            color = androidx.compose.ui.graphics.Color(0xFFFFD700),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .clickable { rootNavigator.navigate(Screen.Premium) },
+                                shape = RoundedCornerShape(22.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                                ),
+                                border = BorderStroke(
+                                    width = 1.dp,
+                                    brush = Brush.horizontalGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+                                        )
+                                    )
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.primary,
+                                                        MaterialTheme.colorScheme.tertiary
+                                                    )
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = androidx.compose.ui.graphics.Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(14.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(Res.string.profile_tier_free),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = stringResource(Res.string.profile_upgrade_banner_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    androidx.compose.material3.Button(
+                                        onClick = { rootNavigator.navigate(Screen.Premium) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.profile_action_upgrade),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
                         // Quick Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),

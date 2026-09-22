@@ -3,10 +3,13 @@ package com.yusufteker.planora.feature.home.presentation.aichat
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -42,7 +45,8 @@ import planora.core.generated.resources.*
 @Composable
 fun AiChatScreen(
     viewModel: AiChatViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToPremium: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -108,6 +112,33 @@ fun AiChatScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
+                    }
+                },
+                actions = {
+                    Surface(
+                        color = if (state.quota.isPremium) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clickable { onNavigateToPremium() }
+                    ) {
+                        val badgeText = if (state.quota.isPremium) {
+                            stringResource(Res.string.ai_quota_badge_premium, state.quota.dailyRemaining, state.quota.dailyLimit)
+                        } else {
+                            stringResource(
+                                Res.string.ai_quota_badge_free,
+                                state.quota.dailyRemaining,
+                                state.quota.dailyLimit,
+                                state.quota.weeklyRemaining,
+                                state.quota.weeklyLimit
+                            )
+                        }
+                        Text(
+                            text = badgeText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (state.quota.isPremium) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -261,12 +292,14 @@ fun SuggestedActionChips(onChipClick: (String) -> Unit) {
     val suggestions = listOf(
         stringResource(Res.string.ai_chip_add_task_label) to stringResource(Res.string.ai_chip_add_task_value),
         stringResource(Res.string.ai_chip_plan_meeting_label) to stringResource(Res.string.ai_chip_plan_meeting_value),
+        stringResource(Res.string.ai_chip_create_room_label) to stringResource(Res.string.ai_chip_create_room_value),
         stringResource(Res.string.ai_chip_take_note_label) to stringResource(Res.string.ai_chip_take_note_value)
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {

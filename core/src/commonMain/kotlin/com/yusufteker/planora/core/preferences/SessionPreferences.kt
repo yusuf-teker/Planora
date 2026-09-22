@@ -12,12 +12,13 @@ import com.yusufteker.planora.core.utils.TimelineViewOption
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.datetime.Instant
 
 /**
  * Manages user session tokens (Access & Refresh) using SecureSettings (Keychain/EncryptedPrefs)
  * and non-sensitive user profile data using DataStore.
  */
-class SessionPreferences(
+open class SessionPreferences(
     private val dataStore: DataStore<Preferences>,
     private val secureSettings: SecureSettings,
 ) {
@@ -42,6 +43,8 @@ class SessionPreferences(
     private val filterShowCompletedKey = androidx.datastore.preferences.core.booleanPreferencesKey("filter_show_completed")
     private val viewOptionKey = stringPreferencesKey("view_option")
     private val lastSeenOverviewIndexKey = intPreferencesKey("last_seen_overview_index")
+    private val isPremiumKey = booleanPreferencesKey("is_premium")
+    private val premiumUntilKey = stringPreferencesKey("premium_until")
 
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
@@ -105,7 +108,7 @@ class SessionPreferences(
         }
     }
 
-    suspend fun getUserName(): String? {
+    open suspend fun getUserName(): String? {
         return dataStore.data.map { it[userNameKey] }.first()
     }
 
@@ -121,7 +124,7 @@ class SessionPreferences(
         return dataStore.data.map { it[userProfileImageUrlKey] }.first()
     }
     
-    suspend fun getUserId(): String? {
+    open suspend fun getUserId(): String? {
         return dataStore.data.map { it[userIdKey] }.first()
     }
     
@@ -223,7 +226,85 @@ class SessionPreferences(
             prefs.remove(userProfileImageUrlKey)
             prefs.remove(followersCountKey)
             prefs.remove(followingCountKey)
+            prefs.remove(isPremiumKey)
+            prefs.remove(premiumUntilKey)
         }
+    }
+
+    /**
+     * Flow emitting whether the user's Premium membership is currently active.
+     * Evaluates both the boolean flag and validates [premiumUntil] against the current time.
+     * If the subscription duration has elapsed, immediately emits false.
+     */
+    open val isPremiumFlow: kotlinx.coroutines.flow.Flow<Boolean> =
+        dataStore.data.map { prefs ->
+            val isPrem = prefs[isPremiumKey] ?: false
+            if (!isPrem) return@map false
+            val untilStr = prefs[premiumUntilKey]
+            if (!untilStr.isNullOrBlank()) {
+                try {
+                    val untilMs = Instant.parse(untilStr).toEpochMilliseconds()
+                    val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+                    if (nowMs > untilMs) {
+                        return@map false
+                    }
+                } catch (_: Exception) {
+                    // If parsing fails, fall back to isPrem
+                }
+            }
+            true
+        }.distinctUntilChanged()
+
+    /**
+     * Checks if the user is currently Premium.
+     * Automatically invalidates and resets local state if [premiumUntil] has expired.
+     */
+    open suspend fun isPremium(): Boolean {
+        val prefs = dataStore.data.first()
+        val isPrem = prefs[isPremiumKey] ?: false
+        if (!isPrem) return false
+        val untilStr = prefs[premiumUntilKey]
+        if (!untilStr.isNullOrBlank()) {
+            try {
+                val untilMs = Instant.parse(untilStr).toEpochMilliseconds()
+                val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+                if (nowMs > untilMs) {
+                    // Auto-downgrade local state immediately
+                    setPremium(isPremium = false, premiumUntil = null)
+                    return false
+                }
+            } catch (_: Exception) {
+                // If parsing fails, fall back to isPrem
+            }
+        }
+        return true
+    }
+
+    /**
+     * Updates the local Premium membership status and expiration timestamp.
+     */
+    open suspend fun setPremium(isPremium: Boolean, premiumUntil: String? = null) {
+        dataStore.edit { prefs ->
+            prefs[isPremiumKey] = isPremium
+            if (premiumUntil != null) {
+                prefs[premiumUntilKey] = premiumUntil
+            } else {
+                prefs.remove(premiumUntilKey)
+            }
+        }
+    }
+
+    /**
+     * Flow emitting the current subscription expiration timestamp string (ISO-8601).
+     */
+    open val premiumUntilFlow: kotlinx.coroutines.flow.Flow<String?> =
+        dataStore.data.map { it[premiumUntilKey] }.distinctUntilChanged()
+
+    /**
+     * Returns the current subscription expiration timestamp string (ISO-8601), if any.
+     */
+    open suspend fun getPremiumUntil(): String? {
+        return dataStore.data.first()[premiumUntilKey]
     }
     
     suspend fun updateFollowCounts(followersDelta: Int, followingDelta: Int) {

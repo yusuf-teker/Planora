@@ -5,6 +5,7 @@ import com.yusufteker.planora.server.database.tables.RefreshTokenEntity
 import com.yusufteker.planora.server.database.tables.RefreshTokensTable
 import com.yusufteker.planora.server.database.tables.UserEntity
 import com.yusufteker.planora.server.database.tables.UsersTable
+import com.yusufteker.planora.server.database.tables.isPremiumActive
 import com.yusufteker.planora.server.security.HashingService
 import com.yusufteker.planora.server.security.TokenService
 import com.yusufteker.planora.server.service.EmailService
@@ -153,7 +154,8 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.username, newUser.avatarId, newUser.profileImageUrl))
+            val (isPrem, premUntil) = dbQuery { newUser.isPremiumActive() to newUser.premiumUntil?.toString() }
+            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.username, newUser.avatarId, newUser.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
         }
 
         // --- 2. LOGIN ENDPOINT ---
@@ -186,7 +188,8 @@ fun Route.authRoutes() {
                 }
             }
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl))
+            val (isPrem, premUntil) = dbQuery { user.isPremiumActive() to user.premiumUntil?.toString() }
+            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
         }
 
         // --- 3. REFRESH TOKEN ENDPOINT ---
@@ -220,7 +223,8 @@ fun Route.authRoutes() {
             }
 
             // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl))
+            val (isPrem, premUntil) = dbQuery { user.isPremiumActive() to user.premiumUntil?.toString() }
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
         }
 
         // --- 4. FORGOT PASSWORD ENDPOINT ---
@@ -371,7 +375,9 @@ fun Route.authRoutes() {
                         followersCount = followersCount,
                         followingCount = followingCount,
                         postsCount = postsCount,
-                        profileImageUrl = user.profileImageUrl
+                        profileImageUrl = user.profileImageUrl,
+                        isPremium = user.isPremiumActive(),
+                        premiumUntil = user.premiumUntil?.toString()
                     )
                 }
 

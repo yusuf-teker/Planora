@@ -68,6 +68,11 @@ open class FakePlanRepository : PlanRepository {
     }
 
     /**
+     * Test kontrolleri için mevcut tüm InMemory görevleri döner.
+     */
+    fun getStoredTasks(): List<TaskDto> = tasksMap.values.toList()
+
+    /**
      * Bellekteki tüm verileri sıfırlar.
      */
     fun clearAll() {

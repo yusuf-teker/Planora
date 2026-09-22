@@ -6,6 +6,7 @@ import com.yusufteker.planora.feature.home.presentation.settings.SettingsViewMod
 import com.yusufteker.planora.feature.home.presentation.social.SocialViewModel
 import com.yusufteker.planora.feature.home.presentation.aichat.AiChatViewModel
 import com.yusufteker.planora.feature.home.presentation.focus.FocusViewModel
+import com.yusufteker.planora.feature.home.presentation.premium.PremiumViewModel
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.planora.feature.home.data.api.CommentApi
 import com.yusufteker.planora.feature.home.domain.repository.CommentRepository
@@ -62,6 +63,7 @@ val homeModule = module {
     
     // Plan Room & Task
     single { PlanApi(get()) }
+    single { com.yusufteker.planora.feature.home.data.api.AiApi(get()) }
     single { com.yusufteker.planora.feature.home.data.api.CalendarApi(get()) }
     single<PlanRepository> { PlanRepositoryImpl(get(), get(), get(), get(), get()) }
     
@@ -72,10 +74,11 @@ val homeModule = module {
     
     viewModelOf(::HomeViewModel)
     viewModelOf(::FocusViewModel)
+    viewModelOf(::PremiumViewModel)
     viewModelOf(::SocialViewModel)
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
-    viewModel { AiChatViewModel(get(), get(), get(), get(), get()) }
+    viewModel { AiChatViewModel(get(), get(), get(), get(), get(), get()) }
     factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)
