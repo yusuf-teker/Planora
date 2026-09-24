@@ -21,6 +21,8 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -58,6 +60,14 @@ class PlanRepositoryImpl(
     private val scope: CoroutineScope,
     private val sessionPreferences: SessionPreferences
 ) : PlanRepository {
+
+    companion object {
+        /**
+         * Çöp kutusundaki verilerin cihazda tutulacağı maksimum gün sayısı (30 gün).
+         * Bu süreden eski silinmiş öğeler veritabanından kalıcı olarak temizlenir.
+         */
+        const val TRASH_MAX_RETENTION_DAYS = 30L
+    }
 
     /**
      * Senkronizasyon işleminin aynı anda birden fazla kez çalışmasını engeller.
@@ -226,6 +236,25 @@ class PlanRepositoryImpl(
     override suspend fun deleteTask(taskId: String): Result<Unit> {
         return try {
             val actualTaskId = getActualTaskId(taskId)
+
+            // Çöp Kutusu: Silinmeden önce kurtarılabilir çöp kutusuna arşivle (tüm kullanıcılar için)
+            try {
+                val existingEntity = database.planoraDatabaseQueries.getTaskById(actualTaskId).executeAsOneOrNull()
+                if (existingEntity != null) {
+                    val taskDto = mapTaskEntityToDto(existingEntity)
+                    val taskJson = json.encodeToString(TaskDto.serializer(), taskDto)
+                    val ownerId = sessionPreferences.getOwnerId()
+                    database.planoraDatabaseQueries.insertDeletedTask(
+                        id = actualTaskId,
+                        ownerId = ownerId,
+                        originalTaskJson = taskJson,
+                        taskTitle = taskDto.title,
+                        deletedAt = getCurrentTimeMs()
+                    )
+                }
+            } catch (e: Exception) {
+                Napier.e(e) { "Failed to archive task $actualTaskId to trash: ${e.message}" }
+            }
 
             // 1. Adım: Yerel veritabanından hemen sil
             database.planoraDatabaseQueries.transaction {
@@ -1072,6 +1101,97 @@ class PlanRepositoryImpl(
             sessionPreferences.clearSession()
             Result.success(Unit)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // ─────────────────────────────────────────
+    // GERİ DÖNÜŞÜM KUTUSU (RECYCLE BIN / TRASH)
+    // ─────────────────────────────────────────
+
+    override fun observeDeletedTasks(): Flow<List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>> {
+        val maxRetentionMs = TRASH_MAX_RETENTION_DAYS * 24L * 60L * 60L * 1000L
+        val nowMs = getCurrentTimeMs()
+        val expiredThreshold = nowMs - maxRetentionMs
+
+        // Otomatik temizleme: 30 günden eski öğeleri arka planda temizle
+        scope.launch(Dispatchers.IO) {
+            try {
+                database.planoraDatabaseQueries.deleteExpiredTrash(expiredThreshold)
+            } catch (e: Exception) {
+                Napier.e(e) { "Failed to delete expired trash: ${e.message}" }
+            }
+        }
+
+        return try {
+            database.planoraDatabaseQueries.getAllDeletedTasks()
+                .asFlow()
+                .mapToList(Dispatchers.IO)
+                .map { entities ->
+                    val currentMs = getCurrentTimeMs()
+                    entities.map { entity ->
+                        val elapsedMs = currentMs - entity.deletedAt
+                        val daysRemaining = maxOf(0, (TRASH_MAX_RETENTION_DAYS - (elapsedMs / (1000L * 60 * 60 * 24))).toInt())
+                        com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem(
+                            id = entity.id,
+                            title = entity.taskTitle,
+                            deletedAt = entity.deletedAt,
+                            daysRemaining = daysRemaining
+                        )
+                    }
+                }
+                .catch { e ->
+                    Napier.e(e) { "Error observing deleted tasks: ${e.message}" }
+                    emit(emptyList())
+                }
+        } catch (e: Exception) {
+            Napier.e(e) { "Error initiating observeDeletedTasks: ${e.message}" }
+            flowOf(emptyList())
+        }
+    }
+
+    override suspend fun restoreDeletedTask(taskId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val deletedItem = database.planoraDatabaseQueries.getDeletedTaskById(taskId).executeAsOneOrNull()
+                ?: return@withContext Result.failure(IllegalStateException("Deleted task not found"))
+
+            val taskDto = json.decodeFromString(TaskDto.serializer(), deletedItem.originalTaskJson)
+
+            database.planoraDatabaseQueries.transaction {
+                // 1. Görevi aktif görev tablosuna geri ekle (senkronizasyon için isSynced = 0)
+                database.planoraDatabaseQueries.insertTaskFromDto(task = taskDto, isSynced = 0L)
+                // 2. Çöp kutusundan kalıcı olarak kaldır
+                database.planoraDatabaseQueries.permanentlyDeleteTrashItem(taskId)
+            }
+
+            // 3. Arka planda sunucuya senkronize et
+            scope.launch(Dispatchers.IO) {
+                syncPendingChanges()
+            }
+            notifyDataChanged()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.restoreDeletedTask failed for $taskId: ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun permanentlyDeleteTask(taskId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            database.planoraDatabaseQueries.permanentlyDeleteTrashItem(taskId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.permanentlyDeleteTask failed for $taskId: ${e.message}" }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearAllDeletedTasks(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            database.planoraDatabaseQueries.deleteAllDeletedTasks()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Napier.e(e) { "PlanRepositoryImpl.clearAllDeletedTasks failed: ${e.message}" }
             Result.failure(e)
         }
     }

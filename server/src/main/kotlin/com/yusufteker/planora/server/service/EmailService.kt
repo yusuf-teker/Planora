@@ -31,7 +31,11 @@ object EmailService {
         .build()
 
     /**
-     * Sends a custom email to the specified recipient using Resend API or Google Script.
+     * Sends a custom email using Google Apps Script first (primary), falling back to Resend API.
+     *
+     * Priority:
+     * 1. GMAIL_SCRIPT_URL (Google Apps Script) — tried first if set.
+     * 2. RESEND_API_KEY — used only when GMAIL_SCRIPT_URL is not configured.
      *
      * @param toEmail Recipient email address.
      * @param subject Email subject line.
@@ -39,16 +43,28 @@ object EmailService {
      * @return `true` if email request was dispatched successfully, `false` otherwise.
      */
     suspend fun sendEmail(toEmail: String, subject: String, htmlContent: String): Boolean {
+        // 1. Google Apps Script — primary provider
+        val url = scriptUrl
+        if (!url.isNullOrEmpty()) {
+            return sendViaGoogleScript(toEmail, subject, htmlContent, url)
+        }
+
+        // 2. Resend API — fallback provider
         val apiKey = resendApiKey
         if (!apiKey.isNullOrEmpty()) {
             return sendViaResend(toEmail, subject, htmlContent, apiKey)
         }
 
-        val url = scriptUrl
-        if (url.isNullOrEmpty()) {
-            System.err.println("EmailService: Neither RESEND_API_KEY nor GMAIL_SCRIPT_URL is set.")
-            return false
-        }
+        System.err.println("EmailService: Neither GMAIL_SCRIPT_URL nor RESEND_API_KEY is set.")
+        return false
+    }
+
+    private suspend fun sendViaGoogleScript(
+        toEmail: String,
+        subject: String,
+        htmlContent: String,
+        url: String
+    ): Boolean {
 
         return withContext(Dispatchers.IO) {
             try {
@@ -81,10 +97,10 @@ object EmailService {
                 val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
                 if (response.statusCode() in 200..299 && !response.body().contains("Sayfa Bulunamadı")) {
-                    println("EmailService: Email successfully sent to $toEmail via Script. Response: ${response.body()}")
+                    println("EmailService: Email successfully sent to $toEmail via Google Script. Response: ${response.body()}")
                     true
                 } else {
-                    System.err.println("EmailService: Failed to send email via Script. Code: ${response.statusCode()}, Body: ${response.body()}")
+                    System.err.println("EmailService: Failed to send email via Google Script. Code: ${response.statusCode()}, Body: ${response.body()}")
                     false
                 }
             } catch (e: Exception) {

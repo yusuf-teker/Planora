@@ -3,6 +3,7 @@
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -29,6 +30,7 @@ import com.yusufteker.planora.core.navigation.Screen
 import com.yusufteker.planora.core.navigation.DeepLinkManager
 import com.yusufteker.planora.core.preferences.SessionPreferences
 import com.yusufteker.planora.core.preferences.ThemePreferences
+import com.yusufteker.planora.core.preferences.defaultSecondary
 import com.yusufteker.planora.core.snackbar.SnackbarManager
 import com.yusufteker.planora.core.theme.PlanoraTheme
 import com.yusufteker.planora.feature.auth.presentation.login.LoginScreen
@@ -66,7 +68,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.milliseconds
 
-    /**
+/**
  * Root composable for the Planora application.
  *
  * Sets up:
@@ -79,10 +81,15 @@ import kotlin.time.Duration.Companion.milliseconds
 fun App() {
     val themePreferences = koinInject<ThemePreferences>()
     val isDarkModePref by themePreferences.isDarkMode.collectAsStateWithLifecycle(initialValue = null)
-    val themeColorPref by themePreferences.themeColor.collectAsStateWithLifecycle(initialValue = com.yusufteker.planora.core.preferences.ThemeColor.DEFAULT)
+    val themeColorPref by themePreferences.themeColor.collectAsState()
+    val secondaryThemeColorPref by themePreferences.secondaryThemeColor.collectAsState()
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
 
-    PlanoraTheme(themeColor = themeColorPref, darkTheme = isDark) {
+    PlanoraTheme(
+        themeColor = themeColorPref,
+        secondaryThemeColor = secondaryThemeColorPref,
+        darkTheme = isDark
+    ) {
         val snackbarManager = koinInject<SnackbarManager>()
         val snackbarHostState = remember { SnackbarHostState() }
         val activeMessage by snackbarManager.messages.collectAsStateWithLifecycle()
@@ -506,7 +513,32 @@ fun App() {
                         val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.premium.PremiumViewModel>(key = vmKey)
                         com.yusufteker.planora.feature.home.presentation.premium.PremiumScreen(
                             viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToComparison = { navigator.navigate(Screen.PlanComparison) }
+                        )
+                    }
+
+                    entry<Screen.Trash> {
+                        val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.trash.TrashViewModel>(key = vmKey)
+                        com.yusufteker.planora.feature.home.presentation.trash.TrashScreen(
+                            viewModel = viewModel,
                             onNavigateBack = { navigator.pop() }
+                        )
+                    }
+
+                    entry<Screen.Analytics> {
+                        val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsViewModel>(key = vmKey)
+                        com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToPremium = { navigator.navigate(Screen.Premium) }
+                        )
+                    }
+
+                    entry<Screen.PlanComparison> {
+                        com.yusufteker.planora.feature.home.presentation.premium.PlanComparisonScreen(
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToPremium = { navigator.navigate(Screen.Premium) }
                         )
                     }
                 } // closes entryProvider

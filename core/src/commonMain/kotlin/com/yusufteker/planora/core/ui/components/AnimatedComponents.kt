@@ -18,45 +18,77 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.yusufteker.planora.core.theme.LocalIsDarkTheme
 import com.yusufteker.planora.core.theme.PlanoraColors
 
 /**
  * Text component that renders content with a multi-color gradient brush.
+ * Dynamically bounds the gradient to the measured text width so the transition
+ * between primary and secondary (accent) colors is distinctly visible across all text lengths.
+ *
+ * Uses [graphicsLayer] with [CompositingStrategy.Offscreen] and [drawWithCache] with [BlendMode.SrcIn]
+ * to guarantee that the gradient is accurately rendered across the exact bounds of the text glyphs
+ * without being overridden by parent container content colors (e.g. TopAppBar titleContentColor).
  *
  * @param text The string content to render.
- * @param colors The list of colors forming the linear gradient.
+ * @param colors The list of colors forming the linear gradient. Defaults to primary and secondary theme colors.
  * @param style The baseline TextStyle for typography sizing and weight.
  * @param modifier Modifier for positioning or layout adjustments.
  */
 @Composable
 fun GradientText(
     text: String,
-    colors: List<Color>,
+    colors: List<Color> = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
     style: TextStyle = MaterialTheme.typography.titleMedium,
     modifier: Modifier = Modifier
 ) {
-    val brush = remember(colors) {
-        Brush.linearGradient(colors = colors)
+    val gradientColors = if (colors.size >= 2) colors else listOf(
+        colors.firstOrNull() ?: MaterialTheme.colorScheme.primary,
+        colors.firstOrNull() ?: MaterialTheme.colorScheme.secondary
+    )
+
+    val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val measuredWidth = remember(text, style) {
+        val result = textMeasurer.measure(
+            text = androidx.compose.ui.text.AnnotatedString(text),
+            style = style
+        )
+        result.size.width.toFloat().coerceAtLeast(1f)
+    }
+
+    val gradientBrush = remember(gradientColors, measuredWidth) {
+        Brush.horizontalGradient(
+            colors = gradientColors,
+            startX = 0f,
+            endX = measuredWidth
+        )
     }
 
     Text(
         text = text,
-        style = style.copy(brush = brush),
+        style = style.copy(brush = gradientBrush),
         modifier = modifier
     )
 }
@@ -77,7 +109,7 @@ fun GlassChip(
     isSelected: Boolean = false,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    activeColors: List<Color> = PlanoraColors.GradientPrimary,
+    activeColors: List<Color> = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
     icon: (@Composable () -> Unit)? = null
 ) {
     val isDark = LocalIsDarkTheme.current
@@ -93,7 +125,7 @@ fun GlassChip(
     val borderBrush = if (isSelected) {
         Brush.linearGradient(listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.2f)))
     } else {
-        val strokeColor = if (isDark) Color.White.copy(alpha = 0.12f) else PlanoraColors.Primary.copy(alpha = 0.15f)
+        val strokeColor = if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         Brush.linearGradient(listOf(strokeColor, strokeColor))
     }
 
@@ -212,7 +244,7 @@ fun GlowButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    gradientColors: List<Color> = PlanoraColors.GradientPrimary,
+    gradientColors: List<Color> = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
     enabled: Boolean = true,
     isLoading: Boolean = false,
     icon: (@Composable () -> Unit)? = null
@@ -294,7 +326,7 @@ fun GlowButton(
 @Composable
 fun GradientBadge(
     text: String,
-    gradientColors: List<Color> = PlanoraColors.GradientPrimary,
+    gradientColors: List<Color> = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(12.dp)

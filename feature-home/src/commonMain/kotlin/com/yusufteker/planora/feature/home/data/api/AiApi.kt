@@ -8,6 +8,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.plugins.timeout
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
@@ -25,7 +26,13 @@ open class AiApi(private val httpClient: HttpClient? = null) {
         client.post("ai/chat") {
             contentType(ContentType.Application.Json)
             setBody(request)
-        }.body()
+            timeout {
+                requestTimeoutMillis = 35000L
+                socketTimeoutMillis = 35000L
+            }
+        }.body<AiChatServerResponse>()
+    }.onFailure { e ->
+        io.github.aakira.napier.Napier.e("AiApi.sendChatMessage FAILED: ${e.message}", e, tag = "AiApi")
     }
 
     /**
@@ -33,6 +40,8 @@ open class AiApi(private val httpClient: HttpClient? = null) {
      */
     open suspend fun getQuota(): Result<AiQuotaDto> = runCatching {
         val client = httpClient ?: error("HttpClient is null")
-        client.get("ai/quota").body()
+        client.get("ai/quota").body<AiQuotaDto>()
+    }.onFailure { e ->
+        io.github.aakira.napier.Napier.e("AiApi.getQuota FAILED: ${e.message}", e, tag = "AiApi")
     }
 }

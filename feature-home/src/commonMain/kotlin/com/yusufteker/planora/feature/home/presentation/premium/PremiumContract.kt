@@ -37,7 +37,8 @@ data class PremiumState(
     val selectedPaymentMethod: PaymentMethod = if (isIosPlatform) PaymentMethod.APPLE_PAY else PaymentMethod.GOOGLE_PLAY,
     val isSyncing: Boolean = false,
     val showPaymentSheet: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val premiumUntil: String? = null
 )
 
 /**

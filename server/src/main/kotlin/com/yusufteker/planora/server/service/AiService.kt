@@ -34,6 +34,14 @@ import java.time.temporal.ChronoUnit
  */
 object AiService {
 
+    // ─────────────────────────────────────────────────────────────
+    // AI KOTA LİMİTLERİ (KODDAN DEĞİŞTİRİLEBİLİR SABİTLER)
+    // ─────────────────────────────────────────────────────────────
+    const val AI_DAILY_LIMIT_FREE = 1
+    const val AI_DAILY_LIMIT_PREMIUM = 50
+    const val AI_WEEKLY_LIMIT_FREE = 3
+    const val AI_WEEKLY_LIMIT_PREMIUM = 300
+
     private val httpClient: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
         .build()
@@ -64,8 +72,8 @@ object AiService {
             false
         }
 
-        val dailyLimit = if (isPremium) 50 else 1
-        val weeklyLimit = if (isPremium) 300 else 3
+        val dailyLimit = if (isPremium) AI_DAILY_LIMIT_PREMIUM else AI_DAILY_LIMIT_FREE
+        val weeklyLimit = if (isPremium) AI_WEEKLY_LIMIT_PREMIUM else AI_WEEKLY_LIMIT_FREE
 
         val oneDayAgo = now.minus(24, ChronoUnit.HOURS)
         val oneWeekAgo = now.minus(7, ChronoUnit.DAYS)
@@ -221,18 +229,20 @@ object AiService {
         KURALLAR:
         1. KISITLAMA (GUARDRAIL): Yalnızca Planora içinde görev, etkinlik, plan odası, üye daveti ve not işlemleri yapabilirsin. Alakasız tüm genel sohbet, fıkra, kodlama, hava durumu vb. soruları KESİNLİKLE reddet (intent="REJECTED", replyText="Ben sadece Planora asistanıyım; görev, etkinlik, plan odası ve notlarınızı düzenlemenize yardımcı olabilirim.").
         2. INTENTLER:
-           - CREATE_TASK: Yapılacak iş / to-do (tarihli veya tarihsiz).
-           - CREATE_EVENT: Saat aralığı, toplantı, maç, ders veya randevu.
-           - CREATE_NOTE: Zamansız not / fikir.
+           - CREATE_TASK: Yapılacak veya tamamlanmış iş / to-do (tarihli veya tarihsiz). Kullanıcı "şunu yaptım", "spora gittim", "faturayı ödedim" gibi geçmiş zaman bildirse bile bunu bir görev (veya etkinlik) olarak algıla ve ekle.
+           - CREATE_EVENT: Saat aralığı, toplantı, maç, ders veya randevu. Geçmişte gerçekleşmiş veya gelecekte planlanan etkinlikler.
+           - CREATE_NOTE: Zamansız not / fikir / anımsatma.
            - CREATE_PLAN_ROOM: Yeni plan odası oluşturma (örn: "X adında oda aç").
            - INVITE_TO_ROOM: Odaya üye davet etme (örn: "Ahmet'i X odasına ekle").
            - REJECTED: Kapsam dışı istekler.
-        3. TARİH/SAAT: "YYYY-MM-DDTHH:mm:ss" yerel formatta dön. Saat aralığı varsa dateTime ve endDateTime doldur.
-        4. ODA & KATILIMCILAR:
+        3. GEÇMİŞ ZAMAN & TAMAMLANMA (isCompleted):
+           - Kullanıcı eylemi zaten yaptığını/bitirdiğini söylüyorsa (örn: "bugün 3'te spora gittim", "faturayı ödedim", "Ahmet'le görüştüm"), 'isCompleted' değerini true yap. Gelecek veya henüz yapılmamışsa false yap.
+        4. TARİH/SAAT: "YYYY-MM-DDTHH:mm:ss" yerel formatta dön. Geçmiş zaman ifadeleri ("dün", "sabah", "2 saat önce") için geçmiş tarihi hesapla. Saat aralığı varsa dateTime ve endDateTime doldur.
+        5. ODA & KATILIMCILAR:
            - Odada etkinlik paylaşılacaksa: sharedRoomId ve participantUserIds doldur.
            - Odaya üye davet edilecekse: roomName ve targetUsername doldur.
            - Yeni oda açılacaksa: roomName doldur.
-        5. BAŞLIK (title): 2-3 kelimelik kısa ve net özet.
+        6. BAŞLIK (title): 2-3 kelimelik kısa ve net özet (örn: "Spor Seansı", "Fatura Ödeme").
         """.trimIndent()
     }
 
@@ -276,6 +286,7 @@ object AiService {
                         put("roomName", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
                         put("targetUsername", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
                         put("sharedRoomId", buildJsonObject { put("type", JsonPrimitive("STRING")); put("nullable", JsonPrimitive(true)) })
+                        put("isCompleted", buildJsonObject { put("type", JsonPrimitive("BOOLEAN")); put("nullable", JsonPrimitive(true)) })
                         put("participantUserIds", buildJsonObject {
                             put("type", JsonPrimitive("ARRAY"))
                             put("items", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
@@ -326,6 +337,7 @@ object AiService {
         val roomName = str("roomName")
         val targetUsername = str("targetUsername")
         val sharedRoomId = str("sharedRoomId")
+        val isCompleted = parsed["isCompleted"]?.jsonPrimitive?.booleanOrNull ?: false
 
         val participantIds = parsed["participantUserIds"]?.jsonArray?.mapNotNull {
             it.jsonPrimitive.intOrNull
@@ -359,6 +371,7 @@ object AiService {
         }
 
         val nowMs = System.currentTimeMillis()
+        val taskStatus = if (isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING
 
         return when (intentStr) {
             "CREATE_TASK" -> {
@@ -368,7 +381,7 @@ object AiService {
                     startTime = startMs ?: nowMs,
                     endTime = null,
                     type = TaskType.TASK,
-                    status = TaskStatus.PENDING,
+                    status = taskStatus,
                     visibility = TaskVisibility.PRIVATE,
                     reminders = reminders,
                     specificDetails = ItemDetails.Task(deadline = startMs),
@@ -396,7 +409,7 @@ object AiService {
                     startTime = startMs ?: nowMs,
                     endTime = endMs ?: (nowMs + 3600_000L),
                     type = TaskType.EVENT,
-                    status = TaskStatus.PENDING,
+                    status = taskStatus,
                     visibility = if (isShared) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
                     sharedRoomIds = if (isShared) listOf(sharedRoomId) else emptyList(),
                     reminders = reminders,

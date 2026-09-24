@@ -49,6 +49,7 @@ fun PlanRoomsScreen(
     onNavigateToCreateEvent: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
+    val rootNavigator = com.yusufteker.planora.core.navigation.LocalNavigator.current
     LaunchedEffect(effectFlow) {
         effectFlow.collectLatest { effect ->
             when (effect) {
@@ -56,6 +57,7 @@ fun PlanRoomsScreen(
                 is PlanRoomsEffect.NavigateToRoomDetail -> onNavigateToRoomDetail(effect.roomId)
                 is PlanRoomsEffect.NavigateToCreateTask -> onNavigateToCreateTask()
                 is PlanRoomsEffect.NavigateToCreateEvent -> onNavigateToCreateEvent()
+                is PlanRoomsEffect.NavigateToPremium -> rootNavigator.navigate(com.yusufteker.planora.core.navigation.Screen.Premium)
             }
         }
     }
@@ -66,7 +68,10 @@ fun PlanRoomsScreen(
                 title = { 
                     com.yusufteker.planora.core.ui.components.GradientText(
                         text = stringResource(Res.string.title_plan_rooms),
-                        colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
+                        ),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Black
                         )
@@ -163,6 +168,44 @@ fun PlanRoomsScreen(
             dismissButton = {
                 TextButton(onClick = { onEvent(PlanRoomsEvent.OnCreateRoomClick(false)) }) {
                     Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
+    // 1.5 Room Limit Dialog (Free tier max 3 rooms)
+    if (state.showRoomLimitDialog) {
+        AlertDialog(
+            onDismissRequest = { onEvent(PlanRoomsEvent.OnDismissRoomLimitDialog(navigateToPremium = false)) },
+            title = {
+                Text(
+                    text = stringResource(Res.string.room_limit_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(Res.string.room_limit_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onEvent(PlanRoomsEvent.OnDismissRoomLimitDialog(navigateToPremium = true)) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(stringResource(Res.string.room_limit_upgrade_button))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { onEvent(PlanRoomsEvent.OnDismissRoomLimitDialog(navigateToPremium = false)) }
+                ) {
+                    Text(stringResource(Res.string.room_limit_dismiss_button))
                 }
             }
         )

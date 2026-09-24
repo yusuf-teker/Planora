@@ -17,13 +17,14 @@ data class AiChatMessage(
     val isLoading: Boolean = false
 )
 
+fun createWelcomeMessage(): AiChatMessage = AiChatMessage(
+    id = "welcome_msg",
+    text = UiText.StringResourceId(Res.string.ai_chat_welcome_message),
+    isUser = false
+)
+
 data class AiChatState(
-    val messages: List<AiChatMessage> = listOf(
-        AiChatMessage(
-            text = UiText.StringResourceId(Res.string.ai_chat_welcome_message),
-            isUser = false
-        )
-    ),
+    val messages: List<AiChatMessage> = listOf(createWelcomeMessage()),
     val inputText: String = "",
     val isLoading: Boolean = false,
     val quota: AiQuotaDto = AiQuotaDto(),

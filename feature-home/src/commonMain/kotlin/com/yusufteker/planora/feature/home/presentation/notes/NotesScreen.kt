@@ -63,7 +63,10 @@ fun NotesScreen(
                     title = {
                         com.yusufteker.planora.core.ui.components.GradientText(
                             text = stringResource(Res.string.title_notes),
-                            colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary
+                            ),
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black)
                         )
                     },

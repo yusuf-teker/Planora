@@ -38,7 +38,9 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             ?.let { runCatching { TaskType.valueOf(it) }.getOrNull() }
             ?: TaskType.NOTE
 
-        showNotification(context, taskId, taskTitle, reminderMinutes, taskType)
+        // Start AlarmService which rings continuously in USAGE_ALARM stream,
+        // vibrates, and triggers the full-screen AlarmActivity over the lock screen.
+        AlarmService.startAlarm(context, taskId, taskTitle, reminderMinutes, taskType)
     }
 
     private fun showNotification(

@@ -26,16 +26,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.yusufteker.planora.core.theme.PlanoraColors
+import com.yusufteker.planora.core.ui.components.bounceClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.yusufteker.planora.shared.api.UserProfileResponse
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
@@ -44,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
+import com.yusufteker.planora.core.ui.components.GradientText
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -179,10 +186,12 @@ fun PlanRoomDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                         }
-                        Text(
+                        GradientText(
                             text = state.roomName.ifBlank { stringResource(Res.string.room_detail_default_title) },
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
                 },
@@ -218,9 +227,9 @@ fun PlanRoomDetailScreen(
                                     isFabExpanded = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick) 
                                 },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                shape = androidx.compose.foundation.shape.CircleShape
+                                containerColor = PlanoraColors.TaskColor,
+                                contentColor = Color.White,
+                                shape = CircleShape
                             ) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = stringResource(Res.string.action_add_task))
                             }
@@ -232,9 +241,9 @@ fun PlanRoomDetailScreen(
                                     isFabExpanded = false
                                     viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick) 
                                 },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                shape = androidx.compose.foundation.shape.CircleShape
+                                containerColor = PlanoraColors.EventColor,
+                                contentColor = Color.White,
+                                shape = CircleShape
                             ) {
                                 Icon(Icons.Default.Event, contentDescription = stringResource(Res.string.action_add_event))
                             }
@@ -245,7 +254,7 @@ fun PlanRoomDetailScreen(
                     onClick = { isFabExpanded = !isFabExpanded },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = androidx.compose.foundation.shape.CircleShape
+                    shape = CircleShape
                 ) {
                     Icon(if (isFabExpanded) Icons.Default.Close else Icons.Default.Add, contentDescription = stringResource(Res.string.action_expand))
                 }
@@ -364,31 +373,35 @@ fun PlanRoomDetailScreen(
                                     }
                                 }
                                 item(key = "filter_all") {
-                                    FilterChip(
-                                        selected = state.selectedFilter == RoomTaskFilter.ALL,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) },
-                                        label = { Text(stringResource(Res.string.filter_all)) }
+                                    RoomFilterChip(
+                                        filter = RoomTaskFilter.ALL,
+                                        label = stringResource(Res.string.filter_all),
+                                        isSelected = state.selectedFilter == RoomTaskFilter.ALL,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) }
                                     )
                                 }
                                 item(key = "filter_tasks") {
-                                    FilterChip(
-                                        selected = state.selectedFilter == RoomTaskFilter.TASKS,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) },
-                                        label = { Text(stringResource(Res.string.filter_tasks)) }
+                                    RoomFilterChip(
+                                        filter = RoomTaskFilter.TASKS,
+                                        label = stringResource(Res.string.filter_tasks),
+                                        isSelected = state.selectedFilter == RoomTaskFilter.TASKS,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) }
                                     )
                                 }
                                 item(key = "filter_events") {
-                                    FilterChip(
-                                        selected = state.selectedFilter == RoomTaskFilter.EVENTS,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) },
-                                        label = { Text(stringResource(Res.string.filter_events)) }
+                                    RoomFilterChip(
+                                        filter = RoomTaskFilter.EVENTS,
+                                        label = stringResource(Res.string.filter_events),
+                                        isSelected = state.selectedFilter == RoomTaskFilter.EVENTS,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) }
                                     )
                                 }
                                 item(key = "filter_notes") {
-                                    FilterChip(
-                                        selected = state.selectedFilter == RoomTaskFilter.NOTES,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) },
-                                        label = { Text(stringResource(Res.string.filter_notes)) }
+                                    RoomFilterChip(
+                                        filter = RoomTaskFilter.NOTES,
+                                        label = stringResource(Res.string.filter_notes),
+                                        isSelected = state.selectedFilter == RoomTaskFilter.NOTES,
+                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) }
                                     )
                                 }
                             }
@@ -1025,6 +1038,69 @@ private fun getMonthNameRes(month: Int): String {
         11 -> stringResource(Res.string.month_nov)
         12 -> stringResource(Res.string.month_dec)
         else -> ""
+    }
+}
+
+/**
+ * Plan odası filtre çipi görsel bileşeni.
+ * All için primary/secondary gradient, Task/Event/Note için kendi tema renklerini arka planda alır.
+ */
+@Composable
+private fun RoomFilterChip(
+    filter: RoomTaskFilter,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val backgroundBrush = remember(isSelected, filter, primaryColor, secondaryColor, surfaceVariant) {
+        if (isSelected) {
+            when (filter) {
+                RoomTaskFilter.ALL -> Brush.horizontalGradient(
+                    listOf(primaryColor, secondaryColor)
+                )
+                RoomTaskFilter.TASKS -> SolidColor(PlanoraColors.TaskColor)
+                RoomTaskFilter.EVENTS -> SolidColor(PlanoraColors.EventColor)
+                RoomTaskFilter.NOTES -> SolidColor(PlanoraColors.NoteColor)
+            }
+        } else {
+            SolidColor(surfaceVariant.copy(alpha = 0.5f))
+        }
+    }
+
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) Color.White else onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "chipContentColor"
+    )
+
+    Row(
+        modifier = modifier
+            .height(34.dp)
+            .bounceClick()
+            .clip(RoundedCornerShape(12.dp))
+            .background(brush = backgroundBrush)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = contentColor,
+            maxLines = 1
+        )
     }
 }
 

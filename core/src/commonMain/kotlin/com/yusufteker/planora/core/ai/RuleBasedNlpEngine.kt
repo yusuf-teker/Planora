@@ -62,13 +62,20 @@ class RuleBasedNlpEngine {
     private val eventKeywords = listOf(
         "toplantı", "randevu", "buluş", "etkinlik", "davet", "organizasyon",
         "meeting", "appointment", "event", "gathering", "plan",
-        "buluşalım", "görüşelim", "toplanalım"
+        "buluşalım", "görüşelim", "toplanalım", "buluştuk", "görüştük", "buluştum", "görüştüm"
     )
 
     private val taskKeywords = listOf(
         "görev", "yap", "hatırlat", "yapmam lazım", "unutmadan", "yapılacak",
         "task", "todo", "to-do", "remind me", "remind",
-        "hallet", "tamamla", "bitir", "görevi"
+        "hallet", "tamamla", "bitir", "görevi",
+        "yaptım", "ettim", "gittim", "geldim", "ödedim", "bitirdim", "tamamladım", "hallettim", "çalıştım", "okudum", "aldım", "verdim"
+    )
+
+    // Geçmiş zaman bildiren kelimeler (görevin tamamlandı olarak işaretlenmesi için)
+    private val pastActionKeywords = listOf(
+        "yaptım", "ettim", "gittim", "geldim", "ödedim", "bitirdim", "tamamladım", "hallettim", "çalıştım", "okudum", "aldım", "verdim",
+        "buluştum", "buluştuk", "görüştüm", "görüştük", "katıldım", "katıldık", "koştum", "yürüdüm", "yüzdüm"
     )
 
     private val noteKeywords = listOf(
@@ -245,9 +252,9 @@ class RuleBasedNlpEngine {
         }
         
         val timeWords = listOf(
-            "yarın", "bugün", "saat", "haftaya", "sonra", "gün", 
+            "yarın", "bugün", "dün", "saat", "haftaya", "sonra", "önce", "gün", 
             "akşam", "sabah", "öğle", "gece", "dakika", 
-            "tomorrow", "today", "next", "at ", "in "
+            "tomorrow", "today", "yesterday", "next", "at ", "in ", "ago"
         )
         val hasTimeWord = timeWords.any { lowerInput.contains(it) }
         
@@ -414,6 +421,32 @@ class RuleBasedNlpEngine {
     // ── Tarih/Saat Çıkarımı ──
     fun extractDateTime(lowerInput: String): Long? {
         val nowMs = getCurrentTimeMs()
+
+        // "dün" → dün (varsayılan: 09:00)
+        if (Regex("\\bd[üu]n\\b").containsMatchIn(lowerInput)) {
+            val dunSaatPattern = Regex("""d[üu]n\s*(saat\s*)?(\d{1,2})['.:]?(\d{2})?\s*['']?(te|de|da|ta)?""")
+            val dunMatch = dunSaatPattern.find(lowerInput)
+            if (dunMatch != null) {
+                val hour = dunMatch.groupValues[2].toIntOrNull() ?: 9
+                val minute = dunMatch.groupValues[3].toIntOrNull() ?: 0
+                return setTimeOnDay(nowMs, -1, hour, minute)
+            }
+            return parseTimeWithDayOffset(lowerInput, nowMs, -1)
+        }
+
+        // "X saat önce"
+        val saatOnce = Regex("""(\d+)\s*saat\s*önce""").find(lowerInput)
+        if (saatOnce != null) {
+            val hours = saatOnce.groupValues[1].toIntOrNull() ?: return null
+            return nowMs - hours * 3_600_000L
+        }
+
+        // "X gün önce"
+        val gunOnce = Regex("""(\d+)\s*gün\s*önce""").find(lowerInput)
+        if (gunOnce != null) {
+            val days = gunOnce.groupValues[1].toIntOrNull() ?: return null
+            return setTimeOnDay(nowMs, -days, 9, 0)
+        }
 
         // "yarın" → yarın 09:00
         if (Regex("\\byar[ıi]n\\b").containsMatchIn(lowerInput)) {
@@ -874,6 +907,8 @@ class RuleBasedNlpEngine {
         val timeStr = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
 
         return when {
+            diffDays == -1L -> "dün saat $timeStr"
+            diffDays < -1L && diffDays > -7L -> "${-diffDays} gün önce, saat $timeStr"
             diffDays < 0L -> "geçmiş bir zaman"
             diffDays == 0L -> "bugün saat $timeStr"
             diffDays == 1L -> "yarın saat $timeStr"
@@ -964,13 +999,24 @@ class RuleBasedNlpEngine {
         // Ortak oda ID'si (nullable → non-null)
         val sharedRoomId = entities.sharedRoomId
 
+        // Geçmiş zaman veya tamamlanmış iş kontrolü
+        val lower = originalInput.lowercase()
+        val taskDateTime = entities.dateTime
+        val isPastAction = pastActionKeywords.any { lower.contains(it) } ||
+                (taskDateTime != null && taskDateTime < nowMs)
+        val initialStatus = if (isPastAction && taskType != TaskType.NOTE) {
+            com.yusufteker.planora.shared.api.TaskStatus.COMPLETED
+        } else {
+            com.yusufteker.planora.shared.api.TaskStatus.PENDING
+        }
+
         return CreateTaskRequest(
             title = entities.title,
             description = entities.description ?: buildCleanDescription(originalInput, originalInput.lowercase(), entities.participants),
             startTime = entities.dateTime ?: nowMs,
             endTime = entities.endDateTime,
             type = taskType,
-            status = com.yusufteker.planora.shared.api.TaskStatus.PENDING,
+            status = initialStatus,
             visibility = if (sharedRoomId != null) {
                 com.yusufteker.planora.shared.api.TaskVisibility.ROOM_SHARED
             } else {

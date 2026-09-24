@@ -18,6 +18,19 @@
     <string name="reminder_time_hours_later">%1$d saat sonra</string>
     <string name="reminder_time_minutes_later">%1$d dakika sonra</string>
     <string name="reminder_default_task">Görev</string>
+    <string name="alarm_action_dismiss">Durdur</string>
+    <string name="alarm_action_snooze">10 Dk Ertele</string>
+    <string name="alarm_action_open">Görevi Aç</string>
+    <string name="alarm_app_badge">Planora • Alarm</string>
+    <string name="alarm_open_in_planora">Görevi Planora\'da Aç</string>
+    <string name="alarm_screen_subtitle">Zamanı geldi!</string>
+    <string name="alarm_time_remaining_now">Şimdi başlıyor</string>
+    <string name="alarm_time_remaining_minutes">%1$d dakika kaldı</string>
+    <string name="alarm_time_remaining_hours">%1$d saat kaldı</string>
+    <string name="alarm_time_remaining_days">%1$d gün kaldı</string>
+    <string name="alarm_notification_ticker">Planora Alarmı</string>
+    <string name="notification_channel_alarm_name">Çalar Saat &amp; Yüksek Öncelikli Hatırlatıcılar</string>
+    <string name="notification_channel_alarm_desc">Tam ekran çalan alarm ve acil görev hatırlatıcıları</string>
 
     <!-- Daily Digest Notifications -->
     <string name="digest_morning_title">🌅 Günaydın! Bugünkü Planların</string>

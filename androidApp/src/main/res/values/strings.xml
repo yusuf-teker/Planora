@@ -18,6 +18,19 @@
     <string name="reminder_time_hours_later">In %1$d hours</string>
     <string name="reminder_time_minutes_later">In %1$d minutes</string>
     <string name="reminder_default_task">Task</string>
+    <string name="alarm_action_dismiss">Dismiss</string>
+    <string name="alarm_action_snooze">Snooze 10m</string>
+    <string name="alarm_action_open">Open Task</string>
+    <string name="alarm_app_badge">Planora • Alarm</string>
+    <string name="alarm_open_in_planora">Open Task in Planora</string>
+    <string name="alarm_screen_subtitle">It\'s time!</string>
+    <string name="alarm_time_remaining_now">Starting right now</string>
+    <string name="alarm_time_remaining_minutes">%1$d minutes remaining</string>
+    <string name="alarm_time_remaining_hours">%1$d hour(s) remaining</string>
+    <string name="alarm_time_remaining_days">%1$d day(s) remaining</string>
+    <string name="alarm_notification_ticker">Planora Alarm</string>
+    <string name="notification_channel_alarm_name">Alarm &amp; High Priority Reminders</string>
+    <string name="notification_channel_alarm_desc">Full screen alarm and urgent task reminders</string>
 
     <!-- Daily Digest Notifications -->
     <string name="digest_morning_title">🌅 Good Morning! Today\'s Plans</string>

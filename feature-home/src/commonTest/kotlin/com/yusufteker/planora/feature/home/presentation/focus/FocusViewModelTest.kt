@@ -65,6 +65,10 @@ private class FakePlanRepository : PlanRepository {
     override fun observeAccessibleUsers(): Flow<List<com.yusufteker.planora.core.database.CalendarAccessEntity>> = emptyFlow()
     override suspend fun fetchSharedTasks(userId: Int, from: Long?, to: Long?): Result<List<TaskDto>> = Result.success(emptyList())
     override suspend fun deleteAccount(): Result<Unit> = Result.success(Unit)
+    override fun observeDeletedTasks(): Flow<List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>> = emptyFlow()
+    override suspend fun restoreDeletedTask(taskId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun permanentlyDeleteTask(taskId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun clearAllDeletedTasks(): Result<Unit> = Result.success(Unit)
 }
 
 /**

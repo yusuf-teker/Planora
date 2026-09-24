@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -29,15 +25,20 @@ import com.yusufteker.planora.core.base.CollectEffect
 import com.yusufteker.planora.core.navigation.LocalMainNavigator
 import com.yusufteker.planora.core.navigation.Screen
 import com.yusufteker.planora.core.navigation.Screen.MainDestination
+import com.yusufteker.planora.core.ui.components.ShimmerLoadingItem
 import com.yusufteker.planora.core.utils.TimelineViewOption
+import com.yusufteker.planora.core.utils.getTodayWithOriginalTime
+import com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet
 import com.yusufteker.planora.feature.home.presentation.home.components.calendar.CalendarSection
 import com.yusufteker.planora.feature.home.presentation.home.components.FilterBottomSheetComponent
 import com.yusufteker.planora.feature.home.presentation.home.components.HomeFabMenu
 import com.yusufteker.planora.feature.home.presentation.home.components.HomeTopBar
+import com.yusufteker.planora.feature.home.presentation.home.components.SharedTaskDetailDialog
 import com.yusufteker.planora.feature.home.presentation.home.components.SharedUserChipRow
 import com.yusufteker.planora.feature.home.presentation.home.components.TasksHubSection
 import com.yusufteker.planora.feature.home.presentation.home.components.TimelineSection
 import com.yusufteker.planora.feature.home.presentation.home.components.TypeFilterChipRow
+import com.yusufteker.planora.shared.api.ItemDetails
 
 /**
  * Home screen composable.
@@ -106,12 +107,12 @@ fun HomeScreen(
                 .padding(16.dp)
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-            com.yusufteker.planora.core.ui.components.ShimmerLoadingItem(height = 48.dp)
+            ShimmerLoadingItem(height = 48.dp)
             Spacer(modifier = Modifier.height(20.dp))
-            com.yusufteker.planora.core.ui.components.ShimmerLoadingItem(height = 100.dp)
+            ShimmerLoadingItem(height = 100.dp)
             Spacer(modifier = Modifier.height(16.dp))
             repeat(4) {
-                com.yusufteker.planora.core.ui.components.ShimmerLoadingItem(height = 84.dp)
+                ShimmerLoadingItem(height = 84.dp)
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
@@ -224,18 +225,18 @@ fun HomeScreen(
     }
 
     state.selectedSharedTask?.let { task ->
-        com.yusufteker.planora.feature.home.presentation.home.components.SharedTaskDetailDialog(
+        SharedTaskDetailDialog(
             task = task,
             onDismiss = { viewModel.onEvent(HomeEvent.DismissSharedTaskDetail) }
         )
     }
 
     quickDuplicateTask?.let { task ->
-        val rawTimeMs = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
+        val rawTimeMs = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.endTime ?: task.startTime
         val initialMs = remember(task.id) {
-            com.yusufteker.planora.core.utils.getTodayWithOriginalTime(rawTimeMs)
+            getTodayWithOriginalTime(rawTimeMs)
         }
-        com.yusufteker.planora.feature.home.presentation.components.DateTimePickerSheet(
+        DateTimePickerSheet(
             initialTimeMs = initialMs,
             sheetState = rememberModalBottomSheetState(),
             onDismissRequest = { quickDuplicateTask = null },

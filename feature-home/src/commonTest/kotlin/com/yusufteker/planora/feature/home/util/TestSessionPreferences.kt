@@ -95,6 +95,10 @@ open class FakeSessionPreferences : SessionPreferences(
         _premiumUntilState.value = premiumUntil
     }
 
+    suspend fun setPremium(isPremium: Boolean) {
+        setPremium(isPremium, null)
+    }
+
     override val premiumUntilFlow: Flow<String?> = _premiumUntilState
 
     override suspend fun getPremiumUntil(): String? = _premiumUntilState.value
@@ -102,9 +106,37 @@ open class FakeSessionPreferences : SessionPreferences(
     override suspend fun getUserId(): String? = userIdOverride
 
     override suspend fun getUserName(): String? = userNameOverride
+
+    private var _fakeAiQuota: com.yusufteker.planora.shared.ai.AiQuotaDto? = null
+
+    override suspend fun getAiQuota(isPremium: Boolean): com.yusufteker.planora.shared.ai.AiQuotaDto {
+        return _fakeAiQuota ?: com.yusufteker.planora.shared.ai.AiQuotaDto(
+            isPremium = isPremium,
+            dailyRemaining = if (isPremium) 50 else 1,
+            dailyLimit = if (isPremium) 50 else 1,
+            weeklyRemaining = if (isPremium) 300 else 3,
+            weeklyLimit = if (isPremium) 300 else 3
+        )
+    }
+
+    override suspend fun saveAiQuota(quota: com.yusufteker.planora.shared.ai.AiQuotaDto) {
+        _fakeAiQuota = quota
+    }
+
+    override suspend fun decrementAiQuota(isPremium: Boolean): com.yusufteker.planora.shared.ai.AiQuotaDto {
+        val current = getAiQuota(isPremium)
+        val updated = current.copy(
+            dailyRemaining = (current.dailyRemaining - 1).coerceAtLeast(0),
+            weeklyRemaining = (current.weeklyRemaining - 1).coerceAtLeast(0)
+        )
+        _fakeAiQuota = updated
+        return updated
+    }
 }
 
 /**
  * Testler için InMemory SessionPreferences üretici fonksiyonu.
  */
 fun createTestSessionPreferences(): SessionPreferences = FakeSessionPreferences()
+
+typealias TestSessionPreferences = FakeSessionPreferences

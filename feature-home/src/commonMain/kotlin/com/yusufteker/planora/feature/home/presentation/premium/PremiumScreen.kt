@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -58,6 +60,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,9 +80,14 @@ import com.yusufteker.planora.core.base.CollectEffect
 import com.yusufteker.planora.shared.billing.PaymentMethod
 import com.yusufteker.planora.shared.billing.SubscriptionPeriod
 import com.yusufteker.planora.shared.billing.SubscriptionPlan
+import com.yusufteker.planora.core.theme.premiumColor
+import com.yusufteker.planora.core.theme.premiumGradient
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
+
+private val ProCrimson = premiumColor
+private val ProCrimsonGradient = Brush.linearGradient(premiumGradient)
 
 /**
  * Planora Premium Satın Alma (Paywall) Ekranı.
@@ -90,7 +100,8 @@ import planora.core.generated.resources.*
 @Composable
 fun PremiumScreen(
     viewModel: PremiumViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToComparison: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -103,14 +114,6 @@ fun PremiumScreen(
         }
     }
 
-    val goldGradient = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFFFFD700),
-            Color(0xFFFFA500),
-            Color(0xFFFF8C00)
-        )
-    )
-
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -118,7 +121,15 @@ fun PremiumScreen(
             .navigationBarsPadding(),
         topBar = {
             TopAppBar(
-                title = {},
+                title = {
+                    if (state.isPremium) {
+                        Text(
+                            text = stringResource(Res.string.profile_premium_badge),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(PremiumEvent.OnBackClicked) }) {
                         Icon(
@@ -133,7 +144,6 @@ fun PremiumScreen(
             )
         },
         bottomBar = {
-            // Alt Sabit Satın Alma Buton Alanı
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 12.dp,
@@ -150,17 +160,18 @@ fun PremiumScreen(
                             onClick = onNavigateBack,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
+                                .height(54.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = stringResource(Res.string.premium_badge_active),
+                                text = stringResource(Res.string.premium_hub_done_action),
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -223,183 +234,469 @@ fun PremiumScreen(
             }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // ── Üst Başlık & Taç İkonu ──
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(goldGradient),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(44.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(Res.string.premium_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = stringResource(Res.string.premium_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // ── Premium Avantaj Listesi ──
+        if (state.isPremium) {
+            // ── VIP Pro Üye Ayrıcalıklar Ekranı (Satın alma seçenekleri YOK) ──
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PremiumFeatureRow(
-                    icon = Icons.Default.AutoAwesome,
-                    iconTint = Color(0xFFFFB300),
-                    title = stringResource(Res.string.premium_feature_ai_title),
-                    description = stringResource(Res.string.premium_feature_ai_desc)
-                )
-                PremiumFeatureRow(
-                    icon = Icons.Default.Groups,
-                    iconTint = Color(0xFF6C5CE7),
-                    title = stringResource(Res.string.premium_feature_rooms_title),
-                    description = stringResource(Res.string.premium_feature_rooms_desc)
-                )
-                PremiumFeatureRow(
-                    icon = Icons.Default.Palette,
-                    iconTint = Color(0xFFE83E8C),
-                    title = stringResource(Res.string.premium_feature_themes_title),
-                    description = stringResource(Res.string.premium_feature_themes_desc)
-                )
-                PremiumFeatureRow(
-                    icon = Icons.Default.Insights,
-                    iconTint = Color(0xFF00B4D8),
-                    title = stringResource(Res.string.premium_feature_analytics_title),
-                    description = stringResource(Res.string.premium_feature_analytics_desc)
-                )
-                PremiumFeatureRow(
-                    icon = Icons.Default.CloudDone,
-                    iconTint = Color(0xFF2A9D8F),
-                    title = stringResource(Res.string.premium_feature_sync_title),
-                    description = stringResource(Res.string.premium_feature_sync_desc)
-                )
-            }
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // ── Abonelik Plan Seçimi (Aylık vs Yıllık) ──
-            Text(
-                text = "Bir Plan Seçin",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                state.availablePlans.forEach { plan ->
-                    val isSelected = state.selectedPlan.id == plan.id
-                    val isAnnual = plan.period == SubscriptionPeriod.ANNUAL
-
-                    val borderColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                        animationSpec = tween(200)
+                // Kırmızı Parıltı Rozeti
+                Box(
+                    modifier = Modifier
+                        .size(88.dp)
+                        .clip(CircleShape)
+                        .background(ProCrimsonGradient),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
                     )
+                }
 
-                    Card(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(Res.string.premium_hub_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = stringResource(Res.string.premium_hub_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Üyelik Durum Kartı
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = ProCrimson.copy(alpha = 0.12f)
+                    ),
+                    border = BorderStroke(
+                        width = 1.2.dp,
+                        brush = ProCrimsonGradient
+                    )
+                ) {
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .clickable { viewModel.onEvent(PremiumEvent.OnPlanSelected(plan)) }
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = borderColor,
-                                shape = RoundedCornerShape(16.dp)
-                            ),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-                            else MaterialTheme.colorScheme.surface
-                        )
+                            .fillMaxWidth()
+                            .padding(18.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            if (isAnnual) {
-                                Surface(
-                                    color = Color(0xFFFFB300),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.padding(bottom = 8.dp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(ProCrimson),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = stringResource(Res.string.premium_save_badge),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
-                            } else {
-                                Spacer(modifier = Modifier.height(22.dp))
+                                Text(
+                                    text = stringResource(Res.string.premium_hub_status_active),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFF3B30)
+                                )
                             }
 
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = ProCrimson.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = "PRO",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFFF3B30),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val formattedDate = formatSubscriptionDate(state.premiumUntil)
+                        Text(
+                            text = if (formattedDate != null) {
+                                stringResource(Res.string.profile_premium_expires_format, formattedDate)
+                            } else {
+                                stringResource(Res.string.profile_premium_lifetime)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Kullanımınızdaki Ayrıcalıklar Başlığı
+                Text(
+                    text = stringResource(Res.string.premium_hub_superpowers_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Aktif Ayrıcalıklar Listesi (Her birinin yanında yeşil/altın Aktif rozetiyle)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    PremiumFeatureRowWithBadge(
+                        icon = Icons.Default.AutoAwesome,
+                        iconTint = Color(0xFFFFB300),
+                        title = stringResource(Res.string.premium_feature_ai_title),
+                        description = stringResource(Res.string.premium_feature_ai_desc),
+                        badgeText = stringResource(Res.string.premium_feature_unlocked)
+                    )
+                    PremiumFeatureRowWithBadge(
+                        icon = Icons.Default.Groups,
+                        iconTint = Color(0xFF6C5CE7),
+                        title = stringResource(Res.string.premium_feature_rooms_title),
+                        description = stringResource(Res.string.premium_feature_rooms_desc),
+                        badgeText = stringResource(Res.string.premium_feature_unlocked)
+                    )
+                    PremiumFeatureRowWithBadge(
+                        icon = Icons.Default.Palette,
+                        iconTint = Color(0xFFE83E8C),
+                        title = stringResource(Res.string.premium_feature_themes_title),
+                        description = stringResource(Res.string.premium_feature_themes_desc),
+                        badgeText = stringResource(Res.string.premium_feature_unlocked)
+                    )
+                    PremiumFeatureRowWithBadge(
+                        icon = Icons.Default.Insights,
+                        iconTint = Color(0xFF00B4D8),
+                        title = stringResource(Res.string.premium_feature_analytics_title),
+                        description = stringResource(Res.string.premium_feature_analytics_desc),
+                        badgeText = stringResource(Res.string.premium_feature_unlocked)
+                    )
+                    PremiumFeatureRowWithBadge(
+                        icon = Icons.Default.CloudDone,
+                        iconTint = Color(0xFF2A9D8F),
+                        title = stringResource(Res.string.premium_feature_sync_title),
+                        description = stringResource(Res.string.premium_feature_sync_desc),
+                        badgeText = stringResource(Res.string.premium_feature_unlocked)
+                    )
+                    PremiumFeatureRowWithBadge(
+                        icon = Icons.Default.DeleteSweep,
+                        iconTint = Color(0xFFFF9F1C),
+                        title = stringResource(Res.string.premium_feature_trash_title),
+                        description = stringResource(Res.string.premium_feature_trash_desc),
+                        badgeText = stringResource(Res.string.premium_feature_unlocked)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = onNavigateToComparison,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(Res.string.premium_compare_plans_action),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Mağaza Yönetim Bilgisi Kartı
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (isAnnual) stringResource(Res.string.premium_plan_annual) else stringResource(Res.string.premium_plan_monthly),
-                                style = MaterialTheme.typography.titleMedium,
+                                text = stringResource(Res.string.premium_hub_manage_title),
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (isAnnual) stringResource(Res.string.premium_plan_annual_price) else stringResource(Res.string.premium_plan_monthly_price),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = plan.description,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
+                                text = stringResource(Res.string.premium_hub_manage_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(36.dp))
+            }
+        } else {
+            // ── Ücretsiz Kullanıcılar için Satın Alma Paywall Akışı ──
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // ── Üst Başlık & Taç İkonu ──
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(ProCrimsonGradient),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(44.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(Res.string.premium_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = stringResource(Res.string.premium_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // ── Premium Avantaj Listesi ──
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    PremiumFeatureRow(
+                        icon = Icons.Default.AutoAwesome,
+                        iconTint = Color(0xFFFFB300),
+                        title = stringResource(Res.string.premium_feature_ai_title),
+                        description = stringResource(Res.string.premium_feature_ai_desc)
+                    )
+                    PremiumFeatureRow(
+                        icon = Icons.Default.Groups,
+                        iconTint = Color(0xFF6C5CE7),
+                        title = stringResource(Res.string.premium_feature_rooms_title),
+                        description = stringResource(Res.string.premium_feature_rooms_desc)
+                    )
+                    PremiumFeatureRow(
+                        icon = Icons.Default.Palette,
+                        iconTint = Color(0xFFE83E8C),
+                        title = stringResource(Res.string.premium_feature_themes_title),
+                        description = stringResource(Res.string.premium_feature_themes_desc)
+                    )
+                    PremiumFeatureRow(
+                        icon = Icons.Default.Insights,
+                        iconTint = Color(0xFF00B4D8),
+                        title = stringResource(Res.string.premium_feature_analytics_title),
+                        description = stringResource(Res.string.premium_feature_analytics_desc)
+                    )
+                    PremiumFeatureRow(
+                        icon = Icons.Default.CloudDone,
+                        iconTint = Color(0xFF2A9D8F),
+                        title = stringResource(Res.string.premium_feature_sync_title),
+                        description = stringResource(Res.string.premium_feature_sync_desc)
+                    )
+                    PremiumFeatureRow(
+                        icon = Icons.Default.DeleteSweep,
+                        iconTint = Color(0xFFFF9F1C),
+                        title = stringResource(Res.string.premium_feature_trash_title),
+                        description = stringResource(Res.string.premium_feature_trash_desc)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = onNavigateToComparison,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(Res.string.premium_compare_plans_action),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // ── Abonelik Plan Seçimi (Aylık vs Yıllık) ──
+                Text(
+                    text = stringResource(Res.string.premium_select_plan_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    state.availablePlans.forEach { plan ->
+                        val isSelected = state.selectedPlan.id == plan.id
+                        val isAnnual = plan.period == SubscriptionPeriod.ANNUAL
+
+                        val borderColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            animationSpec = tween(200)
+                        )
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { viewModel.onEvent(PremiumEvent.OnPlanSelected(plan)) }
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = borderColor,
+                                    shape = RoundedCornerShape(16.dp)
+                                ),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                                else MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                if (isAnnual) {
+                                    Surface(
+                                        color = Color(0xFFFFB300),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.premium_save_badge),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Black,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.height(22.dp))
+                                }
+
+                                Text(
+                                    text = if (isAnnual) stringResource(Res.string.premium_plan_annual) else stringResource(Res.string.premium_plan_monthly),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = if (isAnnual) stringResource(Res.string.premium_plan_annual_price) else stringResource(Res.string.premium_plan_monthly_price),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = plan.description,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(36.dp))
+            }
         }
     }
 
@@ -561,3 +858,95 @@ private fun PremiumFeatureRow(
         }
     }
 }
+
+/**
+ * Premium özellik satırı (Aktif rozeti içeren Pro üye versiyonu).
+ */
+@Composable
+private fun PremiumFeatureRowWithBadge(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    description: String,
+    badgeText: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconTint.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = ProCrimson.copy(alpha = 0.15f),
+            border = BorderStroke(1.dp, ProCrimson.copy(alpha = 0.4f))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color(0xFFFF3B30),
+                    modifier = Modifier.size(12.dp)
+                )
+                Text(
+                    text = badgeText,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFF3B30)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * ISO-8601 formatındaki tarihi DD.MM.YYYY formatına dönüştürür.
+ */
+private fun formatSubscriptionDate(isoDate: String?): String? {
+    if (isoDate.isNullOrBlank()) return null
+    return try {
+        val instant = Instant.parse(isoDate)
+        val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val day = local.dayOfMonth.toString().padStart(2, '0')
+        val month = local.monthNumber.toString().padStart(2, '0')
+        val year = local.year
+        "$day.$month.$year"
+    } catch (_: Exception) {
+        if (isoDate.length >= 10) isoDate.substring(0, 10) else isoDate
+    }
+}
+

@@ -252,7 +252,7 @@ private fun MiniMonthCard(
                                 val textColor = when {
                                     isSelected -> MaterialTheme.colorScheme.onPrimary
                                     isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-                                    c == 6 || c == 5 -> Color(0xFF60A5FA) // Hafta sonu mavi renkte
+                                    c == 6 || c == 5 -> MaterialTheme.colorScheme.primary // Hafta sonu tema renginde
                                     else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                 }
 

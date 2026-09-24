@@ -170,7 +170,7 @@ fun PlanoraBottomBar(
                     brush = Brush.linearGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary
+                            MaterialTheme.colorScheme.secondary
                         )
                     ),
                     shape = CircleShape
@@ -189,7 +189,7 @@ fun PlanoraBottomBar(
                 drawOuterRing = false,
                 gradientColors = listOf(
                     MaterialTheme.colorScheme.primary,
-                    MaterialTheme.colorScheme.tertiary
+                    MaterialTheme.colorScheme.secondary
                 )
             )
         }

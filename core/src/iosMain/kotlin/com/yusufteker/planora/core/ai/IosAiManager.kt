@@ -22,6 +22,10 @@ class IosAiManager(
         return pipeline.processMessage(input, context)
     }
 
+    override suspend fun processRuleBased(input: String, context: AiChatContext): AiChatResult {
+        return ruleBasedEngine.processMessage(input, context)
+    }
+
     override fun release() {
         // No-op
     }

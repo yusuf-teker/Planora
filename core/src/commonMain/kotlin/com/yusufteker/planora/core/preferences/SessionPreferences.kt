@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import com.yusufteker.planora.shared.ai.AiQuotaDto
 
 /**
  * Manages user session tokens (Access & Refresh) using SecureSettings (Keychain/EncryptedPrefs)
@@ -22,6 +25,12 @@ open class SessionPreferences(
     private val dataStore: DataStore<Preferences>,
     private val secureSettings: SecureSettings,
 ) {
+    companion object {
+        const val DEFAULT_AI_DAILY_LIMIT_FREE = 1
+        const val DEFAULT_AI_DAILY_LIMIT_PREMIUM = 50
+        const val DEFAULT_AI_WEEKLY_LIMIT_FREE = 3
+        const val DEFAULT_AI_WEEKLY_LIMIT_PREMIUM = 300
+    }
     // Keys for Settings (Tokens)
     private val accessTokenKeyString = "access_token"
     private val refreshTokenKeyString = "refresh_token"
@@ -45,6 +54,11 @@ open class SessionPreferences(
     private val lastSeenOverviewIndexKey = intPreferencesKey("last_seen_overview_index")
     private val isPremiumKey = booleanPreferencesKey("is_premium")
     private val premiumUntilKey = stringPreferencesKey("premium_until")
+    private val aiDailyRemainingKey = intPreferencesKey("ai_daily_remaining")
+    private val aiDailyLimitKey = intPreferencesKey("ai_daily_limit")
+    private val aiWeeklyRemainingKey = intPreferencesKey("ai_weekly_remaining")
+    private val aiWeeklyLimitKey = intPreferencesKey("ai_weekly_limit")
+    private val aiLastQuotaDateKey = stringPreferencesKey("ai_last_quota_date")
 
     suspend fun getAccessToken(): String? {
         return secureSettings.settings.getStringOrNull(accessTokenKeyString)
@@ -228,6 +242,11 @@ open class SessionPreferences(
             prefs.remove(followingCountKey)
             prefs.remove(isPremiumKey)
             prefs.remove(premiumUntilKey)
+            prefs.remove(aiDailyRemainingKey)
+            prefs.remove(aiDailyLimitKey)
+            prefs.remove(aiWeeklyRemainingKey)
+            prefs.remove(aiWeeklyLimitKey)
+            prefs.remove(aiLastQuotaDateKey)
         }
     }
 
@@ -351,6 +370,80 @@ open class SessionPreferences(
         }
     }
 
+    /**
+     * Yerel olarak saklanan AI kullanım kotasını çeker.
+     * Gün değiştiğinde günlük kotayı otomatik olarak limitine sıfırlar.
+     *
+     * @param isPremium Kullanıcının Premium durumu (limitleri belirler)
+     * @return Güncel [AiQuotaDto] kota bilgisi
+     */
+    open suspend fun getAiQuota(isPremium: Boolean): AiQuotaDto {
+        val prefs = dataStore.data.first()
+        val defaultDailyLimit = if (isPremium) DEFAULT_AI_DAILY_LIMIT_PREMIUM else DEFAULT_AI_DAILY_LIMIT_FREE
+        val defaultWeeklyLimit = if (isPremium) DEFAULT_AI_WEEKLY_LIMIT_PREMIUM else DEFAULT_AI_WEEKLY_LIMIT_FREE
 
-   
+        val todayDate = try {
+            val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+            Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+        } catch (_: Exception) {
+            ""
+        }
+
+        val lastDate = prefs[aiLastQuotaDateKey] ?: ""
+        val isNewDay = lastDate.isNotBlank() && lastDate != todayDate
+
+        val dailyLimit = prefs[aiDailyLimitKey] ?: defaultDailyLimit
+        val weeklyLimit = prefs[aiWeeklyLimitKey] ?: defaultWeeklyLimit
+
+        val dailyRemaining = if (isNewDay) dailyLimit else (prefs[aiDailyRemainingKey] ?: dailyLimit)
+        val weeklyRemaining = prefs[aiWeeklyRemainingKey] ?: weeklyLimit
+
+        return AiQuotaDto(
+            isPremium = isPremium,
+            dailyRemaining = dailyRemaining,
+            dailyLimit = dailyLimit,
+            weeklyRemaining = weeklyRemaining,
+            weeklyLimit = weeklyLimit
+        )
+    }
+
+    /**
+     * Sunucudan veya işlem sonrasından gelen güncel AI kotasını yerel DataStore'a kaydeder.
+     *
+     * @param quota Kaydedilecek kota modeli
+     */
+    open suspend fun saveAiQuota(quota: AiQuotaDto) {
+        val todayDate = try {
+            val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+            Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+        } catch (_: Exception) {
+            ""
+        }
+
+        dataStore.edit { prefs ->
+            prefs[aiDailyRemainingKey] = quota.dailyRemaining
+            prefs[aiDailyLimitKey] = quota.dailyLimit
+            prefs[aiWeeklyRemainingKey] = quota.weeklyRemaining
+            prefs[aiWeeklyLimitKey] = quota.weeklyLimit
+            if (todayDate.isNotBlank()) {
+                prefs[aiLastQuotaDateKey] = todayDate
+            }
+        }
+    }
+
+    /**
+     * Her AI mesajı gönderildiğinde kotadan 1 adet düşer ve güncellenmiş durumu kaydeder.
+     *
+     * @param isPremium Kullanıcının Premium durumu
+     * @return 1 adet düşülmüş yeni [AiQuotaDto]
+     */
+    open suspend fun decrementAiQuota(isPremium: Boolean): AiQuotaDto {
+        val current = getAiQuota(isPremium)
+        val updated = current.copy(
+            dailyRemaining = (current.dailyRemaining - 1).coerceAtLeast(0),
+            weeklyRemaining = (current.weeklyRemaining - 1).coerceAtLeast(0)
+        )
+        saveAiQuota(updated)
+        return updated
+    }
 }

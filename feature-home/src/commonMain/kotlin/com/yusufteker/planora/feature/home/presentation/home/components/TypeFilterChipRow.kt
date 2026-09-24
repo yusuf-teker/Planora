@@ -28,10 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.yusufteker.planora.core.theme.PlanoraColors
 import com.yusufteker.planora.core.ui.components.bounceClick
 import com.yusufteker.planora.core.utils.TimelineTypeFilter
 import org.jetbrains.compose.resources.stringResource
@@ -70,6 +73,7 @@ fun TypeFilterChipRow(
         filters.forEach { (filter, label, icon) ->
             val isSelected = selectedFilter == filter
             TypeFilterChipItem(
+                filter = filter,
                 label = label,
                 icon = icon,
                 isSelected = isSelected,
@@ -85,6 +89,7 @@ fun TypeFilterChipRow(
  */
 @Composable
 private fun TypeFilterChipItem(
+    filter: TimelineTypeFilter,
     label: String,
     icon: ImageVector,
     isSelected: Boolean,
@@ -92,31 +97,36 @@ private fun TypeFilterChipItem(
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-    val onPrimary = MaterialTheme.colorScheme.onPrimary
 
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) primaryColor else surfaceVariant.copy(alpha = 0.5f),
-        animationSpec = tween(durationMillis = 200),
-        label = "chipBgColor"
-    )
+    val backgroundBrush = remember(isSelected, filter, primaryColor, secondaryColor, surfaceVariant) {
+        if (isSelected) {
+            when (filter) {
+                TimelineTypeFilter.ALL -> Brush.horizontalGradient(
+                    listOf(primaryColor, secondaryColor)
+                )
+                TimelineTypeFilter.EVENTS_ONLY -> SolidColor(PlanoraColors.EventColor)
+                TimelineTypeFilter.TASKS_ONLY -> SolidColor(PlanoraColors.TaskColor)
+            }
+        } else {
+            SolidColor(surfaceVariant.copy(alpha = 0.5f))
+        }
+    }
 
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) onPrimary else onSurfaceVariant,
+        targetValue = if (isSelected) Color.White else onSurfaceVariant,
         animationSpec = tween(durationMillis = 200),
         label = "chipContentColor"
     )
-
-    val borderColor = if (isSelected) primaryColor else Color.Transparent
 
     Row(
         modifier = modifier
             .height(34.dp)
             .bounceClick()
             .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .background(brush = backgroundBrush)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

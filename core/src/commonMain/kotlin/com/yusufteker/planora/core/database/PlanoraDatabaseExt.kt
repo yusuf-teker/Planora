@@ -12,5 +12,6 @@ fun PlanoraDatabaseQueries.clearAll() {
         deleteAllTaskExceptions()
         deleteAllCalendarAccess()
         deleteAllHolidays()
+        deleteAllDeletedTasks()
     }
 }

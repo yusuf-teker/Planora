@@ -45,10 +45,15 @@ class PremiumViewModel(
     internal var syncJob: Job? = null
 
     init {
-        // Kullanıcının mevcut yerel DataStore Premium durumunu reaktif dinle
+        // Kullanıcının mevcut yerel DataStore Premium durumunu ve bitiş tarihini reaktif dinle
         viewModelScope.launch {
             sessionPreferences.isPremiumFlow.collect { isPrem ->
                 _state.update { it.copy(isPremium = isPrem) }
+            }
+        }
+        viewModelScope.launch {
+            sessionPreferences.premiumUntilFlow.collect { until ->
+                _state.update { it.copy(premiumUntil = until) }
             }
         }
 
@@ -99,6 +104,7 @@ class PremiumViewModel(
                     _state.update {
                         it.copy(
                             isPremium = profile.isPremium,
+                            premiumUntil = profile.premiumUntil,
                             isSyncing = false
                         )
                     }

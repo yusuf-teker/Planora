@@ -47,6 +47,9 @@ class AiChatViewModel(
     private var generationJob: Job? = null
 
     init {
+        if (state.value.messages.isEmpty()) {
+            setState { copy(messages = listOf(createWelcomeMessage())) }
+        }
         loadQuota()
     }
 
@@ -59,7 +62,7 @@ class AiChatViewModel(
                 sendMessage()
             }
             is AiChatEvent.ClearChat -> {
-                setState { copy(messages = emptyList(), inputText = "") }
+                setState { copy(messages = listOf(createWelcomeMessage()), inputText = "") }
             }
             AiChatEvent.CancelGeneration -> {
                 generationJob?.cancel()
@@ -75,16 +78,21 @@ class AiChatViewModel(
     }
 
     /**
-     * Kullanıcının güncel AI token/kullanım kotasını sunucudan çeker.
+     * Kullanıcının güncel AI token/kullanım kotasını sunucudan çeker,
+     * sunucuya ulaşılamazsa veya hata dönerse yerel DataStore'daki son kotayı korur.
      */
     private fun loadQuota() {
         viewModelScope.launch {
             setState { copy(isQuotaLoading = true) }
+            val isPremium = sessionPreferences.isPremium()
             val quotaResult = aiApi.getQuota()
             if (quotaResult.isSuccess) {
-                setState { copy(quota = quotaResult.getOrThrow(), isQuotaLoading = false) }
+                val fetchedQuota = quotaResult.getOrThrow()
+                sessionPreferences.saveAiQuota(fetchedQuota)
+                setState { copy(quota = fetchedQuota, isQuotaLoading = false) }
             } else {
-                setState { copy(isQuotaLoading = false) }
+                val localQuota = sessionPreferences.getAiQuota(isPremium)
+                setState { copy(quota = localQuota, isQuotaLoading = false) }
             }
         }
     }
@@ -106,43 +114,76 @@ class AiChatViewModel(
         generationJob = launch {
             try {
                 val context = buildAiChatContext()
+                val currentQuota = state.value.quota
 
                 var result: AiChatResult? = null
                 var isFallbackUsed = false
                 var fallbackNote: String? = null
 
-                // ── 1. SIRA (BİRİNCİL): Sunucu üzerinden Gemini AI (Kota takip edilerek) ──
-                val serverResponseResult = aiApi.sendChatMessage(
-                    AiChatServerRequest(
-                        message = input,
-                        context = context
-                    )
-                )
-
-                val serverResponse = serverResponseResult.getOrNull()
-
-                if (serverResponse != null) {
-                    // Kotayı anlık olarak güncelle
-                    setState { copy(quota = serverResponse.quota) }
-
-                    if (serverResponse.quotaExceeded) {
-                        // KOTA DOLDU! 2. sıradaki yerel motora düşülür.
-                        isFallbackUsed = true
-                        fallbackNote = runCatching { getString(Res.string.ai_fallback_notice) }
-                            .getOrElse { "\n\n(Not: Günlük/haftalık bulut kotanız dolduğu için yanıt cihaz içi yerel motor tarafından üretilmiştir.)" }
-                    } else if (serverResponse.result != null) {
-                        result = serverResponse.result
-                    } else if (!serverResponse.errorMessage.isNullOrBlank()) {
-                        isFallbackUsed = true
-                    }
-                } else {
-                    // Sunucuya ulaşılamadı veya çevrimdışı -> 2. sıradaki yerel motora düş
+                // ── KOTA KONTROLÜ: Eğer günlük veya haftalık kota tükenmişse doğrudan Rule-Based motora geç ──
+                if (currentQuota.dailyRemaining <= 0 || currentQuota.weeklyRemaining <= 0) {
+                    io.github.aakira.napier.Napier.d("AiChatViewModel: Kota yetersiz (${currentQuota.dailyRemaining}/${currentQuota.dailyLimit}), RuleBasedStep devreye giriyor.", tag = "AiChatViewModel")
                     isFallbackUsed = true
+                    fallbackNote = runCatching { getString(Res.string.ai_quota_exhausted_rulebased_notice) }
+                        .getOrElse { "\n\nℹ️ Günlük AI kullanım kotanız dolduğu için yanıt kural tabanlı asistan tarafından verilmiştir." }
+                    result = offlineAiManager.processRuleBased(input, context)
+                } else {
+                    // ── 1. SIRA (BİRİNCİL): Sunucu üzerinden Gemini AI (Kota takip edilerek) ──
+                    val serverResponseResult = aiApi.sendChatMessage(
+                        AiChatServerRequest(
+                            message = input,
+                            context = context
+                        )
+                    )
+
+                    val serverResponse = serverResponseResult.getOrNull()
+
+                    if (serverResponse != null) {
+                        if (serverResponse.quotaExceeded) {
+                            // KOTA DOLDU! Sunucu kotası bitti uyarısı verdi.
+                            io.github.aakira.napier.Napier.d("AiChatViewModel: Sunucu kotası aşıldı, kural tabanlı fallback devreye giriyor.", tag = "AiChatViewModel")
+                            isFallbackUsed = true
+                            fallbackNote = runCatching { getString(Res.string.ai_quota_exhausted_rulebased_notice) }
+                                .getOrElse { "\n\nℹ️ Günlük AI kullanım kotanız dolduğu için yanıt kural tabanlı asistan tarafından verilmiştir." }
+                            val zeroQuota = serverResponse.quota.copy(dailyRemaining = 0)
+                            sessionPreferences.saveAiQuota(zeroQuota)
+                            setState { copy(quota = zeroQuota) }
+                            result = offlineAiManager.processRuleBased(input, context)
+                        } else if (serverResponse.result != null) {
+                            result = serverResponse.result
+                            // Sunucu yanıtı ile kotayı güncelle. Eğer sunucu kotayı düşürmediyse yerel olarak 1 adet düşür.
+                            val updatedQuota = if (serverResponse.quota.dailyRemaining >= currentQuota.dailyRemaining && currentQuota.dailyRemaining > 0) {
+                                currentQuota.copy(
+                                    dailyRemaining = (currentQuota.dailyRemaining - 1).coerceAtLeast(0),
+                                    weeklyRemaining = (currentQuota.weeklyRemaining - 1).coerceAtLeast(0)
+                                )
+                            } else {
+                                serverResponse.quota
+                            }
+                            sessionPreferences.saveAiQuota(updatedQuota)
+                            setState { copy(quota = updatedQuota) }
+                        } else if (!serverResponse.errorMessage.isNullOrBlank()) {
+                            io.github.aakira.napier.Napier.w("AiChatViewModel: Sunucu hata döndü: ${serverResponse.errorMessage}, yerel motora düşülüyor.", tag = "AiChatViewModel")
+                            // Sunucuda hata oluştuğu için cihaz içi yedek AI motoruna düş, kotadan 1 adet düş
+                            isFallbackUsed = true
+                            result = offlineAiManager.processMessage(input, context)
+                            val decrementedQuota = sessionPreferences.decrementAiQuota(currentQuota.isPremium)
+                            setState { copy(quota = decrementedQuota) }
+                        }
+                    } else {
+                        val ex = serverResponseResult.exceptionOrNull()
+                        io.github.aakira.napier.Napier.e("AiChatViewModel: Sunucuya ulaşılamadı (${ex?.message}), yerel motora düşülüyor.", ex, tag = "AiChatViewModel")
+                        // Sunucuya ulaşılamadı veya çevrimdışı -> Cihaz içi yedek AI motorunu çalıştır ve kotadan 1 adet düş
+                        isFallbackUsed = true
+                        result = offlineAiManager.processMessage(input, context)
+                        val decrementedQuota = sessionPreferences.decrementAiQuota(currentQuota.isPremium)
+                        setState { copy(quota = decrementedQuota) }
+                    }
                 }
 
-                // ── 2. SIRA (İKİNCİL / FALLBACK): Cihaz İçi / Yerel Motor ──
+                // Beklenmedik bir durumda sonuç null kaldıysa kural tabanlı güvenli son çıkış
                 if (result == null) {
-                    result = offlineAiManager.processMessage(input, context)
+                    result = offlineAiManager.processRuleBased(input, context)
                 }
 
                 val baseReply = result.replyText

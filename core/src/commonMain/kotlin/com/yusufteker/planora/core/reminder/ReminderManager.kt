@@ -23,4 +23,14 @@ interface ReminderManager {
      * Cancels all scheduled reminders (e.g., on logout).
      */
     fun cancelAllReminders()
+
+    /**
+     * Snoozes a reminder for a given duration (default 10 minutes).
+     */
+    fun snoozeReminder(
+        taskId: String,
+        taskTitle: String,
+        taskType: com.yusufteker.planora.shared.api.TaskType,
+        delayMinutes: Int = 10
+    ) {}
 }

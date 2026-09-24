@@ -78,12 +78,7 @@ fun TimelineTaskCard(
 ) {
     val isCompleted = task.status == TaskStatus.COMPLETED
 
-    val typeColor = when (task.type) {
-        TaskType.EVENT -> Color(0xFF6366F1)  // Indigo
-        TaskType.TASK -> Color(0xFF10B981)   // Emerald
-        TaskType.NOTE -> Color(0xFFF59E0B)   // Amber
-        TaskType.FOLDER -> Color(0xFF22C55E) // Lime
-    }
+    val typeColor = com.yusufteker.planora.core.theme.getTaskTypeColor(task.type)
 
     val animatedAlpha by animateFloatAsState(targetValue = if (isCompleted) 0.85f else 1f, label = "alpha")
     

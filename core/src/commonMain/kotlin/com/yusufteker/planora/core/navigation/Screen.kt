@@ -148,6 +148,25 @@ sealed interface Screen {
     @Serializable
     data object Premium : Screen
 
+    /**
+     * Geri Dönüşüm Kutusu (Trash / Recycle Bin) Ekranı
+     * Premium kullanıcıların son 30 gün içinde silinen görevlerini yönetmesini sağlar.
+     */
+    @Serializable
+    data object Trash : Screen
+
+    /**
+     * Gelişmiş İstatistikler ve Verimlilik (Productivity Insights) Ekranı
+     */
+    @Serializable
+    data object Analytics : Screen
+
+    /**
+     * Ücretsiz ve Planora Premium Özellik Karşılaştırma Ekranı (Feature Comparison Matrix)
+     */
+    @Serializable
+    data object PlanComparison : Screen
+
 
     /**  
      * Destinations within the Main Graph (Bottom Navigation Tabs).

@@ -45,6 +45,9 @@ class IosReminderManager : ReminderManager {
     companion object {
         private const val TAG = "ReminderManager"
 
+        private const val ACTION_SNOOZE = "PLANORA_ACTION_SNOOZE"
+        private const val ACTION_DISMISS = "PLANORA_ACTION_DISMISS"
+
         fun generateIdentifier(taskId: String, reminderMinutes: Int): String {
             return "$taskId:$reminderMinutes"
         }
@@ -72,12 +75,24 @@ class IosReminderManager : ReminderManager {
             withCompletionHandler: () -> Unit
         ) {
             val userInfo = didReceiveNotificationResponse.notification.request.content.userInfo
-            val deepLink = userInfo["deepLink"] as? String
+            val actionIdentifier = didReceiveNotificationResponse.actionIdentifier
             val taskId = userInfo["taskId"] as? String
-            val url = deepLink ?: taskId?.let { "planora://share/task?taskId=$it" }
-            if (!url.isNullOrEmpty()) {
-                Napier.d("iOS Notification tapped: url=$url", tag = TAG)
-                com.yusufteker.planora.core.navigation.DeepLinkManager.emitLink(url)
+            val taskTitle = userInfo["taskTitle"] as? String ?: ""
+            val taskTypeStr = userInfo["taskType"] as? String
+            val taskType = taskTypeStr?.let { runCatching { TaskType.valueOf(it) }.getOrNull() } ?: TaskType.TASK
+
+            if (actionIdentifier == ACTION_SNOOZE && !taskId.isNullOrEmpty()) {
+                Napier.d("iOS Notification Snooze tapped: taskId=$taskId", tag = TAG)
+                snoozeReminder(taskId, taskTitle, taskType, delayMinutes = 10)
+            } else if (actionIdentifier == ACTION_DISMISS) {
+                Napier.d("iOS Notification Dismiss tapped: taskId=$taskId", tag = TAG)
+            } else {
+                val deepLink = userInfo["deepLink"] as? String
+                val url = deepLink ?: taskId?.let { "planora://share/task?taskId=$it" }
+                if (!url.isNullOrEmpty()) {
+                    Napier.d("iOS Notification tapped: url=$url", tag = TAG)
+                    com.yusufteker.planora.core.navigation.DeepLinkManager.emitLink(url)
+                }
             }
             withCompletionHandler()
         }
@@ -85,7 +100,39 @@ class IosReminderManager : ReminderManager {
 
     init {
         center.delegate = delegate
+        registerCategories()
         requestAuthorization()
+    }
+
+    private fun registerCategories() {
+        val isTr = isTurkishLocale()
+        val snoozeTitle = if (isTr) "10 Dk Ertele" else "Snooze 10m"
+        val dismissTitle = if (isTr) "Kapat" else "Dismiss"
+
+        val snoozeAction = platform.UserNotifications.UNNotificationAction.actionWithIdentifier(
+            identifier = ACTION_SNOOZE,
+            title = snoozeTitle,
+            options = platform.UserNotifications.UNNotificationActionOptionNone
+        )
+        val dismissAction = platform.UserNotifications.UNNotificationAction.actionWithIdentifier(
+            identifier = ACTION_DISMISS,
+            title = dismissTitle,
+            options = platform.UserNotifications.UNNotificationActionOptionDestructive
+        )
+
+        val taskCategory = platform.UserNotifications.UNNotificationCategory.categoryWithIdentifier(
+            identifier = "PLANORA_TASK_CATEGORY",
+            actions = listOf(snoozeAction, dismissAction),
+            intentIdentifiers = emptyList<Any?>(),
+            options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
+        )
+        val eventCategory = platform.UserNotifications.UNNotificationCategory.categoryWithIdentifier(
+            identifier = "PLANORA_EVENT_CATEGORY",
+            actions = listOf(snoozeAction, dismissAction),
+            intentIdentifiers = emptyList<Any?>(),
+            options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
+        )
+        center.setNotificationCategories(setOf(taskCategory, eventCategory))
     }
 
     private fun requestAuthorization() {
@@ -302,7 +349,7 @@ class IosReminderManager : ReminderManager {
             setSound(UNNotificationSound.defaultSound())
             setThreadIdentifier(style.threadId)
             setCategoryIdentifier(style.categoryId)
-            setUserInfo(mapOf("taskId" to taskId))
+            setUserInfo(mapOf("taskId" to taskId, "taskTitle" to taskTitle, "taskType" to taskType.name))
         }
 
         val secondsFromNow =
@@ -333,6 +380,25 @@ class IosReminderManager : ReminderManager {
                 Napier.d("Scheduled $identifier in ${secondsFromNow}s", tag = TAG)
             }
         }
+    }
+
+    override fun snoozeReminder(
+        taskId: String,
+        taskTitle: String,
+        taskType: TaskType,
+        delayMinutes: Int
+    ) {
+        val triggerTimeMs = com.yusufteker.planora.core.utils.getCurrentTimeMs() + (delayMinutes * 60_000L)
+        val identifier = "$taskId:snooze_$delayMinutes"
+        scheduleNotification(
+            identifier = identifier,
+            triggerTimeMs = triggerTimeMs,
+            taskId = taskId,
+            taskTitle = taskTitle,
+            reminderMinutes = delayMinutes,
+            taskType = taskType
+        )
+        Napier.i("Snoozed iOS reminder for $delayMinutes mins ($taskTitle)", tag = TAG)
     }
 }
 

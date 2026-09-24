@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.yusufteker.planora.core.theme.PlanoraColors
 
 /**
  * Görev/Etkinlik kartlarına çift yönlü kaydırma hareketleri (Swipe gestures) ekleyen kapsayıcı bileşen.
@@ -70,9 +71,9 @@ fun SwipeableTaskItem(
             val direction = dismissState.dismissDirection
             val color by animateColorAsState(
                 targetValue = when (direction) {
-                    SwipeToDismissBoxValue.StartToEnd -> Color(0xFF10B981) // Emerald Green
+                    SwipeToDismissBoxValue.StartToEnd -> PlanoraColors.TaskColor
                     SwipeToDismissBoxValue.EndToStart -> {
-                        if (onSwipeLeftToDuplicate != null) Color(0xFF6366F1) // Indigo Accent
+                        if (onSwipeLeftToDuplicate != null) PlanoraColors.EventColor
                         else Color(0xFFEF4444) // Red for Delete
                     }
                     else -> Color.Transparent

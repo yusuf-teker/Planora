@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mikepenz.markdown.m3.Markdown
 import com.yusufteker.planora.core.base.CollectEffect
+import com.yusufteker.planora.core.ui.components.GradientText
 import org.koin.compose.viewmodel.koinViewModel
 
 import androidx.compose.material3.SnackbarHost
@@ -90,7 +91,15 @@ fun CreatePostScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isEditing) stringResource(Res.string.title_edit_post) else stringResource(Res.string.title_create_post)) },
+                title = {
+                    GradientText(
+                        text = if (state.isEditing) stringResource(Res.string.title_edit_post) else stringResource(Res.string.title_create_post),
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))

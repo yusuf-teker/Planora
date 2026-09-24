@@ -24,6 +24,7 @@ import com.yusufteker.planora.core.base.CollectEffect
 import com.yusufteker.planora.core.navigation.LocalNavigator
 import com.yusufteker.planora.core.navigation.Screen
 import com.yusufteker.planora.core.ui.components.AvatarImage
+import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.feature.home.presentation.components.EmptyStateComponent
 import com.yusufteker.planora.shared.api.FollowRequestResponse
 import com.yusufteker.planora.shared.api.UserProfileResponse
@@ -60,7 +61,13 @@ fun FollowListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.title_follow_list)) },
+                title = {
+                    GradientText(
+                        text = stringResource(Res.string.title_follow_list),
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.onEvent(FollowListEvent.BackClicked) }) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(Res.string.back))

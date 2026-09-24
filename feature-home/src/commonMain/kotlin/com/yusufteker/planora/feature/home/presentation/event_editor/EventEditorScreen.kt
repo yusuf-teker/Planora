@@ -28,6 +28,7 @@ import com.yusufteker.planora.feature.home.presentation.components.FormSection
 import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
+import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.ItemDetails
@@ -85,13 +86,14 @@ fun EventEditorScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
+                    GradientText(
                         text = when {
                             state.isCopyMode -> stringResource(Res.string.title_copy_event)
                             state.id == null -> stringResource(Res.string.title_new_event)
                             else -> stringResource(Res.string.title_event_editor)
-                        }, 
-                        fontWeight = FontWeight.SemiBold
+                        },
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                     ) 
                 },
                 navigationIcon = {

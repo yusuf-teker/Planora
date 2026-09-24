@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import com.yusufteker.planora.core.navigation.Screen
+import com.yusufteker.planora.feature.home.domain.model.Topic
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -141,7 +142,7 @@ fun SocialScreen(
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
                     item {
-                        val allTopics = listOf(null) + com.yusufteker.planora.feature.home.domain.model.Topic.entries
+                        val allTopics = listOf(null) + Topic.entries
                         androidx.compose.foundation.lazy.LazyRow(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -21,7 +21,9 @@ data class PlanRoomsState(
     val createRoomNameInput: String = "",
     val inviteUserIdInput: String = "", // İleride arama ile çalışır, şimdilik basit ID girebilir
     
-    val isFabExpanded: Boolean = false
+    val isFabExpanded: Boolean = false,
+    val isPremium: Boolean = false,
+    val showRoomLimitDialog: Boolean = false
 ) : UiState
 
 sealed interface PlanRoomsEvent : UiEvent {
@@ -31,6 +33,7 @@ sealed interface PlanRoomsEvent : UiEvent {
     data class OnCreateRoomClick(val isVisible: Boolean) : PlanRoomsEvent
     data class OnCreateRoomNameChanged(val name: String) : PlanRoomsEvent
     data object SubmitCreateRoom : PlanRoomsEvent
+    data class OnDismissRoomLimitDialog(val navigateToPremium: Boolean) : PlanRoomsEvent
     
     data class OnInviteClick(val roomId: String, val isVisible: Boolean) : PlanRoomsEvent
     data class OnInviteUserIdChanged(val userIdStr: String) : PlanRoomsEvent
@@ -51,4 +54,5 @@ sealed interface PlanRoomsEffect : UiEffect {
     data class NavigateToRoomDetail(val roomId: String) : PlanRoomsEffect
     data object NavigateToCreateTask : PlanRoomsEffect
     data object NavigateToCreateEvent : PlanRoomsEffect
+    data object NavigateToPremium : PlanRoomsEffect
 }

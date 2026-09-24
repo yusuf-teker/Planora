@@ -201,7 +201,7 @@ fun CollapsibleMonthWeekView(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = if (idx >= 5) Color(0xFF60A5FA) else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (idx >= 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -319,7 +319,7 @@ fun CollapsibleMonthWeekView(
                                     isSelected -> MaterialTheme.colorScheme.onPrimary
                                     isToday -> MaterialTheme.colorScheme.onPrimaryContainer
                                     isHoliday -> MaterialTheme.colorScheme.primary
-                                    c >= 5 -> Color(0xFF60A5FA)
+                                    c >= 5 -> MaterialTheme.colorScheme.primary
                                     else -> MaterialTheme.colorScheme.onSurface
                                 }
 
@@ -399,7 +399,7 @@ fun CollapsibleMonthWeekView(
                                                     val count = minOf(mySharedTasks.size, maxPerGroup)
                                                     val sharedDotColors = listOf(
                                                         MaterialTheme.colorScheme.primary,
-                                                        MaterialTheme.colorScheme.tertiary
+                                                        MaterialTheme.colorScheme.secondary
                                                     )
                                                     repeat(count) {
                                                         MultiColorDot(

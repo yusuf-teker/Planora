@@ -134,3 +134,28 @@ google-services.json
 # Firebase
 firebase-service-account.json
 GoogleService-Info.plist
+
+###############################################
+# ADMIN & INTERNAL GUIDES / CREDENTIALS
+###############################################
+ADMIN_CONFIG_GUIDE.txt
+*ADMIN*
+*admin*guide*
+*admin_config*
+
+###############################################
+# LOCAL DEBUG LOGS & SCRATCH FILES
+###############################################
+*.log
+*_log.txt
+xcode_build_log*.txt
+build_device_log*.txt
+error.txt
+temp_*.txt
+test_payload.json
+fix_*.py
+remove_firebase.py
+test*.kt
+test*.kts
+scratch*.kts
+

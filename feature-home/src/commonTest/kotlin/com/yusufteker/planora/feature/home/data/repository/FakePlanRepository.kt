@@ -49,6 +49,15 @@ open class FakePlanRepository : PlanRepository {
     private val roomsMap = mutableMapOf<String, PlanRoomDto>()
     private val _roomsFlow = MutableStateFlow<List<PlanRoomDto>>(emptyList())
 
+    private val _deletedTasksFlow = MutableStateFlow<List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>>(emptyList())
+
+    /**
+     * Test senaryolarında başlangıç silinen görevleri yüklemek için yardımcı fonksiyon.
+     */
+    fun seedDeletedTasks(items: List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>) {
+        _deletedTasksFlow.value = items
+    }
+
     /**
      * Test senaryolarında başlangıç verisi yüklemek için yardımcı fonksiyon.
      */
@@ -269,4 +278,12 @@ open class FakePlanRepository : PlanRepository {
         clearAll()
         return Result.success(Unit)
     }
+
+    override fun observeDeletedTasks(): Flow<List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>> = _deletedTasksFlow.asStateFlow()
+
+    override suspend fun restoreDeletedTask(taskId: String): Result<Unit> = Result.success(Unit)
+
+    override suspend fun permanentlyDeleteTask(taskId: String): Result<Unit> = Result.success(Unit)
+
+    override suspend fun clearAllDeletedTasks(): Result<Unit> = Result.success(Unit)
 }

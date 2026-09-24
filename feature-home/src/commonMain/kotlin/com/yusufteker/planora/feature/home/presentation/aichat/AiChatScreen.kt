@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
+import com.yusufteker.planora.core.ui.components.GradientText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +82,9 @@ fun AiChatScreen(
     }
 
     LaunchedEffect(Unit) {
+        if (state.messages.isEmpty()) {
+            viewModel.onEvent(AiChatEvent.ClearChat)
+        }
         focusRequester.requestFocus()
     }
 
@@ -94,7 +99,13 @@ fun AiChatScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(Res.string.title_ai_assistant))
+                        GradientText(
+                            text = stringResource(Res.string.title_ai_assistant),
+                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
@@ -115,8 +126,11 @@ fun AiChatScreen(
                     }
                 },
                 actions = {
+                    val isQuotaExhausted = state.quota.dailyRemaining <= 0 || state.quota.weeklyRemaining <= 0
                     Surface(
-                        color = if (state.quota.isPremium) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (isQuotaExhausted) MaterialTheme.colorScheme.errorContainer
+                            else if (state.quota.isPremium) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .padding(end = 12.dp)
@@ -136,7 +150,9 @@ fun AiChatScreen(
                         Text(
                             text = badgeText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (state.quota.isPremium) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isQuotaExhausted) MaterialTheme.colorScheme.onErrorContainer
+                                else if (state.quota.isPremium) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }

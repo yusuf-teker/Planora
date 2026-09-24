@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import com.yusufteker.planora.core.theme.PlanoraColors
 import planora.core.generated.resources.Res
-import planora.core.generated.resources.*
+import planora.core.generated.resources.action_add_event
+import planora.core.generated.resources.action_add_task
+import planora.core.generated.resources.task_ic
 
 @Composable
 fun HomeFabMenu(
@@ -60,7 +64,7 @@ fun HomeFabMenu(
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
-                            text = stringResource(planora.core.generated.resources.Res.string.action_add_task),
+                            text = stringResource(Res.string.action_add_task),
                             modifier = Modifier.padding(
                                 horizontal = 8.dp,
                                 vertical = 4.dp
@@ -74,12 +78,13 @@ fun HomeFabMenu(
                             onExpandedChange(false)
                             onCreateTask()
                         },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        containerColor = PlanoraColors.TaskColor,
+                        contentColor = androidx.compose.ui.graphics.Color.White,
                         shape = androidx.compose.foundation.shape.CircleShape
                     ) {
                         Icon(
-                            painter = painterResource(planora.core.generated.resources.Res.drawable.task_ic),
-                            contentDescription = stringResource(planora.core.generated.resources.Res.string.action_add_task)
+                            painter = painterResource(Res.drawable.task_ic),
+                            contentDescription = stringResource(Res.string.action_add_task)
                         )
                     }
                 }
@@ -94,7 +99,7 @@ fun HomeFabMenu(
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
-                            text = stringResource(planora.core.generated.resources.Res.string.action_add_event),
+                            text = stringResource(Res.string.action_add_event),
                             modifier = Modifier.padding(
                                 horizontal = 8.dp,
                                 vertical = 4.dp
@@ -108,12 +113,13 @@ fun HomeFabMenu(
                             onExpandedChange(false)
                             onCreateEvent()
                         },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        containerColor = PlanoraColors.EventColor,
+                        contentColor = androidx.compose.ui.graphics.Color.White,
                         shape = androidx.compose.foundation.shape.CircleShape
                     ) {
                         Icon(
                             imageVector = Icons.Default.Event,
-                            contentDescription = stringResource(planora.core.generated.resources.Res.string.action_add_event)
+                            contentDescription = stringResource(Res.string.action_add_event)
                         )
                     }
                 }
@@ -125,7 +131,7 @@ fun HomeFabMenu(
                 onExpandedChange(!isExpanded)
             },
             containerColor = MaterialTheme.colorScheme.primary,
-            shape = androidx.compose.foundation.shape.CircleShape
+            shape = androidx.compose.foundation.shape.CircleShape,
         ) {
             Icon(
                 imageVector = if (isExpanded) {

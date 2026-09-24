@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.yusufteker.planora.core.theme.getTaskTypeColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -404,17 +405,5 @@ private fun ParticipantAvatarsRow(
                     .border(1.5.dp, creatorColor, CircleShape)
             )
         }
-    }
-}
-
-/**
- * Etkinlik türüne uygun renk döndürür.
- */
-private fun getTaskTypeColor(type: TaskType): Color {
-    return when (type) {
-        TaskType.EVENT -> Color(0xFF6366F1)  // Indigo
-        TaskType.TASK -> Color(0xFF10B981)   // Emerald
-        TaskType.NOTE -> Color(0xFFF59E0B)   // Amber
-        TaskType.FOLDER -> Color(0xFF22C55E) // Lime
     }
 }

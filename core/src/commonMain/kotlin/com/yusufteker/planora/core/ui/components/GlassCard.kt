@@ -55,7 +55,7 @@ fun GlassCard(
     } else {
         listOf(
             Color.White.copy(alpha = 0.8f),
-            PlanoraColors.Primary.copy(alpha = 0.15f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         )
     }
 
@@ -66,8 +66,8 @@ fun GlassCard(
             elevation = elevation,
             shape = shape,
             clip = false,
-            ambientColor = if (isDark) Color.Black else PlanoraColors.Primary.copy(alpha = 0.1f),
-            spotColor = if (isDark) Color.Black else PlanoraColors.Primary.copy(alpha = 0.15f)
+            ambientColor = if (isDark) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            spotColor = if (isDark) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
         )
         .clip(shape)
         .background(glassBg)

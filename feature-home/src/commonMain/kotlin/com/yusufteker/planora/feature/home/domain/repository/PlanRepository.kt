@@ -57,5 +57,35 @@ interface PlanRepository {
      * Permanently deletes the user's account and all associated backend & local data.
      */
     suspend fun deleteAccount(): Result<Unit>
+
+    // --- RECYCLE BIN (TRASH) ---
+    /**
+     * Observes the list of soft-deleted tasks for the currently authenticated user.
+     * Deleted tasks are kept for up to 30 days before being automatically purged.
+     */
+    fun observeDeletedTasks(): Flow<List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>>
+
+    /**
+     * Restores a soft-deleted task from the Recycle Bin back to active tasks.
+     *
+     * @param taskId Unique identifier of the task to restore.
+     * @return [Result] indicating success or failure.
+     */
+    suspend fun restoreDeletedTask(taskId: String): Result<Unit>
+
+    /**
+     * Permanently deletes a task from the Recycle Bin.
+     *
+     * @param taskId Unique identifier of the task to permanently remove.
+     * @return [Result] indicating success or failure.
+     */
+    suspend fun permanentlyDeleteTask(taskId: String): Result<Unit>
+
+    /**
+     * Empties the Recycle Bin by permanently deleting all soft-deleted tasks for the user.
+     *
+     * @return [Result] indicating success or failure.
+     */
+    suspend fun clearAllDeletedTasks(): Result<Unit>
 }
 

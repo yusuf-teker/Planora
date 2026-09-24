@@ -144,39 +144,84 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Show intent opens MainActivity if user taps the system clock icon on lock screen
+        val showIntent = Intent().apply {
+            setClassName(context.packageName, "${context.packageName}.MainActivity")
+            putExtra("taskId", taskId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val showPendingIntent = PendingIntent.getActivity(
+            context,
+            requestCode,
+            showIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
+            // AlarmManager.setAlarmClock is prioritized by Android as a user-facing clock alarm:
+            // 1. It guarantees exact wakeup bypassing Doze mode and manufacturer power savers.
+            // 2. It shows the alarm clock indicator in the status bar/lock screen.
+            val clockInfo = AlarmManager.AlarmClockInfo(triggerTimeMs, showPendingIntent)
+            alarmManager.setAlarmClock(clockInfo, pendingIntent)
+            Napier.d("Scheduled Clock Alarm for $taskTitle at $triggerTimeMs (code=$requestCode)", tag = TAG)
+        } catch (e: SecurityException) {
+            Napier.e("SecurityException in setAlarmClock, falling back: ${e.message}", tag = TAG)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (alarmManager.canScheduleExactAlarms()) {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            triggerTimeMs,
+                            pendingIntent
+                        )
+                    } else {
+                        alarmManager.setAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            triggerTimeMs,
+                            pendingIntent
+                        )
+                        Napier.w("Exact alarm permission not granted, using inexact alarm", tag = TAG)
+                    }
+                } else {
                     alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
                         triggerTimeMs,
                         pendingIntent
                     )
-                } else {
-                    // Fallback to inexact alarm
-                    alarmManager.setAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerTimeMs,
-                        pendingIntent
-                    )
-                    Napier.w("Exact alarm permission not granted, using inexact alarm", tag = TAG)
                 }
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(
+            } catch (e2: Exception) {
+                alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTimeMs,
                     pendingIntent
                 )
             }
-        } catch (e: SecurityException) {
-            Napier.e("SecurityException scheduling alarm: ${e.message}", tag = TAG)
-            // Fallback to inexact alarm
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerTimeMs,
-                pendingIntent
-            )
         }
+    }
+
+    /**
+     * Snoozes an alarm for [delayMinutes] minutes (default 10).
+     */
+    override fun snoozeReminder(
+        taskId: String,
+        taskTitle: String,
+        taskType: TaskType,
+        delayMinutes: Int
+    ) {
+        val triggerTimeMs = System.currentTimeMillis() + (delayMinutes * 60_000L)
+        val requestCode = generateRequestCode(taskId, -delayMinutes) // negative minutes avoids collision
+        scheduleExactAlarm(
+            requestCode = requestCode,
+            triggerTimeMs = triggerTimeMs,
+            taskId = taskId,
+            taskTitle = taskTitle,
+            reminderMinutes = delayMinutes,
+            taskType = taskType
+        )
+        val codes = loadRequestCodes().toMutableSet()
+        codes.add(requestCode)
+        saveRequestCodes(codes)
+        Napier.i("Snoozed alarm for $delayMinutes mins ($taskTitle)", tag = TAG)
     }
 
     private fun createReminderIntent(

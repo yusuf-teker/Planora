@@ -491,7 +491,8 @@
     <string name="ai_chat_room_created_failed">\n\n❌ Plan odası oluşturulamadı: %1$s</string>
     <string name="ai_chat_user_invited_success">\n\n📨 Plan odası daveti başarıyla gönderildi.</string>
     <string name="ai_chat_user_invited_failed">\n\n❌ Oda daveti gönderilemedi: %1$s</string>
-    <string name="ai_fallback_notice">\n\nℹ️ Gemini kotanız dolduğu veya çevrimdışı olunduğu için temel asistanla işlendi.</string>
+    <string name="ai_fallback_notice">\n\nℹ️ Bulut servisine ulaşılamadığı için yanıt kural tabanlı yerel asistan tarafından verilmiştir.</string>
+    <string name="ai_quota_exhausted_rulebased_notice">\n\nℹ️ Günlük AI kullanım kotanız dolduğu için yanıt kural tabanlı asistan tarafından verilmiştir.</string>
     <string name="ai_quota_limit_reached">AI Limiti Doldu</string>
     <string name="ai_quota_limit_reached_desc">Bugünkü AI kullanım limitinize ulaştınız (%1$d/%2$d). Premium\'a geçerek günde 50, haftada 300 hakka sahip olabilirsiniz.</string>
 
@@ -546,6 +547,17 @@
     <string name="reminder_time_hours_later">%1$d saat sonra</string>
     <string name="reminder_time_minutes_later">%1$d dakika sonra</string>
     <string name="reminder_default_task">Görev</string>
+    <string name="alarm_action_dismiss">Durdur</string>
+    <string name="alarm_action_snooze">10 Dk Ertele</string>
+    <string name="alarm_action_open">Görevi Aç</string>
+    <string name="alarm_app_badge">Planora • Alarm</string>
+    <string name="alarm_open_in_planora">Görevi Planora\'da Aç</string>
+    <string name="alarm_screen_subtitle">Zamanı geldi!</string>
+    <string name="alarm_time_remaining_now">Şimdi başlıyor</string>
+    <string name="alarm_time_remaining_minutes">%1$d dakika kaldı</string>
+    <string name="alarm_time_remaining_hours">%1$d saat kaldı</string>
+    <string name="alarm_time_remaining_days">%1$d gün kaldı</string>
+    <string name="alarm_notification_ticker">Planora Alarmı Çalıyor</string>
 
     <string name="notification_morning_title">🌅 Günaydın! Bugünkü Planların</string>
     <string name="notification_morning_body">Bugün %1$d görevin var. İlk görev: %2$s</string>
@@ -679,6 +691,10 @@
     <string name="premium_feature_analytics_desc">Detaylı takvim analizleri, alışkanlık takibi ve tamamlanma oranları</string>
     <string name="premium_feature_sync_title">Öncelikli Bulut Senkronizasyonu</string>
     <string name="premium_feature_sync_desc">Anlık, gecikmesiz arka plan eşitlemesi ve güvenli yedekleme</string>
+    <string name="premium_feature_trash_title">30 Günlük Çöp Kutusu</string>
+    <string name="premium_feature_trash_desc">Yanlışlıkla silinen görev ve notları 30 gün boyunca kurtarın</string>
+    <string name="premium_feature_vip_badge_title">VIP Taç ve Parlama</string>
+    <string name="premium_feature_vip_badge_desc">Sosyal akışta ve profillerde özel VIP rozetinizle öne çıkın</string>
     <string name="premium_plan_monthly">Aylık</string>
     <string name="premium_plan_annual">Yıllık</string>
     <string name="premium_plan_monthly_price">99.99 ₺ / ay</string>
@@ -727,4 +743,147 @@
     <string name="theme_color_indigo">Derin İndigo</string>
     <string name="theme_color_amber">Kehribar Altın</string>
     <string name="theme_color_brown">Espresso</string>
+    <!-- Premium Tema Renkleri 👑 -->
+    <string name="theme_color_midnight">Gece Yarısı</string>
+    <string name="theme_color_cyberpunk">Siberpunk</string>
+    <string name="theme_color_rose_gold">Rosé Altın</string>
+    <string name="theme_color_nordic">Nordik</string>
+    <string name="premium_theme_locked_title">Premium Tema</string>
+    <string name="premium_theme_locked_desc">Planora Premium ile özel temaların kilidini açın</string>
+
+    <!-- İkili Tema Rengi Seçimi -->
+    <string name="settings_theme_primary_color">Birincil Renk</string>
+    <string name="settings_theme_secondary_color">Vurgu Rengi</string>
+    <string name="settings_theme_preview_label">Önizleme</string>
+    <string name="settings_theme_preview_sample">Planora</string>
+
+    <!-- Premium Rozeti -->
+    <string name="premium_badge_label">PRO</string>
+
+    <!-- Çöp Kutusu -->
+    <string name="trash_title">Çöp Kutusu</string>
+    <string name="trash_empty">Çöp kutunuz boş</string>
+    <string name="trash_empty_desc">Silinen görevler 30 gün boyunca burada görünecek</string>
+    <string name="trash_restore">Geri Yükle</string>
+    <string name="trash_delete_permanent">Kalıcı Olarak Sil</string>
+    <string name="trash_days_remaining">%1$d gün kaldı</string>
+    <string name="trash_delete_all">Çöp Kutusunu Boşalt</string>
+    <string name="trash_delete_all_confirm">Çöp kutusundaki tüm öğeleri kalıcı olarak silmek istediğinizden emin misiniz?</string>
+    <string name="trash_restored_success">Görev başarıyla geri yüklendi</string>
+    <string name="trash_deleted_success">Görev kalıcı olarak silindi</string>
+    <string name="settings_trash_title">Çöp Kutusu</string>
+    <string name="settings_trash_subtitle">Son silinen görevleri kurtarın</string>
+
+    <!-- Settings & Premium Hub Additions -->
+    <string name="premium_select_plan_title">Bir Plan Seçin</string>
+    <string name="premium_hub_title">Planora PRO Aktif</string>
+    <string name="premium_hub_subtitle">Tüm Planora PRO ayrıcalıklarından sınırsız faydalanabilirsiniz.</string>
+    <string name="premium_hub_status_active">Aktif Üyelik</string>
+    <string name="premium_hub_superpowers_title">Kullanımınızdaki Ayrıcalıklar</string>
+    <string name="premium_hub_manage_title">Abonelik Yönetimi</string>
+    <string name="premium_hub_manage_desc">Aboneliğiniz uygulama mağazası (Google Play / App Store) hesabınız üzerinden güvenle yönetilmektedir.</string>
+    <string name="premium_hub_done_action">Harika, Devam Et</string>
+    <string name="premium_feature_unlocked">Aktif</string>
+    <string name="settings_section_appearance">Görünüm ve Tema</string>
+    <string name="settings_section_app_info">Hakkında ve Tercihler</string>
+    <string name="settings_section_account">Hesap ve Güvenlik</string>
+    <string name="settings_app_version">Sürüm</string>
+    <string name="settings_privacy_policy">Gizlilik ve Güvenlik</string>
+    <string name="settings_notifications">Bildirim Tercihleri</string>
+    <string name="settings_profile_view">Profili Görüntüle</string>
+    <string name="settings_theme_color_subtitle">Uygulama genelinde vurgu rengi</string>
+    <string name="settings_view_benefits">Ayrıcalıkları İncele</string>
+    <string name="profile_screen_title">Profil</string>
+    <string name="profile_access_privacy_title">Erişim ve Gizlilik</string>
+    <string name="profile_calendar_sharing_title">Takvim Paylaşımı</string>
+    <string name="profile_calendar_empty_viewers">Henüz kimse takviminizi görüntüleyemiyor.</string>
+    <string name="profile_calendar_sharing_count">%1$d kişi erişebilir</string>
+    <string name="profile_calendar_viewers_sheet_title">Takvimimi Görebilenler</string>
+    <string name="profile_calendar_viewers_sheet_desc">Takvim etkinliklerinizi görüntüleme yetkisine sahip kullanıcılar</string>
+    <string name="profile_action_revoke_access">Kaldır</string>
+    <string name="profile_action_find_friends">Arkadaşlarını Bul</string>
+    <string name="profile_incoming_requests_title">Gelen İstekler</string>
+    <string name="profile_follow_requests_label">Takip İstekleri</string>
+    <string name="profile_calendar_requests_label">Takvim İstekleri</string>
+    <string name="settings_subscription_label">Abonelik</string>
+    <string name="settings_subscription_pro_active">Planora PRO (Aktif)</string>
+    <string name="settings_subscription_free">Standart Plan</string>
+
+    <!-- Trash Retention & Premium -->
+    <string name="trash_banner_free_info">Ücretsiz planda silinen görevler 7 gün boyunca saklanır.</string>
+    <string name="trash_banner_hidden_items">7 günden eski %1$d öğe gizlendi. Planora Premium ile 30 güne kadar olan tüm silinenleri kurtarın.</string>
+    <string name="trash_banner_premium_active">Planora PRO: 30 günlük kurtarma süresi aktif.</string>
+    <string name="trash_upgrade_button">PRO\'ya Yükselt</string>
+
+    <!-- Plan Room Limit -->
+    <string name="room_limit_title">Plan Odası Sınırı (3/3)</string>
+    <string name="room_limit_desc">Ücretsiz planda en fazla 3 plan odasına sahip olabilir veya katılabilirsiniz. Sınırsız plan odası ve ekip çalışması için Planora Premium\'a geçin.</string>
+    <string name="room_limit_upgrade_button">Planora Premium\'a Geç</string>
+    <string name="room_limit_dismiss_button">Anladım</string>
+
+    <!-- Productivity & Analytics (Phase 2) -->
+    <string name="analytics_title">Verimlilik ve İstatistikler</string>
+    <string name="analytics_subtitle">Planlama alışkanlıklarınız ve görev performansınız</string>
+    <string name="analytics_summary_total">Toplam Görev</string>
+    <string name="analytics_summary_completed">Tamamlanan</string>
+    <string name="analytics_summary_rate">Tamamlama Oranı</string>
+    <string name="analytics_summary_streak">Günlük Seri</string>
+    <string name="analytics_streak_days">%1$d Gün</string>
+    <string name="analytics_weekly_chart_title">Haftalık Tamamlama</string>
+    <string name="analytics_weekly_chart_subtitle">Son 7 günlük tamamlama performansınız</string>
+    <string name="analytics_category_title">Plan Türü Dağılımı</string>
+    <string name="analytics_priority_title">Öncelik Dağılımı</string>
+    <string name="analytics_priority_high">Yüksek Öncelik</string>
+    <string name="analytics_priority_medium">Orta Öncelik</string>
+    <string name="analytics_priority_low">Düşük Öncelik</string>
+    <string name="analytics_pro_banner_title">Derin Analitik ve Raporlar</string>
+    <string name="analytics_pro_banner_desc">30 günlük verimlilik eğilimleri, en üretken saatler ve alışkanlık tutarlılığı Planora Premium\'a özeldir.</string>
+    <string name="analytics_pro_banner_action">Tüm İstatistikleri Aç</string>
+    <string name="analytics_pro_unlocked_title">Derin Analizler</string>
+    <string name="analytics_pro_unlocked_desc">Son 30 günlük alışkanlık örüntüleri ve verimlilik istatistiklerine genel bakış.</string>
+    <string name="analytics_pro_monthly_trend">30 Günlük Tamamlama Trendi</string>
+    <string name="analytics_pro_monthly_subtitle">Son 30 günde günlük tamamlanan görevler</string>
+    <string name="analytics_pro_peak_hour">En Üretken Saat</string>
+    <string name="analytics_pro_best_day">En Verimli Gün</string>
+    <string name="analytics_pro_worst_day">Dikkat Gerektiren Gün</string>
+    <string name="analytics_pro_longest_streak">En Uzun Seri</string>
+    <string name="analytics_pro_avg_daily">Günlük Ort. Tamamlama</string>
+    <string name="analytics_pro_habit_section">Alışkanlık Örüntüleri</string>
+    <string name="analytics_streak_days_count">%1$d gün</string>
+    <string name="analytics_empty_title">Henüz Aktivite Yok</string>
+    <string name="analytics_empty_desc">Verimlilik istatistiklerinizin hesaplanması için görevler oluşturup tamamlamaya başlayın.</string>
+    <string name="profile_analytics_item">Verimlilik ve İstatistikler</string>
+    <string name="profile_analytics_item_desc">Tamamlama trendleri, seriler ve haftalık grafikler</string>
+
+    <!-- Plan Comparison (Free vs Premium) -->
+    <string name="comparison_title">Plan Karşılaştırması</string>
+    <string name="comparison_subtitle">Ücretsiz ve Planora Premium arasındaki tüm farklar</string>
+    <string name="comparison_badge_free">Ücretsiz</string>
+    <string name="comparison_badge_premium">Premium</string>
+    <string name="comparison_feature_ai_title">Yapay Zeka (AI) Mesajları</string>
+    <string name="comparison_feature_ai_free">1 mesaj / gün (Haftalık 3)</string>
+    <string name="comparison_feature_ai_pro">50 mesaj / gün (Haftalık 300)</string>
+    <string name="comparison_feature_rooms_title">Plan Odaları (Ortak Takvim)</string>
+    <string name="comparison_feature_rooms_free">Maksimum 3 oda</string>
+    <string name="comparison_feature_rooms_pro">Sınırsız oda</string>
+    <string name="comparison_feature_trash_title">Çöp Kutusu Saklama Süresi</string>
+    <string name="comparison_feature_trash_free">7 gün</string>
+    <string name="comparison_feature_trash_pro">30 gün kurtarma</string>
+    <string name="comparison_feature_analytics_title">Verimlilik ve İstatistikler</string>
+    <string name="comparison_feature_analytics_free">Sınırlı / Temel</string>
+    <string name="comparison_feature_analytics_pro">Tam erişim ve grafikler</string>
+    <string name="comparison_feature_recurrence_title">Tekrarlayan Planlar</string>
+    <string name="comparison_feature_recurrence_free">Temel günlük</string>
+    <string name="comparison_feature_recurrence_pro">Özel günler ve kurallar</string>
+    <string name="comparison_feature_cloud_title">Bulut Yedekleme &amp; Eşitleme</string>
+    <string name="comparison_feature_cloud_free">Standart</string>
+    <string name="comparison_feature_cloud_pro">Öncelikli anlık eşitleme</string>
+    <string name="comparison_feature_theme_title">Crimson Teması ve Rozet</string>
+    <string name="comparison_feature_theme_free">Standart tema</string>
+    <string name="comparison_feature_theme_pro">Özel PRO rozeti ve temalar</string>
+    <string name="comparison_cta_upgrade">Planora Premium\'a Yükselt</string>
+    <string name="comparison_cta_active">Planora PRO Aktif</string>
+    <string name="settings_comparison_label">Plan Karşılaştırması</string>
+    <string name="settings_comparison_desc">Ücretsiz ve Premium arasındaki tüm farkları inceleyin</string>
+    <string name="premium_compare_plans_action">Tüm Planları Karşılaştır</string>
 </resources>

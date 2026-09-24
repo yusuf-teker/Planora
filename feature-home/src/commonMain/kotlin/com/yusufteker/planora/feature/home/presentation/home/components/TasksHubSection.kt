@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
@@ -360,7 +361,7 @@ private fun TasksHubTabSelector(
         ) {
             // Tab 0: Yapılacaklar Havuzu
             TasksHubTabPill(
-                icon = Icons.Default.FormatListBulleted,
+                icon = Icons.AutoMirrored.Filled.FormatListBulleted,
                 title = stringResource(Res.string.tasks_tab_backlog),
                 count = backlogCount,
                 isSelected = selectedTab == TasksHubTab.BACKLOG,

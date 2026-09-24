@@ -93,7 +93,7 @@ fun CalendarComponent(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = if (idx >= 5) Color(0xFF60A5FA) else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (idx >= 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -172,7 +172,7 @@ fun CalendarCell(
     val textColor = when {
         isSelected -> MaterialTheme.colorScheme.onPrimary
         isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-        date.dayOfWeek.isoDayNumber >= 6 -> Color(0xFF60A5FA)
+        date.dayOfWeek.isoDayNumber >= 6 -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurface
     }
 

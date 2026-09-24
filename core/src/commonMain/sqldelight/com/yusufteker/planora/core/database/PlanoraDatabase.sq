@@ -358,3 +358,41 @@ DELETE FROM holidayDbEntity;
 
 deleteCalendarAccessByUserId:
 DELETE FROM calendarAccessEntity WHERE userId = :userId;
+
+-- 8. DELETED TASKS (Recycle Bin / Çöp Kutusu)
+-- Premium users' deleted tasks are soft-deleted here for 30-day recovery.
+-- The full task is stored as JSON to enable complete restoration.
+CREATE TABLE deletedTaskEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    ownerId TEXT NOT NULL,
+    originalTaskJson TEXT NOT NULL,
+    taskTitle TEXT NOT NULL,
+    deletedAt INTEGER NOT NULL
+);
+
+CREATE INDEX index_deletedTask_ownerId ON deletedTaskEntity(ownerId);
+
+insertDeletedTask:
+INSERT OR REPLACE INTO deletedTaskEntity(id, ownerId, originalTaskJson, taskTitle, deletedAt)
+VALUES (?, ?, ?, ?, ?);
+
+getDeletedTasks:
+SELECT * FROM deletedTaskEntity
+WHERE ownerId = :ownerId
+ORDER BY deletedAt DESC;
+
+getAllDeletedTasks:
+SELECT * FROM deletedTaskEntity
+ORDER BY deletedAt DESC;
+
+getDeletedTaskById:
+SELECT * FROM deletedTaskEntity WHERE id = :id;
+
+deleteExpiredTrash:
+DELETE FROM deletedTaskEntity WHERE deletedAt < :olderThanMs;
+
+permanentlyDeleteTrashItem:
+DELETE FROM deletedTaskEntity WHERE id = :id;
+
+deleteAllDeletedTasks:
+DELETE FROM deletedTaskEntity;

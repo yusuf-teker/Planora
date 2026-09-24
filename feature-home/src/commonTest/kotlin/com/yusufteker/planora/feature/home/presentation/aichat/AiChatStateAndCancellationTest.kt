@@ -281,4 +281,97 @@ class AiChatStateAndCancellationTest {
         assertTrue(viewModel.state.value.messages.isEmpty())
         assertEquals("", viewModel.state.value.inputText)
     }
+
+    // ========================================================================
+    // 5. KOTA EKSİLMESİ VE KOTA TÜKENDİĞİNDE RULE-BASED ASİSTANA DÖNÜŞ TESTLERİ
+    // ========================================================================
+
+    @Test
+    fun `her mesaj gonderildiginde kota 1 adet dusmeli ve hem state hem sessionPreferences guncellenmelidir`() = runTest {
+        // 50/50 Premium kota simülasyonu
+        val initialQuota = AiQuotaDto(
+            isPremium = true,
+            dailyRemaining = 50,
+            dailyLimit = 50,
+            weeklyRemaining = 300,
+            weeklyLimit = 300
+        )
+        fakeAiApi.quotaResult = Result.success(initialQuota)
+        fakeSessionPreferences.saveAiQuota(initialQuota)
+
+        // Sunucu chat isteğine başarılı yanıt döner, ancak sunucu kotayı güncellememiş olsa bile client 1 adet düşer
+        fakeAiApi.chatResponseResult = Result.success(
+            AiChatServerResponse(
+                result = AiChatResult(intent = AiIntent.CHAT, replyText = "Görev oluşturuldu."),
+                quota = initialQuota
+            )
+        )
+
+        val viewModel = createViewModel()
+        runCurrent()
+
+        assertEquals(50, viewModel.state.value.quota.dailyRemaining)
+
+        // 1. Mesaj gönder
+        viewModel.onEvent(AiChatEvent.InputTextChanged("1. mesajım"))
+        viewModel.onEvent(AiChatEvent.SendMessage)
+        runCurrent()
+
+        assertEquals(49, viewModel.state.value.quota.dailyRemaining)
+        assertEquals(49, fakeSessionPreferences.getAiQuota(true).dailyRemaining)
+
+        // 2. Mesaj gönder
+        viewModel.onEvent(AiChatEvent.InputTextChanged("2. mesajım"))
+        viewModel.onEvent(AiChatEvent.SendMessage)
+        runCurrent()
+
+        assertEquals(48, viewModel.state.value.quota.dailyRemaining)
+        assertEquals(48, fakeSessionPreferences.getAiQuota(true).dailyRemaining)
+    }
+
+    @Test
+    fun `kota tukendiginde yapay zeka adimlari atlanmali kural tabanli motora gecilmeli ve uyari notu iletilmelidir`() = runTest {
+        // Kotası tamamen bitmiş (0/50) durum simülasyonu
+        val exhaustedQuota = AiQuotaDto(
+            isPremium = true,
+            dailyRemaining = 0,
+            dailyLimit = 50,
+            weeklyRemaining = 250,
+            weeklyLimit = 300
+        )
+        fakeAiApi.quotaResult = Result.success(exhaustedQuota)
+        fakeSessionPreferences.saveAiQuota(exhaustedQuota)
+
+        fakeOfflineAiManager.offlineResult = AiChatResult(
+            intent = AiIntent.CREATE_TASK,
+            replyText = "Yarın için 'Fatura öde' görevi hazırlandı."
+        )
+
+        val viewModel = createViewModel()
+        runCurrent()
+
+        assertEquals(0, viewModel.state.value.quota.dailyRemaining)
+
+        // Kota 0 iken mesaj gönder
+        viewModel.onEvent(AiChatEvent.InputTextChanged("Yarın fatura öde"))
+        viewModel.onEvent(AiChatEvent.SendMessage)
+        runCurrent()
+
+        val finalState = viewModel.state.value
+        assertFalse(finalState.isLoading)
+        assertTrue(finalState.fallbackUsed)
+
+        // Sunucuya API isteği hiç atılmamalı, doğrudan yerel rule-based çağrılmalı
+        assertEquals(0, fakeAiApi.sendChatMessageCallCount)
+        assertEquals(1, fakeOfflineAiManager.processRuleBasedCallCount)
+
+        // Mesaj içeriğinde uyarı notu bulunmalı
+        val lastMessage = finalState.messages.last()
+        val messageText = (lastMessage.text as UiText.DynamicString).value
+        assertTrue(messageText.contains("Fatura öde"))
+        assertTrue(messageText.contains("kural tabanlı asistan") || messageText.contains("kotanız"))
+
+        // Kota negatif olmamalı, 0 kalmalı
+        assertEquals(0, finalState.quota.dailyRemaining)
+    }
 }

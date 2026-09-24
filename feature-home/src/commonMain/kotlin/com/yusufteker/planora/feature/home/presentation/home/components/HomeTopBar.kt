@@ -21,6 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.yusufteker.planora.core.theme.resolveThemeColor
+import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.utils.TimelineViewOption
 import com.yusufteker.planora.feature.home.presentation.home.HomeEvent
 import org.jetbrains.compose.resources.stringResource
@@ -42,14 +44,19 @@ fun HomeTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Title on the left with ultra gradient text
-        com.yusufteker.planora.core.ui.components.GradientText(
+
+        GradientText(
             text = "Planora",
-            colors = com.yusufteker.planora.core.theme.PlanoraColors.GradientPrimary,
+            colors = listOf(
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.secondary
+            ),
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = FontWeight.Black
             )
         )
+
+
 
         // Centered Timeline toggle
         Box(

@@ -7,6 +7,7 @@ import com.yusufteker.planora.feature.home.presentation.social.SocialViewModel
 import com.yusufteker.planora.feature.home.presentation.aichat.AiChatViewModel
 import com.yusufteker.planora.feature.home.presentation.focus.FocusViewModel
 import com.yusufteker.planora.feature.home.presentation.premium.PremiumViewModel
+import com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsViewModel
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.planora.feature.home.data.api.CommentApi
 import com.yusufteker.planora.feature.home.domain.repository.CommentRepository
@@ -31,6 +32,7 @@ import com.yusufteker.planora.feature.home.presentation.event_detail.EventDetail
 import com.yusufteker.planora.feature.home.presentation.event_editor.EventEditorViewModel
 import com.yusufteker.planora.feature.home.presentation.follow_list.FollowListViewModel
 import com.yusufteker.planora.feature.home.presentation.note_editor.NoteEditorViewModel
+import com.yusufteker.planora.feature.home.presentation.trash.TrashViewModel
 import com.yusufteker.planora.feature.home.presentation.plan_rooms.PlanRoomsViewModel
 
 import com.yusufteker.planora.feature.home.presentation.plan_room_detail.PlanRoomDetailViewModel
@@ -78,6 +80,18 @@ val homeModule = module {
     viewModelOf(::SocialViewModel)
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModel {
+        TrashViewModel(
+            planRepository = get(),
+            sessionPreferences = get()
+        )
+    }
+    viewModel {
+        AnalyticsViewModel(
+            planRepository = get(),
+            sessionPreferences = get()
+        )
+    }
     viewModel { AiChatViewModel(get(), get(), get(), get(), get(), get()) }
     factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)

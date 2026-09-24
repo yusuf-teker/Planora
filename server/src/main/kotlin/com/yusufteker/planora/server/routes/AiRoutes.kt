@@ -39,11 +39,7 @@ fun Route.aiRoutes() {
                 }
 
                 val response = AiService.processChat(currentUserId, request)
-                if (response.quotaExceeded) {
-                    call.respond(HttpStatusCode.TooManyRequests, response)
-                } else {
-                    call.respond(HttpStatusCode.OK, response)
-                }
+                call.respond(HttpStatusCode.OK, response)
             }
 
             /**

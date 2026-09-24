@@ -72,10 +72,17 @@ class FakeOfflineAiManager : OfflineAiManager {
     )
 
     var processMessageCallCount: Int = 0
+    var processRuleBasedCallCount: Int = 0
     var releaseCallCount: Int = 0
 
     override suspend fun processMessage(input: String, context: AiChatContext): AiChatResult {
         processMessageCallCount++
+        return offlineResult
+    }
+
+    override suspend fun processRuleBased(input: String, context: AiChatContext): AiChatResult {
+        processMessageCallCount++
+        processRuleBasedCallCount++
         return offlineResult
     }
 

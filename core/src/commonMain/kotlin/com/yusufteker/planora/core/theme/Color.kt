@@ -10,19 +10,19 @@ import androidx.compose.ui.graphics.Color
  */
 object PlanoraColors {
 
-    // ── Primary ──────────────────────────────────────────────
-    val Primary = Color(0xFF1D9BF0) // Sleek Vibrant Blue
-    val PrimaryVariant = Color(0xFF0C85D0)
+    // ── Primary (Default: Royal Blue / Event Color) ─────────
+    val Primary = Color(0xFF6366F1) // Royal Blue / Indigo (Event Color)
+    val PrimaryVariant = Color(0xFF4F46E5)
     val OnPrimary = Color(0xFFFFFFFF)
-    val PrimaryContainer = Color(0xFFE1F5FE)
-    val OnPrimaryContainer = Color(0xFF003355)
+    val PrimaryContainer = Color(0xFFEEF2FF)
+    val OnPrimaryContainer = Color(0xFF1E1B4B)
 
-    // ── Secondary ────────────────────────────────────────────
-    val Secondary = Color(0xFF00CEC9)
-    val SecondaryVariant = Color(0xFF00B5B0)
+    // ── Secondary (Default: Emerald / Task Color) ────────────
+    val Secondary = Color(0xFF10B981) // Emerald Green (Task Color)
+    val SecondaryVariant = Color(0xFF059669)
     val OnSecondary = Color(0xFFFFFFFF)
-    val SecondaryContainer = Color(0xFFCCF5F4)
-    val OnSecondaryContainer = Color(0xFF003736)
+    val SecondaryContainer = Color(0xFFD1FAE5)
+    val OnSecondaryContainer = Color(0xFF064E3B)
 
     // ── Tertiary ─────────────────────────────────────────────
     val Tertiary = Color(0xFFFF6B6B)
@@ -61,25 +61,64 @@ object PlanoraColors {
     val ErrorContainerDark = Color(0xFF5C1520)
     val OnErrorContainerDark = Color(0xFFFFDADA)
 
-    // ── Aura & Glassmorphism ─────────────────────────────────
-    val GlassSurfaceLight = Color(0x99FFFFFF) // 60% opacity white
-    val GlassSurfaceDark = Color(0x66000000)  // 40% opacity black
-    val PlanoraGlow = Color(0xFF1D9BF0)         // Primary glow
 
-    val MeshGradientLight1 = Color(0xFFE1F5FE)
-    val MeshGradientLight2 = Color(0xFFCCF5F4)
-    val MeshGradientLight3 = Color(0xFFFFE0E0)
-
-    val MeshGradientDark1 = Color(0xFF003355)
-    val MeshGradientDark2 = Color(0xFF003736)
-    val MeshGradientDark3 = Color(0xFF410002)
+    // ── Semantic Item Type Colors ───────────────────────────
+    val TaskColor = Color(0xFF10B981)     // Emerald (#10B981) - Official Task Brand Color
+    val EventColor = Color(0xFF6366F1)    // Indigo (#6366F1) - Official Event Brand Color
+    val NoteColor = Color(0xFFF59E0B)     // Amber (#F59E0B) - Official Note Brand Color
+    val FolderColor = Color(0xFF22C55E)   // Lime (#22C55E) - Official Folder Brand Color
 
     // ── Dribbble Modern Gradients & Accents ─────────────────
-    val GradientPrimary = listOf(Color(0xFF1D9BF0), Color(0xFF00CEC9))
+    val GradientPrimary = listOf(Color(0xFF6366F1), Color(0xFF10B981))
     val GradientPurpleCyan = listOf(Color(0xFF6C5CE7), Color(0xFF00CEC9))
     val GradientCoralSunset = listOf(Color(0xFFFF6B6B), Color(0xFFFF8E53))
     val GradientEmeraldTeal = listOf(Color(0xFF10B981), Color(0xFF06B6D4))
     val GradientIndigoViolet = listOf(Color(0xFF4F46E5), Color(0xFF7C3AED))
     val GradientGoldAmber = listOf(Color(0xFFF59E0B), Color(0xFFFBBF24))
+
+    // ── Premium Brand ────────────────────────────────────────
+    val Premium = Color(0xFFE63946)
+    val PremiumVariant = Color(0xFFD90429)
+    val PremiumGradient = listOf(Color(0xFFFF3B30), Color(0xFFE63946), Color(0xFFD90429))
+}
+
+/**
+ * Official Premium brand color across the application.
+ */
+val premiumColor: Color = PlanoraColors.Premium
+
+/**
+ * Official Premium brand gradient.
+ */
+val premiumGradient: List<Color> = PlanoraColors.PremiumGradient
+
+/**
+ * Official Task color (#10B981).
+ */
+val taskColor: Color = PlanoraColors.TaskColor
+
+/**
+ * Official Event color (#6366F1).
+ */
+val eventColor: Color = PlanoraColors.EventColor
+
+/**
+ * Official Note color (#F59E0B).
+ */
+val noteColor: Color = PlanoraColors.NoteColor
+
+/**
+ * Official Folder color (#22C55E).
+ */
+val folderColor: Color = PlanoraColors.FolderColor
+
+/**
+ * Returns the brand color associated with a given [com.yusufteker.planora.shared.api.TaskType].
+ */
+fun getTaskTypeColor(type: com.yusufteker.planora.shared.api.TaskType): Color = when (type) {
+    com.yusufteker.planora.shared.api.TaskType.TASK -> PlanoraColors.TaskColor
+    com.yusufteker.planora.shared.api.TaskType.EVENT -> PlanoraColors.EventColor
+    com.yusufteker.planora.shared.api.TaskType.NOTE -> PlanoraColors.NoteColor
+    com.yusufteker.planora.shared.api.TaskType.FOLDER -> PlanoraColors.FolderColor
 }
 
