@@ -139,7 +139,7 @@ GoogleService-Info.plist
 # ADMIN & INTERNAL GUIDES / CREDENTIALS
 ###############################################
 ADMIN_CONFIG_GUIDE.txt
-*ADMIN*
+ADMIN_*.txt
 *admin*guide*
 *admin_config*
 
