@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.first
 
 import com.yusufteker.planora.core.database.PlanoraDatabase
 import com.yusufteker.planora.core.database.clearAll
+import planora.core.generated.resources.Res
+import planora.core.generated.resources.export_tasks_empty
+import planora.core.generated.resources.export_tasks_error
+import planora.core.generated.resources.export_tasks_success
 
 /**
  * ViewModel for the Settings screen.
@@ -23,7 +27,8 @@ class SettingsViewModel(
     private val sessionPreferences: SessionPreferences,
     private val database: PlanoraDatabase,
     private val planRepository: PlanRepository,
-    private val csvExporter: TaskCsvExporter
+    private val csvExporter: TaskCsvExporter,
+    private val appIconManager: com.yusufteker.planora.core.icon.AppIconManager
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {
@@ -41,6 +46,11 @@ class SettingsViewModel(
         launch {
             themePreferences.secondaryThemeColor.collect { secondary ->
                 setState { copy(secondaryThemeColor = secondary) }
+            }
+        }
+        launch {
+            themePreferences.appIcon.collect { icon ->
+                setState { copy(appIcon = icon) }
             }
         }
         // Observe premium status reactively
@@ -87,6 +97,18 @@ class SettingsViewModel(
                 }
             }
 
+            is SettingsEvent.AppIconSelected -> {
+                if (event.icon.isPremium && !state.value.isPremium) {
+                    setEffect(SettingsEffect.NavigateToPremium)
+                    return
+                }
+                setState { copy(appIcon = event.icon) }
+                launch {
+                    themePreferences.setAppIcon(event.icon)
+                    appIconManager.setIcon(event.icon)
+                }
+            }
+
             is SettingsEvent.LogoutClicked -> {
                 launch {
                     database.planoraDatabaseQueries.clearAll()
@@ -100,7 +122,11 @@ class SettingsViewModel(
             }
 
             is SettingsEvent.AnalyticsClicked -> {
-                setEffect(SettingsEffect.NavigateToAnalytics)
+                if (!state.value.isPremium) {
+                    setEffect(SettingsEffect.NavigateToPremium)
+                } else {
+                    setEffect(SettingsEffect.NavigateToAnalytics)
+                }
             }
 
             is SettingsEvent.PlanComparisonClicked -> {
@@ -138,8 +164,21 @@ class SettingsViewModel(
             is SettingsEvent.ExportTasksWithFormat -> {
                 setState { copy(showExportBottomSheet = false) }
                 launch {
-                    val tasks = planRepository.observeAllTasks().first()
-                    csvExporter.export(tasks, "planora_tasks", event.format)
+                    try {
+                        val tasks = planRepository.observeAllTasks().first()
+                        if (tasks.isEmpty()) {
+                            setEffect(SettingsEffect.ShowSnackbar(Res.string.export_tasks_empty))
+                            return@launch
+                        }
+                        val success = csvExporter.export(tasks, "planora_tasks", event.format)
+                        if (success) {
+                            setEffect(SettingsEffect.ShowSnackbar(Res.string.export_tasks_success))
+                        } else {
+                            setEffect(SettingsEffect.ShowSnackbar(Res.string.export_tasks_error))
+                        }
+                    } catch (e: Exception) {
+                        setEffect(SettingsEffect.ShowSnackbar(Res.string.export_tasks_error))
+                    }
                 }
             }
         }

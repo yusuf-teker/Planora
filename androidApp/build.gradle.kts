@@ -27,6 +27,7 @@ dependencies {
     implementation(projects.shared)
 
     implementation(libs.kotlinx.datetime)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation(libs.compose.uiToolingPreview)

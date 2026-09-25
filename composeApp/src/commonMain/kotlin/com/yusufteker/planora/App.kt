@@ -527,15 +527,15 @@ fun App() {
                     }
 
                     entry<Screen.Analytics> {
-                        val isPremium by sessionPreferences.isPremiumFlow.collectAsStateWithLifecycle(initialValue = false)
+                        val isPremium by sessionPreferences.isPremiumFlow.collectAsStateWithLifecycle(initialValue = null)
                         // Premium guard: free user'ı direkt Premium paywall'a yönlendir
                         LaunchedEffect(isPremium) {
-                            if (!isPremium) {
+                            if (isPremium == false) {
                                 navigator.pop()
                                 navigator.navigate(Screen.Premium)
                             }
                         }
-                        if (isPremium) {
+                        if (isPremium != false) {
                             val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsViewModel>(key = vmKey)
                             com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsScreen(
                                 viewModel = viewModel,

@@ -64,4 +64,10 @@ actual val platformCoreModule = module {
     single<com.yusufteker.planora.core.version.AppVersionProvider> { 
         com.yusufteker.planora.core.version.IosAppVersionProvider() 
     }
+
+    // App Icon Manager
+    single<com.yusufteker.planora.core.icon.AppIconManager> { 
+        com.yusufteker.planora.core.icon.IosAppIconManager() 
+    }
 }
+

@@ -40,11 +40,13 @@ fun ThemeColor.isPremiumTheme(): Boolean = this in setOf(
  * Manages theme preferences using DataStore.
  */
 class ThemePreferences(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val appIconManager: com.yusufteker.planora.core.icon.AppIconManager? = null
 ) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
     private val themeColorKey = stringPreferencesKey("theme_color")
     private val secondaryThemeColorKey = stringPreferencesKey("secondary_theme_color")
+    private val appIconKey = stringPreferencesKey("app_icon")
 
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default + kotlinx.coroutines.SupervisorJob())
 
@@ -59,6 +61,12 @@ class ThemePreferences(
      * Emits the currently selected Secondary (Accent) ThemeColor.
      */
     val secondaryThemeColor: StateFlow<ThemeColor> = _secondaryThemeColor.asStateFlow()
+
+    private val _appIcon = MutableStateFlow(appIconManager?.getCurrentIcon() ?: com.yusufteker.planora.core.icon.AppIcon.DEFAULT)
+    /**
+     * Emits the currently selected launcher AppIcon theme.
+     */
+    val appIcon: StateFlow<com.yusufteker.planora.core.icon.AppIcon> = _appIcon.asStateFlow()
 
     init {
         scope.launch {
@@ -86,6 +94,13 @@ class ThemePreferences(
                     primary.defaultSecondary()
                 }
                 _secondaryThemeColor.value = secondary
+
+                val iconId = preferences[appIconKey]
+                _appIcon.value = if (iconId != null) {
+                    com.yusufteker.planora.core.icon.AppIcon.fromId(iconId)
+                } else {
+                    appIconManager?.getCurrentIcon() ?: com.yusufteker.planora.core.icon.AppIcon.DEFAULT
+                }
             }
         }
     }
@@ -124,6 +139,16 @@ class ThemePreferences(
         _secondaryThemeColor.value = color
         dataStore.edit { preferences ->
             preferences[secondaryThemeColorKey] = color.name
+        }
+    }
+
+    /**
+     * Updates the launcher app icon preference and persists to DataStore.
+     */
+    suspend fun setAppIcon(icon: com.yusufteker.planora.core.icon.AppIcon) {
+        _appIcon.value = icon
+        dataStore.edit { preferences ->
+            preferences[appIconKey] = icon.id
         }
     }
 }

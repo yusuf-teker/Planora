@@ -34,6 +34,9 @@ class SplashViewModel(
             // OnboardingViewModel companion object can hold the total count.
             val totalPages = OnboardingViewModel.TOTAL_PAGES
             
+            // Allow the splash logo animation to complete smoothly so it doesn't flash a blank screen
+            kotlinx.coroutines.delay(850)
+
             if (lastSeen < totalPages) {
                 setEffect(SplashEffect.NavigateToOnboarding)
             } else if (isLoggedIn) {

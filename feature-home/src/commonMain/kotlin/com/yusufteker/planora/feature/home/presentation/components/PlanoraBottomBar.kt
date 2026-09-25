@@ -33,6 +33,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
+import com.yusufteker.planora.core.domain.usecase.getPlatformName
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -69,12 +70,22 @@ fun PlanoraBottomBar(
         }
     )
 
+    val navBarsBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val isIos = remember { getPlatformName().equals("ios", ignoreCase = true) }
+    // iOS: Lowered to eliminate excessive dead space below home indicator (34dp - 12dp = 22dp offset).
+    // Android: Preserves the approved original positioning (navBarsBottom + 12dp).
+    val effectiveBottomPadding = if (isIos) {
+        (navBarsBottom - 12.dp).coerceAtLeast(0.dp)
+    } else {
+        navBarsBottom + 12.dp
+    }
+
     Box(
         contentAlignment = Alignment.BottomCenter,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 16.dp)
+            .padding(top = 12.dp, bottom = effectiveBottomPadding)
     ) {
         Surface(
             color = surfaceColor,
@@ -153,7 +164,6 @@ fun PlanoraBottomBar(
         Box(
             modifier = Modifier
                 .padding(bottom = AiButtonBottomPadding)
-                .windowInsetsPadding(WindowInsets.navigationBars)
                 .size(AiButtonSize)
                 .shadow(
                     elevation = 6.dp,

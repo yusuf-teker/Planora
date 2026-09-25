@@ -24,7 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 val coreModule = module {
     includes(platformCoreModule)
 
-    singleOf(::ThemePreferences)
+    single { ThemePreferences(get(), getOrNull()) }
     singleOf(::SessionPreferences)
 
     // HttpClient depends on SessionPreferences

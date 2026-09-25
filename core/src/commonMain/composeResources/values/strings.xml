@@ -902,10 +902,24 @@
      <string name="comparison_feature_export_title">Task Export (CSV &amp; Report)</string>
      <string name="comparison_feature_export_free">Standard Export</string>
      <string name="comparison_feature_export_pro">Advanced Export &amp; Reports</string>
+     <string name="comparison_feature_app_icon_title">App Icon Customization</string>
+     <string name="comparison_feature_app_icon_free">Ocean Blue icon only</string>
+     <string name="comparison_feature_app_icon_pro">All vibrant custom icons</string>
 
      <!-- Calendar Integration (Google & Apple Calendar) -->
      <string name="action_add_to_calendar">Add to System Calendar</string>
      <string name="action_add_to_calendar_desc">Export to Google Calendar or Apple Calendar</string>
      <string name="calendar_sync_success">Event added to your calendar</string>
      <string name="calendar_sync_error">Failed to open calendar. Please try again.</string>
+
+     <!-- App Icon Customization -->
+     <string name="settings_app_icon">App Icon</string>
+     <string name="settings_app_icon_subtitle">Choose your favorite icon color</string>
+     <string name="app_icon_blue">Ocean Blue (Default)</string>
+     <string name="app_icon_purple">Neon Purple</string>
+     <string name="app_icon_green">Emerald Green</string>
+     <string name="app_icon_orange">Sunset Orange</string>
+     <string name="app_icon_pink">Vibrant Pink</string>
+     <string name="app_icon_red">Coral Red</string>
+     <string name="app_icon_changed_notice">App icon updated successfully</string>
 </resources>

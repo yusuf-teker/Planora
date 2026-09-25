@@ -1,5 +1,6 @@
 package com.yusufteker.planora.core.export
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -28,33 +29,42 @@ actual class TaskCsvExporter : KoinComponent {
      * @param tasks List of tasks to include in the export.
      * @param fileName Suggested name for the output file (without extension).
      * @param format Export format (CSV or Report).
+     * @return True if the export was initiated successfully, false otherwise.
      */
-    actual fun export(tasks: List<TaskDto>, fileName: String, format: ExportFormat) {
-        if (tasks.isEmpty()) return
+    actual fun export(tasks: List<TaskDto>, fileName: String, format: ExportFormat): Boolean {
+        if (tasks.isEmpty()) return false
 
-        val (content, extension, mimeType) = when (format) {
-            ExportFormat.CSV -> Triple(tasks.toCsvString(), "csv", "text/csv")
-            ExportFormat.REPORT -> Triple(tasks.toReportString(), "txt", "text/plain")
+        return try {
+            val (content, extension, mimeType) = when (format) {
+                ExportFormat.CSV -> Triple(tasks.toCsvString(), "csv", "text/csv")
+                ExportFormat.REPORT -> Triple(tasks.toReportString(), "txt", "text/plain")
+            }
+
+            val file = File(context.cacheDir, "$fileName.$extension").apply {
+                writeText(content, Charsets.UTF_8)
+            }
+
+            val authority = "${context.packageName}.fileprovider"
+            val uri: Uri = FileProvider.getUriForFile(context, authority, file)
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, fileName)
+                clipData = ClipData.newRawUri(fileName, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val chooser = Intent.createChooser(shareIntent, "Export Tasks").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(chooser)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
-
-        val file = File(context.cacheDir, "$fileName.$extension").apply {
-            writeText(content, Charsets.UTF_8)
-        }
-
-        val authority = "${context.packageName}.fileprovider"
-        val uri: Uri = FileProvider.getUriForFile(context, authority, file)
-
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = mimeType
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, fileName)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        val chooser = Intent.createChooser(shareIntent, "Export Tasks").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(chooser)
     }
 }

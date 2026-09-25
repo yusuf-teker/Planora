@@ -18,6 +18,16 @@ import com.yusufteker.planora.core.navigation.DeepLinkManager
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val currentIcon = com.yusufteker.planora.core.icon.AndroidAppIconManager(this).getCurrentIcon()
+        val themeRes = when (currentIcon) {
+            com.yusufteker.planora.core.icon.AppIcon.DEFAULT -> R.style.Theme_Planora
+            com.yusufteker.planora.core.icon.AppIcon.PURPLE -> R.style.Theme_Planora_Purple
+            com.yusufteker.planora.core.icon.AppIcon.GREEN -> R.style.Theme_Planora_Green
+            com.yusufteker.planora.core.icon.AppIcon.ORANGE -> R.style.Theme_Planora_Orange
+            com.yusufteker.planora.core.icon.AppIcon.PINK -> R.style.Theme_Planora_Pink
+            com.yusufteker.planora.core.icon.AppIcon.RED -> R.style.Theme_Planora_Red
+        }
+        setTheme(themeRes)
         installSplashScreen()
         enableEdgeToEdge()
         FirebaseApp.initializeApp(this)

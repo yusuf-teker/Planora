@@ -28,6 +28,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         Messaging.messaging().apnsToken = deviceToken
+        print("Planora: APNs token successfully registered: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Planora: Failed to register for remote notifications: \(error.localizedDescription)")
     }
     
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
@@ -80,6 +85,7 @@ struct PlanoraApp: App {
     init() {
         setupAiBridge()
         setupWidgetBridge()
+        setupAppIconBridge()
     }
     var body: some Scene {
         WindowGroup { 
@@ -90,6 +96,23 @@ struct PlanoraApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     IosWidgetBridge.shared.syncWidgetData()
                 }
+        }
+    }
+}
+
+func setupAppIconBridge() {
+    IosAppIconBridge.shared.onGetCurrentIconRequested = {
+        return UIApplication.shared.alternateIconName
+    }
+    IosAppIconBridge.shared.onSetIconRequested = { iconName in
+        DispatchQueue.main.async {
+            guard UIApplication.shared.supportsAlternateIcons else { return }
+            if UIApplication.shared.alternateIconName == iconName { return }
+            UIApplication.shared.setAlternateIconName(iconName) { error in
+                if let error = error {
+                    print("Planora: Failed to set alternate icon: \(error.localizedDescription)")
+                }
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -119,6 +120,13 @@ fun PlanComparisonScreen(
             freeTextRes = Res.string.comparison_feature_export_free,
             proTextRes = Res.string.comparison_feature_export_pro,
             isFreeSupported = true
+        ),
+        ComparisonFeatureItem(
+            icon = Icons.Filled.Apps,
+            titleRes = Res.string.comparison_feature_app_icon_title,
+            freeTextRes = Res.string.comparison_feature_app_icon_free,
+            proTextRes = Res.string.comparison_feature_app_icon_pro,
+            isFreeSupported = false
         )
     )
 

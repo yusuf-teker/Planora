@@ -1,6 +1,7 @@
 package com.yusufteker.planora.feature.home.presentation.settings
 
 import com.yusufteker.planora.core.base.UiState
+import com.yusufteker.planora.core.icon.AppIcon
 import com.yusufteker.planora.core.preferences.ThemeColor
 
 /**
@@ -16,10 +17,12 @@ data class SettingsState(
     val themeColor: ThemeColor = ThemeColor.DEFAULT,
     val secondaryThemeColor: ThemeColor = ThemeColor.GREEN,
     val activeThemeTab: ThemeColorTarget = ThemeColorTarget.PRIMARY,
+    val appIcon: AppIcon = AppIcon.DEFAULT,
     val isPremium: Boolean = false,
     val showDeleteConfirmDialog: Boolean = false,
     val isDeletingAccount: Boolean = false,
     val showExportBottomSheet: Boolean = false,
     val errorMessage: String? = null
 ) : UiState
+
 

@@ -19,5 +19,7 @@ sealed interface SettingsEvent : UiEvent {
     data object ExportTasksClicked : SettingsEvent
     data class SetExportSheetVisible(val visible: Boolean) : SettingsEvent
     data class ExportTasksWithFormat(val format: com.yusufteker.planora.core.export.ExportFormat) : SettingsEvent
+    /** Triggered when the user selects a launcher app icon color. */
+    data class AppIconSelected(val icon: com.yusufteker.planora.core.icon.AppIcon) : SettingsEvent
 }
 

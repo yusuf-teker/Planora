@@ -901,10 +901,24 @@
      <string name="comparison_feature_export_title">Görev Dışa Aktarma (CSV &amp; Rapor)</string>
      <string name="comparison_feature_export_free">Standart Dışa Aktarma</string>
      <string name="comparison_feature_export_pro">Gelişmiş Dışa Aktarma ve Raporlar</string>
+     <string name="comparison_feature_app_icon_title">Uygulama İkonu Özelleştirme</string>
+     <string name="comparison_feature_app_icon_free">Yalnızca Okyanus Mavisi ikon</string>
+     <string name="comparison_feature_app_icon_pro">Tüm canlı renk ikonları</string>
 
      <!-- Takvim Entegrasyonu (Google & Apple Takvim) -->
      <string name="action_add_to_calendar">Sistem Takvimine Ekle</string>
      <string name="action_add_to_calendar_desc">Google Takvim veya Apple Takvim\'e aktar</string>
      <string name="calendar_sync_success">Etkinlik takviminize eklendi</string>
      <string name="calendar_sync_error">Takvim açılamadı. Lütfen tekrar deneyin.</string>
+
+     <!-- Uygulama İkonu Özelleştirme -->
+     <string name="settings_app_icon">Uygulama İkonu</string>
+     <string name="settings_app_icon_subtitle">Favori ikon renginizi seçin</string>
+     <string name="app_icon_blue">Okyanus Mavisi (Varsayılan)</string>
+     <string name="app_icon_purple">Neon Mor</string>
+     <string name="app_icon_green">Zümrüt Yeşili</string>
+     <string name="app_icon_orange">Günbatımı Turuncusu</string>
+     <string name="app_icon_pink">Canlı Pembe</string>
+     <string name="app_icon_red">Mercan Kırmızısı</string>
+     <string name="app_icon_changed_notice">Uygulama ikonu başarıyla güncellendi</string>
 </resources>

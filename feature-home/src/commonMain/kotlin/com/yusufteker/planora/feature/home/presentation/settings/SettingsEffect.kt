@@ -1,6 +1,7 @@
 package com.yusufteker.planora.feature.home.presentation.settings
 
 import com.yusufteker.planora.core.base.UiEffect
+import org.jetbrains.compose.resources.StringResource
 
 sealed interface SettingsEffect : UiEffect {
     data object NavigateBack : SettingsEffect
@@ -15,4 +16,6 @@ sealed interface SettingsEffect : UiEffect {
     data object NavigateToPlanComparison : SettingsEffect
     /** Triggers the platform share sheet with the CSV export (Premium-only). */
     data object ExportTasks : SettingsEffect
+    /** Shows a snackbar notification with a localized message. */
+    data class ShowSnackbar(val messageRes: StringResource) : SettingsEffect
 }

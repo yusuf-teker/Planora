@@ -1,6 +1,8 @@
 package com.yusufteker.planora.core.export
 
+import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskDto
+import com.yusufteker.planora.shared.api.TaskStatus
 
 /**
  * Format options for task data export.
@@ -25,8 +27,9 @@ expect class TaskCsvExporter() {
      * @param tasks Tasks to include in the export.
      * @param fileName Suggested file name shown in the share sheet (e.g. "planora_tasks").
      * @param format The desired export format (CSV or Formatted Report).
+     * @return True if the export was initiated successfully, false otherwise.
      */
-    fun export(tasks: List<TaskDto>, fileName: String, format: ExportFormat = ExportFormat.CSV)
+    fun export(tasks: List<TaskDto>, fileName: String, format: ExportFormat = ExportFormat.CSV): Boolean
 }
 
 /**
@@ -44,11 +47,12 @@ fun List<TaskDto>.toCsvString(): String {
     ).joinToString(",")
 
     val rows = map { task ->
+        val priority = (task.specificDetails as? ItemDetails.Task)?.priority?.name ?: "MEDIUM"
         listOf(
             task.title.escapeCsv(),
             task.description?.escapeCsv() ?: "",
             task.status.name,
-            "MEDIUM",
+            priority,
             task.type.name,
             task.startTime.toString(),
             task.endTime?.toString() ?: "",
@@ -65,22 +69,28 @@ fun List<TaskDto>.toCsvString(): String {
  * Converts a list of [TaskDto] objects into a clean, human-readable summary report.
  */
 fun List<TaskDto>.toReportString(): String {
+    val completedCount = count { it.status == TaskStatus.COMPLETED || it.status.name == "DONE" }
+    val pendingCount = size - completedCount
+
     val sb = StringBuilder()
     sb.appendLine("================================================")
     sb.appendLine("             PLANORA TASK & PLAN REPORT         ")
     sb.appendLine("================================================")
     sb.appendLine("Total Tasks: $size")
-    sb.appendLine("Completed: ${count { it.status.name == "DONE" }}")
-    sb.appendLine("Pending/In-Progress: ${count { it.status.name != "DONE" }}")
+    sb.appendLine("Completed: $completedCount")
+    sb.appendLine("Pending/In-Progress: $pendingCount")
     sb.appendLine("------------------------------------------------\n")
 
     forEachIndexed { index, task ->
-        val statusSymbol = if (task.status.name == "DONE") "[✓]" else "[ ]"
+        val isCompleted = task.status == TaskStatus.COMPLETED || task.status.name == "DONE"
+        val statusSymbol = if (isCompleted) "[✓]" else "[ ]"
+        val priority = (task.specificDetails as? ItemDetails.Task)?.priority?.name ?: "MEDIUM"
+
         sb.appendLine("${index + 1}. $statusSymbol ${task.title}")
         if (!task.description.isNullOrBlank()) {
             sb.appendLine("   Details: ${task.description}")
         }
-        sb.appendLine("   Status: ${task.status.name} | Type: ${task.type.name}")
+        sb.appendLine("   Status: ${task.status.name} | Priority: $priority | Type: ${task.type.name}")
         if (task.startTime > 0) {
             sb.appendLine("   Start Time: ${task.startTime}")
         }

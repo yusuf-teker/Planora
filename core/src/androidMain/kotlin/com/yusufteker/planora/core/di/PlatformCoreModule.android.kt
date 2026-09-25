@@ -93,4 +93,10 @@ actual val platformCoreModule = module {
     single<com.yusufteker.planora.core.version.AppVersionProvider> { 
         com.yusufteker.planora.core.version.AndroidAppVersionProvider(androidContext()) 
     }
+
+    // App Icon Manager
+    single<com.yusufteker.planora.core.icon.AppIconManager> { 
+        com.yusufteker.planora.core.icon.AndroidAppIconManager(androidContext()) 
+    }
 }
+

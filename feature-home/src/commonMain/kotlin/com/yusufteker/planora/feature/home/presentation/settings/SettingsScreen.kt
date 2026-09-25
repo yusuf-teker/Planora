@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
@@ -52,6 +53,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -63,6 +66,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -150,6 +156,8 @@ fun SettingsScreen(
     val mainNavigator = LocalMainNavigator.current
     val rootNavigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val sessionPreferences = koinInject<SessionPreferences>()
     val isPremiumUser by sessionPreferences.isPremiumFlow.collectAsStateWithLifecycle(initialValue = false)
@@ -163,6 +171,12 @@ fun SettingsScreen(
             is SettingsEffect.NavigateToAnalytics -> rootNavigator.navigate(Screen.Analytics)
             is SettingsEffect.NavigateToPlanComparison -> rootNavigator.navigate(Screen.PlanComparison)
             is SettingsEffect.ExportTasks -> Unit
+            is SettingsEffect.ShowSnackbar -> {
+                coroutineScope.launch {
+                    val msg = getString(effect.messageRes)
+                    snackbarHostState.showSnackbar(msg)
+                }
+            }
         }
     }
 
@@ -171,7 +185,9 @@ fun SettingsScreen(
     val secondaryHex = resolveThemeColor(state.secondaryThemeColor)
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background, topBar = {
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
             TopAppBar(
                 title = {
                     GradientText(
@@ -716,6 +732,241 @@ fun SettingsScreen(
                                 }
                             }
                         }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+
+                        // Uygulama İkonu (App Icon) Başlığı ve Seçici
+                        var isAppIconExpanded by remember { mutableStateOf(false) }
+                        val iconChevronRotation by animateFloatAsState(
+                            targetValue = if (isAppIconExpanded) 180f else 0f,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                        )
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .clickable { isAppIconExpanded = !isAppIconExpanded }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                SettingsIconBox(
+                                    icon = Icons.Filled.Apps,
+                                    containerColor = Color(state.appIcon.primaryColorHex).copy(alpha = 0.15f),
+                                    iconTint = Color(state.appIcon.primaryColorHex)
+                                )
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = stringResource(Res.string.settings_app_icon),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (!state.isPremium) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                color = premiumColor.copy(alpha = 0.15f),
+                                                shape = RoundedCornerShape(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "PRO",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                    color = premiumColor,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        text = stringResource(state.appIcon.titleRes),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Mini app icon preview
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .border(
+                                                width = 1.dp,
+                                                color = Color(state.appIcon.primaryColorHex).copy(alpha = 0.6f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                    ) {
+                                        androidx.compose.foundation.Image(
+                                            painter = org.jetbrains.compose.resources.painterResource(state.appIcon.iconDrawable),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp).rotate(iconChevronRotation),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            AnimatedVisibility(
+                                visible = isAppIconExpanded,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    val iconOptions = remember { com.yusufteker.planora.core.icon.AppIcon.entries }
+                                    val chunkedIcons = remember(iconOptions) { iconOptions.chunked(3) }
+
+                                    chunkedIcons.forEach { rowItems ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            rowItems.forEach { iconItem ->
+                                                val isSelected = state.appIcon == iconItem
+                                                val isLocked = iconItem.isPremium && !state.isPremium
+                                                val itemAccentColor = Color(iconItem.primaryColorHex)
+
+                                                Card(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .clickable {
+                                                            viewModel.onEvent(SettingsEvent.AppIconSelected(iconItem))
+                                                        },
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    colors = CardDefaults.cardColors(
+                                                        containerColor = if (isSelected) {
+                                                            itemAccentColor.copy(alpha = 0.12f)
+                                                        } else {
+                                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                        }
+                                                    ),
+                                                    border = BorderStroke(
+                                                        width = if (isSelected) 2.dp else 1.dp,
+                                                        color = if (isSelected) itemAccentColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                                    )
+                                                ) {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp)
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier.size(52.dp),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(46.dp)
+                                                                    .clip(RoundedCornerShape(12.dp))
+                                                                    .border(
+                                                                        width = if (isSelected) 2.dp else 1.dp,
+                                                                        color = if (isSelected) itemAccentColor else Color.Transparent,
+                                                                        shape = RoundedCornerShape(12.dp)
+                                                                    )
+                                                            ) {
+                                                                androidx.compose.foundation.Image(
+                                                                    painter = org.jetbrains.compose.resources.painterResource(iconItem.iconDrawable),
+                                                                    contentDescription = stringResource(iconItem.titleRes),
+                                                                    modifier = Modifier.fillMaxSize()
+                                                                )
+                                                            }
+
+                                                            if (isSelected) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .align(Alignment.TopEnd)
+                                                                        .offset(x = 4.dp, y = (-4).dp)
+                                                                        .size(18.dp)
+                                                                        .clip(CircleShape)
+                                                                        .background(itemAccentColor)
+                                                                        .border(
+                                                                            width = 1.5.dp,
+                                                                            color = MaterialTheme.colorScheme.surface,
+                                                                            shape = CircleShape
+                                                                        ),
+                                                                    contentAlignment = Alignment.Center
+                                                                ) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Check,
+                                                                        contentDescription = null,
+                                                                        tint = Color.White,
+                                                                        modifier = Modifier.size(11.dp)
+                                                                    )
+                                                                }
+                                                            } else if (isLocked) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .align(Alignment.TopEnd)
+                                                                        .offset(x = 4.dp, y = (-4).dp)
+                                                                        .size(18.dp)
+                                                                        .clip(CircleShape)
+                                                                        .background(premiumColor)
+                                                                        .border(
+                                                                            width = 1.5.dp,
+                                                                            color = MaterialTheme.colorScheme.surface,
+                                                                            shape = CircleShape
+                                                                        ),
+                                                                    contentAlignment = Alignment.Center
+                                                                ) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Star,
+                                                                        contentDescription = "Premium",
+                                                                        tint = Color.White,
+                                                                        modifier = Modifier.size(10.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                                        Text(
+                                                            text = stringResource(iconItem.titleRes),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = if (isLocked) premiumColor else if (isSelected) itemAccentColor else MaterialTheme.colorScheme.onSurface,
+                                                            fontWeight = if (isSelected || isLocked) FontWeight.Bold else FontWeight.Medium,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis,
+                                                            textAlign = TextAlign.Center,
+                                                            fontSize = 11.sp
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            val emptySlots = 3 - rowItems.size
+                                            if (emptySlots > 0) {
+                                                repeat(emptySlots) {
+                                                    Spacer(modifier = Modifier.weight(1f))
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -809,6 +1060,23 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+
+                            if (!state.isPremium) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = premiumColor.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, premiumColor.copy(alpha = 0.4f)),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "PRO",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = premiumColor,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
 
                             Icon(

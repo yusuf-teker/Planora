@@ -37,6 +37,7 @@ import planora.core.generated.resources.app_icon_light
 
 import org.koin.compose.koinInject
 import com.yusufteker.planora.core.preferences.ThemePreferences
+import com.yusufteker.planora.core.icon.AppIconManager
 
 /**
  * Splash screen composable.
@@ -50,8 +51,11 @@ fun SplashScreen(
     val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val themePreferences: ThemePreferences = koinInject()
+    val appIconManager: AppIconManager = koinInject()
     val isDarkModePref by themePreferences.isDarkMode.collectAsStateWithLifecycle(initialValue = null)
     val isDark = isDarkModePref ?: isSystemInDarkTheme()
+    val initialIcon = remember { appIconManager.getCurrentIcon() }
+    val currentAppIcon by themePreferences.appIcon.collectAsStateWithLifecycle(initialValue = initialIcon)
 
     viewModel.effect.CollectEffect { effect ->
         when (effect) {
@@ -67,19 +71,20 @@ fun SplashScreen(
     LaunchedEffect(Unit) {
         scale.animateTo(
             targetValue = 1.0f,
-            animationSpec = tween(durationMillis = 700)
+            animationSpec = tween(durationMillis = 600)
         )
     }
 
     LaunchedEffect(Unit) {
         alpha.animateTo(
             targetValue = 1.0f,
-            animationSpec = tween(durationMillis = 700)
+            animationSpec = tween(durationMillis = 600)
         )
     }
 
     val backgroundColor = if (isDark) Color(0xFF000000) else Color(0xFFFFFFFF)
-    val logoResource = if (isDark) Res.drawable.app_icon_dark else Res.drawable.app_icon_light
+    val activeIcon = if (currentAppIcon != com.yusufteker.planora.core.icon.AppIcon.DEFAULT) currentAppIcon else initialIcon
+    val logoResource = activeIcon.getSplashIcon(isDark)
     val textColor = if (isDark) Color.White else Color(0xFF1E1E1E)
 
     Box(
