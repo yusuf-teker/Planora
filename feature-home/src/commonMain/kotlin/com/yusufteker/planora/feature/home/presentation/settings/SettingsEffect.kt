@@ -13,4 +13,6 @@ sealed interface SettingsEffect : UiEffect {
     data object NavigateToAnalytics : SettingsEffect
     /** Navigates to the Plan Comparison screen. */
     data object NavigateToPlanComparison : SettingsEffect
+    /** Triggers the platform share sheet with the CSV export (Premium-only). */
+    data object ExportTasks : SettingsEffect
 }

@@ -154,7 +154,7 @@ class AnalyticsViewModel(
                     val dt = Instant.fromEpochMilliseconds(task.startTime).toLocalDateTime(timeZone)
                     "${dt.year}-${dt.monthNumber}-${dt.dayOfMonth}"
                 } catch (_: Exception) { null }
-            }.toSortedSet()
+            }.sorted().toSet()
 
         if (completedDays.isEmpty()) return 0
 
@@ -233,7 +233,8 @@ class AnalyticsViewModel(
         }
         if (hourCounts.isEmpty()) return "09:00 - 12:00"
         val peakHour = hourCounts.maxByOrNull { it.value }?.key ?: 9
-        return "%02d:00 - %02d:59".format(peakHour, peakHour)
+        val hourStr = peakHour.toString().padStart(2, '0')
+        return "$hourStr:00 - $hourStr:59"
     }
 
     private fun computeWeeklyProductivity(tasks: List<TaskDto>, currentMs: Long): List<DayProductivity> {

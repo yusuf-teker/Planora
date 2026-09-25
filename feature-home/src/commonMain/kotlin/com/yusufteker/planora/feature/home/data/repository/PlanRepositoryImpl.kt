@@ -113,6 +113,29 @@ class PlanRepositoryImpl(
 
     private var dataChangeListener: (() -> Unit)? = null
 
+    init {
+        cleanExpiredTrash()
+    }
+
+    /**
+     * 30 günden eski silinmiş görevleri yerel SQLite veritabanından temizler.
+     * Uygulama açılışında ([init]) ve çöp kutusu gözlemlenirken ([observeDeletedTasks])
+     * kullanıcı arayüzünü bekletmeden [scope] üzerinde asenkron olarak çalışır.
+     */
+    fun cleanExpiredTrash() {
+        val maxRetentionMs = TRASH_MAX_RETENTION_DAYS * 24L * 60L * 60L * 1000L
+        val nowMs = getCurrentTimeMs()
+        val expiredThreshold = nowMs - maxRetentionMs
+
+        scope.launch(Dispatchers.IO) {
+            try {
+                database.planoraDatabaseQueries.deleteExpiredTrash(expiredThreshold)
+            } catch (e: Exception) {
+                Napier.e(e) { "Failed to delete expired trash: ${e.message}" }
+            }
+        }
+    }
+
     fun setDataChangeListener(listener: (() -> Unit)?) {
         dataChangeListener = listener
     }
@@ -1110,18 +1133,8 @@ class PlanRepositoryImpl(
     // ─────────────────────────────────────────
 
     override fun observeDeletedTasks(): Flow<List<com.yusufteker.planora.feature.home.domain.model.DeletedTaskItem>> {
-        val maxRetentionMs = TRASH_MAX_RETENTION_DAYS * 24L * 60L * 60L * 1000L
-        val nowMs = getCurrentTimeMs()
-        val expiredThreshold = nowMs - maxRetentionMs
-
         // Otomatik temizleme: 30 günden eski öğeleri arka planda temizle
-        scope.launch(Dispatchers.IO) {
-            try {
-                database.planoraDatabaseQueries.deleteExpiredTrash(expiredThreshold)
-            } catch (e: Exception) {
-                Napier.e(e) { "Failed to delete expired trash: ${e.message}" }
-            }
-        }
+        cleanExpiredTrash()
 
         return try {
             database.planoraDatabaseQueries.getAllDeletedTasks()

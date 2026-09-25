@@ -14,6 +14,7 @@ import com.yusufteker.planora.core.ai.AndroidAiManager
 import com.yusufteker.planora.core.ai.OfflineAiManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import com.yusufteker.planora.core.export.TaskCsvExporter
 import com.yusufteker.planora.core.share.AndroidShareManager
 import com.yusufteker.planora.core.share.ShareManager
 
@@ -81,6 +82,12 @@ actual val platformCoreModule = module {
     
     // Share Manager
     single<ShareManager> { AndroidShareManager(androidContext()) }
+
+    // Task Data Exporter (CSV & Report)
+    single { TaskCsvExporter() }
+
+    // Calendar Sync Manager (Google Calendar & Native Calendar)
+    single { com.yusufteker.planora.core.calendar.CalendarSyncManager() }
 
     // App Version Provider
     single<com.yusufteker.planora.core.version.AppVersionProvider> { 

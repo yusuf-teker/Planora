@@ -42,9 +42,11 @@ import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.ui.components.getOptimizedCloudinaryUrl
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -63,7 +65,11 @@ fun EventDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
     val shareManager = org.koin.compose.koinInject<com.yusufteker.planora.core.share.ShareManager>()
+    val calendarSyncManager = org.koin.compose.koinInject<com.yusufteker.planora.core.calendar.CalendarSyncManager>()
+    val calendarSuccessMsg = stringResource(Res.string.calendar_sync_success)
+    val calendarErrorMsg = stringResource(Res.string.calendar_sync_error)
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showQuickDuplicateSheet by remember { mutableStateOf(false) }
 
@@ -119,6 +125,31 @@ fun EventDetailScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_add_to_calendar)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Event,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    val success = calendarSyncManager.addToSystemCalendar(
+                                        title = state.title.ifBlank { "Event" },
+                                        description = state.description.ifBlank { null },
+                                        location = state.location.ifBlank { null },
+                                        startTimeEpochMillis = if (state.startDateTimeMs > 0) state.startDateTimeMs else getCurrentTimeMs(),
+                                        endTimeEpochMillis = if (state.endDateTimeMs > 0) state.endDateTimeMs else null
+                                    )
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (success) calendarSuccessMsg else calendarErrorMsg
+                                        )
+                                    }
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_quick_duplicate)) },
                                 leadingIcon = {
@@ -538,6 +569,42 @@ fun EventDetailScreen(
                                     )
                                 }
                             }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                        OutlinedButton(
+                            onClick = {
+                                val success = calendarSyncManager.addToSystemCalendar(
+                                    title = state.title.ifBlank { "Event" },
+                                    description = state.description.ifBlank { null },
+                                    location = state.location.ifBlank { null },
+                                    startTimeEpochMillis = if (state.startDateTimeMs > 0) state.startDateTimeMs else getCurrentTimeMs(),
+                                    endTimeEpochMillis = if (state.endDateTimeMs > 0) state.endDateTimeMs else null
+                                )
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        if (success) calendarSuccessMsg else calendarErrorMsg
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(Res.string.action_add_to_calendar),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }

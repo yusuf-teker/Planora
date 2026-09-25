@@ -1,6 +1,8 @@
 package com.yusufteker.planora.feature.home.presentation.settings
 
 import com.yusufteker.planora.core.base.BaseViewModel
+import com.yusufteker.planora.core.export.TaskCsvExporter
+import com.yusufteker.planora.core.export.toCsvString
 import com.yusufteker.planora.core.preferences.SessionPreferences
 import com.yusufteker.planora.core.preferences.ThemePreferences
 import com.yusufteker.planora.core.preferences.isPremiumTheme
@@ -20,7 +22,8 @@ class SettingsViewModel(
     private val themePreferences: ThemePreferences,
     private val sessionPreferences: SessionPreferences,
     private val database: PlanoraDatabase,
-    private val planRepository: PlanRepository
+    private val planRepository: PlanRepository,
+    private val csvExporter: TaskCsvExporter
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {
@@ -121,6 +124,22 @@ class SettingsViewModel(
                     } else {
                         setState { copy(isDeletingAccount = false, errorMessage = result.exceptionOrNull()?.message) }
                     }
+                }
+            }
+
+            is SettingsEvent.ExportTasksClicked -> {
+                setState { copy(showExportBottomSheet = true) }
+            }
+
+            is SettingsEvent.SetExportSheetVisible -> {
+                setState { copy(showExportBottomSheet = event.visible) }
+            }
+
+            is SettingsEvent.ExportTasksWithFormat -> {
+                setState { copy(showExportBottomSheet = false) }
+                launch {
+                    val tasks = planRepository.observeAllTasks().first()
+                    csvExporter.export(tasks, "planora_tasks", event.format)
                 }
             }
         }

@@ -15,5 +15,9 @@ sealed interface SettingsEvent : UiEvent {
     data object DeleteAccountClicked : SettingsEvent
     data object DeleteAccountConfirmed : SettingsEvent
     data object DeleteAccountDismissed : SettingsEvent
+    /** Triggered when the user taps "Export Tasks" in Settings. */
+    data object ExportTasksClicked : SettingsEvent
+    data class SetExportSheetVisible(val visible: Boolean) : SettingsEvent
+    data class ExportTasksWithFormat(val format: com.yusufteker.planora.core.export.ExportFormat) : SettingsEvent
 }
 

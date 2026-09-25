@@ -19,6 +19,7 @@ data class SettingsState(
     val isPremium: Boolean = false,
     val showDeleteConfirmDialog: Boolean = false,
     val isDeletingAccount: Boolean = false,
+    val showExportBottomSheet: Boolean = false,
     val errorMessage: String? = null
 ) : UiState
 

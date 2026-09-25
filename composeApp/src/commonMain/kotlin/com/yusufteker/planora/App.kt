@@ -527,12 +527,22 @@ fun App() {
                     }
 
                     entry<Screen.Analytics> {
-                        val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsViewModel>(key = vmKey)
-                        com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsScreen(
-                            viewModel = viewModel,
-                            onNavigateBack = { navigator.pop() },
-                            onNavigateToPremium = { navigator.navigate(Screen.Premium) }
-                        )
+                        val isPremium by sessionPreferences.isPremiumFlow.collectAsStateWithLifecycle(initialValue = false)
+                        // Premium guard: free user'ı direkt Premium paywall'a yönlendir
+                        LaunchedEffect(isPremium) {
+                            if (!isPremium) {
+                                navigator.pop()
+                                navigator.navigate(Screen.Premium)
+                            }
+                        }
+                        if (isPremium) {
+                            val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsViewModel>(key = vmKey)
+                            com.yusufteker.planora.feature.home.presentation.analytics.AnalyticsScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = { navigator.pop() },
+                                onNavigateToPremium = { navigator.navigate(Screen.Premium) }
+                            )
+                        }
                     }
 
                     entry<Screen.PlanComparison> {

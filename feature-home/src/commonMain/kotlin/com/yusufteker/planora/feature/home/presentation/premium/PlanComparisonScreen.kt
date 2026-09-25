@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -100,12 +101,6 @@ fun PlanComparisonScreen(
             isFreeSupported = false
         ),
         ComparisonFeatureItem(
-            icon = Icons.Default.Repeat,
-            titleRes = Res.string.comparison_feature_recurrence_title,
-            freeTextRes = Res.string.comparison_feature_recurrence_free,
-            proTextRes = Res.string.comparison_feature_recurrence_pro
-        ),
-        ComparisonFeatureItem(
             icon = Icons.Default.CloudDone,
             titleRes = Res.string.comparison_feature_cloud_title,
             freeTextRes = Res.string.comparison_feature_cloud_free,
@@ -117,6 +112,13 @@ fun PlanComparisonScreen(
             freeTextRes = Res.string.comparison_feature_theme_free,
             proTextRes = Res.string.comparison_feature_theme_pro,
             isFreeSupported = false
+        ),
+        ComparisonFeatureItem(
+            icon = Icons.Default.Download,
+            titleRes = Res.string.comparison_feature_export_title,
+            freeTextRes = Res.string.comparison_feature_export_free,
+            proTextRes = Res.string.comparison_feature_export_pro,
+            isFreeSupported = true
         )
     )
 

@@ -4,29 +4,33 @@ import io.github.cdimascio.dotenv.dotenv
 
 /**
  * Central configuration object.
- * Reads all values from .env file via dotenv-kotlin.
+ * Reads environment variables from system environment first, then from .env file via dotenv-kotlin.
  */
 object AppConfig {
     private val dotenv = dotenv {
         ignoreIfMissing = true
     }
 
-    // Database
-    val dbUrl: String = dotenv["DB_URL"]
-    val dbUser: String = dotenv["DB_USER"]
-    val dbPassword: String = dotenv["DB_PASSWORD"]
+    private fun getEnv(key: String): String? {
+        return System.getenv(key)?.takeIf { it.isNotBlank() }
+            ?: (try { dotenv[key] } catch (e: Exception) { null })?.takeIf { it.isNotBlank() }
+    }
 
-    // JWT
-    val jwtSecret: String = dotenv["JWT_SECRET", "secret"]
-    val jwtIssuer: String = dotenv["JWT_ISSUER", "planora"]
+    // Database
+    val dbUrl: String = getEnv("DB_URL") ?: ""
+    val dbUser: String = getEnv("DB_USER") ?: ""
+    val dbPassword: String = getEnv("DB_PASSWORD") ?: ""
+
+    // JWT Authentication
+    val jwtSecret: String = getEnv("JWT_SECRET")
+        ?: error("CRITICAL SECURITY ERROR: JWT_SECRET is not configured! Define it in server/.env or system environment.")
+    val jwtIssuer: String = getEnv("JWT_ISSUER") ?: "planora"
 
     // Gemini AI Key
-    val geminiApiKey: String = System.getenv("GEMINI_API_KEY")
-        ?.takeIf { it.isNotBlank() }
-        ?: (try { dotenv["GEMINI_API_KEY"] } catch (e: Exception) { null })
-        ?.takeIf { it.isNotBlank() }
+    val geminiApiKey: String = getEnv("GEMINI_API_KEY")
         ?: "AQ.Ab8RN6LpQCJ68aFDG2th5ewgmLgi1cTNmHf8j62LAD3gPYeHUQ"
 
-    // Admin Secret Key for managing users
-    val adminSecretKey: String = System.getenv("ADMIN_SECRET_KEY") ?: (try { dotenv["ADMIN_SECRET_KEY"] } catch (e: Exception) { "planora_admin_secret_2026" })
+    // Admin Secret Key for managing users and sending admin push notifications
+    val adminSecretKey: String = getEnv("ADMIN_SECRET_KEY")
+        ?: error("CRITICAL SECURITY ERROR: ADMIN_SECRET_KEY is not configured! Define it in server/.env or system environment.")
 }

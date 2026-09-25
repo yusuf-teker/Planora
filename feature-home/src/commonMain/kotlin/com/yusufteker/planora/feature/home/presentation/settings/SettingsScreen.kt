@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -49,6 +50,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -114,6 +116,9 @@ import planora.core.generated.resources.settings_theme_primary_color
 import planora.core.generated.resources.settings_theme_secondary_color
 import planora.core.generated.resources.settings_trash_subtitle
 import planora.core.generated.resources.settings_trash_title
+import planora.core.generated.resources.export_tasks_title
+import planora.core.generated.resources.export_tasks_desc
+import planora.core.generated.resources.export_tasks_premium_label
 import planora.core.generated.resources.tab_settings
 import planora.core.generated.resources.theme_color_amber
 import planora.core.generated.resources.theme_color_blue
@@ -157,6 +162,7 @@ fun SettingsScreen(
             is SettingsEffect.NavigateToTrash -> rootNavigator.navigate(Screen.Trash)
             is SettingsEffect.NavigateToAnalytics -> rootNavigator.navigate(Screen.Analytics)
             is SettingsEffect.NavigateToPlanComparison -> rootNavigator.navigate(Screen.PlanComparison)
+            is SettingsEffect.ExportTasks -> Unit
         }
     }
 
@@ -860,6 +866,48 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                         )
 
+                        // Görev Dışa Aktarma (Premium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable { viewModel.onEvent(SettingsEvent.ExportTasksClicked) }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SettingsIconBox(
+                                icon = Icons.Default.Download,
+                                containerColor = Color(0xFF6366F1).copy(alpha = 0.12f),
+                                iconTint = Color(0xFF6366F1)
+                            )
+
+                            Spacer(modifier = Modifier.width(14.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.export_tasks_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(Res.string.export_tasks_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+
                         // Bildirimler
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -1061,6 +1109,114 @@ fun SettingsScreen(
                         Text(text = stringResource(Res.string.cancel))
                     }
                 })
+        }
+
+        if (state.showExportBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.onEvent(SettingsEvent.SetExportSheetVisible(false)) },
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 36.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(Res.string.export_options_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 18.dp)
+                    )
+
+                    // CSV / Excel Option
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.onEvent(SettingsEvent.ExportTasksWithFormat(com.yusufteker.planora.core.export.ExportFormat.CSV))
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SettingsIconBox(
+                                icon = Icons.Default.Download,
+                                containerColor = Color(0xFF10B981).copy(alpha = 0.15f),
+                                iconTint = Color(0xFF10B981)
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.export_format_csv_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(Res.string.export_format_csv_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Formatted Report / Document Option
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.onEvent(SettingsEvent.ExportTasksWithFormat(com.yusufteker.planora.core.export.ExportFormat.REPORT))
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SettingsIconBox(
+                                icon = Icons.Default.Download,
+                                containerColor = Color(0xFF6366F1).copy(alpha = 0.15f),
+                                iconTint = Color(0xFF6366F1)
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.export_format_report_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(Res.string.export_format_report_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

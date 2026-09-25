@@ -870,11 +870,9 @@
     <string name="comparison_feature_trash_free">7 gün</string>
     <string name="comparison_feature_trash_pro">30 gün kurtarma</string>
     <string name="comparison_feature_analytics_title">Verimlilik ve İstatistikler</string>
-    <string name="comparison_feature_analytics_free">Sınırlı / Temel</string>
-    <string name="comparison_feature_analytics_pro">Tam erişim ve grafikler</string>
-    <string name="comparison_feature_recurrence_title">Tekrarlayan Planlar</string>
-    <string name="comparison_feature_recurrence_free">Temel günlük</string>
-    <string name="comparison_feature_recurrence_pro">Özel günler ve kurallar</string>
+    <string name="comparison_feature_analytics_free">Kullanılamaz</string>
+    <string name="comparison_feature_analytics_pro">Tam erişim — Yalnızca PRO</string>
+
     <string name="comparison_feature_cloud_title">Bulut Yedekleme &amp; Eşitleme</string>
     <string name="comparison_feature_cloud_free">Standart</string>
     <string name="comparison_feature_cloud_pro">Öncelikli anlık eşitleme</string>
@@ -886,4 +884,27 @@
     <string name="settings_comparison_label">Plan Karşılaştırması</string>
     <string name="settings_comparison_desc">Ücretsiz ve Premium arasındaki tüm farkları inceleyin</string>
     <string name="premium_compare_plans_action">Tüm Planları Karşılaştır</string>
+
+     <!-- Görev Dışa Aktarma & Raporlama -->
+     <string name="export_tasks_title">Plan ve Görevleri Dışa Aktar</string>
+     <string name="export_tasks_desc">Görevlerinizi Excel/CSV tablosu veya Rapor olarak paylaşın</string>
+     <string name="export_tasks_action">Dışa Aktar</string>
+     <string name="export_tasks_success">Görevler başarıyla dışa aktarıldı</string>
+     <string name="export_tasks_empty">Dışa aktarılacak görev yok</string>
+     <string name="export_tasks_error">Dışa aktarma başarısız. Lütfen tekrar deneyin.</string>
+     <string name="export_tasks_premium_label">PRO Özellik</string>
+     <string name="export_options_title">Dışa Aktarma Formatı Seçin</string>
+     <string name="export_format_csv_title">Excel / CSV Tablosu</string>
+     <string name="export_format_csv_desc">Excel ve Google E-Tablolar ile uyumlu tablo verisi</string>
+     <string name="export_format_report_title">Formatlı Plan Raporu</string>
+     <string name="export_format_report_desc">Yazdırılabilir ve paylaşılabilir detaylı görev karnesi</string>
+     <string name="comparison_feature_export_title">Görev Dışa Aktarma (CSV &amp; Rapor)</string>
+     <string name="comparison_feature_export_free">Standart Dışa Aktarma</string>
+     <string name="comparison_feature_export_pro">Gelişmiş Dışa Aktarma ve Raporlar</string>
+
+     <!-- Takvim Entegrasyonu (Google & Apple Takvim) -->
+     <string name="action_add_to_calendar">Sistem Takvimine Ekle</string>
+     <string name="action_add_to_calendar_desc">Google Takvim veya Apple Takvim\'e aktar</string>
+     <string name="calendar_sync_success">Etkinlik takviminize eklendi</string>
+     <string name="calendar_sync_error">Takvim açılamadı. Lütfen tekrar deneyin.</string>
 </resources>

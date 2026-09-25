@@ -871,11 +871,9 @@
     <string name="comparison_feature_trash_free">7 days</string>
     <string name="comparison_feature_trash_pro">30 days recovery</string>
     <string name="comparison_feature_analytics_title">Productivity &amp; Insights</string>
-    <string name="comparison_feature_analytics_free">Basic only</string>
-    <string name="comparison_feature_analytics_pro">Full charts &amp; streaks</string>
-    <string name="comparison_feature_recurrence_title">Recurring Schedules</string>
-    <string name="comparison_feature_recurrence_free">Standard daily</string>
-    <string name="comparison_feature_recurrence_pro">Custom rules &amp; days</string>
+    <string name="comparison_feature_analytics_free">Not available</string>
+    <string name="comparison_feature_analytics_pro">Full access — PRO only</string>
+
     <string name="comparison_feature_cloud_title">Cloud Backup &amp; Sync</string>
     <string name="comparison_feature_cloud_free">Standard</string>
     <string name="comparison_feature_cloud_pro">Priority real-time</string>
@@ -887,4 +885,27 @@
     <string name="settings_comparison_label">Compare Plans</string>
     <string name="settings_comparison_desc">See all differences between Free and Premium</string>
     <string name="premium_compare_plans_action">Compare Free vs PRO</string>
+
+     <!-- Task Export & Reporting -->
+     <string name="export_tasks_title">Export Tasks &amp; Plans</string>
+     <string name="export_tasks_desc">Download or share your tasks as Excel/CSV or Report</string>
+     <string name="export_tasks_action">Export Tasks</string>
+     <string name="export_tasks_success">Tasks exported successfully</string>
+     <string name="export_tasks_empty">No tasks to export</string>
+     <string name="export_tasks_error">Export failed. Please try again.</string>
+     <string name="export_tasks_premium_label">PRO Feature</string>
+     <string name="export_options_title">Choose Export Format</string>
+     <string name="export_format_csv_title">Excel / CSV Spreadsheet</string>
+     <string name="export_format_csv_desc">Tabular data compatible with Excel and Google Sheets</string>
+     <string name="export_format_report_title">Formatted Plan Report</string>
+     <string name="export_format_report_desc">Printable &amp; shareable document summary of all tasks</string>
+     <string name="comparison_feature_export_title">Task Export (CSV &amp; Report)</string>
+     <string name="comparison_feature_export_free">Standard Export</string>
+     <string name="comparison_feature_export_pro">Advanced Export &amp; Reports</string>
+
+     <!-- Calendar Integration (Google & Apple Calendar) -->
+     <string name="action_add_to_calendar">Add to System Calendar</string>
+     <string name="action_add_to_calendar_desc">Export to Google Calendar or Apple Calendar</string>
+     <string name="calendar_sync_success">Event added to your calendar</string>
+     <string name="calendar_sync_error">Failed to open calendar. Please try again.</string>
 </resources>

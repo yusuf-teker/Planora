@@ -575,7 +575,7 @@ private fun ProInsightsUnlockedCard(state: AnalyticsState) {
                     ProStatChip(
                         modifier = Modifier.weight(1f),
                         label = stringResource(Res.string.analytics_pro_avg_daily),
-                        value = "%.1f".format(state.avgDailyCompletions),
+                        value = ((state.avgDailyCompletions * 10).toInt() / 10.0).toString(),
                         color = Color(0xFF10B981)
                     )
                 }

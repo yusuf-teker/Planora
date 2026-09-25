@@ -46,6 +46,7 @@ import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.ui.components.getOptimizedCloudinaryUrl
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskStatus
 import kotlinx.coroutines.launch
@@ -68,7 +69,11 @@ fun TaskDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
     val shareManager = org.koin.compose.koinInject<com.yusufteker.planora.core.share.ShareManager>()
+    val calendarSyncManager = org.koin.compose.koinInject<com.yusufteker.planora.core.calendar.CalendarSyncManager>()
+    val calendarSuccessMsg = stringResource(Res.string.calendar_sync_success)
+    val calendarErrorMsg = stringResource(Res.string.calendar_sync_error)
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showQuickDuplicateSheet by remember { mutableStateOf(false) }
 
@@ -132,6 +137,31 @@ fun TaskDetailScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_add_to_calendar)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    val start = state.startTimeMs ?: state.dueDateMs ?: getCurrentTimeMs()
+                                    val success = calendarSyncManager.addToSystemCalendar(
+                                        title = state.title.ifBlank { "Task" },
+                                        description = state.description.ifBlank { null },
+                                        startTimeEpochMillis = start,
+                                        endTimeEpochMillis = state.endTimeMs
+                                    )
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (success) calendarSuccessMsg else calendarErrorMsg
+                                        )
+                                    }
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_quick_duplicate)) },
                                 leadingIcon = {
