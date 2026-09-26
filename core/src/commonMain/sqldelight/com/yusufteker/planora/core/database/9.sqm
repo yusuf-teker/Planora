@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS deletedTaskEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    ownerId TEXT NOT NULL,
+    originalTaskJson TEXT NOT NULL,
+    taskTitle TEXT NOT NULL,
+    deletedAt INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS index_deletedTask_ownerId ON deletedTaskEntity(ownerId);
