@@ -199,56 +199,70 @@ object AiService {
         val fullInput = request.message.trim().take(400)
 
         val requestBody = buildGeminiRequestBody(systemPrompt, fullInput)
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
+        val candidateModels = listOf(
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash"
+        )
 
-        return try {
-            val httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(20))
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build()
+        var lastError: String? = null
 
-            val httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
-            println("[AiService] Gemini HTTP ${httpResponse.statusCode()} received.")
+        for (model in candidateModels) {
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+            try {
+                val httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build()
 
-            if (httpResponse.statusCode() in 200..299) {
-                println("[AiService] Gemini Raw Body: ${httpResponse.body().take(500)}...")
-                val parsedResult = parseGeminiResponse(httpResponse.body(), effectiveContext, fullInput)
-                println("[AiService] Gemini Parsed Successfully: intent=${parsedResult.intent}, replyText=${parsedResult.replyText}")
-                // Başarılı kullanım kaydet
-                recordUsage(userId, parsedResult.intent.name)
+                val httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+                println("[AiService] Gemini ($model) HTTP ${httpResponse.statusCode()} received.")
 
-                // Güncellenmiş kotayı hesapla
-                val updatedQuota = quota.copy(
-                    dailyRemaining = (quota.dailyRemaining - 1).coerceAtLeast(0),
-                    weeklyRemaining = (quota.weeklyRemaining - 1).coerceAtLeast(0)
-                )
+                if (httpResponse.statusCode() in 200..299) {
+                    println("[AiService] Gemini ($model) Raw Body: ${httpResponse.body().take(500)}...")
+                    val parsedResult = parseGeminiResponse(httpResponse.body(), effectiveContext, fullInput)
+                    println("[AiService] Gemini ($model) Parsed Successfully: intent=${parsedResult.intent}, replyText=${parsedResult.replyText}")
+                    // Başarılı kullanım kaydet
+                    recordUsage(userId, parsedResult.intent.name)
 
-                AiChatServerResponse(
-                    result = parsedResult,
-                    quota = updatedQuota,
-                    quotaExceeded = false
-                )
-            } else {
-                println("[AiService] Gemini Error HTTP ${httpResponse.statusCode()}: ${httpResponse.body()}")
-                AiChatServerResponse(
-                    result = null,
-                    quota = quota,
-                    quotaExceeded = false,
-                    errorMessage = "Yapay zeka servisi geçici olarak yanıt veremedi."
-                )
+                    // Güncellenmiş kotayı hesapla
+                    val updatedQuota = quota.copy(
+                        dailyRemaining = (quota.dailyRemaining - 1).coerceAtLeast(0),
+                        weeklyRemaining = (quota.weeklyRemaining - 1).coerceAtLeast(0)
+                    )
+
+                    return AiChatServerResponse(
+                        result = parsedResult,
+                        quota = updatedQuota,
+                        quotaExceeded = false
+                    )
+                } else {
+                    val errorBody = httpResponse.body()
+                    println("[AiService] Gemini ($model) Error HTTP ${httpResponse.statusCode()}: $errorBody")
+                    lastError = "Model $model (${httpResponse.statusCode()}): $errorBody"
+                    // 503 (High demand), 429 (Rate limit) veya 5xx sunucu hatalarında diğer modele geç
+                    if (httpResponse.statusCode() == 503 || httpResponse.statusCode() == 429 || httpResponse.statusCode() >= 500) {
+                        println("[AiService] Gemini ($model) aşırı yoğun veya kullanılamıyor, sıradaki yedek modele geçiliyor...")
+                        continue
+                    } else {
+                        continue
+                    }
+                }
+            } catch (e: Exception) {
+                println("[AiService] Exception during Gemini ($model) processing: ${e.message}")
+                lastError = e.message
+                continue
             }
-        } catch (e: Exception) {
-            println("[AiService] Exception during Gemini processing: ${e.message}")
-            e.printStackTrace()
-            AiChatServerResponse(
-                result = null,
-                quota = quota,
-                quotaExceeded = false,
-                errorMessage = "Bağlantı hatası: ${e.message}"
-            )
         }
+
+        return AiChatServerResponse(
+            result = null,
+            quota = quota,
+            quotaExceeded = false,
+            errorMessage = "Yapay zeka modelleri yoğunluk nedeniyle geçici olarak yanıt veremedi. ($lastError)"
+        )
     }
 
     private fun getUserZoneId(context: AiChatContext): ZoneId {
