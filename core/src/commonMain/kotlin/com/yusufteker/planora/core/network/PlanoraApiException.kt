@@ -13,7 +13,13 @@ import io.ktor.client.plugins.ResponseException
 class PlanoraApiException(
     val errorResponse: ApiErrorResponse,
     val statusCode: Int
-) : Exception(errorResponse.message ?: "API error code: ${errorResponse.code} (HTTP $statusCode)")
+) : Exception(errorResponse.message ?: "API error code: ${errorResponse.code} (HTTP $statusCode)") {
+    /**
+     * Map of specific input field names to validation failure reasons (inspired by RFC 7807),
+     * populated when [errorResponse] code is [com.yusufteker.planora.shared.api.ApiErrorCode.VALIDATION_ERROR].
+     */
+    val fieldErrors: Map<String, String>? get() = errorResponse.fieldErrors
+}
 
 /**
  * Extension function that inspects a [Throwable] (e.g. Ktor [ResponseException])

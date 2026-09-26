@@ -59,6 +59,9 @@ val coreModule = module {
     single { com.yusufteker.planora.core.data.api.FcmApi(get()) }
     single { com.yusufteker.planora.core.domain.usecase.RegisterFcmTokenUseCase(get()) }
 
+    // Logout & Session Revocation
+    single { com.yusufteker.planora.core.domain.usecase.LogoutUseCase(get(), get(), get(), getOrNull()) }
+
     // Global Application Scope
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 

@@ -28,7 +28,8 @@ class SettingsViewModel(
     private val database: PlanoraDatabase,
     private val planRepository: PlanRepository,
     private val csvExporter: TaskCsvExporter,
-    private val appIconManager: com.yusufteker.planora.core.icon.AppIconManager
+    private val appIconManager: com.yusufteker.planora.core.icon.AppIconManager,
+    private val logoutUseCase: com.yusufteker.planora.core.domain.usecase.LogoutUseCase
 ) : BaseViewModel<SettingsState, SettingsEvent, SettingsEffect>(
     initialState = SettingsState()
 ) {
@@ -111,8 +112,7 @@ class SettingsViewModel(
 
             is SettingsEvent.LogoutClicked -> {
                 launch {
-                    database.planoraDatabaseQueries.clearAll()
-                    sessionPreferences.clearSession()
+                    logoutUseCase()
                     setEffect(SettingsEffect.NavigateToLogin)
                 }
             }

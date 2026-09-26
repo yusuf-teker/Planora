@@ -94,7 +94,19 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() {
-        sessionPreferences.clearSession()
+        try {
+            val refreshToken = sessionPreferences.getRefreshToken()
+            val fcmToken = sessionPreferences.getFcmToken()
+            if (refreshToken != null || fcmToken != null) {
+                httpClient.post("auth/logout") {
+                    setBody(com.yusufteker.planora.shared.api.LogoutRequest(refreshToken, fcmToken))
+                }
+            }
+        } catch (_: Exception) {
+            // Ağ hatası veya çevrimdışı durumda da yerel oturumu her halükarda kapat
+        } finally {
+            sessionPreferences.clearSession()
+        }
     }
 
     override suspend fun updateProfile(name: String, avatarId: String): Result<Unit> {

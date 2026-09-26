@@ -14,6 +14,8 @@ import io.ktor.server.routing.head
 import com.yusufteker.planora.server.database.DatabaseFactory
 import com.yusufteker.planora.server.plugins.configureSecurity
 import com.yusufteker.planora.server.plugins.configureCallLogging
+import com.yusufteker.planora.server.plugins.configureStatusPages
+import com.yusufteker.planora.server.plugins.configureRateLimiting
 import com.yusufteker.planora.server.routes.authRoutes
 import com.yusufteker.planora.server.routes.postRoutes
 import com.yusufteker.planora.server.routes.commentRoutes
@@ -52,10 +54,16 @@ fun Application.module() {
         json()
     }
 
-    // 3. Gelen JWT tokenlarını doğrulamak için yazdığımız Security plugin'i kur.
+    // 3. RFC 7807 uyumlu hata yönetimi ve Fail-Fast validasyon yakalayıcısını kur.
+    configureStatusPages()
+
+    // 4. DoS, Brute-Force ve Spam koruması için RateLimiting eklentisini kur.
+    configureRateLimiting()
+
+    // 5. Gelen JWT tokenlarını doğrulamak için yazdığımız Security plugin'i kur.
     configureSecurity()
 
-    // 4. Çağrı loglarını yapılandır (Renkli loglar)
+    // 6. Çağrı loglarını yapılandır (Renkli loglar)
     configureCallLogging()
 
     // Firebase Init

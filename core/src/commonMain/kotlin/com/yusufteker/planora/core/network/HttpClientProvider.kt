@@ -74,7 +74,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
 
                     // Eğer istek Google API'ye veya auth endpoint'lerine gidiyorsa token gönderme
                     val isGoogleApi = host.contains("googleapis.com") || host.contains("generativelanguage")
-                    val isAuthPath = path.contains("auth/login") || path.contains("auth/register")
+                    val isAuthPath = path.contains("auth/login") || path.contains("auth/register") || path.contains("auth/logout")
 
                     // true = token'ı proaktif olarak gönder (401 beklemeden).
                     // Auth ve Google API istekleri hariç tüm isteklere token ekle.
@@ -113,7 +113,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
     client.requestPipeline.intercept(io.ktor.client.request.HttpRequestPipeline.State) {
         val requestBuilder = context
         val path = requestBuilder.url.buildString()
-        val isAuthEndpoint = path.contains("auth/login") || path.contains("auth/register")
+        val isAuthEndpoint = path.contains("auth/login") || path.contains("auth/register") || path.contains("auth/logout")
         val isGoogleApi = path.contains("googleapis.com") || path.contains("generativelanguage")
         
         if (!isAuthEndpoint && !isGoogleApi) {

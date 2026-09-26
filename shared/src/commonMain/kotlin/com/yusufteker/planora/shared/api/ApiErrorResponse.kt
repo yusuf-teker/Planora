@@ -5,14 +5,28 @@ import kotlinx.serialization.Serializable
 /**
  * Standard error response structure sent by the Planora server.
  *
- * @param code A unique error identifier (e.g. [ApiErrorCode.INVALID_CREDENTIALS])
- * @param message Optional developer/debug message in English
+ * Inspired by RFC 7807 / RFC 9457 (Problem Details for HTTP APIs), this structure provides:
+ * - [code]: Machine-readable error code for client logic and localization keys
+ * - [message]: High-level summary of the error for developers / debugging
+ * - [fieldErrors]: Field-by-field validation failure reasons for direct UI input binding
  */
 @Serializable
 data class ApiErrorResponse(
     val code: String,
-    val message: String? = null
+    val message: String? = null,
+    val fieldErrors: Map<String, String>? = null
 )
+
+/**
+ * Exception thrown when incoming request data fails Fail-Fast validation.
+ *
+ * @param fieldErrors Map of parameter/field names to descriptive error explanations
+ * @param message High-level summary of the validation failure
+ */
+class ValidationException(
+    val fieldErrors: Map<String, String>,
+    message: String = "Validation failed for one or more fields"
+) : IllegalArgumentException(message)
 
 /**
  * Standardized error code constants used across Server and Client.
@@ -35,5 +49,7 @@ object ApiErrorCode {
     const val UNAUTHORIZED = "ERR_UNAUTHORIZED"
     const val FORBIDDEN = "ERR_FORBIDDEN"
     const val BAD_REQUEST = "ERR_BAD_REQUEST"
+    const val VALIDATION_ERROR = "ERR_VALIDATION_ERROR"
+    const val TOO_MANY_REQUESTS = "ERR_TOO_MANY_REQUESTS"
     const val INTERNAL_SERVER_ERROR = "ERR_INTERNAL_SERVER_ERROR"
 }

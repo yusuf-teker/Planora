@@ -20,8 +20,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
+import com.yusufteker.planora.shared.validation.validate
+import com.yusufteker.planora.shared.validation.sanitize
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -154,11 +157,8 @@ fun Route.planRoomRoutes() {
                     return@post
                 }
 
-                val request = call.receiveNullable<CreatePlanRoomRequest>()
-                if (request == null || request.name.isBlank()) {
-                    call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.ROOM_NAME_EMPTY, "Room name cannot be empty")
-                    return@post
-                }
+                val request = call.receive<CreatePlanRoomRequest>().sanitize()
+                request.validate()
 
                 val roomId = UUID.randomUUID().toString()
 
@@ -225,11 +225,8 @@ fun Route.planRoomRoutes() {
                     return@put
                 }
                 
-                val request = call.receiveNullable<com.yusufteker.planora.shared.api.RenamePlanRoomRequest>()
-                if (request == null || request.name.isBlank()) {
-                    call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.ROOM_NAME_EMPTY, "Room name cannot be empty")
-                    return@put
-                }
+                val request = call.receive<com.yusufteker.planora.shared.api.RenamePlanRoomRequest>().sanitize()
+                request.validate()
                 
                 val updated = dbQuery {
                     val room = PlanRoomEntity.findById(roomId) ?: return@dbQuery false

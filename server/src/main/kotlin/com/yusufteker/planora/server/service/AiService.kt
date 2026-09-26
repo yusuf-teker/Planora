@@ -419,9 +419,26 @@ object AiService {
 
         fun str(key: String): String? = (parsed[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
 
-        val intentStr = str("intent") ?: "REJECTED"
-        val replyText = str("replyText") ?: "İşlem tamamlandı."
+        val rawIntent = str("intent")
+        val rawDateTime = str("dateTime")
+        val intentStr = when {
+            !rawIntent.isNullOrBlank() && rawIntent != "null" -> rawIntent
+            !rawDateTime.isNullOrBlank() -> "CREATE_EVENT"
+            userInput.contains("not", ignoreCase = true) -> "CREATE_NOTE"
+            userInput.contains("oda", ignoreCase = true) || userInput.contains("grup", ignoreCase = true) -> "CREATE_PLAN_ROOM"
+            else -> "CREATE_TASK"
+        }
+
         val title = str("title") ?: userInput.take(50)
+        val replyText = str("replyText")?.takeIf { it.isNotBlank() && it != "İşlem tamamlandı." && it != "İşlem tamamlandı" } ?: when (intentStr) {
+            "CREATE_EVENT" -> "'$title' etkinliği takviminize eklendi."
+            "CREATE_TASK" -> "'$title' görevi listenize eklendi."
+            "CREATE_NOTE" -> "'$title' notu kaydedildi."
+            "CREATE_PLAN_ROOM" -> "'$title' plan odası oluşturuldu."
+            "INVITE_TO_ROOM" -> "Odaya davet gönderildi."
+            "REJECTED" -> "Ben sadece Planora asistanıyım; görev, etkinlik, plan odası ve notlarınızı düzenlemenize yardımcı olabilirim."
+            else -> "'$title' başarıyla kaydedildi."
+        }
         val description = str("description")
         val location = str("location")
         val roomName = str("roomName")

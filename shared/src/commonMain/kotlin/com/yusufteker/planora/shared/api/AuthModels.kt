@@ -71,6 +71,19 @@ data class RefreshTokenRequest(
 )
 
 /**
+ * Request payload for logging out and revoking session tokens on the server.
+ *
+ * @property refreshToken The refresh token to be revoked from the database.
+ * @property fcmToken The optional FCM push notification token to unregister for this device.
+ */
+@Serializable
+data class LogoutRequest(
+    val refreshToken: String? = null,
+    val fcmToken: String? = null
+)
+
+
+/**
  * The response sent back from the server containing the user's profile information.
  */
 @Serializable

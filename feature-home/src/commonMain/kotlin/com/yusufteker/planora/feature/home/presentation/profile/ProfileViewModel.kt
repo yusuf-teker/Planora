@@ -17,7 +17,7 @@ import planora.core.generated.resources.*
 class ProfileViewModel(
     private val sessionPreferences: SessionPreferences,
     private val profileRepository: ProfileRepository,
-    private val database: PlanoraDatabase
+    private val logoutUseCase: com.yusufteker.planora.core.domain.usecase.LogoutUseCase
 ) : BaseViewModel<ProfileState, ProfileEvent, ProfileEffect>(
     initialState = ProfileState()
 ) {
@@ -254,8 +254,7 @@ class ProfileViewModel(
             
             is ProfileEvent.LogoutClicked -> {
                 launch {
-                    database.planoraDatabaseQueries.clearAll()
-                    sessionPreferences.clearSession()
+                    logoutUseCase()
                     setEffect(ProfileEffect.NavigateToLogin)
                 }
             }

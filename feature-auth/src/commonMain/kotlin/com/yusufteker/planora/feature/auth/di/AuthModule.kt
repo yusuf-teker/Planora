@@ -24,7 +24,6 @@ val authModule = module {
     singleOf(::RegisterUseCase)
     singleOf(::SendRegisterCodeUseCase)
     singleOf(::AutoLoginUseCase)
-    singleOf(::LogoutUseCase)
 
     // Presentation
     viewModelOf(::SplashViewModel)

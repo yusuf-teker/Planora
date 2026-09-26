@@ -15,13 +15,23 @@ import com.yusufteker.planora.shared.api.AuthRequest
 import com.yusufteker.planora.shared.api.AuthResponse
 import com.yusufteker.planora.shared.api.RefreshTokenRequest
 import com.yusufteker.planora.shared.api.RegisterRequest
+import com.yusufteker.planora.shared.validation.validate
+import com.yusufteker.planora.shared.validation.sanitize
+import com.yusufteker.planora.server.plugins.AUTH_RATE_LIMIT
+import com.yusufteker.planora.server.plugins.EMAIL_OTP_RATE_LIMIT
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
+import com.yusufteker.planora.server.database.tables.FcmTokensTable
+import com.yusufteker.planora.shared.api.LogoutRequest
+import io.ktor.server.request.receiveNullable
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.lowerCase
@@ -37,11 +47,13 @@ import kotlinx.coroutines.launch
 fun Route.authRoutes() {
     route("/auth") {
         
-        // --- 0. SEND REGISTER CODE ENDPOINT ---
-        post("/send-register-code") {
-            val request = call.receive<com.yusufteker.planora.shared.api.SendRegisterCodeRequest>()
-            val cleanEmail = request.email.trim().lowercase()
-            val cleanUsername = request.username.trim().lowercase()
+        // --- 0. SEND REGISTER CODE ENDPOINT (Protected by OTP Rate Limit) ---
+        rateLimit(EMAIL_OTP_RATE_LIMIT) { // rate limit katmanı eklendi
+            post("/send-register-code") {
+                val request = call.receive<com.yusufteker.planora.shared.api.SendRegisterCodeRequest>().sanitize()
+                request.validate()
+                val cleanEmail = request.email
+                val cleanUsername = request.username
 
             val existingUser = dbQuery {
                 UserEntity.find { 
@@ -77,14 +89,18 @@ fun Route.authRoutes() {
                 EmailService.sendRegistrationVerificationEmail(cleanEmail, verificationCode)
             }
 
-            call.respond(HttpStatusCode.OK, mapOf("message" to "Verification code sent to email"))
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Verification code sent to email"))
+            }
         }
 
-        // --- 1. REGISTER ENDPOINT ---
-        post("/register") { // auth/register geldiğinde
-            val request = call.receive<RegisterRequest>()
-            val cleanEmail = request.email.trim().lowercase()
-            val cleanUsername = request.username.trim().lowercase()
+        // --- AUTH ACTION ENDPOINTS (Protected by Auth Rate Limit) ---
+        rateLimit(AUTH_RATE_LIMIT) {
+            // --- 1. REGISTER ENDPOINT ---
+            post("/register") { // auth/register geldiğinde
+                val request = call.receive<RegisterRequest>().sanitize()
+                request.validate()
+                val cleanEmail = request.email
+                val cleanUsername = request.username
 
             // Veritabanında email veya username daha önce alınmış mı kontrol ediyoruz.
             val existingUser = dbQuery {
@@ -158,9 +174,10 @@ fun Route.authRoutes() {
             call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.username, newUser.avatarId, newUser.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
         }
 
-        // --- 2. LOGIN ENDPOINT ---
-        post("/login") {
-            val request = call.receive<AuthRequest>() // Kullanıcı identifier ve şifre gönderir
+            // --- 2. LOGIN ENDPOINT ---
+            post("/login") {
+                val request = call.receive<AuthRequest>().sanitize()
+                request.validate()
 
             // Veritabanından identifier'a (email veya username) göre kullanıcıyı arıyoruz.
             val user = dbQuery {
@@ -191,6 +208,7 @@ fun Route.authRoutes() {
             val (isPrem, premUntil) = dbQuery { user.isPremiumActive() to user.premiumUntil?.toString() }
             call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
         }
+    }
 
         // --- 3. REFRESH TOKEN ENDPOINT ---
         // Uygulamadaki Access Token (2 saat) süresi dolduğunda, uygulama otomatik olarak (Ktor Auth Plugin ile) bu endpoint'e gelir.
@@ -224,13 +242,33 @@ fun Route.authRoutes() {
 
             // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
             val (isPrem, premUntil) = dbQuery { user.isPremiumActive() to user.premiumUntil?.toString() }
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPrem, premUntil))
         }
 
-        // --- 4. FORGOT PASSWORD ENDPOINT ---
-        post("/forgot-password") {
-            val request = call.receive<com.yusufteker.planora.shared.api.ForgotPasswordRequest>()
-            val cleanEmail = request.email.trim().lowercase()
+        // --- 3.5. LOGOUT ENDPOINT (Token Revocation) ---
+        post("/logout") {
+            val request = call.receiveNullable<LogoutRequest>()
+            val refreshToken = request?.refreshToken
+            val fcmToken = request?.fcmToken
+
+            dbQuery {
+                if (!refreshToken.isNullOrBlank()) {
+                    RefreshTokensTable.deleteWhere { token eq refreshToken }
+                }
+                if (!fcmToken.isNullOrBlank()) {
+                    FcmTokensTable.deleteWhere { token eq fcmToken }
+                }
+            }
+
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Logged out successfully"))
+        }
+
+        // --- 4. FORGOT PASSWORD ENDPOINT (Protected by OTP Rate Limit) ---
+        rateLimit(EMAIL_OTP_RATE_LIMIT) {
+            post("/forgot-password") {
+                val request = call.receive<com.yusufteker.planora.shared.api.ForgotPasswordRequest>().sanitize()
+                request.validate()
+                val cleanEmail = request.email
             
             val user = dbQuery {
                 UserEntity.find { UsersTable.email.lowerCase() eq cleanEmail }.firstOrNull()
@@ -263,13 +301,17 @@ fun Route.authRoutes() {
                 }
             }
 
-            call.respond(HttpStatusCode.OK, mapOf("message" to "If an account with this email exists, a password reset code has been sent."))
+                call.respond(HttpStatusCode.OK, mapOf("message" to "If an account with this email exists, a password reset code has been sent."))
+            }
         }
 
-        // --- 5. VERIFY RESET CODE ENDPOINT ---
-        post("/verify-reset-code") {
-            val request = call.receive<com.yusufteker.planora.shared.api.VerifyResetCodeRequest>()
-            val cleanEmail = request.email.trim().lowercase()
+        // --- 5. VERIFY RESET CODE & 6. RESET PASSWORD (Protected by Auth Rate Limit) ---
+        rateLimit(AUTH_RATE_LIMIT) {
+            // --- 5. VERIFY RESET CODE ENDPOINT ---
+            post("/verify-reset-code") {
+                val request = call.receive<com.yusufteker.planora.shared.api.VerifyResetCodeRequest>().sanitize()
+                request.validate()
+                val cleanEmail = request.email
             
             val user = dbQuery {
                 UserEntity.find { UsersTable.email.lowerCase() eq cleanEmail }.firstOrNull()
@@ -295,10 +337,11 @@ fun Route.authRoutes() {
             call.respond(HttpStatusCode.OK, mapOf("message" to "Code verified successfully"))
         }
 
-        // --- 6. RESET PASSWORD ENDPOINT ---
-        post("/reset-password") {
-            val request = call.receive<com.yusufteker.planora.shared.api.ResetPasswordRequest>()
-            val cleanEmail = request.email.trim().lowercase()
+            // --- 6. RESET PASSWORD ENDPOINT ---
+            post("/reset-password") {
+                val request = call.receive<com.yusufteker.planora.shared.api.ResetPasswordRequest>().sanitize()
+                request.validate()
+                val cleanEmail = request.email
 
             val user = dbQuery {
                 UserEntity.find { UsersTable.email.lowerCase() eq cleanEmail }.firstOrNull()
@@ -326,9 +369,12 @@ fun Route.authRoutes() {
             dbQuery {
                 user.passwordHash = newHashedPassword
                 resetTokenEntity.delete() // Kullanılan token'ı sil
+                // Şifre sıfırlandığı için bu kullanıcının tüm açık oturumlarını (Refresh Token) geçersiz kıl
+                RefreshTokensTable.deleteWhere { userId eq user.id.value }
             }
 
-            call.respond(HttpStatusCode.OK, mapOf("message" to "Password reset successfully"))
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Password reset successfully"))
+            }
         }
 
         // --- 7. PROTECTED ENDPOINT (Sadece giriş yapmış kullanıcılar girebilir) ---

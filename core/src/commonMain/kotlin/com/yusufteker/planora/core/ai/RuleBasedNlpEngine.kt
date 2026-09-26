@@ -62,13 +62,19 @@ class RuleBasedNlpEngine {
     private val eventKeywords = listOf(
         "toplantı", "randevu", "buluş", "etkinlik", "davet", "organizasyon",
         "meeting", "appointment", "event", "gathering", "plan",
-        "buluşalım", "görüşelim", "toplanalım", "buluştuk", "görüştük", "buluştum", "görüştüm"
+        "buluşalım", "görüşelim", "toplanalım", "buluştuk", "görüştük", "buluştum", "görüştüm",
+        "ders", "dersi", "dersim", "kurs", "kursu", "antrenman", "idman", "maç", "maçı",
+        "konser", "sinema", "tiyatro", "gösteri", "seminer", "konferans", "webinar",
+        "sınav", "sınavı", "spor", "fitness", "yürüyüş", "koşu", "yüzme", "tenis",
+        "basketbol", "futbol", "voleybol", "yemek", "öğle yemeği", "akşam yemeği", "kahvaltı",
+        "kahve", "mola", "kutlama", "parti", "doğum günü", "düğün", "tatil", "gezi", "seyahat", "uçuş"
     )
 
     private val taskKeywords = listOf(
         "görev", "yap", "hatırlat", "yapmam lazım", "unutmadan", "yapılacak",
         "task", "todo", "to-do", "remind me", "remind",
-        "hallet", "tamamla", "bitir", "görevi",
+        "hallet", "tamamla", "bitir", "görevi", "ekle", "koy", "oluştur", "ayarla",
+        "çalış", "hazırla", "gönder", "öde", "ara", "sor", "al", "sat", "oku", "temizle",
         "yaptım", "ettim", "gittim", "geldim", "ödedim", "bitirdim", "tamamladım", "hallettim", "çalıştım", "okudum", "aldım", "verdim"
     )
 
@@ -388,10 +394,11 @@ class RuleBasedNlpEngine {
     private fun extractCleanTitle(input: String): String {
         var clean = input.lowercase()
         val removeWords = listOf(
-            "yarın", "yarin", "bugün", "bugun", "haftaya", 
+            "yarın", "yarin", "bugün", "bugun", "haftaya", "dün", "dun",
             "yapmalıyım", "yapmaliyim", "lazım", "lazim", 
-            "hatırlat", "hatirlat", "not al", "ekle", "planla",
-            "gerek", "istiyorum", "lütfen", "lutfen"
+            "hatırlat", "hatirlat", "not al", "ekle", "planla", "koy", "yaz", "oluştur",
+            "gerek", "istiyorum", "lütfen", "lutfen", "diyorum", "dedim", "bana", "beni",
+            "şunu", "bunu", "şöyle", "bir", "tane"
         )
         for (word in removeWords) {
             clean = clean.replace(Regex("\\b$word\\b"), "")
@@ -1010,11 +1017,28 @@ class RuleBasedNlpEngine {
             com.yusufteker.planora.shared.api.TaskStatus.PENDING
         }
 
+        val startTime = entities.dateTime ?: nowMs
+        val endTime = entities.endDateTime ?: if (taskType == TaskType.EVENT) (startTime + 3600_000L) else null
+
+        val specificDetails = when (taskType) {
+            TaskType.TASK -> com.yusufteker.planora.shared.api.ItemDetails.Task(
+                deadline = entities.dateTime,
+                priority = entities.priority
+            )
+            TaskType.EVENT -> com.yusufteker.planora.shared.api.ItemDetails.Event(
+                location = entities.location
+            )
+            TaskType.NOTE -> com.yusufteker.planora.shared.api.ItemDetails.Note(
+                content = entities.description ?: originalInput
+            )
+            else -> null
+        }
+
         return CreateTaskRequest(
             title = entities.title,
             description = entities.description ?: buildCleanDescription(originalInput, originalInput.lowercase(), entities.participants),
-            startTime = entities.dateTime ?: nowMs,
-            endTime = entities.endDateTime,
+            startTime = startTime,
+            endTime = endTime,
             type = taskType,
             status = initialStatus,
             visibility = if (sharedRoomId != null) {
@@ -1031,7 +1055,7 @@ class RuleBasedNlpEngine {
             isAllDay = entities.isAllDay,
             aiMetadata = aiMetadata,
             reminders = if (entities.dateTime != null) listOf(30) else emptyList(),
-            specificDetails = null,
+            specificDetails = specificDetails,
             tags = entities.tags,
             color = color,
             participants = participantMap,

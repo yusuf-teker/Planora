@@ -15,10 +15,15 @@ import com.yusufteker.planora.shared.api.AutoScheduleRequest
 import com.yusufteker.planora.shared.api.RoomMemberStatus
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskVisibility
+import com.yusufteker.planora.shared.api.ApiErrorCode
+import com.yusufteker.planora.server.util.respondError
+import com.yusufteker.planora.shared.validation.validate
+import com.yusufteker.planora.shared.validation.sanitize
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -51,15 +56,12 @@ fun Route.taskRoutes() {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
                 if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    call.respondError(HttpStatusCode.Unauthorized, ApiErrorCode.UNAUTHORIZED, "Unauthorized")
                     return@post
                 }
                 
-                val request = call.receiveNullable<AutoScheduleRequest>()
-                if (request == null || request.taskIds.isEmpty()) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid request body")
-                    return@post
-                }
+                val request = call.receive<AutoScheduleRequest>()
+                request.validate()
                 
                 var success = false
                 dbQuery {
@@ -92,14 +94,11 @@ fun Route.taskRoutes() {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asInt()
                 if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    call.respondError(HttpStatusCode.Unauthorized, ApiErrorCode.UNAUTHORIZED, "Unauthorized")
                     return@post
                 }
-                val request = call.receiveNullable<CreateTaskRequest>()
-                if (request == null) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid request body")
-                    return@post
-                }
+                val request = call.receive<CreateTaskRequest>().sanitize()
+                request.validate()
 
                 var newTaskDto: TaskDto? = null
                 dbQuery {
