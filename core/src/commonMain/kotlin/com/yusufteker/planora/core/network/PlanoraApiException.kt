@@ -19,6 +19,11 @@ class PlanoraApiException(
      * populated when [errorResponse] code is [com.yusufteker.planora.shared.api.ApiErrorCode.VALIDATION_ERROR].
      */
     val fieldErrors: Map<String, String>? get() = errorResponse.fieldErrors
+
+    /**
+     * Unique Request ID / Correlation ID echoed from the server, useful for user error reporting and log tracing.
+     */
+    val requestId: String? get() = errorResponse.requestId
 }
 
 /**

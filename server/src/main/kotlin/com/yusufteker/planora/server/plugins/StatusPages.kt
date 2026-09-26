@@ -8,6 +8,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.uri
 import kotlinx.serialization.SerializationException
@@ -63,7 +64,8 @@ fun Application.configureStatusPages() {
 
         // 5. Catch-all for unexpected runtime exceptions
         exception<Throwable> { call, cause ->
-            call.application.log.error("Unhandled server exception encountered on ${call.request.uri}:", cause)
+            val reqId = call.callId ?: "-"
+            call.application.log.error("Unhandled server exception [$reqId] encountered on ${call.request.uri}:", cause)
             call.respondError(
                 status = HttpStatusCode.InternalServerError,
                 code = ApiErrorCode.INTERNAL_SERVER_ERROR,

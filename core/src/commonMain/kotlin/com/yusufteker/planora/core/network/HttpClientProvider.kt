@@ -116,6 +116,11 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         val isAuthEndpoint = path.contains("auth/login") || path.contains("auth/register") || path.contains("auth/logout")
         val isGoogleApi = path.contains("googleapis.com") || path.contains("generativelanguage")
         
+        // Attach unique Request ID to every outgoing HTTP call for distributed tracing & log correlation
+        if (!requestBuilder.headers.contains("X-Request-ID")) {
+            requestBuilder.headers.append("X-Request-ID", com.yusufteker.planora.core.utils.generateUUID())
+        }
+        
         if (!isAuthEndpoint && !isGoogleApi) {
             val token = sessionPreferences.getAccessToken()
             if (token != null) {

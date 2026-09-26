@@ -9,12 +9,14 @@ import kotlinx.serialization.Serializable
  * - [code]: Machine-readable error code for client logic and localization keys
  * - [message]: High-level summary of the error for developers / debugging
  * - [fieldErrors]: Field-by-field validation failure reasons for direct UI input binding
+ * - [requestId]: Unique tracing identifier (Request ID / Correlation ID) for debugging and logs
  */
 @Serializable
 data class ApiErrorResponse(
     val code: String,
     val message: String? = null,
-    val fieldErrors: Map<String, String>? = null
+    val fieldErrors: Map<String, String>? = null,
+    val requestId: String? = null
 )
 
 /**

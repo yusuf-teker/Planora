@@ -1,12 +1,17 @@
 package com.yusufteker.planora.server.plugins
 
 import io.ktor.server.application.*
+import io.ktor.server.plugins.callid.callId
 import io.ktor.server.request.*
 
+/**
+ * Configures request logging enriched with unique Request ID / Correlation ID for distributed tracing.
+ */
 fun Application.configureCallLogging() {
     intercept(ApplicationCallPipeline.Monitoring) {
         val method = call.request.httpMethod.value
         val path = call.request.uri
+        val reqId = call.callId ?: "-"
         proceed()
         val status = call.response.status()?.value ?: 0
         val color = when (status) {
@@ -17,6 +22,6 @@ fun Application.configureCallLogging() {
             else -> "\u001B[0m" // Reset
         }
         val reset = "\u001B[0m"
-        println("[API-LOG] $color$method $path -> $status$reset")
+        println("[API-LOG] [$reqId] $color$method $path -> $status$reset")
     }
 }
