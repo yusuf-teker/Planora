@@ -169,7 +169,8 @@ open class FakePlanRepository : PlanRepository {
         if (shouldFailNetwork) {
             return Result.failure(RuntimeException(networkErrorMessage))
         }
-        val removed = tasksMap.remove(taskId)
+        val baseId = taskId.extractBaseTaskId()
+        val removed = tasksMap.remove(taskId) ?: tasksMap.remove(baseId)
         _tasksFlow.value = tasksMap.values.toList()
         return if (removed != null) Result.success(Unit) else Result.failure(NoSuchElementException("Görev silinemedi: $taskId"))
     }

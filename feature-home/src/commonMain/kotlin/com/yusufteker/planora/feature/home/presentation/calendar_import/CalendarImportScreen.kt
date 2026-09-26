@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,6 +68,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.planora.core.base.CollectEffect
 import com.yusufteker.planora.core.calendar.CalendarImportDateRange
 import com.yusufteker.planora.core.calendar.rememberCalendarPermissionLauncher
+import com.yusufteker.planora.core.calendar.rememberGoogleTasksLauncher
 import com.yusufteker.planora.feature.home.presentation.calendar_import.components.CalendarImportEditDialog
 import com.yusufteker.planora.feature.home.presentation.calendar_import.components.CalendarImportItemCard
 import kotlinx.coroutines.launch
@@ -75,13 +77,23 @@ import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.back
 import planora.core.generated.resources.calendar_import_button
+import planora.core.generated.resources.calendar_import_connect_google_cta
+import planora.core.generated.resources.calendar_import_count_header
 import planora.core.generated.resources.calendar_import_deselect_all
 import planora.core.generated.resources.calendar_import_empty_desc
 import planora.core.generated.resources.calendar_import_empty_title
 import planora.core.generated.resources.calendar_import_filter_all
+import planora.core.generated.resources.calendar_import_google_button_label
+import planora.core.generated.resources.calendar_import_google_tasks_action
+import planora.core.generated.resources.calendar_import_google_tasks_desc
+import planora.core.generated.resources.calendar_import_google_tasks_empty
+import planora.core.generated.resources.calendar_import_google_tasks_oauth_error
+import planora.core.generated.resources.calendar_import_google_tasks_success
+import planora.core.generated.resources.calendar_import_google_tasks_title
 import planora.core.generated.resources.calendar_import_grant_permission
 import planora.core.generated.resources.calendar_import_in_progress
 import planora.core.generated.resources.calendar_import_loading
+import planora.core.generated.resources.calendar_import_or_google_cta
 import planora.core.generated.resources.calendar_import_permission_desc
 import planora.core.generated.resources.calendar_import_permission_title
 import planora.core.generated.resources.calendar_import_select_all
@@ -110,6 +122,31 @@ fun CalendarImportScreen(
 
     val permissionLauncher = rememberCalendarPermissionLauncher { isGranted ->
         viewModel.onEvent(CalendarImportUiEvent.PermissionResult(isGranted))
+    }
+
+    val googleTasksLauncher = rememberGoogleTasksLauncher { items, error ->
+        viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(false))
+        if (!items.isNullOrEmpty()) {
+            viewModel.onEvent(CalendarImportUiEvent.AddImportedItems(items))
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    getString(Res.string.calendar_import_google_tasks_success, items.size)
+                )
+            }
+        } else if (items != null && items.isEmpty()) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(getString(Res.string.calendar_import_google_tasks_empty))
+            }
+        } else if (error != null) {
+            coroutineScope.launch {
+                val errorMsg = if (error.contains("10:") || error.contains("DEVELOPER_ERROR")) {
+                    getString(Res.string.calendar_import_google_tasks_oauth_error)
+                } else {
+                    error
+                }
+                snackbarHostState.showSnackbar(errorMsg)
+            }
+        }
     }
 
     viewModel.effect.CollectEffect { effect ->
@@ -155,18 +192,41 @@ fun CalendarImportScreen(
                     }
                 },
                 actions = {
-                    if (state.hasPermission && state.filteredEvents.isNotEmpty()) {
-                        TextButton(
-                            onClick = {
-                                viewModel.onEvent(CalendarImportUiEvent.ToggleSelectAll(!state.isAllSelected))
-                            }
+                    Surface(
+                        onClick = {
+                            viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(true))
+                            googleTasksLauncher.launch()
+                        },
+                        enabled = !state.isGoogleTasksLoading && !state.isLoading && !state.isImporting,
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(end = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (state.isAllSelected) stringResource(Res.string.calendar_import_deselect_all)
-                                else stringResource(Res.string.calendar_import_select_all),
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.SemiBold
+                            if (state.isGoogleTasksLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.TaskAlt,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            Text(
+                                text = stringResource(Res.string.calendar_import_google_button_label),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -254,7 +314,7 @@ fun CalendarImportScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Date Range Filter Chips
+            // Date Range Filter Chips (strictly 3 options)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -267,7 +327,14 @@ fun CalendarImportScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { viewModel.onEvent(CalendarImportUiEvent.SelectDateRange(range)) },
-                        label = { Text(stringResource(range.labelRes)) },
+                        label = {
+                            Text(
+                                text = stringResource(range.labelRes),
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            )
+                        },
                         shape = RoundedCornerShape(12.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
@@ -304,7 +371,40 @@ fun CalendarImportScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            // Sub-header with event count and Select All / Deselect All
+            if (state.hasPermission && state.filteredEvents.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(
+                            Res.string.calendar_import_count_header,
+                            state.filteredEvents.size
+                        ),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    TextButton(
+                        onClick = {
+                            viewModel.onEvent(CalendarImportUiEvent.ToggleSelectAll(!state.isAllSelected))
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (state.isAllSelected) stringResource(Res.string.calendar_import_deselect_all)
+                            else stringResource(Res.string.calendar_import_select_all),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+                }
+            }
 
             // Main Content Area
             Box(
@@ -317,6 +417,11 @@ fun CalendarImportScreen(
                     !state.hasPermission || state.isPermissionDenied -> {
                         PermissionRequiredCard(
                             onGrantPermission = { permissionLauncher.launch() },
+                            onConnectGoogle = {
+                                viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(true))
+                                googleTasksLauncher.launch()
+                            },
+                            isGoogleLoading = state.isGoogleTasksLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(24.dp)
@@ -385,6 +490,42 @@ fun CalendarImportScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Button(
+                                onClick = {
+                                    viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(true))
+                                    googleTasksLauncher.launch()
+                                },
+                                enabled = !state.isGoogleTasksLoading && !state.isLoading && !state.isImporting,
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                            ) {
+                                if (state.isGoogleTasksLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.TaskAlt,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = stringResource(Res.string.calendar_import_connect_google_cta),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                            }
                         }
                     }
 
@@ -435,6 +576,8 @@ fun CalendarImportScreen(
 @Composable
 private fun PermissionRequiredCard(
     onGrantPermission: () -> Unit,
+    onConnectGoogle: () -> Unit,
+    isGoogleLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -502,6 +645,38 @@ private fun PermissionRequiredCard(
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Bold
                     )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            TextButton(
+                onClick = onConnectGoogle,
+                enabled = !isGoogleLoading,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isGoogleLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.TaskAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                Text(
+                    text = stringResource(Res.string.calendar_import_or_google_cta),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

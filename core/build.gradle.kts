@@ -39,7 +39,7 @@ kotlin {
 
     sourceSets {
         androidMain.dependencies {
-            
+            implementation("com.google.android.gms:play-services-auth:21.3.0")
         }
         commonMain.dependencies {
             // Compose

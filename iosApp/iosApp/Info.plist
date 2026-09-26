@@ -148,6 +148,10 @@
 	<string>Planora needs calendar access to export your tasks and events to your calendar.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Planora needs calendar access to view, import, and sync events with your calendar.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Planora needs reminders access to view, import, and sync tasks with your reminders.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Planora needs reminders access to view, import, and sync tasks with your reminders.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

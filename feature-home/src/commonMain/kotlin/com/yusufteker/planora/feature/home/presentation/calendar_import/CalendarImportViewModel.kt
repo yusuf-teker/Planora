@@ -52,8 +52,27 @@ class CalendarImportViewModel(
             is CalendarImportUiEvent.StartEditItem -> setState { copy(editingItem = event.item) }
             is CalendarImportUiEvent.SaveEditedItem -> saveEditedItem(event.item)
             is CalendarImportUiEvent.DismissEdit -> setState { copy(editingItem = null) }
+            is CalendarImportUiEvent.AddImportedItems -> addImportedItems(event.items)
+            is CalendarImportUiEvent.SetGoogleTasksLoading -> setState { copy(isGoogleTasksLoading = event.isLoading) }
             is CalendarImportUiEvent.ImportSelectedEvents -> importSelectedEvents()
             is CalendarImportUiEvent.NavigateBack -> setEffect(CalendarImportEffect.NavigateBack)
+        }
+    }
+
+    private fun addImportedItems(newItems: List<CalendarImportItem>) {
+        setState {
+            val current = events
+            val existingIds = current.map { it.id }.toSet()
+            val uniqueNew = newItems.filter { !existingIds.contains(it.id) }
+            val merged = current + uniqueNew
+            val distinctCalendars = merged.map { it.sourceDisplayName }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+            copy(
+                events = merged,
+                availableCalendars = distinctCalendars
+            )
         }
     }
 
@@ -81,7 +100,7 @@ class CalendarImportViewModel(
                 val (startMs, endMs) = state.value.selectedDateRange.getEpochRange()
                 val retrieved = calendarService.fetchCalendarEvents(startMs, endMs)
 
-                val distinctCalendars = retrieved.mapNotNull { it.calendarName }
+                val distinctCalendars = retrieved.map { it.sourceDisplayName }
                     .filter { it.isNotBlank() }
                     .distinct()
                     .sorted()
@@ -113,7 +132,7 @@ class CalendarImportViewModel(
         setState {
             val filter = selectedCalendarFilter
             val updated = events.map { item ->
-                if (filter == null || item.calendarName == filter) {
+                if (filter == null || item.sourceDisplayName == filter || item.calendarName == filter) {
                     item.copy(isSelected = selectAll)
                 } else {
                     item

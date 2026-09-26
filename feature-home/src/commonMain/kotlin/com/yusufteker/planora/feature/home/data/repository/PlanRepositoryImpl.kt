@@ -35,6 +35,7 @@ import com.yusufteker.planora.feature.home.data.mapper.insertTaskFromDto
 import com.yusufteker.planora.feature.home.data.mapper.insertTaskFromRequest
 import com.yusufteker.planora.core.database.clearAll
 import com.yusufteker.planora.core.preferences.SessionPreferences
+import com.yusufteker.planora.shared.api.extractBaseTaskId
 import kotlinx.coroutines.withContext
 import io.github.aakira.napier.Napier
 
@@ -96,11 +97,13 @@ class PlanRepositoryImpl(
      *
      * Bir görev çevrimdışıyken oluşturulup daha sonra senkronize edildiyse,
      * [localToRemoteIdMap] üzerinden asıl sunucu ID'sine ulaşırız.
+     * Tekrarlayan görevlerin sanal ID'lerini (id_timestamp) ana görev ID'sine indirger ([extractBaseTaskId]).
      * Döngüsel referansları önlemek için `visited` seti kullanılır.
      */
     private suspend fun getActualTaskId(taskId: String): String {
+        val baseTaskId = taskId.extractBaseTaskId()
         return mapMutex.withLock {
-            var actualTaskId = taskId
+            var actualTaskId = baseTaskId
             val visited = mutableSetOf<String>()
             while (localToRemoteIdMap.containsKey(actualTaskId) && visited.add(actualTaskId)) {
                 val next = localToRemoteIdMap[actualTaskId]

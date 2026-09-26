@@ -929,6 +929,7 @@
      <string name="calendar_import_range_next_3_months">Gelecek 3 Ay</string>
      <string name="calendar_import_range_past_and_future">Son 30 &amp; Gelecek 30 Gün</string>
      <string name="calendar_import_range_year">Bu Yıl</string>
+     <string name="calendar_import_range_all">Tümü</string>
      <string name="calendar_import_permission_title">Takvim Erişimi Gerekli</string>
      <string name="calendar_import_permission_desc">Planora\'nın Google Takvim ve Apple Takvim etkinliklerinizi okuyup incelemenize ve aktarmanıza olanak tanıması için takvim erişim izni gerekmektedir.</string>
      <string name="calendar_import_grant_permission">İzin Ver</string>
@@ -953,4 +954,17 @@
      <string name="calendar_import_event_priority_label">Öncelik</string>
      <string name="calendar_import_loading">Takvim etkinlikleri yükleniyor…</string>
      <string name="calendar_import_in_progress">Etkinlikler Planora\'ya aktarılıyor…</string>
+     <string name="calendar_import_google_tasks_button">Google ile Bağlan</string>
+     <string name="calendar_import_google_tasks_title">Google Hesabı</string>
+     <string name="calendar_import_google_tasks_desc">Google Takvim etkinliklerini ve Görevleri (Tasks) getirin</string>
+     <string name="calendar_import_google_tasks_action">İçe Aktar</string>
+     <string name="calendar_import_google_tasks_loading">Google hesabına bağlanılıyor…</string>
+     <string name="calendar_import_google_tasks_success">Google\'dan %1$d etkinlik ve görev getirildi</string>
+     <string name="calendar_import_google_tasks_empty">Google hesabınızda aktarılacak etkinlik veya görev bulunamadı</string>
+     <string name="calendar_import_google_tasks_error">Google hesabına bağlanılamadı.</string>
+     <string name="calendar_import_google_tasks_oauth_error">Google: Google Cloud OAuth yapılandırması gereklidir.</string>
+     <string name="calendar_import_google_button_label">Google</string>
+     <string name="calendar_import_count_header">%1$d etkinlik bulundu</string>
+     <string name="calendar_import_connect_google_cta">Google Hesabından Aktar</string>
+     <string name="calendar_import_or_google_cta">Veya Google Hesabı ile Bağlan</string>
 </resources>

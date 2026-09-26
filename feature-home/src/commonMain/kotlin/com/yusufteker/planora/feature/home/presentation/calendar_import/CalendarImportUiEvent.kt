@@ -41,6 +41,12 @@ sealed interface CalendarImportUiEvent : UiEvent {
     /** Triggers batch import of all selected items into Planora */
     data object ImportSelectedEvents : CalendarImportUiEvent
 
+    /** Appends newly fetched tasks (e.g. from Google Tasks) to the current list */
+    data class AddImportedItems(val items: List<CalendarImportItem>) : CalendarImportUiEvent
+
+    /** Sets the loading state for Google Tasks OAuth and fetch process */
+    data class SetGoogleTasksLoading(val isLoading: Boolean) : CalendarImportUiEvent
+
     /** Navigates back to the previous screen */
     data object NavigateBack : CalendarImportUiEvent
 }

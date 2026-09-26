@@ -168,9 +168,12 @@ object AiService {
                 .build()
 
             val httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+            println("[AiService] Gemini HTTP ${httpResponse.statusCode()} received.")
 
             if (httpResponse.statusCode() in 200..299) {
+                println("[AiService] Gemini Raw Body: ${httpResponse.body().take(500)}...")
                 val parsedResult = parseGeminiResponse(httpResponse.body(), request.context, fullInput)
+                println("[AiService] Gemini Parsed Successfully: intent=${parsedResult.intent}, replyText=${parsedResult.replyText}")
                 // Başarılı kullanım kaydet
                 recordUsage(userId, parsedResult.intent.name)
 
@@ -186,7 +189,7 @@ object AiService {
                     quotaExceeded = false
                 )
             } else {
-                println("AiService Gemini Error HTTP ${httpResponse.statusCode()}: ${httpResponse.body()}")
+                println("[AiService] Gemini Error HTTP ${httpResponse.statusCode()}: ${httpResponse.body()}")
                 AiChatServerResponse(
                     result = null,
                     quota = quota,
@@ -195,6 +198,7 @@ object AiService {
                 )
             }
         } catch (e: Exception) {
+            println("[AiService] Exception during Gemini processing: ${e.message}")
             e.printStackTrace()
             AiChatServerResponse(
                 result = null,
@@ -309,11 +313,15 @@ object AiService {
     }
 
     private fun parseGeminiResponse(rawResponseBody: String, context: AiChatContext, userInput: String): AiChatResult {
-        val rootJson = json.parseToJsonElement(rawResponseBody).jsonObject
-        val textPart = rootJson["candidates"]?.jsonArray?.getOrNull(0)?.jsonObject
-            ?.get("content")?.jsonObject
-            ?.get("parts")?.jsonArray?.getOrNull(0)?.jsonObject
-            ?.get("text")?.jsonPrimitive?.content
+        val rootJson = try {
+            json.parseToJsonElement(rawResponseBody) as? JsonObject ?: JsonObject(emptyMap())
+        } catch (e: Exception) {
+            JsonObject(emptyMap())
+        }
+        val candidates = (rootJson["candidates"] as? JsonArray)?.getOrNull(0) as? JsonObject
+        val content = candidates?.get("content") as? JsonObject
+        val parts = content?.get("parts") as? JsonArray
+        val textPart = ((parts?.getOrNull(0) as? JsonObject)?.get("text") as? JsonPrimitive)?.contentOrNull
             ?: ""
 
         var fixed = textPart.trim()
@@ -322,12 +330,12 @@ object AiService {
         if (fixed.endsWith("```")) fixed = fixed.removeSuffix("```").trim()
 
         val parsed = try {
-            json.parseToJsonElement(fixed).jsonObject
+            json.parseToJsonElement(fixed) as? JsonObject ?: JsonObject(emptyMap())
         } catch (e: Exception) {
             JsonObject(emptyMap())
         }
 
-        fun str(key: String): String? = parsed[key]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
+        fun str(key: String): String? = (parsed[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
 
         val intentStr = str("intent") ?: "REJECTED"
         val replyText = str("replyText") ?: "İşlem tamamlandı."
@@ -337,14 +345,14 @@ object AiService {
         val roomName = str("roomName")
         val targetUsername = str("targetUsername")
         val sharedRoomId = str("sharedRoomId")
-        val isCompleted = parsed["isCompleted"]?.jsonPrimitive?.booleanOrNull ?: false
+        val isCompleted = (parsed["isCompleted"] as? JsonPrimitive)?.booleanOrNull ?: false
 
-        val participantIds = parsed["participantUserIds"]?.jsonArray?.mapNotNull {
-            it.jsonPrimitive.intOrNull
+        val participantIds = (parsed["participantUserIds"] as? JsonArray)?.mapNotNull {
+            (it as? JsonPrimitive)?.intOrNull
         } ?: emptyList()
 
-        val reminders = parsed["reminders"]?.jsonArray?.mapNotNull {
-            it.jsonPrimitive.intOrNull
+        val reminders = (parsed["reminders"] as? JsonArray)?.mapNotNull {
+            (it as? JsonPrimitive)?.intOrNull
         } ?: listOf(60)
 
         fun parseDate(dateStr: String?): Long? {

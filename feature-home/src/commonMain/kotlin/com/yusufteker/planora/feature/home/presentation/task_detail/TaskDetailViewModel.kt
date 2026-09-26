@@ -134,9 +134,10 @@ class TaskDetailViewModel(
             }
 
             planRepository.observeAllTasks().collect { tasks ->
-                val currentTask = tasks.find { it.id == taskId }
-                val subtaskList = tasks.filter { it.parentId == taskId && it.type == TaskType.TASK }
-                val noteList = tasks.filter { it.parentId == taskId && it.type == TaskType.NOTE }
+                val baseTaskId = taskId?.extractBaseTaskId()
+                val currentTask = tasks.find { it.id == taskId || it.id == baseTaskId }
+                val subtaskList = tasks.filter { (it.parentId == taskId || (baseTaskId != null && it.parentId == baseTaskId)) && it.type == TaskType.TASK }
+                val noteList = tasks.filter { (it.parentId == taskId || (baseTaskId != null && it.parentId == baseTaskId)) && it.type == TaskType.NOTE }
 
                 if (currentTask != null) {
                     val actualPlanRoomId = _state.value.planRoomId ?: currentTask.sharedRoomIds.firstOrNull()

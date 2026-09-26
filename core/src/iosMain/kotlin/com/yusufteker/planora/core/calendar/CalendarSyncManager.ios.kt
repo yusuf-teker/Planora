@@ -51,7 +51,7 @@ actual class CalendarSyncManager : CalendarService {
 
     actual override fun hasCalendarReadPermission(): Boolean {
         val status = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeEvent)
-        return status == 3L || status == 4L
+        return status == 3L // EKAuthorizationStatusFullAccess / EKAuthorizationStatusAuthorized
     }
 
     actual override suspend fun fetchCalendarEvents(
@@ -73,8 +73,7 @@ actual class CalendarSyncManager : CalendarService {
 
         for (ekEvent in ekEvents) {
             val cal = ekEvent.calendar
-            val calTitle = cal?.title?.lowercase() ?: ""
-            val sourceTitle = cal?.source?.title?.lowercase() ?: ""
+            val calTitle = cal?.title?.lowercase()?.trim() ?: ""
 
             // Exclude Apple Holidays subscription feeds, birthdays, and holiday calendars
             val type = cal?.type
@@ -84,11 +83,11 @@ actual class CalendarSyncManager : CalendarService {
                 continue
             }
 
-            val systemKeywords = listOf(
-                "holiday", "tatil", "tatilleri", "bayram", "resmi tatil",
-                "birthday", "doğum günü", "dogum gunu", "contacts", "rehber"
+            val systemCalendarNames = listOf(
+                "holidays", "holidays in", "türkiye'deki resmi tatiller", "türkiye'deki tatiller",
+                "resmi tatiller", "tatiller", "dini bayramlar", "bayramlar", "birthdays", "doğum günleri"
             )
-            if (systemKeywords.any { calTitle.contains(it) || sourceTitle.contains(it) }) {
+            if (systemCalendarNames.any { calTitle.startsWith(it) || calTitle == it }) {
                 continue
             }
 
@@ -120,6 +119,54 @@ actual class CalendarSyncManager : CalendarService {
                     isSelected = true
                 )
             )
+        }
+
+        // Fetch Apple Reminders (Tasks) if Reminders permission is granted
+        val reminderStatus = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeReminder)
+        if (reminderStatus == 3L) {
+            try {
+                val reminderPredicate = eventStore.predicateForIncompleteRemindersWithDueDateStarting(
+                    startDate,
+                    ending = endDate,
+                    calendars = null
+                )
+                val deferred = kotlinx.coroutines.CompletableDeferred<List<platform.EventKit.EKReminder>?>()
+                eventStore.fetchRemindersMatchingPredicate(reminderPredicate) { reminders ->
+                    @Suppress("UNCHECKED_CAST")
+                    deferred.complete(reminders as? List<platform.EventKit.EKReminder>)
+                }
+                val ekReminders = deferred.await() ?: emptyList()
+
+                for (rem in ekReminders) {
+                    val rawTitle = rem.title
+                    val title = if (!rawTitle.isNullOrBlank()) rawTitle else "Untitled Task"
+                    val eventId = rem.calendarItemIdentifier ?: com.yusufteker.planora.core.utils.generateUUID()
+                    val description = rem.notes
+                    val calName = rem.calendar?.title ?: "Apple Reminders"
+                    val dueComponents = rem.dueDateComponents
+                    val dueNsDate = dueComponents?.let { platform.Foundation.NSCalendar.currentCalendar.dateFromComponents(it) }
+                    val dueMs = dueNsDate?.let { (it.timeIntervalSince1970 * 1000.0).toLong() } ?: startEpochMillis
+
+                    eventsList.add(
+                        CalendarImportItem(
+                            id = eventId,
+                            title = title,
+                            description = description,
+                            location = null,
+                            startTimeEpochMillis = dueMs,
+                            endTimeEpochMillis = dueMs + 3600000L,
+                            isAllDay = false,
+                            calendarName = calName,
+                            accountName = "Apple Reminders",
+                            targetType = com.yusufteker.planora.shared.api.TaskType.TASK,
+                            priority = com.yusufteker.planora.shared.api.TaskPriority.MEDIUM,
+                            isSelected = true
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         eventsList.sortedBy { it.startTimeEpochMillis }

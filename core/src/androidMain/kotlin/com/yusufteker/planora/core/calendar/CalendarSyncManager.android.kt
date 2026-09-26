@@ -106,13 +106,33 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
         )
 
         try {
-            val cursor = contentResolver.query(
-                builder.build(),
-                projection,
-                null,
-                null,
-                "${android.provider.CalendarContract.Instances.BEGIN} ASC"
-            )
+            val cursor = try {
+                contentResolver.query(
+                    builder.build(),
+                    projection,
+                    null,
+                    null,
+                    "${android.provider.CalendarContract.Instances.BEGIN} ASC"
+                )
+            } catch (e: Exception) {
+                // If CALENDAR_DISPLAY_NAME or ACCOUNT_NAME causes issues on specific OEM ROMs, fallback to standard Instances projection
+                val fallbackProjection = arrayOf(
+                    android.provider.CalendarContract.Instances.EVENT_ID,
+                    android.provider.CalendarContract.Instances.TITLE,
+                    android.provider.CalendarContract.Instances.DESCRIPTION,
+                    android.provider.CalendarContract.Instances.EVENT_LOCATION,
+                    android.provider.CalendarContract.Instances.BEGIN,
+                    android.provider.CalendarContract.Instances.END,
+                    android.provider.CalendarContract.Instances.ALL_DAY
+                )
+                contentResolver.query(
+                    builder.build(),
+                    fallbackProjection,
+                    null,
+                    null,
+                    "${android.provider.CalendarContract.Instances.BEGIN} ASC"
+                )
+            }
 
             cursor?.use { c ->
                 val idIdx = c.getColumnIndex(android.provider.CalendarContract.Instances.EVENT_ID)
@@ -168,7 +188,73 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             e.printStackTrace()
         }
 
-        eventsList
+        // Supplementary query: Query Events directly for events whose instances might not be expanded yet
+        try {
+            val existingIds = eventsList.map { it.id }.toSet()
+            val eventsUri = android.provider.CalendarContract.Events.CONTENT_URI
+            val selection = "(${android.provider.CalendarContract.Events.DTSTART} >= ? AND ${android.provider.CalendarContract.Events.DTSTART} <= ?) AND ${android.provider.CalendarContract.Events.DELETED} = 0"
+            val selectionArgs = arrayOf(startEpochMillis.toString(), endEpochMillis.toString())
+            val eventsProjection = arrayOf(
+                android.provider.CalendarContract.Events._ID,
+                android.provider.CalendarContract.Events.TITLE,
+                android.provider.CalendarContract.Events.DESCRIPTION,
+                android.provider.CalendarContract.Events.EVENT_LOCATION,
+                android.provider.CalendarContract.Events.DTSTART,
+                android.provider.CalendarContract.Events.DTEND,
+                android.provider.CalendarContract.Events.ALL_DAY,
+                android.provider.CalendarContract.Events.CALENDAR_DISPLAY_NAME
+            )
+
+            val eventCursor = contentResolver.query(eventsUri, eventsProjection, selection, selectionArgs, null)
+            eventCursor?.use { ec ->
+                val idIdx = ec.getColumnIndex(android.provider.CalendarContract.Events._ID)
+                val titleIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.TITLE)
+                val descIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.DESCRIPTION)
+                val locIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.EVENT_LOCATION)
+                val dtStartIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.DTSTART)
+                val dtEndIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.DTEND)
+                val allDayIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.ALL_DAY)
+                val calNameIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.CALENDAR_DISPLAY_NAME)
+
+                while (ec.moveToNext()) {
+                    val eventId = if (idIdx >= 0) ec.getLong(idIdx).toString() else continue
+                    if (existingIds.contains(eventId)) continue
+
+                    val calendarName = if (calNameIdx >= 0) ec.getString(calNameIdx) else null
+                    if (isHolidayOrSystemCalendar(calendarName, null, null)) continue
+
+                    val rawTitle = if (titleIdx >= 0) ec.getString(titleIdx) else null
+                    val title = if (!rawTitle.isNullOrBlank()) rawTitle else "Untitled Event"
+                    val description = if (descIdx >= 0) ec.getString(descIdx) else null
+                    val location = if (locIdx >= 0) ec.getString(locIdx) else null
+                    val begin = if (dtStartIdx >= 0) ec.getLong(dtStartIdx) else startEpochMillis
+                    val end = if (dtEndIdx >= 0) ec.getLong(dtEndIdx) else null
+                    val isAllDay = if (allDayIdx >= 0) ec.getInt(allDayIdx) == 1 else false
+                    val targetType = detectTargetType(title, calendarName)
+
+                    eventsList.add(
+                        CalendarImportItem(
+                            id = eventId,
+                            title = title,
+                            description = description,
+                            location = location,
+                            startTimeEpochMillis = begin,
+                            endTimeEpochMillis = end,
+                            isAllDay = isAllDay,
+                            calendarName = calendarName,
+                            accountName = null,
+                            targetType = targetType,
+                            priority = com.yusufteker.planora.shared.api.TaskPriority.MEDIUM,
+                            isSelected = true
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        eventsList.sortedBy { it.startTimeEpochMillis }
     }
 
     private fun isHolidayOrSystemCalendar(
@@ -176,9 +262,9 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
         accountName: String?,
         ownerAccount: String?
     ): Boolean {
-        val cal = calendarName?.lowercase() ?: ""
-        val acc = accountName?.lowercase() ?: ""
-        val owner = ownerAccount?.lowercase() ?: ""
+        val cal = calendarName?.lowercase()?.trim() ?: ""
+        val acc = accountName?.lowercase()?.trim() ?: ""
+        val owner = ownerAccount?.lowercase()?.trim() ?: ""
 
         // 1. Google system holiday & contact calendars
         if (acc.contains("holiday@group.v.calendar.google.com") ||
@@ -191,13 +277,14 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             return true
         }
 
-        // 2. Multi-language keywords for holidays, observances, and birthdays
-        val systemKeywords = listOf(
-            "holiday", "tatil", "tatilleri", "bayram", "resmi tatil",
-            "birthday", "doğum günü", "dogum gunu", "contacts", "rehber"
+        // 2. Specific official system calendar names (exact or prefix, avoiding false positives on personal calendars)
+        val systemCalendarNames = listOf(
+            "holidays", "holidays in", "türkiye'deki resmi tatiller", "türkiye'deki tatiller",
+            "resmi tatiller", "tatiller", "dini bayramlar", "bayramlar", "birthdays",
+            "doğum günleri", "contacts"
         )
 
-        return systemKeywords.any { cal.contains(it) || acc.contains(it) || owner.contains(it) }
+        return systemCalendarNames.any { cal.startsWith(it) || cal == it }
     }
 
     private fun detectTargetType(

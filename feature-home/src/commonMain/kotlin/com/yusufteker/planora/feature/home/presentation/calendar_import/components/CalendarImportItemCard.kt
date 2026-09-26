@@ -245,17 +245,19 @@ fun CalendarImportItemCard(
                     }
                 }
 
-                // Calendar Source Badge (e.g., Google Calendar, iCloud)
-                val calName = item.calendarName
-                if (!calName.isNullOrBlank()) {
+                // Calendar Source Badge (e.g., Google Calendar, Apple Reminders, Samsung Calendar)
+                val sourceName = item.sourceDisplayName
+                if (sourceName.isNotBlank()) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     ) {
                         Text(
-                            text = calName,
+                            text = sourceName,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )

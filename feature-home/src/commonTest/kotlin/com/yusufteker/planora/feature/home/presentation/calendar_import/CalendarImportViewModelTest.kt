@@ -174,10 +174,10 @@ class CalendarImportViewModelTest {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onEvent(CalendarImportUiEvent.SelectDateRange(CalendarImportDateRange.NEXT_3_MONTHS))
+        viewModel.onEvent(CalendarImportUiEvent.SelectDateRange(CalendarImportDateRange.THIS_YEAR))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(CalendarImportDateRange.NEXT_3_MONTHS, viewModel.state.value.selectedDateRange)
+        assertEquals(CalendarImportDateRange.THIS_YEAR, viewModel.state.value.selectedDateRange)
         assertNotNull(fakeCalendarService.lastQueriedRange)
     }
 
@@ -309,5 +309,38 @@ class CalendarImportViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(fakePlanRepository.getStoredTasks().isEmpty())
+    }
+
+    @Test
+    fun `AddImportedItems ile gelen google tasklari listeye eklenir ve takvim listesi guncellenir`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val googleTasks = listOf(
+            createSampleItem(id = "gt_1", calendarName = "Google Tasks", title = "Complete Report"),
+            createSampleItem(id = "gt_2", calendarName = "Google Tasks", title = "Call Accountant")
+        )
+
+        viewModel.onEvent(CalendarImportUiEvent.AddImportedItems(googleTasks))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(2, state.events.size)
+        assertTrue(state.availableCalendars.contains("Google Tasks"))
+        assertEquals(2, state.selectedCount)
+    }
+
+    @Test
+    fun `SetGoogleTasksLoading event state icindeki isGoogleTasksLoading degerini dogru gunceller`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isGoogleTasksLoading)
+
+        viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(true))
+        assertTrue(viewModel.state.value.isGoogleTasksLoading)
+
+        viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(false))
+        assertFalse(viewModel.state.value.isGoogleTasksLoading)
     }
 }

@@ -22,11 +22,12 @@ data class CalendarImportState(
     val isImporting: Boolean = false,
     val hasPermission: Boolean = false,
     val isPermissionDenied: Boolean = false,
-    val selectedDateRange: CalendarImportDateRange = CalendarImportDateRange.NEXT_30_DAYS,
+    val selectedDateRange: CalendarImportDateRange = CalendarImportDateRange.PAST_AND_FUTURE_30_DAYS,
     val availableCalendars: List<String> = emptyList(),
     val selectedCalendarFilter: String? = null,
     val events: List<CalendarImportItem> = emptyList(),
-    val editingItem: CalendarImportItem? = null
+    val editingItem: CalendarImportItem? = null,
+    val isGoogleTasksLoading: Boolean = false
 ) : UiState {
     /**
      * Events filtered by the active calendar source filter.
@@ -35,7 +36,7 @@ data class CalendarImportState(
         get() = if (selectedCalendarFilter == null) {
             events
         } else {
-            events.filter { it.calendarName == selectedCalendarFilter }
+            events.filter { it.sourceDisplayName == selectedCalendarFilter || it.calendarName == selectedCalendarFilter }
         }
 
     /**

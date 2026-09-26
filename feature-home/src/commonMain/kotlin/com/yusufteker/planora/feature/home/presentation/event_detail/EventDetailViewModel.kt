@@ -156,8 +156,9 @@ class EventDetailViewModel(
             }
 
             planRepository.observeAllTasks().collect { tasks ->
-                val task = tasks.find { it.id == eventId && it.type == TaskType.EVENT }
-                val subItemsList = tasks.filter { it.parentId == eventId }
+                val baseEventId = eventId?.extractBaseTaskId()
+                val task = tasks.find { (it.id == eventId || it.id == baseEventId) && it.type == TaskType.EVENT }
+                val subItemsList = tasks.filter { it.parentId == eventId || (baseEventId != null && it.parentId == baseEventId) }
 
                 if (task != null) {
                     val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()

@@ -33,4 +33,43 @@ data class CalendarImportItem(
     val targetType: TaskType = TaskType.EVENT,
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val isSelected: Boolean = true
-)
+) {
+    /**
+     * Human-friendly source badge label (e.g. "Google Calendar", "Apple Calendar", "Apple Reminders", "Samsung Calendar").
+     */
+    val sourceDisplayName: String
+        get() {
+            val acc = accountName?.lowercase()?.trim() ?: ""
+            val cal = calendarName?.trim() ?: ""
+            return when {
+                acc.contains("google") || acc.contains("@gmail.com") -> {
+                    if (cal.isNotBlank() && !cal.contains("@gmail.com") && !cal.equals("events", ignoreCase = true)) {
+                        "Google Calendar • $cal"
+                    } else {
+                        "Google Calendar"
+                    }
+                }
+                acc.contains("samsung") -> {
+                    if (cal.isNotBlank() && !cal.equals("my calendar", ignoreCase = true)) "Samsung Calendar • $cal"
+                    else "Samsung Calendar"
+                }
+                acc.contains("apple") || acc.contains("icloud") || cal.equals("icloud", ignoreCase = true) -> {
+                    if (cal.contains("reminder", ignoreCase = true) || acc.contains("reminder", ignoreCase = true)) "Apple Reminders"
+                    else if (cal.isNotBlank() && !cal.equals("calendar", ignoreCase = true)) "Apple Calendar • $cal"
+                    else "Apple Calendar"
+                }
+                cal.contains("reminder", ignoreCase = true) || acc.contains("reminder", ignoreCase = true) -> "Apple Reminders"
+                acc.contains("outlook") || acc.contains("hotmail") || acc.contains("live.com") || acc.contains("microsoft") -> {
+                    if (cal.isNotBlank() && !cal.equals("calendar", ignoreCase = true)) "Outlook • $cal"
+                    else "Outlook"
+                }
+                acc.contains("exchange") -> {
+                    if (cal.isNotBlank() && !cal.equals("calendar", ignoreCase = true)) "Exchange • $cal"
+                    else "Exchange"
+                }
+                cal.isNotBlank() -> cal
+                acc.isNotBlank() -> acc
+                else -> "Device Calendar"
+            }
+        }
+}

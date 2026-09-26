@@ -139,6 +139,7 @@ class AiChatViewModel(
                     val serverResponse = serverResponseResult.getOrNull()
 
                     if (serverResponse != null) {
+                        io.github.aakira.napier.Napier.d("AiChatViewModel: Sunucu yanıtı geldi -> hasResult=${serverResponse.result != null}, quotaExceeded=${serverResponse.quotaExceeded}, error=${serverResponse.errorMessage}", tag = "AiChatViewModel")
                         if (serverResponse.quotaExceeded) {
                             // KOTA DOLDU! Sunucu kotası bitti uyarısı verdi.
                             io.github.aakira.napier.Napier.d("AiChatViewModel: Sunucu kotası aşıldı, kural tabanlı fallback devreye giriyor.", tag = "AiChatViewModel")

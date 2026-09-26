@@ -930,6 +930,7 @@
      <string name="calendar_import_range_next_3_months">Next 3 Months</string>
      <string name="calendar_import_range_past_and_future">Past 30 &amp; Next 30 Days</string>
      <string name="calendar_import_range_year">This Year</string>
+     <string name="calendar_import_range_all">All</string>
      <string name="calendar_import_permission_title">Calendar Access Required</string>
      <string name="calendar_import_permission_desc">Planora needs calendar permission to read events from Google Calendar and Apple Calendar so you can review and import them.</string>
      <string name="calendar_import_grant_permission">Grant Permission</string>
@@ -954,4 +955,17 @@
      <string name="calendar_import_event_priority_label">Priority</string>
      <string name="calendar_import_loading">Loading calendar events…</string>
      <string name="calendar_import_in_progress">Importing events to Planora…</string>
+     <string name="calendar_import_google_tasks_button">Connect with Google</string>
+     <string name="calendar_import_google_tasks_title">Google Account</string>
+     <string name="calendar_import_google_tasks_desc">Import Google Calendar events and Tasks</string>
+     <string name="calendar_import_google_tasks_action">Import</string>
+     <string name="calendar_import_google_tasks_loading">Connecting to Google account…</string>
+     <string name="calendar_import_google_tasks_success">%1$d events and tasks retrieved from Google</string>
+     <string name="calendar_import_google_tasks_empty">No events or tasks found in Google account</string>
+     <string name="calendar_import_google_tasks_error">Could not connect to Google account</string>
+     <string name="calendar_import_google_tasks_oauth_error">Google: Google Cloud OAuth configuration is required.</string>
+     <string name="calendar_import_google_button_label">Google</string>
+     <string name="calendar_import_count_header">%1$d events found</string>
+     <string name="calendar_import_connect_google_cta">Import from Google Account</string>
+     <string name="calendar_import_or_google_cta">Or connect with Google Account</string>
 </resources>
