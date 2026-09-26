@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <!-- Queries for system Calendar & File/Share interactions -->
     <queries>
@@ -46,6 +47,10 @@
             android:exported="true"
             android:name=".MainActivity"
             android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
             <!-- Deep link for sharing events/tasks -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

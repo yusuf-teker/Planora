@@ -551,6 +551,14 @@ fun App() {
                             onNavigateToPremium = { navigator.navigate(Screen.Premium) }
                         )
                     }
+
+                    entry<Screen.CalendarImport> {
+                        val viewModel = koinViewModel<com.yusufteker.planora.feature.home.presentation.calendar_import.CalendarImportViewModel>(key = vmKey)
+                        com.yusufteker.planora.feature.home.presentation.calendar_import.CalendarImportScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() }
+                        )
+                    }
                 } // closes entryProvider
             )
             } // Close Scaffold

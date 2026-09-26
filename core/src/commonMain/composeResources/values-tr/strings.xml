@@ -921,4 +921,36 @@
      <string name="app_icon_pink">Canlı Pembe</string>
      <string name="app_icon_red">Mercan Kırmızısı</string>
      <string name="app_icon_changed_notice">Uygulama ikonu başarıyla güncellendi</string>
+
+     <!-- Calendar Import -->
+     <string name="calendar_import_title">Takvimden İçe Aktar</string>
+     <string name="calendar_import_desc">Google Takvim ve Apple Takvim etkinliklerini Planora\'ya aktarın</string>
+     <string name="calendar_import_range_next_month">Gelecek 30 Gün</string>
+     <string name="calendar_import_range_next_3_months">Gelecek 3 Ay</string>
+     <string name="calendar_import_range_past_and_future">Son 30 &amp; Gelecek 30 Gün</string>
+     <string name="calendar_import_range_year">Bu Yıl</string>
+     <string name="calendar_import_permission_title">Takvim Erişimi Gerekli</string>
+     <string name="calendar_import_permission_desc">Planora\'nın Google Takvim ve Apple Takvim etkinliklerinizi okuyup incelemenize ve aktarmanıza olanak tanıması için takvim erişim izni gerekmektedir.</string>
+     <string name="calendar_import_grant_permission">İzin Ver</string>
+     <string name="calendar_import_select_all">Tümünü Seç</string>
+     <string name="calendar_import_deselect_all">Seçimi Kaldır</string>
+     <string name="calendar_import_selected_count">%1$d / %2$d seçildi</string>
+     <string name="calendar_import_empty_title">Etkinlik Bulunamadı</string>
+     <string name="calendar_import_empty_desc">Seçilen tarih aralığında herhangi bir takvim etkinliği bulunamadı. Farklı bir aralık seçmeyi deneyin.</string>
+     <string name="calendar_import_button">Seçilenleri İçe Aktar (%1$d)</string>
+     <string name="calendar_import_success">%1$d etkinlik başarıyla Planora\'ya aktarıldı</string>
+     <string name="calendar_import_error">Etkinlikler içe aktarılırken bir hata oluştu</string>
+     <string name="calendar_import_type_event">Etkinlik</string>
+     <string name="calendar_import_type_task">Görev</string>
+     <string name="calendar_import_edit_title">Etkinliği Düzenle</string>
+     <string name="calendar_import_edit_save">Değişiklikleri Kaydet</string>
+     <string name="calendar_import_all_day">Tüm Gün</string>
+     <string name="calendar_import_filter_all">Tüm Takvimler</string>
+     <string name="calendar_import_event_title_label">Başlık</string>
+     <string name="calendar_import_event_desc_label">Açıklama</string>
+     <string name="calendar_import_event_loc_label">Konum</string>
+     <string name="calendar_import_event_type_label">Aktarım Türü</string>
+     <string name="calendar_import_event_priority_label">Öncelik</string>
+     <string name="calendar_import_loading">Takvim etkinlikleri yükleniyor…</string>
+     <string name="calendar_import_in_progress">Etkinlikler Planora\'ya aktarılıyor…</string>
 </resources>

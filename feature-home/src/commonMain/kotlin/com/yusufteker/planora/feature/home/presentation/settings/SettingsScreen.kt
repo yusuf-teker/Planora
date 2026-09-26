@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -125,6 +126,8 @@ import planora.core.generated.resources.settings_trash_title
 import planora.core.generated.resources.export_tasks_title
 import planora.core.generated.resources.export_tasks_desc
 import planora.core.generated.resources.export_tasks_premium_label
+import planora.core.generated.resources.calendar_import_title
+import planora.core.generated.resources.calendar_import_desc
 import planora.core.generated.resources.tab_settings
 import planora.core.generated.resources.theme_color_amber
 import planora.core.generated.resources.theme_color_blue
@@ -1158,6 +1161,48 @@ fun SettingsScreen(
                                 )
                                 Text(
                                     text = stringResource(Res.string.export_tasks_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+
+                        // Takvimden İçe Aktar (Calendar Import)
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable { rootNavigator.navigate(com.yusufteker.planora.core.navigation.Screen.CalendarImport) }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SettingsIconBox(
+                                icon = Icons.Default.CalendarMonth,
+                                containerColor = Color(0xFF3B82F6).copy(alpha = 0.12f),
+                                iconTint = Color(0xFF3B82F6)
+                            )
+
+                            Spacer(modifier = Modifier.width(14.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.calendar_import_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(Res.string.calendar_import_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

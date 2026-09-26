@@ -40,6 +40,7 @@ import com.yusufteker.planora.feature.home.presentation.plan_room_detail.PlanRoo
 import com.yusufteker.planora.feature.home.presentation.notes.NotesViewModel
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorViewModel
 import com.yusufteker.planora.feature.home.presentation.task_detail.TaskDetailViewModel
+import com.yusufteker.planora.feature.home.presentation.calendar_import.CalendarImportViewModel
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -100,6 +101,12 @@ val homeModule = module {
     viewModelOf(::PlanRoomsViewModel)
     viewModelOf(::PlanRoomDetailViewModel)
     viewModelOf(::NotesViewModel)
+    viewModel {
+        CalendarImportViewModel(
+            calendarService = get(),
+            planRepository = get()
+        )
+    }
     viewModel { params -> 
         TaskEditorViewModel(
             planRepository = get(),

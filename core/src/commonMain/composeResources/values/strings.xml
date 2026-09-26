@@ -922,4 +922,36 @@
      <string name="app_icon_pink">Vibrant Pink</string>
      <string name="app_icon_red">Coral Red</string>
      <string name="app_icon_changed_notice">App icon updated successfully</string>
+
+     <!-- Calendar Import -->
+     <string name="calendar_import_title">Import from Calendar</string>
+     <string name="calendar_import_desc">Import Google Calendar and Apple Calendar events into Planora</string>
+     <string name="calendar_import_range_next_month">Next 30 Days</string>
+     <string name="calendar_import_range_next_3_months">Next 3 Months</string>
+     <string name="calendar_import_range_past_and_future">Past 30 &amp; Next 30 Days</string>
+     <string name="calendar_import_range_year">This Year</string>
+     <string name="calendar_import_permission_title">Calendar Access Required</string>
+     <string name="calendar_import_permission_desc">Planora needs calendar permission to read events from Google Calendar and Apple Calendar so you can review and import them.</string>
+     <string name="calendar_import_grant_permission">Grant Permission</string>
+     <string name="calendar_import_select_all">Select All</string>
+     <string name="calendar_import_deselect_all">Deselect All</string>
+     <string name="calendar_import_selected_count">%1$d of %2$d selected</string>
+     <string name="calendar_import_empty_title">No Events Found</string>
+     <string name="calendar_import_empty_desc">No calendar events found for the selected time range. Try choosing a different range.</string>
+     <string name="calendar_import_button">Import Selected (%1$d)</string>
+     <string name="calendar_import_success">%1$d events successfully imported into Planora</string>
+     <string name="calendar_import_error">An error occurred while importing events</string>
+     <string name="calendar_import_type_event">Event</string>
+     <string name="calendar_import_type_task">Task</string>
+     <string name="calendar_import_edit_title">Edit Event</string>
+     <string name="calendar_import_edit_save">Save Changes</string>
+     <string name="calendar_import_all_day">All Day</string>
+     <string name="calendar_import_filter_all">All Calendars</string>
+     <string name="calendar_import_event_title_label">Title</string>
+     <string name="calendar_import_event_desc_label">Description</string>
+     <string name="calendar_import_event_loc_label">Location</string>
+     <string name="calendar_import_event_type_label">Import Type</string>
+     <string name="calendar_import_event_priority_label">Priority</string>
+     <string name="calendar_import_loading">Loading calendar events…</string>
+     <string name="calendar_import_in_progress">Importing events to Planora…</string>
 </resources>

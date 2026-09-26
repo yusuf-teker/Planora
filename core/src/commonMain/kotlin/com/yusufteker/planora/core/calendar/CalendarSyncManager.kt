@@ -4,26 +4,32 @@ package com.yusufteker.planora.core.calendar
  * Platform-agnostic manager for synchronizing events and tasks
  * with the native operating system calendar (Google Calendar on Android, Apple Calendar on iOS).
  */
-expect class CalendarSyncManager {
+expect class CalendarSyncManager : CalendarService {
+    override fun addToSystemCalendar(
+        title: String,
+        description: String?,
+        location: String?,
+        startTimeEpochMillis: Long,
+        endTimeEpochMillis: Long?
+    ): Boolean
 
     /**
-     * Adds an event or task to the native system calendar.
+     * Checks if the app currently has permission to read system calendar events.
      *
-     * On Android: Launches the system calendar insert intent (Google Calendar / default).
-     * On iOS: Inserts the event into the default iOS EventStore / Apple Calendar.
-     *
-     * @param title Title of the event or task.
-     * @param description Optional description or notes.
-     * @param location Optional physical or virtual location.
-     * @param startTimeEpochMillis Start time in milliseconds since epoch.
-     * @param endTimeEpochMillis Optional end time in milliseconds since epoch. If null, defaults to 1 hour after start.
-     * @return Boolean indicating whether the action was successfully initiated.
+     * @return True if calendar read permission is granted, false otherwise.
      */
-    fun addToSystemCalendar(
-        title: String,
-        description: String? = null,
-        location: String? = null,
-        startTimeEpochMillis: Long,
-        endTimeEpochMillis: Long? = null
-    ): Boolean
+    override fun hasCalendarReadPermission(): Boolean
+
+    /**
+     * Queries and retrieves events from native device calendars (Google Calendar, Apple Calendar, etc.)
+     * within the specified epoch millisecond range.
+     *
+     * @param startEpochMillis The start of the time window in milliseconds since epoch.
+     * @param endEpochMillis The end of the time window in milliseconds since epoch.
+     * @return A list of [CalendarImportItem] instances representing native calendar events.
+     */
+    override suspend fun fetchCalendarEvents(
+        startEpochMillis: Long,
+        endEpochMillis: Long
+    ): List<CalendarImportItem>
 }

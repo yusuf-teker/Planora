@@ -143,11 +143,11 @@
 		</dict>
 	</dict>
 	<key>NSCalendarsUsageDescription</key>
-	<string>Planora needs calendar access to export your tasks and events to your calendar.</string>
+	<string>Planora needs calendar access to view, import, and sync events with your calendar.</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
 	<string>Planora needs calendar access to export your tasks and events to your calendar.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Planora needs calendar access to export your tasks and events to your calendar.</string>
+	<string>Planora needs calendar access to view, import, and sync events with your calendar.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -28,7 +28,7 @@ object AppConfig {
 
     // Gemini AI Key
     val geminiApiKey: String = getEnv("GEMINI_API_KEY")
-        ?: "AQ.Ab8RN6LpQCJ68aFDG2th5ewgmLgi1cTNmHf8j62LAD3gPYeHUQ"
+        ?: error("CRITICAL SECURITY ERROR: GEMINI_API_KEY is not configured! Define it in server/.env or system environment.")
 
     // Admin Secret Key for managing users and sending admin push notifications
     val adminSecretKey: String = getEnv("ADMIN_SECRET_KEY")

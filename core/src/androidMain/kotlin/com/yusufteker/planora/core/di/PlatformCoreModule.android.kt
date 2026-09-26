@@ -13,6 +13,7 @@ import com.yusufteker.planora.core.reminder.ReminderManager
 import com.yusufteker.planora.core.ai.AndroidAiManager
 import com.yusufteker.planora.core.ai.OfflineAiManager
 import org.koin.android.ext.koin.androidContext
+import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.yusufteker.planora.core.export.TaskCsvExporter
 import com.yusufteker.planora.core.share.AndroidShareManager
@@ -72,7 +73,32 @@ actual val platformCoreModule = module {
         }
     }
 
-    single<SqlDriver> { AndroidSqliteDriver(PlanoraDatabase.Schema, androidContext(), "planora.db") }
+    single<SqlDriver> {
+        AndroidSqliteDriver(
+            schema = PlanoraDatabase.Schema,
+            context = androidContext(),
+            name = "planora.db",
+            callback = object : AndroidSqliteDriver.Callback(PlanoraDatabase.Schema) {
+                override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    try {
+                        db.execSQL("""
+                            CREATE TABLE IF NOT EXISTS deletedTaskEntity (
+                                id TEXT NOT NULL PRIMARY KEY,
+                                ownerId TEXT NOT NULL,
+                                originalTaskJson TEXT NOT NULL,
+                                taskTitle TEXT NOT NULL,
+                                deletedAt INTEGER NOT NULL
+                            )
+                        """.trimIndent())
+                        db.execSQL("CREATE INDEX IF NOT EXISTS index_deletedTask_ownerId ON deletedTaskEntity(ownerId)")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        )
+    }
 
     // Reminder Manager
     single<ReminderManager> { AndroidReminderManager(androidContext()) }
@@ -87,7 +113,7 @@ actual val platformCoreModule = module {
     single { TaskCsvExporter() }
 
     // Calendar Sync Manager (Google Calendar & Native Calendar)
-    single { com.yusufteker.planora.core.calendar.CalendarSyncManager() }
+    single { com.yusufteker.planora.core.calendar.CalendarSyncManager() } bind com.yusufteker.planora.core.calendar.CalendarService::class
 
     // App Version Provider
     single<com.yusufteker.planora.core.version.AppVersionProvider> { 

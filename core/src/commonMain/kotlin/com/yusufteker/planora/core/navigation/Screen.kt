@@ -167,6 +167,14 @@ sealed interface Screen {
     @Serializable
     data object PlanComparison : Screen
 
+    /**
+     * Takvimden İçe Aktar (Calendar Import) Ekranı.
+     * Cihazın yerel takvimindeki (Google Takvim, Apple Takvim vb.) etkinlikleri
+     * listeleyip, düzenleyip Planora'ya topluca aktarılmasını sağlar.
+     */
+    @Serializable
+    data object CalendarImport : Screen
+
 
     /**  
      * Destinations within the Main Graph (Bottom Navigation Tabs).

@@ -11,6 +11,7 @@ import com.yusufteker.planora.core.reminder.ReminderManager
 import com.yusufteker.planora.core.ai.IosAiManager
 import com.yusufteker.planora.core.ai.OfflineAiManager
 import kotlinx.cinterop.ExperimentalForeignApi
+import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.yusufteker.planora.core.export.TaskCsvExporter
 import com.yusufteker.planora.core.share.IosShareManager
@@ -58,7 +59,7 @@ actual val platformCoreModule = module {
     single { TaskCsvExporter() }
 
     // Calendar Sync Manager (Apple Calendar & Native Calendar)
-    single { com.yusufteker.planora.core.calendar.CalendarSyncManager() }
+    single { com.yusufteker.planora.core.calendar.CalendarSyncManager() } bind com.yusufteker.planora.core.calendar.CalendarService::class
 
     // App Version Provider
     single<com.yusufteker.planora.core.version.AppVersionProvider> { 
