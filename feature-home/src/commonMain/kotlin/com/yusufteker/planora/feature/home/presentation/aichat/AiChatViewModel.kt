@@ -374,7 +374,8 @@ class AiChatViewModel(
             recentMessages = recentMessages,
             sharedRooms = sharedRooms,
             myTasks = myTasks,
-            accessibleUsers = accessibleUsers
+            accessibleUsers = accessibleUsers,
+            timeZoneId = TimeZone.currentSystemDefault().id
         )
     }
 }

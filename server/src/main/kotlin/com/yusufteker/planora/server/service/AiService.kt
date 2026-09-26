@@ -6,6 +6,7 @@ import com.yusufteker.planora.server.database.tables.*
 import com.yusufteker.planora.shared.ai.*
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.RoomMemberStatus
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.TaskVisibility
@@ -152,8 +153,49 @@ object AiService {
             )
         }
 
+        // Kullanıcının üye olduğu odaları ve o odalardaki tüm üyeleri veritabanından dinamik olarak al
+        val enrichedRooms = try {
+            dbQuery {
+                val userRoomIds = PlanRoomMembersTable.selectAll()
+                    .where { (PlanRoomMembersTable.userId eq userId) and (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED) }
+                    .map { it[PlanRoomMembersTable.roomId] }
+
+                userRoomIds.mapNotNull { rId ->
+                    val roomRow = PlanRoomsTable.selectAll().where { PlanRoomsTable.id eq rId }.firstOrNull() ?: return@mapNotNull null
+                    val roomName = roomRow[PlanRoomsTable.name]
+
+                    val memberUserIds = PlanRoomMembersTable.selectAll()
+                        .where { (PlanRoomMembersTable.roomId eq rId) and (PlanRoomMembersTable.status eq RoomMemberStatus.ACCEPTED) }
+                        .map { it[PlanRoomMembersTable.userId] }
+
+                    val memberUsers = UsersTable.selectAll().where { UsersTable.id inList memberUserIds }
+                        .map { row ->
+                            val name = row[UsersTable.name]
+                            val username = row[UsersTable.username]
+                            val id = row[UsersTable.id].value
+                            val displayName = if (name.isNotBlank() && name != username) "$name (@$username)" else "@$username"
+                            "$displayName (id:$id)"
+                        }
+
+                    SharedRoomInfo(
+                        roomId = rId,
+                        roomName = roomName,
+                        memberNames = memberUsers
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        val effectiveContext = if (enrichedRooms.isNotEmpty()) {
+            request.context.copy(sharedRooms = enrichedRooms)
+        } else {
+            request.context
+        }
+
         // Kompakt prompt hazırla
-        val systemPrompt = buildSystemPrompt(request.context)
+        val systemPrompt = buildSystemPrompt(effectiveContext)
         val fullInput = request.message.trim().take(400)
 
         val requestBody = buildGeminiRequestBody(systemPrompt, fullInput)
@@ -172,7 +214,7 @@ object AiService {
 
             if (httpResponse.statusCode() in 200..299) {
                 println("[AiService] Gemini Raw Body: ${httpResponse.body().take(500)}...")
-                val parsedResult = parseGeminiResponse(httpResponse.body(), request.context, fullInput)
+                val parsedResult = parseGeminiResponse(httpResponse.body(), effectiveContext, fullInput)
                 println("[AiService] Gemini Parsed Successfully: intent=${parsedResult.intent}, replyText=${parsedResult.replyText}")
                 // Başarılı kullanım kaydet
                 recordUsage(userId, parsedResult.intent.name)
@@ -209,44 +251,70 @@ object AiService {
         }
     }
 
+    private fun getUserZoneId(context: AiChatContext): ZoneId {
+        return try {
+            if (!context.timeZoneId.isNullOrBlank()) {
+                ZoneId.of(context.timeZoneId)
+            } else {
+                ZoneId.of("Europe/Istanbul")
+            }
+        } catch (e: Exception) {
+            ZoneId.of("Europe/Istanbul")
+        }
+    }
+
     /**
      * Ultra-kompakt sistem talimatı.
      */
     private fun buildSystemPrompt(context: AiChatContext): String {
-        val now = java.time.LocalDateTime.now()
+        val userZone = getUserZoneId(context)
+        val now = java.time.ZonedDateTime.now(userZone).toLocalDateTime()
 
         val roomsStr = if (context.sharedRooms.isNotEmpty()) {
-            context.sharedRooms.joinToString(", ") { "${it.roomId}:${it.roomName}" }
+            context.sharedRooms.joinToString("\n") { room ->
+                val members = if (room.memberNames.isNotEmpty()) room.memberNames.joinToString(", ") else "bilinmiyor"
+                "- Oda: '${room.roomName}' (id: ${room.roomId}), Üyeler: $members"
+            }
         } else "Yok"
 
         val usersStr = if (context.followedUsers.isNotEmpty() || context.accessibleUsers.isNotEmpty()) {
             (context.followedUsers + context.accessibleUsers).distinctBy { it.first }
-                .joinToString(", ") { "${it.first}:${it.second}" }
+                .joinToString(", ") { "${it.second} (id:${it.first})" }
         } else "Yok"
 
         return """
         Sen Planora kişisel planlama asistanısın. SADECE JSON formatında yanıt ver.
         Zaman: $now
-        Kullanıcı Odaları: [$roomsStr]
-        Kullanıcılar: [$usersStr]
+        Kullanıcı ID: ${context.currentUserId}
+
+        ORTAK ODALAR VE ÜYELERİ:
+        $roomsStr
+
+        ERİŞİLEBİLİR KULLANICILAR:
+        $usersStr
 
         KURALLAR:
-        1. KISITLAMA (GUARDRAIL): Yalnızca Planora içinde görev, etkinlik, plan odası, üye daveti ve not işlemleri yapabilirsin. Alakasız tüm genel sohbet, fıkra, kodlama, hava durumu vb. soruları KESİNLİKLE reddet (intent="REJECTED", replyText="Ben sadece Planora asistanıyım; görev, etkinlik, plan odası ve notlarınızı düzenlemenize yardımcı olabilirim.").
-        2. INTENTLER:
-           - CREATE_TASK: Yapılacak veya tamamlanmış iş / to-do (tarihli veya tarihsiz). Kullanıcı "şunu yaptım", "spora gittim", "faturayı ödedim" gibi geçmiş zaman bildirse bile bunu bir görev (veya etkinlik) olarak algıla ve ekle.
-           - CREATE_EVENT: Saat aralığı, toplantı, maç, ders veya randevu. Geçmişte gerçekleşmiş veya gelecekte planlanan etkinlikler.
-           - CREATE_NOTE: Zamansız not / fikir / anımsatma.
+        1. KISITLAMA (GUARDRAIL): Yalnızca Planora içinde görev, etkinlik, plan odası, üye daveti ve not işlemleri yapabilirsin. Alakasız tüm genel sohbet, fıkra, kodlama vb. soruları KESİNLİKLE reddet (intent="REJECTED", replyText="Ben sadece Planora asistanıyım; görev, etkinlik, plan odası ve notlarınızı düzenlemenize yardımcı olabilirim.").
+        2. KİŞİLER VE ORTAK PLANLAR (ÇOK ÖNEMLİ):
+           - Kullanıcı bir kişiyle (örn: "Dilberle...", "Ahmet ile buluşma", "Ayşe ile saat 5'e ekle") veya bir odada bir şey yapacağını, buluşacağını söylediğinde:
+             a) Bu kişinin hangi ortak odada olduğunu ORTAK ODALAR listesinden ara (Türkçe ekleri ve büyük/küçük harfleri esnek algıla: örn. "Dilberle", "Dilber'le" -> "Dilber").
+             b) Bulunan odanın id'sini 'sharedRoomId' alanına yaz.
+             c) O kişinin userId'sini 'participantUserIds' listesine ekle.
+             d) intent olarak CREATE_EVENT (saat/zaman varsa) veya CREATE_TASK seç. KESİNLİKLE INVITE_TO_ROOM yapma! (INVITE_TO_ROOM sadece açıkça "X kişisini odaya davet et / odaya ekle" dendiğinde kullanılır).
+        3. INTENTLER:
+           - CREATE_EVENT: Saat aralığı, belirli bir saatteki buluşma, ders, randevu veya etkinlikler (örn: "dilberle akşam 5e ekle" -> 17:00 CREATE_EVENT).
+           - CREATE_TASK: Yapılacak veya tamamlanmış iş / to-do (tarihli veya tarihsiz).
+           - CREATE_NOTE: Zamansız genel not / fikir / anımsatma.
            - CREATE_PLAN_ROOM: Yeni plan odası oluşturma (örn: "X adında oda aç").
-           - INVITE_TO_ROOM: Odaya üye davet etme (örn: "Ahmet'i X odasına ekle").
+           - INVITE_TO_ROOM: Mevcut bir odaya yeni üye davet etme (örn: "Ahmet'i X odasına davet et").
            - REJECTED: Kapsam dışı istekler.
-        3. GEÇMİŞ ZAMAN & TAMAMLANMA (isCompleted):
-           - Kullanıcı eylemi zaten yaptığını/bitirdiğini söylüyorsa (örn: "bugün 3'te spora gittim", "faturayı ödedim", "Ahmet'le görüştüm"), 'isCompleted' değerini true yap. Gelecek veya henüz yapılmamışsa false yap.
-        4. TARİH/SAAT: "YYYY-MM-DDTHH:mm:ss" yerel formatta dön. Geçmiş zaman ifadeleri ("dün", "sabah", "2 saat önce") için geçmiş tarihi hesapla. Saat aralığı varsa dateTime ve endDateTime doldur.
-        5. ODA & KATILIMCILAR:
-           - Odada etkinlik paylaşılacaksa: sharedRoomId ve participantUserIds doldur.
-           - Odaya üye davet edilecekse: roomName ve targetUsername doldur.
-           - Yeni oda açılacaksa: roomName doldur.
-        6. BAŞLIK (title): 2-3 kelimelik kısa ve net özet (örn: "Spor Seansı", "Fatura Ödeme").
+        4. YAZIM HATALARI VE TÜRKÇE ESNEKLİĞİ:
+           - Kullanıcının yazım hatalarını ("akam" -> "akşam", "dilberle" -> "Dilber ile", "yarın aksam 5e" -> 17:00) hoşgör ve doğru zamanı anla.
+        5. GEÇMİŞ ZAMAN & TAMAMLANMA (isCompleted):
+           - Kullanıcı eylemi zaten yaptığını/bitirdiğini söylüyorsa 'isCompleted' true yap. Gelecek veya henüz yapılmamışsa false yap.
+        6. TARİH/SAAT: "YYYY-MM-DDTHH:mm:ss" yerel formatta dön. Saat aralığı yoksa başlangıçtan 1 saat sonrasını endDateTime yap.
+        7. BAŞLIK (title): 2-4 kelimelik şık özet (örn: "Dilber ile Buluşma", "Tenis Dersi").
+        8. YANIT METNİ (replyText): Yapılan işlemi kullanıcıya samimi ve net bildir (örn: "Dilber ile etkinliği bugün saat 17:00'ye ortak odaya ekledim.").
         """.trimIndent()
     }
 
@@ -355,6 +423,8 @@ object AiService {
             (it as? JsonPrimitive)?.intOrNull
         } ?: listOf(60)
 
+        val userZone = getUserZoneId(context)
+
         fun parseDate(dateStr: String?): Long? {
             if (dateStr.isNullOrBlank()) return null
             return try {
@@ -362,7 +432,7 @@ object AiService {
                     Instant.parse(dateStr).toEpochMilli()
                 } else {
                     LocalDateTime.parse(dateStr)
-                        .atZone(ZoneId.systemDefault())
+                        .atZone(userZone)
                         .toInstant()
                         .toEpochMilli()
                 }
@@ -381,8 +451,48 @@ object AiService {
         val nowMs = System.currentTimeMillis()
         val taskStatus = if (isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING
 
+        // ── Akıllı Ortak Oda & Katılımcı Çözümleme (Kişi İsminden Otomatik Odayı Çözme) ──
+        var finalSharedRoomId = sharedRoomId
+        val finalParticipantIds = participantIds.toMutableList()
+        val roomMatchScores = mutableMapOf<String, Int>()
+
+        // Kullanıcının mesajında geçen TÜM oda üyelerini dinamik olarak bul ve katılımcı listesine ekle
+        context.sharedRooms.forEach { room ->
+            room.memberNames.forEach { memberStr ->
+                // memberStr formatı: "İsim (@kullaniciadi) (id:123)"
+                val idMatch = Regex("id:(\\d+)").find(memberStr)?.groupValues?.get(1)?.toIntOrNull()
+                val cleanParts = memberStr.split("(", ")", "@", " ")
+                    .map { it.trim() }
+                    .filter { it.length >= 2 && !it.startsWith("id:") }
+
+                val isMentioned = cleanParts.any { namePart ->
+                    userInput.contains(namePart, ignoreCase = true) || title.contains(namePart, ignoreCase = true)
+                }
+
+                if (isMentioned) {
+                    roomMatchScores[room.roomId] = (roomMatchScores[room.roomId] ?: 0) + 1
+                    if (idMatch != null && !finalParticipantIds.contains(idMatch)) {
+                        finalParticipantIds.add(idMatch)
+                    }
+                }
+            }
+        }
+
+        // Eğer doğrudan bir oda belirtilmediyse, en çok üyesi eşleşen odayı seç
+        if (finalSharedRoomId.isNullOrBlank() && roomMatchScores.isNotEmpty()) {
+            finalSharedRoomId = roomMatchScores.maxByOrNull { it.value }?.key
+        }
+
+        // Görevi oluşturan kullanıcının kendisini de her zaman katılımcı/sorumlu olarak ekle
+        val allParticipants = if (context.currentUserId > 0) {
+            (listOf(context.currentUserId) + finalParticipantIds).distinct()
+        } else finalParticipantIds
+
+        val participantsMap = allParticipants.associateWith { "ACCEPTED" }
+
         return when (intentStr) {
             "CREATE_TASK" -> {
+                val isShared = !finalSharedRoomId.isNullOrBlank()
                 val req = CreateTaskRequest(
                     title = title,
                     description = description,
@@ -390,7 +500,9 @@ object AiService {
                     endTime = null,
                     type = TaskType.TASK,
                     status = taskStatus,
-                    visibility = TaskVisibility.PRIVATE,
+                    visibility = if (isShared) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                    sharedRoomIds = if (isShared) listOf(finalSharedRoomId) else emptyList(),
+                    participants = participantsMap,
                     reminders = reminders,
                     specificDetails = ItemDetails.Task(deadline = startMs),
                     color = "#4CAF50"
@@ -405,12 +517,14 @@ object AiService {
                         description = description,
                         type = TaskType.TASK,
                         dateTime = startMs,
-                        tags = emptyList()
+                        tags = emptyList(),
+                        sharedRoomId = finalSharedRoomId,
+                        participantUserIds = allParticipants
                     )
                 )
             }
             "CREATE_EVENT" -> {
-                val isShared = !sharedRoomId.isNullOrBlank()
+                val isShared = !finalSharedRoomId.isNullOrBlank()
                 val req = CreateTaskRequest(
                     title = title,
                     description = description,
@@ -419,7 +533,8 @@ object AiService {
                     type = TaskType.EVENT,
                     status = taskStatus,
                     visibility = if (isShared) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
-                    sharedRoomIds = if (isShared) listOf(sharedRoomId) else emptyList(),
+                    sharedRoomIds = if (isShared) listOf(finalSharedRoomId) else emptyList(),
+                    participants = participantsMap,
                     reminders = reminders,
                     specificDetails = ItemDetails.Event(location = location),
                     color = "#2196F3"
@@ -436,19 +551,22 @@ object AiService {
                         dateTime = startMs,
                         endDateTime = endMs,
                         location = location,
-                        sharedRoomId = sharedRoomId,
-                        participantUserIds = participantIds
+                        sharedRoomId = finalSharedRoomId,
+                        participantUserIds = allParticipants
                     )
                 )
             }
             "CREATE_NOTE" -> {
+                val isShared = !finalSharedRoomId.isNullOrBlank()
                 val req = CreateTaskRequest(
                     title = title,
                     description = description,
                     startTime = nowMs,
                     type = TaskType.NOTE,
                     status = TaskStatus.COMPLETED,
-                    visibility = TaskVisibility.PRIVATE,
+                    visibility = if (isShared) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                    sharedRoomIds = if (isShared) listOf(finalSharedRoomId) else emptyList(),
+                    participants = participantsMap,
                     specificDetails = ItemDetails.Note(content = description ?: ""),
                     color = "#FF9800"
                 )
@@ -490,19 +608,54 @@ object AiService {
                     }
                 } else null
 
-                AiChatResult(
-                    intent = AiIntent.INVITE_TO_ROOM,
-                    replyText = replyText,
-                    shouldInviteUser = targetRoom != null && targetUser != null,
-                    inviteRoomId = targetRoom?.roomId,
-                    inviteUserId = targetUser?.first,
-                    extractedEntities = ExtractedEntities(
-                        title = "Odaya Davet",
-                        targetRoomName = roomName,
-                        targetUsername = targetUsername,
-                        targetUserId = targetUser?.first
+                if (targetRoom != null && targetUser != null) {
+                    AiChatResult(
+                        intent = AiIntent.INVITE_TO_ROOM,
+                        replyText = replyText,
+                        shouldInviteUser = true,
+                        inviteRoomId = targetRoom.roomId,
+                        inviteUserId = targetUser.first,
+                        extractedEntities = ExtractedEntities(
+                            title = "Odaya Davet",
+                            targetRoomName = roomName,
+                            targetUsername = targetUsername,
+                            targetUserId = targetUser.first
+                        )
                     )
-                )
+                } else {
+                    // Kullanıcı odaya üye davet etmek yerine kişiyle plan/etkinlik eklemek istemiş olabilir (örn: "dilberle saat 5e ekle")
+                    val isShared = !finalSharedRoomId.isNullOrBlank()
+                    val isEvent = startMs != null
+                    val req = CreateTaskRequest(
+                        title = title,
+                        description = description,
+                        startTime = startMs ?: nowMs,
+                        endTime = endMs ?: (if (startMs != null) startMs + 3600_000L else null),
+                        type = if (isEvent) TaskType.EVENT else TaskType.TASK,
+                        status = taskStatus,
+                        visibility = if (isShared) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                        sharedRoomIds = if (isShared) listOf(finalSharedRoomId) else emptyList(),
+                        reminders = reminders,
+                        specificDetails = if (isEvent) ItemDetails.Event(location = location) else ItemDetails.Task(deadline = startMs),
+                        color = if (isEvent) "#2196F3" else "#4CAF50"
+                    )
+                    AiChatResult(
+                        intent = if (isEvent) AiIntent.CREATE_EVENT else AiIntent.CREATE_TASK,
+                        replyText = replyText,
+                        shouldCreateTask = true,
+                        suggestedTaskRequest = req,
+                        extractedEntities = ExtractedEntities(
+                            title = title,
+                            description = description,
+                            type = if (isEvent) TaskType.EVENT else TaskType.TASK,
+                            dateTime = startMs,
+                            endDateTime = endMs,
+                            location = location,
+                            sharedRoomId = finalSharedRoomId,
+                            participantUserIds = allParticipants
+                        )
+                    )
+                }
             }
             else -> {
                 AiChatResult(

@@ -79,7 +79,8 @@ data class AiChatContext(
     val recentMessages: List<String> = emptyList(),
     val sharedRooms: List<SharedRoomInfo> = emptyList(),
     val myTasks: List<MyTaskInfo> = emptyList(),
-    val accessibleUsers: List<Pair<Int, String>> = emptyList()
+    val accessibleUsers: List<Pair<Int, String>> = emptyList(),
+    val timeZoneId: String? = null
 )
 
 /**
