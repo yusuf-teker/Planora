@@ -63,6 +63,10 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
                 }
             }
             level = LogLevel.INFO
+            sanitizeHeader { header ->
+                header.equals(io.ktor.http.HttpHeaders.Authorization, ignoreCase = true) ||
+                header.equals(io.ktor.http.HttpHeaders.Cookie, ignoreCase = true)
+            }
         }
 
         install(Auth) {

@@ -8,6 +8,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import com.yusufteker.planora.shared.util.maskEmail
 
 /**
  * Service for sending emails using Google Apps Script Web App (HTTPS Proxy over Port 443).
@@ -97,7 +98,7 @@ object EmailService {
                 val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
                 if (response.statusCode() in 200..299 && !response.body().contains("Sayfa Bulunamadı")) {
-                    println("EmailService: Email successfully sent to $toEmail via Google Script. Response: ${response.body()}")
+                    println("EmailService: Email successfully sent to ${toEmail.maskEmail()} via Google Script.")
                     true
                 } else {
                     System.err.println("EmailService: Failed to send email via Google Script. Code: ${response.statusCode()}, Body: ${response.body()}")
@@ -144,7 +145,7 @@ object EmailService {
                 val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
                 if (response.statusCode() in 200..299) {
-                    println("EmailService: Email successfully sent to $toEmail via Resend. Response: ${response.body()}")
+                    println("EmailService: Email successfully sent to ${toEmail.maskEmail()} via Resend.")
                     true
                 } else {
                     System.err.println("EmailService: Resend API error. Code: ${response.statusCode()}, Body: ${response.body()}")

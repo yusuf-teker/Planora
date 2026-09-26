@@ -3,14 +3,16 @@ package com.yusufteker.planora.server.plugins
 import io.ktor.server.application.*
 import io.ktor.server.plugins.callid.callId
 import io.ktor.server.request.*
+import com.yusufteker.planora.shared.util.maskUri
 
 /**
- * Configures request logging enriched with unique Request ID / Correlation ID for distributed tracing.
+ * Configures request logging enriched with unique Request ID / Correlation ID for distributed tracing,
+ * with automatic PII masking on query parameters (tokens, passwords, emails, etc.).
  */
 fun Application.configureCallLogging() {
     intercept(ApplicationCallPipeline.Monitoring) {
         val method = call.request.httpMethod.value
-        val path = call.request.uri
+        val path = call.request.uri.maskUri()
         val reqId = call.callId ?: "-"
         proceed()
         val status = call.response.status()?.value ?: 0

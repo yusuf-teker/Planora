@@ -65,7 +65,8 @@ fun Application.configureStatusPages() {
         // 5. Catch-all for unexpected runtime exceptions
         exception<Throwable> { call, cause ->
             val reqId = call.callId ?: "-"
-            call.application.log.error("Unhandled server exception [$reqId] encountered on ${call.request.uri}:", cause)
+            val safeUri = com.yusufteker.planora.shared.util.PiiMasker.maskUri(call.request.uri)
+            call.application.log.error("Unhandled server exception [$reqId] encountered on $safeUri:", cause)
             call.respondError(
                 status = HttpStatusCode.InternalServerError,
                 code = ApiErrorCode.INTERNAL_SERVER_ERROR,
