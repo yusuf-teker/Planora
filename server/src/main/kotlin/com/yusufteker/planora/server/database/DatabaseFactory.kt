@@ -29,7 +29,7 @@ object DatabaseFactory {
             maximumPoolSize = 10
             isAutoCommit = false //Birden fazla sıralı istek olduğunda hepsini tek seferde commit et
             // birisi patlarsa diğerinide iptal etmesi için autoCommit false yapıyoruz.
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            transactionIsolation = "TRANSACTION_READ_COMMITTED"
             validate()
         }
         val dataSource = HikariDataSource(hikariConfig)

@@ -20,6 +20,7 @@ object UsersTable : IntIdTable("users") {
     val profileImageUrl = varchar("profile_image_url", 500).nullable()
     val isPremium = bool("is_premium").default(false)
     val premiumUntil = timestamp("premium_until").nullable()
+    val role = varchar("role", 20).default("USER")
 }
 
 /**
@@ -37,6 +38,7 @@ class UserEntity(id: EntityID<Int>) : IntEntity(id) {
     var profileImageUrl by UsersTable.profileImageUrl
     var isPremium by UsersTable.isPremium
     var premiumUntil by UsersTable.premiumUntil
+    var role by UsersTable.role
 }
 
 /**

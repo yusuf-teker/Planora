@@ -151,7 +151,7 @@ fun Route.authRoutes() {
             }
 
             // Kayıt olan kullanıcı için hemen yetkilendirme (Access) ve yenileme (Refresh) token'ları üretiyoruz.
-            val accessToken = TokenService.generateAccessToken(newUser.id.value, newUser.email)
+            val accessToken = TokenService.generateAccessToken(newUser.id.value, newUser.email, newUser.role)
             val refreshToken = TokenService.generateRefreshToken()
 
             // Refresh token'ı bir sonraki yenileme işlemi için veritabanına kaydediyoruz.
@@ -171,7 +171,7 @@ fun Route.authRoutes() {
 
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
             val (isPrem, premUntil) = dbQuery { newUser.isPremiumActive() to newUser.premiumUntil?.toString() }
-            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.username, newUser.avatarId, newUser.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
+            call.respond(HttpStatusCode.Created, AuthResponse(accessToken, refreshToken, newUser.id.value, newUser.name, newUser.username, newUser.avatarId, newUser.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil, role = newUser.role))
         }
 
             // --- 2. LOGIN ENDPOINT ---
@@ -192,7 +192,7 @@ fun Route.authRoutes() {
                 return@post
             }
             // email ve şifre doğru ise token üretiyoruz ve kullanıcıya dönüyoruz.
-            val accessToken = TokenService.generateAccessToken(user.id.value, user.email)
+            val accessToken = TokenService.generateAccessToken(user.id.value, user.email, user.role)
             val refreshToken = TokenService.generateRefreshToken()
 
             //refresh tokenı veritabanına kaydediyoruz. (Refresh tokenlar DB'de tutulur, Access tokenlar tutulmaz)
@@ -206,7 +206,7 @@ fun Route.authRoutes() {
             }
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
             val (isPrem, premUntil) = dbQuery { user.isPremiumActive() to user.premiumUntil?.toString() }
-            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil))
+            call.respond(HttpStatusCode.OK, AuthResponse(accessToken, refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPremium = isPrem, premiumUntil = premUntil, role = user.role))
         }
     }
 
@@ -231,8 +231,7 @@ fun Route.authRoutes() {
             val user = dbQuery { refreshTokenEntity.user }
 
             // Eski token geçerli olduğu için kullanıcıya yeni tokenlar veriyoruz.
-            // Eski token geçerli olduğu için kullanıcıya yeni tokenlar veriyoruz.
-            val newAccessToken = TokenService.generateAccessToken(user.id.value, user.email)
+            val newAccessToken = TokenService.generateAccessToken(user.id.value, user.email, user.role)
             
             dbQuery {
                 // Refresh Token'ın süresini uzatıyoruz, ancak token'ı değiştirmiyoruz (Token Rotation kapatıldı).
@@ -242,7 +241,7 @@ fun Route.authRoutes() {
 
             // İşlem başarılı! Uygulamaya yeni token'ları ve kullanıcı bilgilerini dönüyoruz.
             val (isPrem, premUntil) = dbQuery { user.isPremiumActive() to user.premiumUntil?.toString() }
-            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPrem, premUntil))
+            call.respond(HttpStatusCode.OK, AuthResponse(newAccessToken, request.refreshToken, user.id.value, user.name, user.username, user.avatarId, user.profileImageUrl, isPrem, premUntil, role = user.role))
         }
 
         // --- 3.5. LOGOUT ENDPOINT (Token Revocation) ---

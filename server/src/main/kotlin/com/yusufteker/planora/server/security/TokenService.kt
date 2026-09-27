@@ -26,12 +26,13 @@ object TokenService {
      * Generates a signed JWT access token for the given user.
      * The token includes the userId as a claim so the server can identify the user.
      */
-    fun generateAccessToken(userId: Int, email: String): String {
+    fun generateAccessToken(userId: Int, email: String, role: String = "USER"): String {
         return JWT.create()
             .withAudience("planora-client")
             .withIssuer(issuer)
             .withClaim("userId", userId)
             .withClaim("email", email)
+            .withClaim("role", role)
             .withExpiresAt(Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
             .sign(Algorithm.HMAC256(secret))
     }

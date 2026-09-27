@@ -66,3 +66,52 @@ data class AdminSendPushResponse(
     val message: String,
     val recipientCount: Int = 0
 )
+
+/**
+ * Admin panelinde sistem geneli metrikleri ve istatistikleri temsil eden veri modeli.
+ */
+@Serializable
+data class AdminDashboardStatsDto(
+    val totalUsers: Long,
+    val totalTasks: Long,
+    val totalRooms: Long,
+    val totalPosts: Long,
+    val totalPremiumUsers: Long,
+    val totalFcmDevices: Long
+)
+
+/**
+ * Admin panelinde kullanıcı arama ve listeleme sonuçlarında kullanılan özet veri modeli.
+ */
+@Serializable
+data class AdminUserSummaryDto(
+    val id: Int,
+    val name: String,
+    val username: String,
+    val email: String,
+    val role: String,
+    val isPremium: Boolean,
+    val premiumUntil: String? = null,
+    val createdAt: String,
+    val taskCount: Long = 0,
+    val roomCount: Long = 0,
+    val fcmDeviceCount: Long = 0
+)
+
+/**
+ * Kullanıcı rolünü değiştirmek için kullanılan istek modeli.
+ */
+@Serializable
+data class UpdateUserRoleRequest(
+    val role: String // "ADMIN" veya "USER"
+)
+
+/**
+ * Admin tarafından belirli bir kullanıcının görevlerini inceleme yanıtı.
+ */
+@Serializable
+data class AdminUserTasksResponse(
+    val userId: Int,
+    val username: String,
+    val tasks: List<TaskDto>
+)

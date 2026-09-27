@@ -49,7 +49,8 @@ data class AuthResponse(
     val avatarId: String,
     val profileImageUrl: String? = null,
     val isPremium: Boolean = false,
-    val premiumUntil: String? = null
+    val premiumUntil: String? = null,
+    val role: String = "USER"
 )
 
 /**
@@ -101,7 +102,8 @@ data class UserProfileResponse(
     val calendarAccessStatus: String? = null,
     val profileImageUrl: String? = null,
     val isPremium: Boolean = false,
-    val premiumUntil: String? = null
+    val premiumUntil: String? = null,
+    val role: String = "USER"
 )
 
 /**

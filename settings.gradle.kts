@@ -38,3 +38,4 @@ include(":server")
 
 // Android Baseline Profile üretimi ve performans testleri için özel modül
 include(":baselineprofile")
+include(":adminApp")
