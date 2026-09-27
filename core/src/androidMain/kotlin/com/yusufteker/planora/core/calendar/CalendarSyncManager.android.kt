@@ -93,6 +93,7 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
         android.content.ContentUris.appendId(builder, endEpochMillis)
 
         val projection = arrayOf(
+            android.provider.CalendarContract.Instances._ID,
             android.provider.CalendarContract.Instances.EVENT_ID,
             android.provider.CalendarContract.Instances.TITLE,
             android.provider.CalendarContract.Instances.DESCRIPTION,
@@ -104,6 +105,8 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             android.provider.CalendarContract.Events.ACCOUNT_NAME,
             android.provider.CalendarContract.Events.OWNER_ACCOUNT
         )
+
+        val processedEventIds = mutableSetOf<Long>()
 
         try {
             val cursor = try {
@@ -117,6 +120,7 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             } catch (e: Exception) {
                 // If CALENDAR_DISPLAY_NAME or ACCOUNT_NAME causes issues on specific OEM ROMs, fallback to standard Instances projection
                 val fallbackProjection = arrayOf(
+                    android.provider.CalendarContract.Instances._ID,
                     android.provider.CalendarContract.Instances.EVENT_ID,
                     android.provider.CalendarContract.Instances.TITLE,
                     android.provider.CalendarContract.Instances.DESCRIPTION,
@@ -135,7 +139,8 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             }
 
             cursor?.use { c ->
-                val idIdx = c.getColumnIndex(android.provider.CalendarContract.Instances.EVENT_ID)
+                val instanceIdIdx = c.getColumnIndex(android.provider.CalendarContract.Instances._ID)
+                val eventIdIdx = c.getColumnIndex(android.provider.CalendarContract.Instances.EVENT_ID)
                 val titleIdx = c.getColumnIndex(android.provider.CalendarContract.Instances.TITLE)
                 val descIdx = c.getColumnIndex(android.provider.CalendarContract.Instances.DESCRIPTION)
                 val locIdx = c.getColumnIndex(android.provider.CalendarContract.Instances.EVENT_LOCATION)
@@ -156,14 +161,27 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
                         continue
                     }
 
+                    val rawInstanceId = if (instanceIdIdx >= 0) c.getLong(instanceIdIdx) else null
+                    val rawEventId = if (eventIdIdx >= 0) c.getLong(eventIdIdx) else null
+                    if (rawEventId != null) {
+                        processedEventIds.add(rawEventId)
+                    }
+
                     val rawTitle = if (titleIdx >= 0) c.getString(titleIdx) else null
                     val title = if (!rawTitle.isNullOrBlank()) rawTitle else "Untitled Event"
-                    val eventId = if (idIdx >= 0) c.getLong(idIdx).toString() else com.yusufteker.planora.core.utils.generateUUID()
-                    val description = if (descIdx >= 0) c.getString(descIdx) else null
-                    val location = if (locIdx >= 0) c.getString(locIdx) else null
                     val begin = if (beginIdx >= 0) c.getLong(beginIdx) else startEpochMillis
                     val end = if (endIdx >= 0) c.getLong(endIdx) else null
                     val isAllDay = if (allDayIdx >= 0) c.getInt(allDayIdx) == 1 else false
+
+                    // Generate a unique ID per instance so recurring occurrences don't share the same key
+                    val eventId = when {
+                        rawInstanceId != null && rawInstanceId > 0 -> "inst_${rawInstanceId}"
+                        rawEventId != null -> "event_${rawEventId}_$begin"
+                        else -> com.yusufteker.planora.core.utils.generateUUID()
+                    }
+
+                    val description = if (descIdx >= 0) c.getString(descIdx) else null
+                    val location = if (locIdx >= 0) c.getString(locIdx) else null
                     val targetType = detectTargetType(title, calendarName)
 
                     eventsList.add(
@@ -188,9 +206,8 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             e.printStackTrace()
         }
 
-        // Supplementary query: Query Events directly for events whose instances might not be expanded yet
+        // Supplementary query: Query Events directly for single events whose instances might not be expanded yet
         try {
-            val existingIds = eventsList.map { it.id }.toSet()
             val eventsUri = android.provider.CalendarContract.Events.CONTENT_URI
             val selection = "(${android.provider.CalendarContract.Events.DTSTART} >= ? AND ${android.provider.CalendarContract.Events.DTSTART} <= ?) AND ${android.provider.CalendarContract.Events.DELETED} = 0"
             val selectionArgs = arrayOf(startEpochMillis.toString(), endEpochMillis.toString())
@@ -217,8 +234,8 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
                 val calNameIdx = ec.getColumnIndex(android.provider.CalendarContract.Events.CALENDAR_DISPLAY_NAME)
 
                 while (ec.moveToNext()) {
-                    val eventId = if (idIdx >= 0) ec.getLong(idIdx).toString() else continue
-                    if (existingIds.contains(eventId)) continue
+                    val rawEventId = if (idIdx >= 0) ec.getLong(idIdx) else null
+                    if (rawEventId == null || processedEventIds.contains(rawEventId)) continue
 
                     val calendarName = if (calNameIdx >= 0) ec.getString(calNameIdx) else null
                     if (isHolidayOrSystemCalendar(calendarName, null, null)) continue
@@ -231,6 +248,7 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
                     val end = if (dtEndIdx >= 0) ec.getLong(dtEndIdx) else null
                     val isAllDay = if (allDayIdx >= 0) ec.getInt(allDayIdx) == 1 else false
                     val targetType = detectTargetType(title, calendarName)
+                    val eventId = "event_${rawEventId}_$begin"
 
                     eventsList.add(
                         CalendarImportItem(
@@ -254,7 +272,7 @@ actual class CalendarSyncManager : CalendarService, KoinComponent {
             e.printStackTrace()
         }
 
-        eventsList.sortedBy { it.startTimeEpochMillis }
+        eventsList.distinctBy { it.id }.sortedBy { it.startTimeEpochMillis }
     }
 
     private fun isHolidayOrSystemCalendar(

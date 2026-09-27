@@ -343,4 +343,22 @@ class CalendarImportViewModelTest {
         viewModel.onEvent(CalendarImportUiEvent.SetGoogleTasksLoading(false))
         assertFalse(viewModel.state.value.isGoogleTasksLoading)
     }
+
+    @Test
+    fun `ayni ID ye sahip yinelenen etkinlikler guvenle tekillestirilmeli ve Compose key cakismasi onlenmelidir`() = runTest {
+        fakeCalendarService.hasPermission = true
+        // Simulating recurring events with identical IDs (e.g., "55")
+        fakeCalendarService.eventsToReturn = listOf(
+            createSampleItem(id = "55", title = "Pazartesi Toplantısı"),
+            createSampleItem(id = "55", title = "Salı Toplantısı (Tekrar)")
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(1, state.events.size)
+        assertEquals(1, state.filteredEvents.size)
+        assertEquals("55", state.filteredEvents.first().id)
+    }
 }

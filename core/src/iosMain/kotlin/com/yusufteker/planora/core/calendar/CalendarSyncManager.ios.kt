@@ -93,10 +93,11 @@ actual class CalendarSyncManager : CalendarService {
 
             val rawTitle = ekEvent.title
             val title = if (!rawTitle.isNullOrBlank()) rawTitle else "Untitled Event"
-            val eventId = ekEvent.eventIdentifier ?: com.yusufteker.planora.core.utils.generateUUID()
+            val startMs = ekEvent.startDate?.let { (it.timeIntervalSince1970 * 1000.0).toLong() } ?: startEpochMillis
+            val baseId = ekEvent.eventIdentifier ?: com.yusufteker.planora.core.utils.generateUUID()
+            val eventId = "${baseId}_$startMs"
             val description = ekEvent.notes
             val location = ekEvent.location
-            val startMs = ekEvent.startDate?.let { (it.timeIntervalSince1970 * 1000.0).toLong() } ?: startEpochMillis
             val endMs = ekEvent.endDate?.let { (it.timeIntervalSince1970 * 1000.0).toLong() }
             val isAllDay = ekEvent.allDay
             val calName = cal?.title
@@ -140,12 +141,13 @@ actual class CalendarSyncManager : CalendarService {
                 for (rem in ekReminders) {
                     val rawTitle = rem.title
                     val title = if (!rawTitle.isNullOrBlank()) rawTitle else "Untitled Task"
-                    val eventId = rem.calendarItemIdentifier ?: com.yusufteker.planora.core.utils.generateUUID()
-                    val description = rem.notes
-                    val calName = rem.calendar?.title ?: "Apple Reminders"
                     val dueComponents = rem.dueDateComponents
                     val dueNsDate = dueComponents?.let { platform.Foundation.NSCalendar.currentCalendar.dateFromComponents(it) }
                     val dueMs = dueNsDate?.let { (it.timeIntervalSince1970 * 1000.0).toLong() } ?: startEpochMillis
+                    val remId = rem.calendarItemIdentifier ?: com.yusufteker.planora.core.utils.generateUUID()
+                    val eventId = "rem_${remId}_$dueMs"
+                    val description = rem.notes
+                    val calName = rem.calendar?.title ?: "Apple Reminders"
 
                     eventsList.add(
                         CalendarImportItem(
@@ -169,7 +171,7 @@ actual class CalendarSyncManager : CalendarService {
             }
         }
 
-        eventsList.sortedBy { it.startTimeEpochMillis }
+        eventsList.distinctBy { it.id }.sortedBy { it.startTimeEpochMillis }
     }
 
     private fun detectTargetType(

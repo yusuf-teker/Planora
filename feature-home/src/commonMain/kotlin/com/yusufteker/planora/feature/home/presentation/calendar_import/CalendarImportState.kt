@@ -33,10 +33,13 @@ data class CalendarImportState(
      * Events filtered by the active calendar source filter.
      */
     val filteredEvents: List<CalendarImportItem>
-        get() = if (selectedCalendarFilter == null) {
-            events
-        } else {
-            events.filter { it.sourceDisplayName == selectedCalendarFilter || it.calendarName == selectedCalendarFilter }
+        get() {
+            val list = if (selectedCalendarFilter == null) {
+                events
+            } else {
+                events.filter { it.sourceDisplayName == selectedCalendarFilter || it.calendarName == selectedCalendarFilter }
+            }
+            return list.distinctBy { it.id }
         }
 
     /**

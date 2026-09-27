@@ -63,8 +63,8 @@ class CalendarImportViewModel(
         setState {
             val current = events
             val existingIds = current.map { it.id }.toSet()
-            val uniqueNew = newItems.filter { !existingIds.contains(it.id) }
-            val merged = current + uniqueNew
+            val uniqueNew = newItems.filter { !existingIds.contains(it.id) }.distinctBy { it.id }
+            val merged = (current + uniqueNew).distinctBy { it.id }
             val distinctCalendars = merged.map { it.sourceDisplayName }
                 .filter { it.isNotBlank() }
                 .distinct()
@@ -98,7 +98,7 @@ class CalendarImportViewModel(
             try {
                 setState { copy(isLoading = true) }
                 val (startMs, endMs) = state.value.selectedDateRange.getEpochRange()
-                val retrieved = calendarService.fetchCalendarEvents(startMs, endMs)
+                val retrieved = calendarService.fetchCalendarEvents(startMs, endMs).distinctBy { it.id }
 
                 val distinctCalendars = retrieved.map { it.sourceDisplayName }
                     .filter { it.isNotBlank() }
