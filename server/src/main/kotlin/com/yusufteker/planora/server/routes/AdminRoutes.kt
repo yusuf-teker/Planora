@@ -241,6 +241,40 @@ fun Route.adminRoutes() {
         }
 
         /**
+         * DELETE /admin/users/{id}
+         * Kullanıcıyı ve onunla ilişkili olan tüm görevleri, odaları, katılımları,
+         * postları ve hesap verilerini veritabanından kalıcı olarak siler.
+         */
+        delete("/users/{id}") {
+            if (!call.ensureAdminAuthorized()) return@delete
+
+            val targetId = call.parameters["id"]?.toIntOrNull()
+            if (targetId == null) {
+                call.respond(HttpStatusCode.BadRequest, "Geçersiz kullanıcı ID")
+                return@delete
+            }
+
+            val deletedUsername = dbQuery {
+                val user = UserEntity.findById(targetId) ?: return@dbQuery null
+                val username = user.username
+                deleteUserAccountInternal(targetId)
+                username
+            }
+
+            if (deletedUsername == null) {
+                call.respond(HttpStatusCode.NotFound, "Silinecek kullanıcı bulunamadı.")
+            } else {
+                call.respond(
+                    HttpStatusCode.OK,
+                    AdminDeleteUserResponse(
+                        success = true,
+                        message = "'@$deletedUsername' kullanıcısı ve ona ait tüm görev, grup ve veri kayıtları başarıyla silindi."
+                    )
+                )
+            }
+        }
+
+        /**
          * POST /admin/users/set-premium
          * Belirtilen kullanıcıya (email veya userId) manuel olarak Premium tanımlar veya kaldırır.
          */

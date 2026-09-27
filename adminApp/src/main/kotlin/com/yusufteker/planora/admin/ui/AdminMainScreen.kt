@@ -168,6 +168,16 @@ fun AdminMainScreen(
             onDismiss = viewModel::closePushDialog
         )
     }
+
+    // Kullanıcı Kalıcı Silme Onay Diyalogu
+    if (uiState.userToDelete != null) {
+        ConfirmDeleteUserDialog(
+            user = uiState.userToDelete!!,
+            isDeleting = uiState.isDeletingUser,
+            onConfirm = viewModel::confirmDeleteUser,
+            onDismiss = viewModel::closeDeleteDialog
+        )
+    }
 }
 
 @Composable
@@ -530,7 +540,8 @@ private fun UsersTabContent(viewModel: AdminViewModel, uiState: AdminUiState) {
                     onTogglePremium = {
                         viewModel.setPremium(user, isPremium = !user.isPremium, days = if (!user.isPremium) 30 else null)
                     },
-                    onSendPush = { viewModel.openPushDialog(user) }
+                    onSendPush = { viewModel.openPushDialog(user) },
+                    onDeleteUser = { viewModel.openDeleteDialog(user) }
                 )
             }
         }
@@ -543,7 +554,8 @@ private fun UserCard(
     onViewTasks: () -> Unit,
     onToggleRole: () -> Unit,
     onTogglePremium: () -> Unit,
-    onSendPush: () -> Unit
+    onSendPush: () -> Unit,
+    onDeleteUser: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -669,6 +681,17 @@ private fun UserCard(
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Bildirim Gönder", modifier = Modifier.size(16.dp))
+                }
+
+                FilledTonalIconButton(
+                    onClick = onDeleteUser,
+                    modifier = Modifier.size(36.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                ) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = "Kullanıcıyı Sil", modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -831,3 +854,56 @@ private fun SendPushDialog(
         }
     )
 }
+
+@Composable
+private fun ConfirmDeleteUserDialog(
+    user: AdminUserSummaryDto,
+    isDeleting: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = !isDeleting,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                if (isDeleting) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onError)
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                Text("Kalıcı Olarak Sil")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isDeleting) { Text("İptal") }
+        },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Kullanıcıyı Sil: @${user.username}", fontSize = 18.sp)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "${user.name} kullanıcısını kalıcı olarak silmek istediğinize emin misiniz?",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "• Kullanıcının tüm görevleri, etkinlikleri ve kişisel notları silinecek.\n" +
+                            "• Dahil olduğu grup odalarından ve ortak task/eventlerden çıkarılacak.\n" +
+                            "• Sosyal postları, yorumları ve profil verileri tamamen temizlenecek.\n\n" +
+                            "⚠️ Bu işlem geri alınamaz!",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    )
+}
+

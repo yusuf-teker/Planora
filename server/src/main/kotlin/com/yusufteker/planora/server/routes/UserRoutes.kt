@@ -497,7 +497,7 @@ fun Route.userRoutes() {
 /**
  * Kullanıcının veritabanındaki tüm ilişkilerini temizleyen ve kuruculukları devreden dahili yardımcı fonksiyon.
  */
-private fun deleteUserAccountInternal(targetUserId: Int) {
+fun deleteUserAccountInternal(targetUserId: Int) {
     val targetUserEntity = UserEntity.findById(targetUserId)
 
     // 1. Odalar & Üyelikler: Kurucusu olduğu odalarda devir yap
@@ -569,6 +569,9 @@ private fun deleteUserAccountInternal(targetUserId: Int) {
     FcmTokensTable.deleteWhere { userId eq targetUserId }
     RefreshTokensTable.deleteWhere { userId eq targetUserId }
     PasswordResetTokensTable.deleteWhere { userId eq targetUserId }
+    if (targetUserEntity != null) {
+        EmailVerificationTokensTable.deleteWhere { email eq targetUserEntity.email }
+    }
     targetUserEntity?.delete()
 }
 

@@ -56,7 +56,11 @@ data class AdminUiState(
     // Broadcast
     val broadcastTitle: String = "",
     val broadcastBody: String = "",
-    val isSendingBroadcast: Boolean = false
+    val isSendingBroadcast: Boolean = false,
+
+    // Delete dialog
+    val userToDelete: AdminUserSummaryDto? = null,
+    val isDeletingUser: Boolean = false
 )
 
 class AdminViewModel(
@@ -325,6 +329,41 @@ class AdminViewModel(
                 }
             }.onFailure { err ->
                 _uiState.update { it.copy(isSendingBroadcast = false, errorMessage = err.message ?: "Toplu bildirim başarısız") }
+            }
+        }
+    }
+
+    fun openDeleteDialog(user: AdminUserSummaryDto) {
+        _uiState.update { it.copy(userToDelete = user) }
+    }
+
+    fun closeDeleteDialog() {
+        _uiState.update { it.copy(userToDelete = null) }
+    }
+
+    fun confirmDeleteUser() {
+        val user = _uiState.value.userToDelete ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeletingUser = true) }
+            val result = apiClient.deleteUser(user.id)
+            result.onSuccess { res ->
+                _uiState.update { state ->
+                    state.copy(
+                        isDeletingUser = false,
+                        userToDelete = null,
+                        successMessage = res.message,
+                        usersList = state.usersList.filter { it.id != user.id },
+                        selectedUser = if (state.selectedUser?.id == user.id) null else state.selectedUser
+                    )
+                }
+                loadDashboardStats()
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isDeletingUser = false,
+                        errorMessage = err.message ?: "Kullanıcı silinemedi"
+                    )
+                }
             }
         }
     }

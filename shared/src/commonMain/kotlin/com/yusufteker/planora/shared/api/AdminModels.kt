@@ -115,3 +115,12 @@ data class AdminUserTasksResponse(
     val username: String,
     val tasks: List<TaskDto>
 )
+
+/**
+ * Admin tarafından kullanıcı silme işlemi sonucu.
+ */
+@Serializable
+data class AdminDeleteUserResponse(
+    val success: Boolean,
+    val message: String
+)

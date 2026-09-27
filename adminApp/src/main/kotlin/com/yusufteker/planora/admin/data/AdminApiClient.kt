@@ -159,4 +159,17 @@ class AdminApiClient {
         }
         response.body<AdminSendPushResponse>()
     }
+
+    /**
+     * Kullanıcıyı ve ilişkili tüm verilerini (görevler, odalar, katılımlar, hesap) kalıcı olarak siler.
+     */
+    suspend fun deleteUser(userId: Int): Result<AdminDeleteUserResponse> = runCatching {
+        val response = client.delete("$baseUrl/admin/users/$userId") {
+            attachAuth()
+        }
+        if (!response.status.isSuccess()) {
+            throw Exception("Kullanıcı silinemedi: HTTP ${response.status.value}")
+        }
+        response.body<AdminDeleteUserResponse>()
+    }
 }
