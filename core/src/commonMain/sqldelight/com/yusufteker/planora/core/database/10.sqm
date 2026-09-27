@@ -1,0 +1,6 @@
+-- 10.sqm: Performance Indexes
+CREATE INDEX IF NOT EXISTS index_taskEntity_parentId ON taskEntity(parentId);
+CREATE INDEX IF NOT EXISTS index_taskEntity_unsynced ON taskEntity(id) WHERE isSynced = 0;
+CREATE INDEX IF NOT EXISTS index_taskSharedRoomEntity_roomId ON taskSharedRoomEntity(roomId);
+CREATE INDEX IF NOT EXISTS index_holidayDbEntity_countryCode_year ON holidayDbEntity(countryCode, year);
+CREATE INDEX IF NOT EXISTS index_deletedTask_deletedAt ON deletedTaskEntity(deletedAt);

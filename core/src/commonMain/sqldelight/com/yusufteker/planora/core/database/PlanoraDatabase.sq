@@ -151,11 +151,15 @@ CREATE TABLE taskEntity (
 
 CREATE INDEX index_taskEntity_startTime ON taskEntity(startTime ASC);
 CREATE INDEX index_taskEntity_isSynced ON taskEntity(isSynced);
+CREATE INDEX index_taskEntity_parentId ON taskEntity(parentId);
+CREATE INDEX index_taskEntity_unsynced ON taskEntity(id) WHERE isSynced = 0;
+
 CREATE TABLE taskSharedRoomEntity (
     taskId TEXT NOT NULL,
     roomId TEXT NOT NULL,
     PRIMARY KEY (taskId, roomId)
 );
+CREATE INDEX index_taskSharedRoomEntity_roomId ON taskSharedRoomEntity(roomId);
 
 -- PlanRoom Sorguları
 insertPlanRoom:
@@ -335,6 +339,7 @@ CREATE TABLE holidayDbEntity (
     year INTEGER NOT NULL,
     PRIMARY KEY(date, countryCode)
 );
+CREATE INDEX index_holidayDbEntity_countryCode_year ON holidayDbEntity(countryCode, year);
 
 createHolidayTableIfNotExists:
 CREATE TABLE IF NOT EXISTS holidayDbEntity (
@@ -371,6 +376,7 @@ CREATE TABLE deletedTaskEntity (
 );
 
 CREATE INDEX index_deletedTask_ownerId ON deletedTaskEntity(ownerId);
+CREATE INDEX index_deletedTask_deletedAt ON deletedTaskEntity(deletedAt);
 
 insertDeletedTask:
 INSERT OR REPLACE INTO deletedTaskEntity(id, ownerId, originalTaskJson, taskTitle, deletedAt)
