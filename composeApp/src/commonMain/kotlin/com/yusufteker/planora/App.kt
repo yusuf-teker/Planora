@@ -397,6 +397,7 @@ fun App() {
                             onNavigateToEditTask = { taskId, roomId -> navigator.navigate(Screen.TaskEditor(taskId = taskId, planRoomId = roomId)) },
                             onNavigateToCopyTask = { taskId, roomId -> navigator.navigate(Screen.TaskEditor(copyFromTaskId = taskId, planRoomId = roomId)) },
                             onNavigateToFocus = { id -> navigator.navigate(Screen.Focus(taskId = id)) },
+                            onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
                             onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },
                             onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
                         )

@@ -967,4 +967,11 @@
      <string name="calendar_import_count_header">%1$d etkinlik bulundu</string>
      <string name="calendar_import_connect_google_cta">Google Hesabından Aktar</string>
      <string name="calendar_import_or_google_cta">Veya Google Hesabı ile Bağlan</string>
+     <string name="quick_note_placeholder">Hızlı bir not ekleyin...</string>
+     <string name="quick_note_added">Not eklendi</string>
+     <string name="quick_note_error">Not eklenirken hata oluştu</string>
+     <string name="delete_note_confirm_title">Notu Sil</string>
+     <string name="delete_note_confirm_msg">Bu notu silmek istediğinize emin misiniz?</string>
+     <string name="note_deleted">Not silindi</string>
+     <string name="full_note_editor">Detaylı Not</string>
 </resources>

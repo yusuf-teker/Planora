@@ -968,4 +968,11 @@
      <string name="calendar_import_count_header">%1$d events found</string>
      <string name="calendar_import_connect_google_cta">Import from Google Account</string>
      <string name="calendar_import_or_google_cta">Or connect with Google Account</string>
+     <string name="quick_note_placeholder">Add a quick note...</string>
+    <string name="quick_note_added">Note added</string>
+    <string name="quick_note_error">Failed to add note</string>
+    <string name="delete_note_confirm_title">Delete Note</string>
+    <string name="delete_note_confirm_msg">Are you sure you want to delete this note?</string>
+    <string name="note_deleted">Note deleted</string>
+    <string name="full_note_editor">Full Note</string>
 </resources>

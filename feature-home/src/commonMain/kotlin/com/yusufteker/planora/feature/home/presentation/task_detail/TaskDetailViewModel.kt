@@ -73,6 +73,8 @@ class TaskDetailViewModel(
                 }
             }
             is TaskDetailEvent.OnQuickDuplicate -> quickDuplicateTask(event.targetDateMs)
+            is TaskDetailEvent.OnAddQuickNote -> addQuickNote(event.content)
+            is TaskDetailEvent.OnDeleteNote -> deleteNote(event.noteId)
         }
     }
 
@@ -103,10 +105,72 @@ class TaskDetailViewModel(
             )
             val result = planRepository.createTask(request, triggerSync = true)
             if (result.isSuccess) {
-                val msg = getString(Res.string.msg_duplicated_successfully)
+                val msg = runCatching { getString(Res.string.msg_duplicated_successfully) }.getOrDefault("Görev çoğaltıldı")
                 setEffect(TaskDetailEffect.ShowSnackbar(msg))
             } else {
                 setEffect(TaskDetailEffect.ShowSnackbar("Hata oluştu"))
+            }
+        }
+    }
+
+    /**
+     * Creates and attaches a quick note to the current task.
+     *
+     * @param content The note content entered by the user.
+     */
+    private fun addQuickNote(content: String) {
+        val trimmed = content.trim()
+        if (trimmed.isBlank()) return
+        val taskId = _state.value.taskId ?: _state.value.task?.id ?: return
+        val now = getCurrentTimeMs()
+
+        val request = CreateTaskRequest(
+            title = trimmed,
+            description = trimmed,
+            startTime = now,
+            endTime = now,
+            type = TaskType.NOTE,
+            status = TaskStatus.PENDING,
+            visibility = if (_state.value.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+            sharedRoomIds = _state.value.planRoomId?.let { listOf(it) } ?: emptyList(),
+            isRecurring = false,
+            recurrenceRule = null,
+            isFlexible = true,
+            isOptional = true,
+            isPostponable = false,
+            isAllDay = false,
+            parentId = taskId,
+            reminders = emptyList(),
+            specificDetails = ItemDetails.Note(
+                content = trimmed,
+                attachments = emptyList(),
+                checklist = emptyList()
+            )
+        )
+
+        viewModelScope.launch {
+            val result = planRepository.createTask(request, triggerSync = true)
+            if (result.isSuccess) {
+                val msg = runCatching { getString(Res.string.quick_note_added) }.getOrDefault("Not eklendi")
+                setEffect(TaskDetailEffect.ShowSnackbar(msg))
+            } else {
+                val errMsg = runCatching { getString(Res.string.quick_note_error) }.getOrDefault("Not eklenirken hata oluştu")
+                setEffect(TaskDetailEffect.ShowSnackbar(errMsg))
+            }
+        }
+    }
+
+    /**
+     * Deletes a child note attached to this task.
+     *
+     * @param noteId The ID of the note to delete.
+     */
+    private fun deleteNote(noteId: String) {
+        viewModelScope.launch {
+            val result = planRepository.deleteTask(noteId)
+            if (result.isSuccess) {
+                val msg = runCatching { getString(Res.string.note_deleted) }.getOrDefault("Not silindi")
+                setEffect(TaskDetailEffect.ShowSnackbar(msg))
             }
         }
     }

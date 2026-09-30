@@ -10,8 +10,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -37,6 +40,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +67,7 @@ fun TaskDetailScreen(
     onNavigateToEditTask: (String, String?) -> Unit = { _, _ -> },
     onNavigateToCopyTask: (String, String?) -> Unit = { _, _ -> },
     onNavigateToFocus: (String) -> Unit = {},
+    onNavigateToCreateNote: (String) -> Unit = {},
     onNavigateToEditNote: (String) -> Unit = {},
     onNavigateToPlanRoom: (String) -> Unit = {}
 ) {
@@ -120,6 +125,17 @@ fun TaskDetailScreen(
                     }
                 },
                 actions = {
+                    state.taskId?.let {
+                        IconButton(onClick = { viewModel.onEvent(TaskDetailEvent.OnFocusClick) }) {
+                            Icon(
+                                painter = painterResource(Res.drawable.focus_planora),
+                                contentDescription = stringResource(Res.string.action_focus),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
                     IconButton(onClick = { viewModel.onEvent(TaskDetailEvent.OnShareClick) }) {
                         Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.action_share), tint = MaterialTheme.colorScheme.primary)
                     }
@@ -137,6 +153,21 @@ fun TaskDetailScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.action_focus)) },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.focus_planora),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(TaskDetailEvent.OnFocusClick)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_add_to_calendar)) },
                                 leadingIcon = {
@@ -216,48 +247,27 @@ fun TaskDetailScreen(
                 shadowElevation = 12.dp,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
-                    state.taskId?.let { taskId ->
-                        OutlinedButton(
-                            onClick = { viewModel.onEvent(TaskDetailEvent.OnFocusClick) },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
-                                brush = Brush.linearGradient(
-                                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-                                )
-                            )
-                        ) {
-                            Icon(
-                                painterResource(Res.drawable.focus_planora),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                stringResource(Res.string.action_focus),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
                     Button(
                         onClick = { viewModel.onEvent(TaskDetailEvent.OnEditClick) },
-                        modifier = Modifier.weight(1f).height(52.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(Res.string.action_edit_task), fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(Res.string.action_edit_task),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }
@@ -864,57 +874,247 @@ fun TaskDetailScreen(
                     }
                 }
 
-                // Attached Notes Section
-                if (state.notes.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                // Attached Notes & Quick Note Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        // Header: Title, Count Badge and Optional Full Editor button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = stringResource(Res.string.label_attached_notes),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            state.notes.forEach { note ->
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .clickable { onNavigateToEditNote(note.id) },
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(14.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.label_attached_notes),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (state.notes.isNotEmpty()) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(8.dp)
                                     ) {
                                         Text(
-                                            text = note.title.ifBlank { stringResource(Res.string.label_attached_notes) },
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        Icon(
-                                            Icons.Default.ChevronRight,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(20.dp)
+                                            text = state.notes.size.toString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
                                 }
                             }
+
+                            state.taskId?.let { taskId ->
+                                TextButton(
+                                    onClick = { onNavigateToCreateNote(taskId) },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = stringResource(Res.string.full_note_editor),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+
+                        // Quick Note Input Composer
+                        var quickNoteInput by remember { mutableStateOf("") }
+                        val canSubmit = quickNoteInput.isNotBlank() && !state.isLoading
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = quickNoteInput,
+                                onValueChange = { quickNoteInput = it },
+                                placeholder = {
+                                    Text(
+                                        text = stringResource(Res.string.quick_note_placeholder),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                                ),
+                                singleLine = false,
+                                maxLines = 3,
+                                textStyle = MaterialTheme.typography.bodyMedium,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        if (canSubmit) {
+                                            viewModel.onEvent(TaskDetailEvent.OnAddQuickNote(quickNoteInput))
+                                            quickNoteInput = ""
+                                        }
+                                    }
+                                )
+                            )
+
+                            IconButton(
+                                onClick = {
+                                    if (canSubmit) {
+                                        viewModel.onEvent(TaskDetailEvent.OnAddQuickNote(quickNoteInput))
+                                        quickNoteInput = ""
+                                    }
+                                },
+                                enabled = canSubmit,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (canSubmit) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = stringResource(Res.string.action_create_note),
+                                    tint = if (canSubmit) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        // Notes List or Empty State Hint
+                        if (state.notes.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                state.notes.forEach { note ->
+                                    var showNoteDeleteConfirm by remember { mutableStateOf(false) }
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .clickable { onNavigateToEditNote(note.id) },
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(14.dp),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.weight(1f),
+                                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                Text(
+                                                    text = note.title.ifBlank { note.description ?: stringResource(Res.string.untitled_task) },
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                if (!note.description.isNullOrBlank() && note.description != note.title) {
+                                                    Text(
+                                                        text = note.description!!,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        maxLines = 2
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                IconButton(
+                                                    onClick = { showNoteDeleteConfirm = true },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Delete,
+                                                        contentDescription = stringResource(Res.string.action_delete),
+                                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+
+                                                Icon(
+                                                    imageVector = Icons.Default.ChevronRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (showNoteDeleteConfirm) {
+                                        AlertDialog(
+                                            onDismissRequest = { showNoteDeleteConfirm = false },
+                                            title = { Text(stringResource(Res.string.delete_note_confirm_title)) },
+                                            text = { Text(stringResource(Res.string.delete_note_confirm_msg)) },
+                                            confirmButton = {
+                                                TextButton(
+                                                    onClick = {
+                                                        showNoteDeleteConfirm = false
+                                                        viewModel.onEvent(TaskDetailEvent.OnDeleteNote(note.id))
+                                                    }
+                                                ) {
+                                                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                                                }
+                                            },
+                                            dismissButton = {
+                                                TextButton(onClick = { showNoteDeleteConfirm = false }) {
+                                                    Text(stringResource(Res.string.cancel))
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = stringResource(Res.string.no_sub_notes_added),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
                         }
                     }
                 }
