@@ -60,6 +60,7 @@ dotenv = "6.5.1"
 buildkonfig = "0.17.0"
 
 # Testing & Baseline Profiles
+testcontainers = "1.20.4"
 junit = "4.13.2"
 turbine = "1.2.0"
 androidx-baselineprofile = "1.5.0-rc01"
@@ -182,6 +183,8 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
 # Testing & Baseline Profiles
+testcontainers-core = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 junit = { module = "junit:junit", version.ref = "junit" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "androidx-profileinstaller" }

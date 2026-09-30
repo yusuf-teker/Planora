@@ -12,10 +12,25 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
  * Handles PostgreSQL database connection, connection pooling, and migrations.
  */
 object DatabaseFactory {
-    fun init() {
-        val url = AppConfig.dbUrl
-        val user = AppConfig.dbUser
-        val password = AppConfig.dbPassword
+    private var currentDataSource: HikariDataSource? = null
+
+    /**
+     * Initializes the database connection pool, applies Flyway migrations, connects Exposed ORM,
+     * and optionally runs seed data.
+     *
+     * @param url The JDBC connection URL (defaults to production [AppConfig.dbUrl]).
+     * @param user The database username (defaults to production [AppConfig.dbUser]).
+     * @param password The database password (defaults to production [AppConfig.dbPassword]).
+     * @param runSeeder Whether to run initial database seeders (defaults to true in production).
+     */
+    fun init(
+        url: String = AppConfig.dbUrl,
+        user: String = AppConfig.dbUser,
+        password: String = AppConfig.dbPassword,
+        runSeeder: Boolean = true
+    ) {
+        // Close existing pool if already initialized (useful for re-initialization in test suites)
+        close()
 
         // 1. Configure HikariCP Connection Pool
         // Ktor ile PostgreSQL bağlantısı kurmak için HikariCP kullanıyoruz.
@@ -48,8 +63,9 @@ object DatabaseFactory {
             validate()
         }
         val dataSource = HikariDataSource(hikariConfig)
+        currentDataSource = dataSource
 
-        // Flyaw database migration'ları çalıştırmak için Flyway kullanıyoruz.
+        // Flyway database migration'ları çalıştırmak için Flyway kullanıyoruz.
         // Migration'lar, veritabanı şemasını güncel tutmamızı sağlar.
         val flyway = Flyway.configure()
             .dataSource(dataSource)
@@ -63,8 +79,22 @@ object DatabaseFactory {
         // 3. Connect Exposed ORM to the Data Source
         Database.connect(dataSource)
 
-        // Seed dummy data if DB is empty
-        DatabaseSeeder.seed()
+        // Seed dummy data if DB is empty and seeder is enabled
+        if (runSeeder) {
+            DatabaseSeeder.seed()
+        }
+    }
+
+    /**
+     * Safely closes the active HikariCP connection pool if initialized.
+     */
+    fun close() {
+        currentDataSource?.let {
+            if (!it.isClosed) {
+                it.close()
+            }
+        }
+        currentDataSource = null
     }
 
     /**
