@@ -314,7 +314,7 @@ fun CalendarImportScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Date Range Filter Chips (strictly 3 options)
+            // Date Range Filter Chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -179,6 +179,31 @@ class CalendarImportViewModelTest {
 
         assertEquals(CalendarImportDateRange.THIS_YEAR, viewModel.state.value.selectedDateRange)
         assertNotNull(fakeCalendarService.lastQueriedRange)
+
+        // Test Son 1 Hafta (PAST_WEEK)
+        viewModel.onEvent(CalendarImportUiEvent.SelectDateRange(CalendarImportDateRange.PAST_WEEK))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(CalendarImportDateRange.PAST_WEEK, viewModel.state.value.selectedDateRange)
+        assertNotNull(fakeCalendarService.lastQueriedRange)
+        val (weekStart, weekEnd) = fakeCalendarService.lastQueriedRange!!
+        assertTrue(weekStart < weekEnd)
+
+        // Test Son 1 Ay (PAST_MONTH)
+        viewModel.onEvent(CalendarImportUiEvent.SelectDateRange(CalendarImportDateRange.PAST_MONTH))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(CalendarImportDateRange.PAST_MONTH, viewModel.state.value.selectedDateRange)
+        assertNotNull(fakeCalendarService.lastQueriedRange)
+        val (monthStart, monthEnd) = fakeCalendarService.lastQueriedRange!!
+        assertTrue(monthStart < monthEnd)
+    }
+
+    @Test
+    fun `calendar import date range getEpochRange her enum degeri icin gecerli aralik dondurmelidir`() {
+        val nowMs = 1774950000000L // arbitrary fixed timestamp
+        for (range in CalendarImportDateRange.entries) {
+            val (startMs, endMs) = range.getEpochRange(nowMs)
+            assertTrue(startMs < endMs, "Start ($startMs) must be strictly before end ($endMs) for $range")
+        }
     }
 
     @Test

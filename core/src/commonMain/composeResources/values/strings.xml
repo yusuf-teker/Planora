@@ -926,6 +926,8 @@
      <!-- Calendar Import -->
      <string name="calendar_import_title">Import from Calendar</string>
      <string name="calendar_import_desc">Import Google Calendar and Apple Calendar events into Planora</string>
+     <string name="calendar_import_range_past_week">Last 7 Days</string>
+     <string name="calendar_import_range_past_month">Last 30 Days</string>
      <string name="calendar_import_range_next_month">Next 30 Days</string>
      <string name="calendar_import_range_next_3_months">Next 3 Months</string>
      <string name="calendar_import_range_past_and_future">Past 30 &amp; Next 30 Days</string>

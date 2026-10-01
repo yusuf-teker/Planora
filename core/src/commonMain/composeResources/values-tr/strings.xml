@@ -925,6 +925,8 @@
      <!-- Calendar Import -->
      <string name="calendar_import_title">Takvimden İçe Aktar</string>
      <string name="calendar_import_desc">Google Takvim ve Apple Takvim etkinliklerini Planora\'ya aktarın</string>
+     <string name="calendar_import_range_past_week">Son 1 Hafta</string>
+     <string name="calendar_import_range_past_month">Son 1 Ay</string>
      <string name="calendar_import_range_next_month">Gelecek 30 Gün</string>
      <string name="calendar_import_range_next_3_months">Gelecek 3 Ay</string>
      <string name="calendar_import_range_past_and_future">Son 30 &amp; Gelecek 30 Gün</string>
