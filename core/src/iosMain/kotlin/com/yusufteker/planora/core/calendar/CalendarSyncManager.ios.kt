@@ -51,15 +51,25 @@ actual class CalendarSyncManager : CalendarService {
 
     actual override fun hasCalendarReadPermission(): Boolean {
         val status = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeEvent)
-        return status == 3L // EKAuthorizationStatusFullAccess / EKAuthorizationStatusAuthorized
+        // 3L = EKAuthorizationStatusFullAccess (iOS 17+) / EKAuthorizationStatusAuthorized (iOS <17)
+        return status == 3L
     }
 
     actual override suspend fun fetchCalendarEvents(
         startEpochMillis: Long,
         endEpochMillis: Long
     ): List<CalendarImportItem> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-        if (!hasCalendarReadPermission()) {
+        val status = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeEvent)
+        println("[CalendarSyncManager] Fetching events. Authorization status: $status (FullAccess=3)")
+        if (status != 3L) {
+            println("[CalendarSyncManager] Full calendar read permission not granted (status=$status). Returning empty list.")
             return@withContext emptyList()
+        }
+
+        try {
+            eventStore.reset()
+        } catch (e: Exception) {
+            println("[CalendarSyncManager] Error resetting eventStore: ${e.message}")
         }
 
         val startDate = NSDate.dateWithTimeIntervalSince1970(startEpochMillis / 1000.0)
@@ -69,7 +79,11 @@ actual class CalendarSyncManager : CalendarService {
         val eventsList = mutableListOf<CalendarImportItem>()
 
         @Suppress("UNCHECKED_CAST")
-        val ekEvents = rawEvents as? List<EKEvent> ?: emptyList()
+        val ekEvents = (rawEvents as? List<*>)?.filterIsInstance<EKEvent>()
+            ?: (rawEvents as? List<EKEvent>)
+            ?: emptyList()
+
+        println("[CalendarSyncManager] Found ${ekEvents.size} raw calendar events from EventKit.")
 
         for (ekEvent in ekEvents) {
             val cal = ekEvent.calendar
