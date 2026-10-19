@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -265,6 +266,7 @@ fun GlowButton(
 
     Box(
         modifier = baseModifier
+            .defaultMinSize(minHeight = 52.dp)
             .shadow(
                 elevation = if (enabled) 10.dp else 0.dp,
                 shape = shape,

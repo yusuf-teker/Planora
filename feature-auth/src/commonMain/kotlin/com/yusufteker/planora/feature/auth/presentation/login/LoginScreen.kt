@@ -3,14 +3,19 @@ package com.yusufteker.planora.feature.auth.presentation.login
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +57,7 @@ fun LoginScreen(
 ) {
     val navigator = LocalNavigator.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     // Ekran her açıldığında (logout sonrası dahil) formu temizle
     LaunchedEffect(Unit) {
@@ -68,20 +74,33 @@ fun LoginScreen(
         }
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .safeContentPadding(),
-        contentAlignment = Alignment.Center
+            .safeContentPadding()
+            .imePadding()
     ) {
-        com.yusufteker.planora.core.ui.components.GlassCard(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
-            elevation = 16.dp
+                .fillMaxSize()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = this@BoxWithConstraints.maxHeight),
+                contentAlignment = Alignment.Center
+            ) {
+                com.yusufteker.planora.core.ui.components.GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
+                    elevation = 16.dp
+                ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -228,4 +247,6 @@ fun LoginScreen(
             }
         }
     }
+}
+}
 }

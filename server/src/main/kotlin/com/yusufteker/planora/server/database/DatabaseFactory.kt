@@ -45,13 +45,13 @@ object DatabaseFactory {
 
             // Havuz boyutu ayarları
             maximumPoolSize = 10
-            minimumIdle = 2 // Boşta en az 2 bağlantıyı hazır tutarak ilk istek gecikmesini (cold-start) önler
+            minimumIdle = 0 // Serverless (Neon/Supabase) için 0: Boşta bağlantı tutmayarak Neon'un 5 dk içinde uykuya geçmesini sağlar ve compute kotasını korur
 
-            // Zaman aşımı ve yaşam döngüsü ayarları (Özellikle Render, Supabase, Neon gibi bulut ortamları için kritik)
-            connectionTimeout = 30_000 // 30 sn: Havuz dolu olduğunda isteklerin sonsuz kilitlenmesini önler
-            idleTimeout = 600_000 // 10 dk: minimumIdle üzerindeki boşta kalan fazla bağlantıları temizler
-            maxLifetime = 1_800_000 // 30 dk: Bulut sağlayıcıların eski TCP bağlantılarını sessizce koparmasını önlemek için bağlantıyı tazeler
-            keepaliveTime = 60_000 // 1 dk: Bulut proxy ve firewall'ların bağlantıyı düşürmesini önlemek için canlı tutma sinyali (ping) gönderir
+            // Zaman aşımı ve yaşam döngüsü ayarları
+            connectionTimeout = 30_000 // 30 sn: Havuz dolu veya cold start anında bağlantı bekleme süresi
+            idleTimeout = 60_000 // 1 dk: Kullanılmayan bağlantıyı hemen kapatır
+            maxLifetime = 1_800_000 // 30 dk
+            keepaliveTime = 0 // 0: Serverless DB'ye yapay ping atmaz, compute saatlerini tüketmesini önler
 
             // Bağlantı sızıntısı tespiti
             leakDetectionThreshold = 10_000 // 10 sn: Kapatılmayan veya askıda kalan sorguları loglayarak tespit eder
