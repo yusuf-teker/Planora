@@ -34,6 +34,7 @@ import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskType
 import kotlinx.coroutines.launch
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
@@ -158,6 +159,7 @@ fun EventEditorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clearFocusOnTap()
                     .padding(padding)
                     .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState),

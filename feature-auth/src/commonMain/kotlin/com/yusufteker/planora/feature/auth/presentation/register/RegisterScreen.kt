@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.planora.core.base.CollectEffect
 import com.yusufteker.planora.core.navigation.LocalNavigator
 import com.yusufteker.planora.core.navigation.Screen
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.action_login
@@ -84,6 +85,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .clearFocusOnTap()
             .background(MaterialTheme.colorScheme.background)
             .safeContentPadding()
             .imePadding()

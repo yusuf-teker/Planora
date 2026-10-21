@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.CircularProgressIndicator
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.*
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 
 /**
  * Bu bileşen Jetpack Compose kullanarak gönderiye ait yorumları ekranın altından 
@@ -48,7 +49,9 @@ fun CommentsBottomSheet(
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier.fillMaxHeight(0.85f) // Yüksekliği içeriğe veriyoruz, bottom sheet'in kendisine değil
+            modifier = Modifier
+                .fillMaxHeight(0.85f)
+                .clearFocusOnTap() // Yüksekliği içeriğe veriyoruz, bottom sheet'in kendisine değil
         ) {
             Text(
                 text = stringResource(Res.string.title_comments),

@@ -18,9 +18,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalFocusManager
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.yusufteker.planora.core.domain.usecase.RegisterFcmTokenUseCase
@@ -245,16 +244,11 @@ fun App() {
         }
 
         CompositionLocalProvider(LocalNavigator provides navigator) {
-            val focusManager = LocalFocusManager.current
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectTapGestures(onTap = {
-                            focusManager.clearFocus()
-                        })
-                    }
+                    .clearFocusOnTap()
             ) { _ -> // paddingValues kullanılmıyor, iç sayfalarda insets kendileri hesaplanıyor
                 NavDisplay(
                     modifier = Modifier.fillMaxSize(),

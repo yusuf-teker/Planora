@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -84,6 +85,7 @@ fun CalendarImportEditDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clearFocusOnTap()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {

@@ -33,6 +33,7 @@ import com.yusufteker.planora.feature.home.presentation.components.ReminderPicke
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.PriorityPickerSheet
 import com.yusufteker.planora.core.ui.components.GradientText
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.TaskStatus
@@ -179,6 +180,7 @@ fun TaskEditorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clearFocusOnTap()
                     .padding(padding)
                     .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState),
