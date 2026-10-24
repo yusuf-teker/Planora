@@ -224,6 +224,23 @@ class TaskEditorViewModel(
                     setEffect(TaskEditorEffect.ShareItem(shareText))
                 }
             }
+            is TaskEditorEvent.OnAddTag -> {
+                val cleanTag = event.tag.trim().removePrefix("#")
+                if (cleanTag.isNotBlank()) {
+                    _state.update { current ->
+                        if (!current.tags.any { it.equals(cleanTag, ignoreCase = true) }) {
+                            current.copy(tags = current.tags + cleanTag)
+                        } else current
+                    }
+                    _saveTrigger.tryEmit(Unit)
+                }
+            }
+            is TaskEditorEvent.OnRemoveTag -> {
+                _state.update { current ->
+                    current.copy(tags = current.tags.filterNot { it.equals(event.tag, ignoreCase = true) })
+                }
+                _saveTrigger.tryEmit(Unit)
+            }
         }
     }
 
@@ -325,7 +342,8 @@ class TaskEditorViewModel(
                                     recurrenceRule = ruleObj,
                                     reminders = sourceTask.reminders,
                                     participants = sourceTask.participants.associate { it.userId to it.name },
-                                    planRoomId = targetRoomId
+                                    planRoomId = targetRoomId,
+                                    tags = sourceTask.tags
                                 )
                             }
                         }
@@ -389,6 +407,7 @@ class TaskEditorViewModel(
                         val newTitle = if (currentState.title.isBlank() || currentState.title == currentState.originalTask?.title) task.title else currentState.title
                         val newDescription = if (currentState.description.isBlank() || currentState.description == (currentState.originalTask?.description ?: "")) task.description ?: "" else currentState.description
                         val newDeadline = if (currentState.deadlineDateMs == (currentState.originalTask?.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline) deadline else currentState.deadlineDateMs
+                        val newTags = if (currentState.originalTask == null && currentState.tags.isEmpty()) task.tags else currentState.tags
 
                         currentState.copy(
                             originalTask = task,
@@ -407,7 +426,8 @@ class TaskEditorViewModel(
                             participants = task.participants.associate { it.userId to it.name },
                             subItems = subItemsList,
                             isLoading = false,
-                            parentId = task.parentId
+                            parentId = task.parentId,
+                            tags = newTags
                         )
                     }
                 } else {
@@ -552,7 +572,7 @@ class TaskEditorViewModel(
                 deadline = effectiveDeadline
             ),
             parentId = state.parentId,
-            tags = state.originalTask?.tags ?: emptyList(),
+            tags = state.tags,
             color = state.originalTask?.color,
             isPinned = state.originalTask?.isPinned ?: false
         )

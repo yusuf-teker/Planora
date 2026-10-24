@@ -197,6 +197,23 @@ class EventEditorViewModel(
                     setEffect(EventEditorEffect.ShareItem(shareText))
                 }
             }
+            is EventEditorEvent.OnAddTag -> {
+                val cleanTag = event.tag.trim().removePrefix("#")
+                if (cleanTag.isNotBlank()) {
+                    _state.update { current ->
+                        if (!current.tags.any { it.equals(cleanTag, ignoreCase = true) }) {
+                            current.copy(tags = current.tags + cleanTag)
+                        } else current
+                    }
+                    _saveTrigger.tryEmit(Unit)
+                }
+            }
+            is EventEditorEvent.OnRemoveTag -> {
+                _state.update { current ->
+                    current.copy(tags = current.tags.filterNot { it.equals(event.tag, ignoreCase = true) })
+                }
+                _saveTrigger.tryEmit(Unit)
+            }
         }
     }
 
@@ -298,7 +315,8 @@ class EventEditorViewModel(
                                     recurrenceRule = ruleObj,
                                     reminders = sourceEvent.reminders,
                                     participants = sourceEvent.participants.associate { it.userId to it.name },
-                                    planRoomId = targetRoomId
+                                    planRoomId = targetRoomId,
+                                    tags = sourceEvent.tags
                                 )
                             }
                         }
@@ -346,6 +364,8 @@ class EventEditorViewModel(
                         null
                     }
                     
+                    val newTags = if (_state.value.tags.isEmpty()) task.tags else _state.value.tags
+
                     _state.update { 
                         it.copy(
                             planRoomId = actualPlanRoomId,
@@ -359,7 +379,8 @@ class EventEditorViewModel(
                             recurrenceRule = ruleObj,
                             reminders = task.reminders,
                             subItems = subItemsList,
-                            isLoading = false
+                            isLoading = false,
+                            tags = newTags
                         ) 
                     }
                 } else {
@@ -439,7 +460,7 @@ class EventEditorViewModel(
                 isAllDay = false,
                 reminders = currentState.reminders,
                 specificDetails = ItemDetails.Event(location = currentState.location.ifBlank { null }, meetingUrl = null),
-                tags = emptyList(),
+                tags = currentState.tags,
                 color = null,
                 participants = currentState.participants
             )
@@ -480,7 +501,7 @@ class EventEditorViewModel(
                 isAllDay = false,
                 reminders = currentState.reminders,
                 specificDetails = ItemDetails.Event(location = currentState.location.ifBlank { null }, meetingUrl = null),
-                tags = emptyList(),
+                tags = currentState.tags,
                 color = null,
                 participants = currentState.participants
             )

@@ -32,6 +32,7 @@ import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerS
 import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.PriorityPickerSheet
+import com.yusufteker.planora.feature.home.presentation.components.TagInputSection
 import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import com.yusufteker.planora.core.utils.formatShortDate
@@ -412,6 +413,14 @@ fun TaskEditorScreen(
                         )
                     }
                 }
+                
+                // Tags Section
+                TagInputSection(
+                    tags = state.tags,
+                    onAddTag = { viewModel.onEvent(TaskEditorEvent.OnAddTag(it)) },
+                    onRemoveTag = { viewModel.onEvent(TaskEditorEvent.OnRemoveTag(it)) }
+                )
+
                 // Sub-items (Notes)
                 if (state.id != null) {
                     FormSection {

@@ -38,4 +38,6 @@ sealed interface EventEditorEvent {
     data class OnParticipantPickerVisibilityChanged(val isVisible: Boolean) : EventEditorEvent
     data class OnParticipantToggled(val userId: Int) : EventEditorEvent
     object OnShareClick : EventEditorEvent
+    data class OnAddTag(val tag: String) : EventEditorEvent
+    data class OnRemoveTag(val tag: String) : EventEditorEvent
 }

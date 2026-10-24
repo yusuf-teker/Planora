@@ -71,9 +71,17 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
+        let actionIdentifier = response.actionIdentifier
+        
         if let type = userInfo["type"] as? String {
             IosNotificationBridge.shared.handlePushData(type: type)
         }
+        
+        IosNotificationBridge.shared.handleNotificationResponse(
+            actionIdentifier: actionIdentifier,
+            userInfo: userInfo
+        )
+        
         completionHandler()
     }
 }

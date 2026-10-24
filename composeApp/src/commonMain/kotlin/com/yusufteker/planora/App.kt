@@ -62,6 +62,8 @@ import com.yusufteker.planora.feature.home.presentation.search.SearchUsersViewMo
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorEvent
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorScreen
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorViewModel
+import com.yusufteker.planora.feature.home.presentation.global_search.GlobalSearchScreen
+import com.yusufteker.planora.feature.home.presentation.global_search.GlobalSearchViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -552,6 +554,18 @@ fun App() {
                         com.yusufteker.planora.feature.home.presentation.calendar_import.CalendarImportScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navigator.pop() }
+                        )
+                    }
+
+                    entry<Screen.GlobalSearch> {
+                        val viewModel = koinViewModel<GlobalSearchViewModel>()
+                        GlobalSearchScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navigator.pop() },
+                            onNavigateToTaskEditor = { taskId -> navigator.navigate(Screen.TaskEditor(taskId = taskId)) },
+                            onNavigateToEventEditor = { eventId -> navigator.navigate(Screen.EventEditor(eventId = eventId)) },
+                            onNavigateToNoteEditor = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId)) },
+                            onNavigateToRoomDetail = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
                         )
                     }
                 } // closes entryProvider

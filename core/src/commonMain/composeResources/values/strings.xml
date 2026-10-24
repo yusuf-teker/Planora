@@ -113,6 +113,31 @@
     <string name="task_rooms_empty">No rooms found that you are a member of.</string>
     <string name="action_create">Create</string>
     <string name="fab_new_room">New Room</string>
+    <string name="tags_label">Tags</string>
+    <string name="add_tag_hint">Add tag...</string>
+    <string name="add_tag_action">Add</string>
+
+    <!-- Global Search -->
+    <string name="search_title">Search</string>
+    <string name="search_global_placeholder">Search tasks, events, notes, rooms...</string>
+    <string name="search_filter_all">All</string>
+    <string name="search_filter_tasks">Tasks</string>
+    <string name="search_filter_events">Events</string>
+    <string name="search_filter_notes">Notes</string>
+    <string name="search_filter_rooms">Rooms</string>
+    <string name="search_empty_title">Search Planora</string>
+    <string name="search_empty_desc">Find your tasks, events, notes, rooms, or tags.</string>
+    <string name="search_no_results_found">No results found for \"%1$s\"</string>
+    <string name="search_results_count">%1$d results</string>
+
+    <!-- Plan Room To-Dos -->
+    <string name="tab_todos">To-Dos</string>
+    <string name="room_todos_empty_title">No to-dos yet</string>
+    <string name="room_todos_empty_desc">Add tasks without a timeline to track room to-dos together.</string>
+    <string name="room_quick_add_todo_hint">Add a to-do for this room...</string>
+    <string name="room_todos_unscheduled_section">To-Do List (No Timeline)</string>
+    <string name="room_todos_scheduled_section">Scheduled Tasks</string>
+    <string name="room_todos_completed_section">Completed</string>
     
     <!-- Plan Rooms -->
     <string name="error_room_name_empty">Room name cannot be empty</string>

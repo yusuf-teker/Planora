@@ -144,7 +144,9 @@ fun HomeScreen(
             ) {
                 // Header (Planora Top Bar)
                 HomeTopBar(
-                    state = state, onEvent = viewModel::onEvent
+                    state = state,
+                    onEvent = viewModel::onEvent,
+                    onSearchClick = { rootNavigator.navigate(Screen.GlobalSearch) }
                 )
 
                 // Shared Users row

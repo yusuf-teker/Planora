@@ -41,6 +41,7 @@ import com.yusufteker.planora.feature.home.presentation.notes.NotesViewModel
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorViewModel
 import com.yusufteker.planora.feature.home.presentation.task_detail.TaskDetailViewModel
 import com.yusufteker.planora.feature.home.presentation.calendar_import.CalendarImportViewModel
+import com.yusufteker.planora.feature.home.presentation.global_search.GlobalSearchViewModel
 
 /**
  * (Dependency Injection - DI) ayarlarının yapıldığı yerdir.
@@ -97,6 +98,7 @@ val homeModule = module {
     factory { params -> CreatePostViewModel(params.getOrNull(), get(), get()) }
     viewModelOf(::PendingPostsViewModel)
     viewModelOf(::SearchUsersViewModel)
+    viewModelOf(::GlobalSearchViewModel)
     viewModelOf(::FollowListViewModel)
     viewModelOf(::PlanRoomsViewModel)
     viewModelOf(::PlanRoomDetailViewModel)

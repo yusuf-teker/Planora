@@ -36,7 +36,8 @@ data class EventEditorState(
     val isParticipantPickerVisible: Boolean = false,
     val roomMembers: List<com.yusufteker.planora.shared.api.UserProfileResponse> = emptyList(),
     val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),
-    val isCopyMode: Boolean = false
+    val isCopyMode: Boolean = false,
+    val tags: List<String> = emptyList()
 )
 
 private fun LocalTime.plusHours(hours: Int): LocalTime {

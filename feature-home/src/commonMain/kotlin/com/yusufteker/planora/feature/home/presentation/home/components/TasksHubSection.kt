@@ -135,7 +135,6 @@ fun TasksHubSection(
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(TasksHubTab.BACKLOG) }
     var quickAddText by remember { mutableStateOf("") }
-    var isCompletedExpanded by rememberSaveable { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
     // Sadece görev tipindeki öğeleri filtrele
@@ -265,72 +264,55 @@ fun TasksHubSection(
                 }
             }
 
-            // Katlanabilir Tamamlananlar Bölümü (Her sekmenin kendi tamamlananları)
+            // Tamamlananlar Bölümü (Doğrudan listenin en altında gösterilir)
             if (completedTasks.isNotEmpty()) {
                 item(key = "section_completed_header") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { isCompletedExpanded = !isCompletedExpanded }
-                            )
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(top = 16.dp, bottom = 4.dp, start = 4.dp, end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.DoneAll,
-                                contentDescription = null,
-                                tint = Color(0xFF10B981),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(Res.string.tasks_hub_section_completed),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = completedTasks.size.toString(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF10B981)
-                                )
-                            }
-                        }
-
                         Icon(
-                            imageVector = if (isCompletedExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            imageVector = Icons.Default.DoneAll,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(20.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(Res.string.tasks_hub_section_completed),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = completedTasks.size.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF10B981)
+                            )
+                        }
                     }
                 }
 
-                if (isCompletedExpanded) {
-                    items(completedTasks, key = { "completed_${it.id}" }) { task ->
-                        SwipeableTaskItem(
-                            onSwipeRightToComplete = { onTaskToggleStatus(task) },
-                            onSwipeLeftToDelete = { onTaskDelete(task.id) }
-                        ) {
-                            TasksHubCompletedCard(
-                                task = task,
-                                onTaskClick = { onTaskClick(task) },
-                                onToggleStatus = { onTaskToggleStatus(task) }
-                            )
-                        }
+                items(completedTasks, key = { "completed_${it.id}" }) { task ->
+                    SwipeableTaskItem(
+                        onSwipeRightToComplete = { onTaskToggleStatus(task) },
+                        onSwipeLeftToDelete = { onTaskDelete(task.id) }
+                    ) {
+                        TasksHubCompletedCard(
+                            task = task,
+                            onTaskClick = { onTaskClick(task) },
+                            onToggleStatus = { onTaskToggleStatus(task) }
+                        )
                     }
                 }
             }
@@ -590,19 +572,48 @@ private fun TasksHubBacklogCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Tıklanabilir Öncelik Rozeti (Tıklandığında bir sonraki önceliğe döngü yapar)
-                PriorityBadgeChip(
-                    priority = priority,
-                    onClick = {
-                        val nextPriority = when (priority) {
-                            TaskPriority.LOW -> TaskPriority.MEDIUM
-                            TaskPriority.MEDIUM -> TaskPriority.HIGH
-                            TaskPriority.HIGH -> TaskPriority.URGENT
-                            TaskPriority.URGENT -> TaskPriority.LOW
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Tıklanabilir Öncelik Rozeti (Tıklandığında bir sonraki önceliğe döngü yapar)
+                    PriorityBadgeChip(
+                        priority = priority,
+                        onClick = {
+                            val nextPriority = when (priority) {
+                                TaskPriority.LOW -> TaskPriority.MEDIUM
+                                TaskPriority.MEDIUM -> TaskPriority.HIGH
+                                TaskPriority.HIGH -> TaskPriority.URGENT
+                                TaskPriority.URGENT -> TaskPriority.LOW
+                            }
+                            onChangePriority(nextPriority)
                         }
-                        onChangePriority(nextPriority)
+                    )
+
+                    if (task.tags.isNotEmpty()) {
+                        task.tags.take(2).forEach { tag ->
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                        if (task.tags.size > 2) {
+                            Text(
+                                text = "+${task.tags.size - 2}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
                     }
-                )
+                }
             }
 
             Spacer(modifier = Modifier.width(6.dp))
@@ -752,6 +763,30 @@ private fun TasksHubScheduledCard(
                             onChangePriority(nextPriority)
                         }
                     )
+
+                    if (task.tags.isNotEmpty()) {
+                        task.tags.take(2).forEach { tag ->
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                        if (task.tags.size > 2) {
+                            Text(
+                                text = "+${task.tags.size - 2}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -859,7 +894,7 @@ private fun PriorityBadgeChip(
  * Yuvarlak, animasyonlu onay kutusu (Checkbox) bileşeni.
  */
 @Composable
-private fun RoundCheckbox(
+fun RoundCheckbox(
     isChecked: Boolean,
     onCheckedChange: () -> Unit
 ) {

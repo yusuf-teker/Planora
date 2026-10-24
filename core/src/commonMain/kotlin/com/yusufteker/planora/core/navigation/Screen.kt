@@ -63,6 +63,12 @@ sealed interface Screen {
     data object SearchUsers : Screen
     
     /**
+     * Genel arama ekranı (Görev, etkinlik, not, oda ve etiketler).
+     */
+    @Serializable
+    data object GlobalSearch : Screen
+    
+    /**
      * Takipçi/Takip edilen/İstekler listesi ekranı.
      */
     @Serializable

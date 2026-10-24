@@ -58,6 +58,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.foundation.lazy.LazyRow
 import com.yusufteker.planora.feature.home.presentation.plan_room_detail.components.FeedTimelineComponent
+import com.yusufteker.planora.feature.home.presentation.plan_room_detail.components.RoomTodosComponent
 import com.yusufteker.planora.feature.home.presentation.plan_room_detail.components.CalendarComponent
 import com.yusufteker.planora.core.ui.components.AvatarImage
 
@@ -274,7 +275,7 @@ fun PlanRoomDetailScreen(
                 ) {
 
                     
-                    // --- TAB BAR (FEED / CALENDAR) ---
+                    // --- TAB BAR (FEED / TODOS / CALENDAR) ---
                     SecondaryTabRow(
                         selectedTabIndex = state.selectedTab.ordinal,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
@@ -283,6 +284,11 @@ fun PlanRoomDetailScreen(
                             selected = state.selectedTab == RoomDetailTab.FEED,
                             onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.FEED)) },
                             text = { Text(stringResource(Res.string.tab_feed)) }
+                        )
+                        Tab(
+                            selected = state.selectedTab == RoomDetailTab.TODOS,
+                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.TODOS)) },
+                            text = { Text(stringResource(Res.string.tab_todos)) }
                         )
                         Tab(
                             selected = state.selectedTab == RoomDetailTab.CALENDAR,
@@ -372,37 +378,39 @@ fun PlanRoomDetailScreen(
                                         }
                                     }
                                 }
-                                item(key = "filter_all") {
-                                    RoomFilterChip(
-                                        filter = RoomTaskFilter.ALL,
-                                        label = stringResource(Res.string.filter_all),
-                                        isSelected = state.selectedFilter == RoomTaskFilter.ALL,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) }
-                                    )
-                                }
-                                item(key = "filter_tasks") {
-                                    RoomFilterChip(
-                                        filter = RoomTaskFilter.TASKS,
-                                        label = stringResource(Res.string.filter_tasks),
-                                        isSelected = state.selectedFilter == RoomTaskFilter.TASKS,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) }
-                                    )
-                                }
-                                item(key = "filter_events") {
-                                    RoomFilterChip(
-                                        filter = RoomTaskFilter.EVENTS,
-                                        label = stringResource(Res.string.filter_events),
-                                        isSelected = state.selectedFilter == RoomTaskFilter.EVENTS,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) }
-                                    )
-                                }
-                                item(key = "filter_notes") {
-                                    RoomFilterChip(
-                                        filter = RoomTaskFilter.NOTES,
-                                        label = stringResource(Res.string.filter_notes),
-                                        isSelected = state.selectedFilter == RoomTaskFilter.NOTES,
-                                        onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) }
-                                    )
+                                if (state.selectedTab != RoomDetailTab.TODOS) {
+                                    item(key = "filter_all") {
+                                        RoomFilterChip(
+                                            filter = RoomTaskFilter.ALL,
+                                            label = stringResource(Res.string.filter_all),
+                                            isSelected = state.selectedFilter == RoomTaskFilter.ALL,
+                                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.ALL)) }
+                                        )
+                                    }
+                                    item(key = "filter_tasks") {
+                                        RoomFilterChip(
+                                            filter = RoomTaskFilter.TASKS,
+                                            label = stringResource(Res.string.filter_tasks),
+                                            isSelected = state.selectedFilter == RoomTaskFilter.TASKS,
+                                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.TASKS)) }
+                                        )
+                                    }
+                                    item(key = "filter_events") {
+                                        RoomFilterChip(
+                                            filter = RoomTaskFilter.EVENTS,
+                                            label = stringResource(Res.string.filter_events),
+                                            isSelected = state.selectedFilter == RoomTaskFilter.EVENTS,
+                                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.EVENTS)) }
+                                        )
+                                    }
+                                    item(key = "filter_notes") {
+                                        RoomFilterChip(
+                                            filter = RoomTaskFilter.NOTES,
+                                            label = stringResource(Res.string.filter_notes),
+                                            isSelected = state.selectedFilter == RoomTaskFilter.NOTES,
+                                            onClick = { viewModel.onEvent(PlanRoomDetailEvent.OnFilterSelected(RoomTaskFilter.NOTES)) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -411,26 +419,41 @@ fun PlanRoomDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     // --- TAB CONTENT ---
-                    if (state.selectedTab == RoomDetailTab.FEED) {
-                        if (filteredTasks.isEmpty()) {
-                            com.yusufteker.planora.feature.home.presentation.components.EmptyStateComponent(
-                                icon = Icons.Default.DateRange,
-                                title = stringResource(Res.string.empty_room_tasks_title),
-                                description = stringResource(Res.string.empty_room_tasks_desc),
-                                modifier = Modifier.weight(1f)
-                            )
-                        } else {
+                    when (state.selectedTab) {
+                        RoomDetailTab.FEED -> {
+                            if (filteredTasks.isEmpty()) {
+                                com.yusufteker.planora.feature.home.presentation.components.EmptyStateComponent(
+                                    icon = Icons.Default.DateRange,
+                                    title = stringResource(Res.string.empty_room_tasks_title),
+                                    description = stringResource(Res.string.empty_room_tasks_desc),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                    FeedTimelineComponent(
+                                        tasks = filteredTasks,
+                                        memberProfiles = state.memberProfiles,
+                                        roomImageUrl = state.roomImageUrl,
+                                        roomName = state.roomName,
+                                        onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
+                                    )
+                                }
+                            }
+                        }
+                        RoomDetailTab.TODOS -> {
                             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                                FeedTimelineComponent(
-                                    tasks = filteredTasks,
+                                RoomTodosComponent(
+                                    tasks = state.roomTasks,
                                     memberProfiles = state.memberProfiles,
-                                    roomImageUrl = state.roomImageUrl,
-                                    roomName = state.roomName,
-                                    onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) }
+                                    taskSearchQuery = state.taskSearchQuery,
+                                    selectedMemberUserIds = state.selectedMemberUserIdsFilter,
+                                    onTaskClick = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnTaskClick(task)) },
+                                    onToggleTaskStatus = { task -> viewModel.onEvent(PlanRoomDetailEvent.OnToggleTaskStatus(task)) },
+                                    onQuickCreateTask = { title -> viewModel.onEvent(PlanRoomDetailEvent.OnQuickCreateTask(title)) }
                                 )
                             }
                         }
-                    } else {
+                        RoomDetailTab.CALENDAR -> {
                         // CALENDAR TAB
                         val timeZone = remember { kotlinx.datetime.TimeZone.currentSystemDefault() }
                         val nowMs = remember { com.yusufteker.planora.core.utils.getCurrentTimeMs() }
@@ -529,6 +552,7 @@ fun PlanRoomDetailScreen(
             }
         }
     }
+}
 
     if (state.isEditRoomBottomSheetOpen) {
         val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current

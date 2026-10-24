@@ -36,4 +36,6 @@ sealed interface TaskEditorEvent : UiEvent {
     data class OnPriorityPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
     data object OnDispose : TaskEditorEvent
     data object OnShareClick : TaskEditorEvent
+    data class OnAddTag(val tag: String) : TaskEditorEvent
+    data class OnRemoveTag(val tag: String) : TaskEditorEvent
 }

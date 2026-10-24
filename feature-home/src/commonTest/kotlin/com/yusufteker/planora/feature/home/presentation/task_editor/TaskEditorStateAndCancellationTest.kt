@@ -250,4 +250,22 @@ class TaskEditorStateAndCancellationTest {
         assertEquals("task-2", viewModel.state.value.id)
         assertEquals("2. Görev", viewModel.state.value.title)
     }
+
+    // ========================================================================
+    // 6. TAG (ETİKET) YÖNETİMİ TESTLERİ
+    // ========================================================================
+
+    @Test
+    fun `etiket eklendiginde temizlenip listeye eklenmeli ve ayni etiket tekrar eklenmemelidir`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(TaskEditorEvent.OnAddTag("#Is"))
+        viewModel.onEvent(TaskEditorEvent.OnAddTag(" Toplanti "))
+        viewModel.onEvent(TaskEditorEvent.OnAddTag("is")) // Duplicate with different casing and prefix
+
+        assertEquals(listOf("Is", "Toplanti"), viewModel.state.value.tags)
+
+        viewModel.onEvent(TaskEditorEvent.OnRemoveTag("is"))
+        assertEquals(listOf("Toplanti"), viewModel.state.value.tags)
+    }
 }

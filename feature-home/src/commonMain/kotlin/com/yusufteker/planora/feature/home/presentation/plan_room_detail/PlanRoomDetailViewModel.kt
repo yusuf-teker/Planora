@@ -24,6 +24,15 @@ import planora.core.generated.resources.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.datetime.toLocalDateTime
+import com.yusufteker.planora.shared.api.CreateTaskRequest
+import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.TaskDto
+import com.yusufteker.planora.shared.api.TaskPriority
+import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.TaskType
+import com.yusufteker.planora.shared.api.TaskVisibility
+import com.yusufteker.planora.shared.api.extractBaseTaskId
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
 
 class PlanRoomDetailViewModel(
     private val planRepository: PlanRepository,
@@ -142,6 +151,72 @@ class PlanRoomDetailViewModel(
             }
             PlanRoomDetailEvent.OnDismissRemoveMemberDialog -> {
                 setState { copy(isRemoveMemberDialogOpen = false, memberToRemove = null) }
+            }
+            is PlanRoomDetailEvent.OnToggleTaskStatus -> toggleTaskStatus(event.task)
+            is PlanRoomDetailEvent.OnQuickCreateTask -> quickCreateTask(event.title)
+        }
+    }
+
+    /**
+     * Toggles completion status of a task in the room.
+     *
+     * @param task Target task entity to mark completed or pending.
+     */
+    private fun toggleTaskStatus(task: TaskDto) {
+        viewModelScope.launch {
+            val dateMs = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            val isCurrentlyCompleted = task.status == TaskStatus.COMPLETED
+            val baseId = task.id.extractBaseTaskId()
+
+            val result = planRepository.completeTaskInstance(
+                taskId = baseId,
+                dateMs = dateMs,
+                isCompleted = !isCurrentlyCompleted
+            )
+            if (result.isFailure) {
+                setState { copy(error = result.exceptionOrNull()?.message ?: "Task durumu güncellenemedi") }
+            }
+        }
+    }
+
+    /**
+     * Creates an unscheduled to-do (no timeline / deadline = null) attached to the current shared room.
+     *
+     * @param title Title of the unscheduled to-do item.
+     */
+    private fun quickCreateTask(title: String) {
+        if (title.isBlank() || currentState.roomId.isBlank()) return
+        viewModelScope.launch {
+            val now = getCurrentTimeMs()
+            val request = CreateTaskRequest(
+                title = title.trim(),
+                description = null,
+                startTime = now,
+                endTime = null,
+                type = TaskType.TASK,
+                status = TaskStatus.PENDING,
+                visibility = TaskVisibility.ROOM_SHARED,
+                sharedRoomIds = listOf(currentState.roomId),
+                isRecurring = false,
+                recurrenceRule = null,
+                isFlexible = true,
+                isOptional = false,
+                isPostponable = true,
+                isAllDay = false,
+                reminders = emptyList(),
+                participants = emptyMap(),
+                specificDetails = ItemDetails.Task(
+                    priority = TaskPriority.MEDIUM,
+                    deadline = null
+                ),
+                parentId = null,
+                tags = emptyList(),
+                color = null,
+                isPinned = false
+            )
+            val result = planRepository.createTask(request)
+            if (result.isFailure) {
+                setState { copy(error = result.exceptionOrNull()?.message ?: "Görev eklenemedi") }
             }
         }
     }

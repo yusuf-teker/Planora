@@ -132,7 +132,13 @@ class IosReminderManager : ReminderManager {
             intentIdentifiers = emptyList<Any?>(),
             options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
         )
-        center.setNotificationCategories(setOf(taskCategory, eventCategory))
+        val generalCategory = platform.UserNotifications.UNNotificationCategory.categoryWithIdentifier(
+            identifier = "PLANORA_GENERAL_CATEGORY",
+            actions = listOf(snoozeAction, dismissAction),
+            intentIdentifiers = emptyList<Any?>(),
+            options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
+        )
+        center.setNotificationCategories(setOf(taskCategory, eventCategory, generalCategory))
     }
 
     private fun requestAuthorization() {
@@ -301,7 +307,7 @@ class IosReminderManager : ReminderManager {
         val content = UNMutableNotificationContent().apply {
             setTitle(title)
             setBody(body)
-            setSound(UNNotificationSound.defaultSound())
+            setSound(UNNotificationSound.soundNamed("planora_chime.wav"))
             deepLinkUrl?.let { setUserInfo(mapOf("deepLink" to it)) }
         }
 
@@ -346,21 +352,25 @@ class IosReminderManager : ReminderManager {
             setTitle("${style.emoji} ${style.titlePrefix}")
             setSubtitle(taskTitle)
             setBody("$taskTitle · $timeText")
-            setSound(UNNotificationSound.defaultSound())
+            setSound(UNNotificationSound.soundNamed("planora_chime.wav"))
             setThreadIdentifier(style.threadId)
             setCategoryIdentifier(style.categoryId)
-            setUserInfo(mapOf("taskId" to taskId, "taskTitle" to taskTitle, "taskType" to taskType.name))
+            setUserInfo(
+                mapOf(
+                    "taskId" to taskId,
+                    "taskTitle" to taskTitle,
+                    "taskType" to taskType.name,
+                    "deepLink" to "planora://share/task?taskId=$taskId"
+                )
+            )
         }
 
         val secondsFromNow =
             (triggerTimeMs - com.yusufteker.planora.core.utils.getCurrentTimeMs()) / 1000.0
-        if (secondsFromNow <= 0) {
-            Napier.w("Trigger time already passed for $identifier, skipping", tag = TAG)
-            return
-        }
+        val interval = if (secondsFromNow <= 0.0) 1.0 else secondsFromNow
 
         val trigger = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(
-            timeInterval = secondsFromNow,
+            timeInterval = interval,
             repeats = false
         )
 

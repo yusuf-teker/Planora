@@ -4,6 +4,7 @@ import com.yusufteker.planora.shared.api.UserProfileResponse
 
 enum class RoomDetailTab {
     FEED,
+    TODOS,
     CALENDAR
 }
 

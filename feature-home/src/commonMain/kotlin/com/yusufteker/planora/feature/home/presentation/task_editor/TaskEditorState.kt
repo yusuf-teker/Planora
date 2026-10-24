@@ -36,6 +36,6 @@ data class TaskEditorState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isDeleted: Boolean = false,
-    val isCopyMode: Boolean = false
-
+    val isCopyMode: Boolean = false,
+    val tags: List<String> = emptyList()
 ) : UiState

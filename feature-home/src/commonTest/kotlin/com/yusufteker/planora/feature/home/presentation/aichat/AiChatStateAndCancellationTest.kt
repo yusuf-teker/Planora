@@ -278,7 +278,8 @@ class AiChatStateAndCancellationTest {
         // Temizle
         viewModel.onEvent(AiChatEvent.ClearChat)
 
-        assertTrue(viewModel.state.value.messages.isEmpty())
+        assertEquals(1, viewModel.state.value.messages.size)
+        assertFalse(viewModel.state.value.messages.first().isUser)
         assertEquals("", viewModel.state.value.inputText)
     }
 

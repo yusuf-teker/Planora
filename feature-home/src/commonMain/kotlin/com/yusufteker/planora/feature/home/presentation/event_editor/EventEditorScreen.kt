@@ -28,6 +28,7 @@ import com.yusufteker.planora.feature.home.presentation.components.FormSection
 import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
+import com.yusufteker.planora.feature.home.presentation.components.TagInputSection
 import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
@@ -339,6 +340,13 @@ fun EventEditorScreen(
                     }
                 }
                 
+                // Tags Section
+                TagInputSection(
+                    tags = state.tags,
+                    onAddTag = { viewModel.onEvent(EventEditorEvent.OnAddTag(it)) },
+                    onRemoveTag = { viewModel.onEvent(EventEditorEvent.OnRemoveTag(it)) }
+                )
+
                 // Sub-tasks Section (if editing an existing event)
                 if (state.id != null) {
                     val subTasks = remember(state.subItems) {

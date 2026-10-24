@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +36,8 @@ import com.yusufteker.planora.core.ui.components.bounceClick
 @Composable
 fun HomeTopBar(
     state: HomeState,
-    onEvent: (HomeEvent) -> Unit
+    onEvent: (HomeEvent) -> Unit,
+    onSearchClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -71,35 +73,57 @@ fun HomeTopBar(
             )
         }
 
-        // Filter button on the right
-        val isFilterActive = !state.filterOptions.showCompleted ||
-                !state.filterOptions.showRoomTasks ||
-                !state.filterOptions.showOnlyNextRecurring
-
-        IconButton(
-            onClick = { onEvent(HomeEvent.ToggleFilterSheet(true)) },
-            modifier = Modifier
-                .bounceClick()
-                .clip(CircleShape)
-                .background(
-                    if (isFilterActive) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                    }
-                )
-                .size(40.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.FilterList,
-                contentDescription = stringResource(Res.string.filter_title),
-                tint = if (isFilterActive) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.size(20.dp)
-            )
+            // Search button
+            IconButton(
+                onClick = onSearchClick,
+                modifier = Modifier
+                    .bounceClick()
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = stringResource(Res.string.search_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Filter button
+            val isFilterActive = !state.filterOptions.showCompleted ||
+                    !state.filterOptions.showRoomTasks ||
+                    !state.filterOptions.showOnlyNextRecurring
+
+            IconButton(
+                onClick = { onEvent(HomeEvent.ToggleFilterSheet(true)) },
+                modifier = Modifier
+                    .bounceClick()
+                    .clip(CircleShape)
+                    .background(
+                        if (isFilterActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        }
+                    )
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FilterList,
+                    contentDescription = stringResource(Res.string.filter_title),
+                    tint = if (isFilterActive) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

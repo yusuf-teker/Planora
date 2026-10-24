@@ -43,5 +43,9 @@ sealed interface PlanRoomDetailEvent : com.yusufteker.planora.core.base.UiEvent 
     data class OnRemoveMemberClick(val user: com.yusufteker.planora.shared.api.UserProfileResponse) : PlanRoomDetailEvent
     object OnConfirmRemoveMember : PlanRoomDetailEvent
     object OnDismissRemoveMemberDialog : PlanRoomDetailEvent
+
+    // Room To-Do Events
+    data class OnToggleTaskStatus(val task: com.yusufteker.planora.shared.api.TaskDto) : PlanRoomDetailEvent
+    data class OnQuickCreateTask(val title: String) : PlanRoomDetailEvent
 }
 

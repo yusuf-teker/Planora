@@ -112,6 +112,31 @@
     <string name="task_rooms_empty">Üye olduğunuz bir oda bulunamadı.</string>
     <string name="action_create">Oluştur</string>
     <string name="fab_new_room">Yeni Oda</string>
+    <string name="tags_label">Etiketler</string>
+    <string name="add_tag_hint">Etiket ekle...</string>
+    <string name="add_tag_action">Ekle</string>
+
+    <!-- Global Search -->
+    <string name="search_title">Ara</string>
+    <string name="search_global_placeholder">Görev, etkinlik, not ve odalarda ara...</string>
+    <string name="search_filter_all">Tümü</string>
+    <string name="search_filter_tasks">Görevler</string>
+    <string name="search_filter_events">Etkinlikler</string>
+    <string name="search_filter_notes">Notlar</string>
+    <string name="search_filter_rooms">Odalar</string>
+    <string name="search_empty_title">Planora'da Ara</string>
+    <string name="search_empty_desc">Görevlerinizi, etkinliklerinizi, notlarınızı, odalarınızı veya etiketleri arayın.</string>
+    <string name="search_no_results_found">\"%1$s\" için sonuç bulunamadı</string>
+    <string name="search_results_count">%1$d sonuç</string>
+
+    <!-- Plan Room To-Dos -->
+    <string name="tab_todos">Yapılacaklar</string>
+    <string name="room_todos_empty_title">Henüz yapılacak iş yok</string>
+    <string name="room_todos_empty_desc">Oda yapılacaklarını birlikte takip etmek için zamansız görevler ekleyin.</string>
+    <string name="room_quick_add_todo_hint">Bu odaya yapılacak iş ekle...</string>
+    <string name="room_todos_unscheduled_section">Yapılacaklar (Zaman Çizelgesiz)</string>
+    <string name="room_todos_scheduled_section">Planlanmış Görevler</string>
+    <string name="room_todos_completed_section">Tamamlananlar</string>
     
     <!-- Plan Rooms -->
     <string name="error_room_name_empty">Oda adı boş olamaz</string>

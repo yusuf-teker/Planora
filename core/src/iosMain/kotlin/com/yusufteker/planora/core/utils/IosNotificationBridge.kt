@@ -1,7 +1,10 @@
 package com.yusufteker.planora.core.utils
 
 import com.yusufteker.planora.core.domain.usecase.RegisterFcmTokenUseCase
+import com.yusufteker.planora.core.navigation.DeepLinkManager
 import com.yusufteker.planora.core.preferences.SessionPreferences
+import com.yusufteker.planora.core.reminder.ReminderManager
+import com.yusufteker.planora.shared.api.TaskType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -48,6 +51,34 @@ object IosNotificationBridge : KoinComponent {
                         onSyncTasksRequested?.invoke()
                     } catch (e: Exception) {
                         println("Failed to execute sync_tasks on iOS: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    fun handleNotificationResponse(actionIdentifier: String, userInfo: Map<Any?, *>) {
+        CoroutineScope(Dispatchers.Main).launch {
+            val taskId = userInfo["taskId"] as? String
+            val taskTitle = userInfo["taskTitle"] as? String ?: ""
+            val taskTypeStr = userInfo["taskType"] as? String
+            val taskType = taskTypeStr?.let { runCatching { TaskType.valueOf(it) }.getOrNull() } ?: TaskType.TASK
+
+            when (actionIdentifier) {
+                "PLANORA_ACTION_SNOOZE" -> {
+                    if (!taskId.isNullOrEmpty()) {
+                        val reminderManager: ReminderManager by inject()
+                        reminderManager.snoozeReminder(taskId, taskTitle, taskType, delayMinutes = 10)
+                    }
+                }
+                "PLANORA_ACTION_DISMISS" -> {
+                    // Dismissed by user action
+                }
+                else -> {
+                    val deepLink = userInfo["deepLink"] as? String
+                    val url = deepLink ?: taskId?.let { "planora://share/task?taskId=$it" }
+                    if (!url.isNullOrEmpty()) {
+                        DeepLinkManager.emitLink(url)
                     }
                 }
             }
