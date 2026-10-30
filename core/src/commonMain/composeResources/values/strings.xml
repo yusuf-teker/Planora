@@ -51,6 +51,7 @@
 
     <!-- Main / Home -->
     <string name="tab_home">Home</string>
+    <string name="tab_plan_rooms">Rooms</string>
     <string name="tab_social">Social</string>
     <string name="tab_profile">Profile</string>
     <string name="tab_settings">Settings</string>

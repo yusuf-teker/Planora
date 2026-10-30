@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
@@ -47,22 +49,38 @@ fun HomeTopBar(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
 
-        GradientText(
-            text = "Planora",
-            colors = listOf(
-                MaterialTheme.colorScheme.primary,
-                MaterialTheme.colorScheme.secondary
-            ),
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Black
+        // Brand Mark "P"
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            GradientText(
+                text = "P",
+                colors = listOf(
+                    MaterialTheme.colorScheme.primary,
+                    MaterialTheme.colorScheme.secondary
+                ),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Black
+                )
             )
-        )
-
-
+        }
 
         // Centered Timeline toggle
         Box(
-            modifier = Modifier.padding(horizontal = 8.dp).weight(1f),
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .weight(1f),
             contentAlignment = Alignment.Center
         ) {
             TimelineViewToggle(
@@ -75,7 +93,7 @@ fun HomeTopBar(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Search button
             IconButton(
@@ -84,13 +102,13 @@ fun HomeTopBar(
                     .bounceClick()
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                    .size(40.dp)
+                    .size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = stringResource(Res.string.search_title),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
@@ -111,7 +129,7 @@ fun HomeTopBar(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         }
                     )
-                    .size(40.dp)
+                    .size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.FilterList,
@@ -121,7 +139,7 @@ fun HomeTopBar(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

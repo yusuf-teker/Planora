@@ -28,6 +28,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.yusufteker.planora.core.navigation.Screen
 import kotlin.math.PI
 import kotlin.math.cos
@@ -120,7 +123,7 @@ fun PlanoraBottomBar(
 
                 // Plans
                 PlanoraBottomNavItem(
-                    label = stringResource(Res.string.title_plan_rooms),
+                    label = stringResource(Res.string.tab_plan_rooms),
                     selectedIcon = Icons.Filled.DateRange,
                     unselectedIcon = Icons.Outlined.DateRange,
                     isSelected = currentDestination is Screen.MainDestination.PlanRooms,
@@ -251,7 +254,13 @@ private fun PlanoraBottomNavItem(
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                ),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
                 color = contentColor
             )
         }

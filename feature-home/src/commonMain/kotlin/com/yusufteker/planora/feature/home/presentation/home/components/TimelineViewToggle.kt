@@ -25,7 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yusufteker.planora.core.utils.TimelineViewOption
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
@@ -114,7 +116,8 @@ fun TimelineViewToggle(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = { onSelected(option) }
-                        ),
+                        )
+                        .padding(horizontal = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -123,8 +126,13 @@ fun TimelineViewToggle(
                             TimelineViewOption.CALENDAR -> stringResource(Res.string.timeline_option_calendar)
                             TimelineViewOption.TASKS -> stringResource(Res.string.timeline_option_tasks)
                         },
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                         color = textColor
                     )
                 }
