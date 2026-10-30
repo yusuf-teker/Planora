@@ -7,6 +7,10 @@ actual object NotificationSyncBridge {
         IosNotificationBridge.onSyncTasksRequested = handler
     }
 
+    actual fun setRoomSyncHandler(handler: suspend () -> Unit) {
+        IosNotificationBridge.onSyncRoomsRequested = handler
+    }
+
     actual fun triggerWidgetUpdate() {
         try {
             IosWidgetBridge.syncWidgetData()

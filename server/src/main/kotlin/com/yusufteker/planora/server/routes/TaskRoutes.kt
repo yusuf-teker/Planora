@@ -188,9 +188,7 @@ fun Route.taskRoutes() {
                             it[taskId] = newTaskId
                             it[TaskParticipantsTable.userId] = pId
                             it[status] = "ACCEPTED"
-                            if (pId == userId) {
-                                it[reminders] = if (request.reminders.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(request.reminders) else null
-                            }
+                            it[reminders] = if (request.reminders.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(request.reminders) else null
                         }
                     }
 
@@ -235,13 +233,16 @@ fun Route.taskRoutes() {
                         com.yusufteker.planora.server.database.tables.UsersTable.selectAll().where { com.yusufteker.planora.server.database.tables.UsersTable.id eq userId }.firstOrNull()?.get(com.yusufteker.planora.server.database.tables.UsersTable.name) ?: "Birisi"
                     }
                     val isEvent = request.type == com.yusufteker.planora.shared.api.TaskType.EVENT
+                    val currentTimeMs = System.currentTimeMillis()
+                    val isPastEvent = isEvent && (((request.endTime ?: request.startTime) <= currentTimeMs) || (request.startTime <= currentTimeMs))
 
-                    // Send push notifications to newly added participants
+                    // Send push notifications to newly added participants (only if not a past event)
                     val toAdd = request.participants.keys.filter { it != userId }
-                    if (toAdd.isNotEmpty()) {
+                    if (toAdd.isNotEmpty() && !isPastEvent) {
                         val titleStr = if (isEvent) "Yeni Etkinlik" else "Yeni Görev"
                         val bodyStr = if (isEvent) "$creatorName seni '${request.title}' etkinliğine ekledi." else "$creatorName seni '${request.title}' görevine atadı."
                         val pushType = if (isEvent) "event_assignment" else "task_assignment"
+                        val deepLinkStr = if (isEvent) "planora://share/event?eventId=${newTaskDto.id}" else "planora://share/task?taskId=${newTaskDto.id}"
                         
                         toAdd.forEach { addedUserId ->
                             routeScope.launch {
@@ -251,7 +252,9 @@ fun Route.taskRoutes() {
                                     body = bodyStr,
                                     data = mapOf(
                                         "type" to pushType,
-                                        "taskId" to (newTaskDto.id)
+                                        "taskId" to (newTaskDto.id),
+                                        "taskType" to request.type.name,
+                                        "deepLink" to deepLinkStr
                                     )
                                 )
                             }
@@ -264,34 +267,39 @@ fun Route.taskRoutes() {
                             routeScope.launch {
                                 com.yusufteker.planora.server.service.FcmService.sendSyncTriggerToRoomMembers(roomId, excludeUserId = userId)
 
-                                // Notify room members who are not direct participants
-                                val (roomName, otherMemberIds) = org.jetbrains.exposed.sql.transactions.transaction {
-                                    val rName = com.yusufteker.planora.server.database.tables.PlanRoomEntity.findById(roomId)?.name ?: "Oda"
-                                    val members = com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.selectAll().where {
-                                        (com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.roomId eq roomId) and
-                                        (com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.status eq com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED)
-                                    }.map { it[com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.userId] }
-                                        .filter { it != userId && !toAdd.contains(it) }
-                                    Pair(rName, members)
-                                }
+                                // Notify room members who are not direct participants (only if not a past event)
+                                if (!isPastEvent) {
+                                    val (roomName, otherMemberIds) = org.jetbrains.exposed.sql.transactions.transaction {
+                                        val rName = com.yusufteker.planora.server.database.tables.PlanRoomEntity.findById(roomId)?.name ?: "Oda"
+                                        val members = com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.selectAll().where {
+                                            (com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.roomId eq roomId) and
+                                            (com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.status eq com.yusufteker.planora.shared.api.RoomMemberStatus.ACCEPTED)
+                                        }.map { it[com.yusufteker.planora.server.database.tables.PlanRoomMembersTable.userId] }
+                                            .filter { it != userId && !toAdd.contains(it) }
+                                        Pair(rName, members)
+                                    }
 
-                                if (otherMemberIds.isNotEmpty()) {
-                                    val roomTitle = if (isEvent) "Yeni Oda Etkinliği" else "Yeni Oda Görevi"
-                                    val itemLabel = if (isEvent) "etkinlik" else "görev"
-                                    val roomBody = "$creatorName, '$roomName' odasında yeni bir $itemLabel paylaştı: '${request.title}'"
-                                    val roomPushType = if (isEvent) "room_event" else "room_task"
+                                    if (otherMemberIds.isNotEmpty()) {
+                                        val roomTitle = if (isEvent) "Yeni Oda Etkinliği" else "Yeni Oda Görevi"
+                                        val itemLabel = if (isEvent) "etkinlik" else "görev"
+                                        val roomBody = "$creatorName, '$roomName' odasında yeni bir $itemLabel paylaştı: '${request.title}'"
+                                        val roomPushType = if (isEvent) "room_event" else "room_task"
+                                        val roomDeepLink = if (isEvent) "planora://share/event?eventId=${newTaskDto.id}&roomId=$roomId" else "planora://share/task?taskId=${newTaskDto.id}&roomId=$roomId"
 
-                                    otherMemberIds.forEach { memberId ->
-                                        com.yusufteker.planora.server.service.FcmService.sendPushToUser(
-                                            userId = memberId,
-                                            title = roomTitle,
-                                            body = roomBody,
-                                            data = mapOf(
-                                                "type" to roomPushType,
-                                                "taskId" to newTaskDto.id,
-                                                "roomId" to roomId
+                                        otherMemberIds.forEach { memberId ->
+                                            com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                                                userId = memberId,
+                                                title = roomTitle,
+                                                body = roomBody,
+                                                data = mapOf(
+                                                    "type" to roomPushType,
+                                                    "taskId" to newTaskDto.id,
+                                                    "roomId" to roomId,
+                                                    "taskType" to request.type.name,
+                                                    "deepLink" to roomDeepLink
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
@@ -361,23 +369,31 @@ fun Route.taskRoutes() {
                         UsersTable.selectAll().where { UsersTable.id eq userId }.firstOrNull()?.get(UsersTable.name) ?: "Birisi"
                     }
                     val isEvent = request.type == com.yusufteker.planora.shared.api.TaskType.EVENT
-                    val titleStr = if (isEvent) "Yeni Etkinlik" else "Yeni Görev"
-                    val bodyStr = if (isEvent) "$creatorName seni '${request.title}' etkinliğine ekledi." else "$creatorName seni '${request.title}' görevine atadı."
-                    val pushType = if (isEvent) "event_assignment" else "task_assignment"
-                    val taskIdStr = taskId
-                    
-                    toAdd.forEach { addedUserId ->
-                        if (addedUserId != userId) {
-                            routeScope.launch {
-                                com.yusufteker.planora.server.service.FcmService.sendPushToUser(
-                                    userId = addedUserId,
-                                    title = titleStr,
-                                    body = bodyStr,
-                                    data = mapOf(
-                                        "type" to pushType,
-                                        "taskId" to taskIdStr
+                    val currentTimeMs = System.currentTimeMillis()
+                    val isPastEvent = isEvent && (((request.endTime ?: request.startTime) <= currentTimeMs) || (request.startTime <= currentTimeMs))
+
+                    if (!isPastEvent) {
+                        val titleStr = if (isEvent) "Yeni Etkinlik" else "Yeni Görev"
+                        val bodyStr = if (isEvent) "$creatorName seni '${request.title}' etkinliğine ekledi." else "$creatorName seni '${request.title}' görevine atadı."
+                        val pushType = if (isEvent) "event_assignment" else "task_assignment"
+                        val taskIdStr = taskId
+                        val deepLinkStr = if (isEvent) "planora://share/event?eventId=$taskIdStr" else "planora://share/task?taskId=$taskIdStr"
+                        
+                        toAdd.forEach { addedUserId ->
+                            if (addedUserId != userId) {
+                                routeScope.launch {
+                                    com.yusufteker.planora.server.service.FcmService.sendPushToUser(
+                                        userId = addedUserId,
+                                        title = titleStr,
+                                        body = bodyStr,
+                                        data = mapOf(
+                                            "type" to pushType,
+                                            "taskId" to taskIdStr,
+                                            "taskType" to request.type.name,
+                                            "deepLink" to deepLinkStr
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
@@ -470,6 +486,7 @@ fun Route.taskRoutes() {
                 var success = false
                 var creatorId: Int? = null
                 var taskTitle = ""
+                var isPastEvent = false
                 
                 dbQuery {
                     // 1. Check if user is an accepted member of the room
@@ -512,21 +529,28 @@ fun Route.taskRoutes() {
                     if (taskEntity != null) {
                         creatorId = taskEntity.creator.id.value
                         taskTitle = taskEntity.title
+                        val currentTimeMs = System.currentTimeMillis()
+                        isPastEvent = ((taskEntity.endTime ?: taskEntity.startTime) <= currentTimeMs) || (taskEntity.startTime <= currentTimeMs)
                     }
                     success = true
                 }
 
                 if (success) {
-                    // Send push notification to the creator
-                    if (creatorId != null && creatorId != userId) {
+                    // Send push notification to the creator (only if event has not passed)
+                    if (creatorId != null && creatorId != userId && !isPastEvent) {
                         val joinerName = transaction {
                             UsersTable.selectAll().where { UsersTable.id eq userId }.firstOrNull()?.get(UsersTable.name) ?: "Birisi"
                         }
                         routeScope.launch {
                             com.yusufteker.planora.server.service.FcmService.sendPushToUser(
-                                userId = creatorId!!,
+                                userId = creatorId,
                                 title = "Yeni Katılımcı",
-                                body = "$joinerName '${taskTitle}' etkinliğine katıldı."
+                                body = "$joinerName '${taskTitle}' etkinliğine katıldı.",
+                                data = mapOf(
+                                    "type" to "event_assignment",
+                                    "taskId" to taskId,
+                                    "deepLink" to "planora://share/event?eventId=$taskId"
+                                )
                             )
                         }
                     }
@@ -845,6 +869,7 @@ private fun TaskEntity.updateFromRequest(request: CreateTaskRequest, userId: Int
             it[TaskParticipantsTable.taskId] = taskIdVal
             it[TaskParticipantsTable.userId] = pId
             it[TaskParticipantsTable.status] = "ACCEPTED"
+            it[TaskParticipantsTable.reminders] = if (request.reminders.isNotEmpty()) kotlinx.serialization.json.Json.encodeToString(request.reminders) else null
         }
     }
 

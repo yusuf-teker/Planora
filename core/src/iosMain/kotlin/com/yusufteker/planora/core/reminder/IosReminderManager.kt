@@ -1,12 +1,20 @@
 package com.yusufteker.planora.core.reminder
 
+import com.yusufteker.planora.core.preferences.SessionPreferences
+import com.yusufteker.planora.core.utils.RecurringTaskEvaluator
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
 import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.RecurrenceRule
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
+import com.yusufteker.planora.shared.api.TaskVisibility
 import io.github.aakira.napier.Napier
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
 import platform.Foundation.NSDateComponents
 import platform.Foundation.currentLocale
 import platform.Foundation.languageCode
@@ -16,29 +24,30 @@ import platform.UserNotifications.UNAuthorizationOptionBadge
 import platform.UserNotifications.UNAuthorizationOptionSound
 import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
-import platform.UserNotifications.UNNotification
-import platform.UserNotifications.UNNotificationPresentationOptionBadge
-import platform.UserNotifications.UNNotificationPresentationOptionBanner
-import platform.UserNotifications.UNNotificationPresentationOptionList
-import platform.UserNotifications.UNNotificationPresentationOptionSound
-import platform.UserNotifications.UNNotificationPresentationOptions
+import platform.UserNotifications.UNNotificationAction
+import platform.UserNotifications.UNNotificationActionOptionDestructive
+import platform.UserNotifications.UNNotificationActionOptionNone
+import platform.UserNotifications.UNNotificationCategory
+import platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
 import platform.UserNotifications.UNNotificationRequest
-import platform.UserNotifications.UNNotificationResponse
 import platform.UserNotifications.UNNotificationSound
 import platform.UserNotifications.UNTimeIntervalNotificationTrigger
 import platform.UserNotifications.UNUserNotificationCenter
-import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
-import platform.darwin.NSObject
 
 /**
  * iOS implementation of [ReminderManager] using UNUserNotificationCenter.
  *
- * Uses UNTimeIntervalNotificationTrigger for scheduling local notifications.
- * Implements UNUserNotificationCenterDelegate so notifications are shown
- * even while the app is in foreground (default iOS behavior is to suppress them).
+ * Guarantees that:
+ * 1. Notifications are NEVER scheduled in the past or immediately triggered with fallback intervals.
+ * 2. Events that have already started or ended are strictly excluded.
+ * 3. In shared rooms, alarms are only scheduled for assigned members (or creator / all when unassigned).
+ * 4. Daily digests do not repeat stale event entries on subsequent days (repeats = false with exact date).
+ * 5. Completed tasks and folders are filtered out.
  */
 @OptIn(ExperimentalForeignApi::class)
-class IosReminderManager : ReminderManager {
+class IosReminderManager(
+    private val sessionPreferences: SessionPreferences
+) : ReminderManager {
 
     private val center = UNUserNotificationCenter.currentNotificationCenter()
 
@@ -53,53 +62,7 @@ class IosReminderManager : ReminderManager {
         }
     }
 
-    private val delegate = object : NSObject(), UNUserNotificationCenterDelegateProtocol {
-
-        override fun userNotificationCenter(
-            center: UNUserNotificationCenter,
-            willPresentNotification: UNNotification,
-            withCompletionHandler: (UNNotificationPresentationOptions) -> Unit
-        ) {
-            // Foreground'dayken de banner + ses + badge göster
-            withCompletionHandler(
-                UNNotificationPresentationOptionBanner or
-                        UNNotificationPresentationOptionSound or
-                        UNNotificationPresentationOptionBadge or
-                        UNNotificationPresentationOptionList
-            )
-        }
-
-        override fun userNotificationCenter(
-            center: UNUserNotificationCenter,
-            didReceiveNotificationResponse: UNNotificationResponse,
-            withCompletionHandler: () -> Unit
-        ) {
-            val userInfo = didReceiveNotificationResponse.notification.request.content.userInfo
-            val actionIdentifier = didReceiveNotificationResponse.actionIdentifier
-            val taskId = userInfo["taskId"] as? String
-            val taskTitle = userInfo["taskTitle"] as? String ?: ""
-            val taskTypeStr = userInfo["taskType"] as? String
-            val taskType = taskTypeStr?.let { runCatching { TaskType.valueOf(it) }.getOrNull() } ?: TaskType.TASK
-
-            if (actionIdentifier == ACTION_SNOOZE && !taskId.isNullOrEmpty()) {
-                Napier.d("iOS Notification Snooze tapped: taskId=$taskId", tag = TAG)
-                snoozeReminder(taskId, taskTitle, taskType, delayMinutes = 10)
-            } else if (actionIdentifier == ACTION_DISMISS) {
-                Napier.d("iOS Notification Dismiss tapped: taskId=$taskId", tag = TAG)
-            } else {
-                val deepLink = userInfo["deepLink"] as? String
-                val url = deepLink ?: taskId?.let { "planora://share/task?taskId=$it" }
-                if (!url.isNullOrEmpty()) {
-                    Napier.d("iOS Notification tapped: url=$url", tag = TAG)
-                    com.yusufteker.planora.core.navigation.DeepLinkManager.emitLink(url)
-                }
-            }
-            withCompletionHandler()
-        }
-    }
-
     init {
-        center.delegate = delegate
         registerCategories()
         requestAuthorization()
     }
@@ -109,34 +72,34 @@ class IosReminderManager : ReminderManager {
         val snoozeTitle = if (isTr) "10 Dk Ertele" else "Snooze 10m"
         val dismissTitle = if (isTr) "Kapat" else "Dismiss"
 
-        val snoozeAction = platform.UserNotifications.UNNotificationAction.actionWithIdentifier(
+        val snoozeAction = UNNotificationAction.actionWithIdentifier(
             identifier = ACTION_SNOOZE,
             title = snoozeTitle,
-            options = platform.UserNotifications.UNNotificationActionOptionNone
+            options = UNNotificationActionOptionNone
         )
-        val dismissAction = platform.UserNotifications.UNNotificationAction.actionWithIdentifier(
+        val dismissAction = UNNotificationAction.actionWithIdentifier(
             identifier = ACTION_DISMISS,
             title = dismissTitle,
-            options = platform.UserNotifications.UNNotificationActionOptionDestructive
+            options = UNNotificationActionOptionDestructive
         )
 
-        val taskCategory = platform.UserNotifications.UNNotificationCategory.categoryWithIdentifier(
+        val taskCategory = UNNotificationCategory.categoryWithIdentifier(
             identifier = "PLANORA_TASK_CATEGORY",
             actions = listOf(snoozeAction, dismissAction),
             intentIdentifiers = emptyList<Any?>(),
-            options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
+            options = UNNotificationCategoryOptionCustomDismissAction
         )
-        val eventCategory = platform.UserNotifications.UNNotificationCategory.categoryWithIdentifier(
+        val eventCategory = UNNotificationCategory.categoryWithIdentifier(
             identifier = "PLANORA_EVENT_CATEGORY",
             actions = listOf(snoozeAction, dismissAction),
             intentIdentifiers = emptyList<Any?>(),
-            options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
+            options = UNNotificationCategoryOptionCustomDismissAction
         )
-        val generalCategory = platform.UserNotifications.UNNotificationCategory.categoryWithIdentifier(
+        val generalCategory = UNNotificationCategory.categoryWithIdentifier(
             identifier = "PLANORA_GENERAL_CATEGORY",
             actions = listOf(snoozeAction, dismissAction),
             intentIdentifiers = emptyList<Any?>(),
-            options = platform.UserNotifications.UNNotificationCategoryOptionCustomDismissAction
+            options = UNNotificationCategoryOptionCustomDismissAction
         )
         center.setNotificationCategories(setOf(taskCategory, eventCategory, generalCategory))
     }
@@ -156,51 +119,137 @@ class IosReminderManager : ReminderManager {
     override fun scheduleAllReminders(tasks: List<TaskDto>) {
         cancelAllReminders()
 
-        val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
-        val identifiers = mutableListOf<String>()
+        val now = getCurrentTimeMs()
+        val currentUserId = sessionPreferences.cachedUserIdInt
+        val candidates = mutableListOf<ReminderCandidate>()
 
-        Napier.d("Scheduling reminders for ${tasks.size} tasks", tag = TAG)
+        Napier.d("Evaluating ${tasks.size} tasks for reminder scheduling (currentUserId=$currentUserId)", tag = TAG)
 
         tasks.forEach { task ->
-            if (task.reminders.isEmpty()) {
-                Napier.d("No reminders for ${task.title}", tag = TAG)
+            // 1. Skip completed tasks and folders
+            if (task.status == TaskStatus.COMPLETED || task.type == TaskType.FOLDER) {
                 return@forEach
             }
 
-            task.reminders.forEach { reminderMinutes ->
+            // 2. Room duty / assignment check:
+            // In shared rooms, alarms only belong to assigned users (creator or participant).
+            // If participants list is empty, all room members share the event/task.
+            if (task.visibility == TaskVisibility.ROOM_SHARED || task.sharedRoomIds.isNotEmpty()) {
+                if (currentUserId != null) {
+                    val isAssigned = task.creatorId == currentUserId ||
+                            task.participants.any { it.userId == currentUserId } ||
+                            task.participants.isEmpty()
+                    if (!isAssigned) {
+                        return@forEach
+                    }
+                }
+            }
+
+            // 3. Past check for Events:
+            // Crucial requirement: NEVER schedule reminders for events that have already started or ended.
+            if (task.type == TaskType.EVENT) {
+                val eventEndTime = task.endTime ?: task.startTime
+                if (eventEndTime <= now || task.startTime <= now) {
+                    return@forEach
+                }
+            }
+
+            if (task.reminders.isEmpty()) {
+                return@forEach
+            }
+
+            // 4. Handle recurring vs single tasks
+            val ruleStr = task.recurrenceRule
+            if (task.isRecurring && ruleStr != null) {
+                val rule = try {
+                    Json.decodeFromString<RecurrenceRule>(ruleStr)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (rule != null) {
+                    // Generate next occurrences in the future (next 14 days)
+                    val occurrences = RecurringTaskEvaluator.generateOccurrences(
+                        startTimeMs = task.startTime,
+                        rule = rule,
+                        rangeStartMs = now,
+                        rangeEndMs = now + 14 * 24 * 3600 * 1000L
+                    )
+
+                    occurrences.forEach { occurrenceMs ->
+                        if (task.type == TaskType.EVENT && occurrenceMs <= now) {
+                            return@forEach
+                        }
+                        task.reminders.forEach { reminderMinutes ->
+                            val triggerTime = occurrenceMs - (reminderMinutes * 60_000L)
+                            if (triggerTime > now + 1_000L) {
+                                candidates.add(
+                                    ReminderCandidate(
+                                        identifier = "${task.id}_${occurrenceMs}_$reminderMinutes",
+                                        triggerTimeMs = triggerTime,
+                                        taskId = task.id,
+                                        taskTitle = task.title,
+                                        reminderMinutes = reminderMinutes,
+                                        taskType = task.type,
+                                        sharedRoomIds = task.sharedRoomIds
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
                 val baseTime = when (task.type) {
                     TaskType.TASK -> {
                         val taskDetails = task.specificDetails as? ItemDetails.Task
                         taskDetails?.deadline ?: task.startTime
                     }
-
                     else -> task.startTime
                 }
 
-                val triggerTime = baseTime - (reminderMinutes * 60_000L)
+                // If task deadline is already in the past, skip
+                if (task.type == TaskType.TASK) {
+                    val taskDeadline = (task.specificDetails as? ItemDetails.Task)?.deadline
+                    if (taskDeadline != null && taskDeadline <= now) {
+                        return@forEach
+                    }
+                }
 
-                if (triggerTime > now - 60_000L) {
-                    val identifier = generateIdentifier(task.id, reminderMinutes)
-                    scheduleNotification(
-                        identifier = identifier,
-                        triggerTimeMs = triggerTime,
-                        taskId = task.id,
-                        taskTitle = task.title,
-                        reminderMinutes = reminderMinutes,
-                        taskType = task.type
-                    )
-                    identifiers.add(identifier)
-                } else {
-                    Napier.w(
-                        "Skipping reminder. triggerTime=$triggerTime <= now=$now",
-                        tag = TAG
-                    )
+                task.reminders.forEach { reminderMinutes ->
+                    val triggerTime = baseTime - (reminderMinutes * 60_000L)
+                    if (triggerTime > now + 1_000L) {
+                        candidates.add(
+                            ReminderCandidate(
+                                identifier = generateIdentifier(task.id, reminderMinutes),
+                                triggerTimeMs = triggerTime,
+                                taskId = task.id,
+                                taskTitle = task.title,
+                                reminderMinutes = reminderMinutes,
+                                taskType = task.type,
+                                sharedRoomIds = task.sharedRoomIds
+                            )
+                        )
+                    }
                 }
             }
         }
 
+        // iOS limits pending notifications to 64. Take earliest 50 to leave room for daily digests.
+        val sortedToSchedule = candidates.sortedBy { it.triggerTimeMs }.take(50)
+        sortedToSchedule.forEach { candidate ->
+            scheduleNotification(
+                identifier = candidate.identifier,
+                triggerTimeMs = candidate.triggerTimeMs,
+                taskId = candidate.taskId,
+                taskTitle = candidate.taskTitle,
+                reminderMinutes = candidate.reminderMinutes,
+                taskType = candidate.taskType,
+                sharedRoomIds = candidate.sharedRoomIds
+            )
+        }
+
         scheduleDailyDigests(tasks)
-        Napier.d("Scheduled ${identifiers.size} reminders for ${tasks.size} tasks", tag = TAG)
+        Napier.d("Scheduled ${sortedToSchedule.size} local reminders out of ${candidates.size} future candidates", tag = TAG)
     }
 
     override fun cancelAllReminders() {
@@ -209,53 +258,80 @@ class IosReminderManager : ReminderManager {
     }
 
     private fun scheduleDailyDigests(tasks: List<TaskDto>) {
-        val topLevelUncompleted = tasks.filter { it.status != TaskStatus.COMPLETED && it.parentId == null }
-        val uncompletedTasks = topLevelUncompleted.filter { it.type == TaskType.TASK }
-        val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+        val now = getCurrentTimeMs()
+        val currentUserId = sessionPreferences.cachedUserIdInt
+        val timeZone = TimeZone.currentSystemDefault()
+        val nowDateTime = Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone)
+        val todayDate = nowDateTime.date
 
-        val timeZone = kotlinx.datetime.TimeZone.currentSystemDefault()
-        val todayDate = kotlinx.datetime.Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone).date
+        // Filter active top-level uncompleted tasks/events for the current user
+        val activeTasks = tasks.filter { task ->
+            if (task.status == TaskStatus.COMPLETED || task.parentId != null) return@filter false
+            if (task.type == TaskType.FOLDER) return@filter false
+            if (task.visibility == TaskVisibility.ROOM_SHARED || task.sharedRoomIds.isNotEmpty()) {
+                if (currentUserId != null) {
+                    val isAssigned = task.creatorId == currentUserId ||
+                            task.participants.any { it.userId == currentUserId } ||
+                            task.participants.isEmpty()
+                    if (!isAssigned) return@filter false
+                }
+            }
+            true
+        }
 
         val isTr = isTurkishLocale()
         val strings = ReminderStrings(isTr)
 
         // 1. Morning Digest (09:00)
-        val todayTasks = uncompletedTasks.filter { task ->
-            val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-            val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
-            taskDate == todayDate
-        }
+        if (nowDateTime.hour < 9) {
+            val todayUncompletedTasks = activeTasks.filter { task ->
+                if (task.type != TaskType.TASK) return@filter false
+                val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                val taskDate = Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
+                taskDate == todayDate
+            }
 
-        if (todayTasks.isNotEmpty()) {
-            val earliestTask = todayTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
-            scheduleCalendarDigest(
-                identifier = "planora_digest_morning",
-                hour = 9,
-                title = strings.digestMorningTitle,
-                body = strings.digestMorningTasks(todayTasks.size, earliestTask?.title ?: ""),
-                deepLinkUrl = earliestTask?.let { "planora://share/task?taskId=${it.id}" }
-            )
-        } else {
-            // Check events today starting at/after 09:00 AM
-            val todayEventsAfterNine = topLevelUncompleted.filter { task ->
+            val todayFutureEvents = activeTasks.filter { task ->
                 if (task.type != TaskType.EVENT) return@filter false
-                val taskDateTime = kotlinx.datetime.Instant.fromEpochMilliseconds(task.startTime).toLocalDateTime(timeZone)
+                val eventEndTime = task.endTime ?: task.startTime
+                if (eventEndTime <= now || task.startTime <= now) return@filter false
+                val taskDateTime = Instant.fromEpochMilliseconds(task.startTime).toLocalDateTime(timeZone)
                 taskDateTime.date == todayDate && taskDateTime.hour >= 9
             }.sortedBy { it.startTime }
 
-            if (todayEventsAfterNine.isNotEmpty()) {
-                val eventTitlesStr = todayEventsAfterNine.joinToString(" ➔ ") { it.title }
-                val earliestEvent = todayEventsAfterNine.firstOrNull()
+            if (todayUncompletedTasks.isNotEmpty()) {
+                val earliestTask = todayUncompletedTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+                val link = earliestTask?.let { "planora://share/task?taskId=${it.id}" }
                 scheduleCalendarDigest(
                     identifier = "planora_digest_morning",
+                    year = todayDate.year.toLong(),
+                    month = todayDate.monthNumber.toLong(),
+                    day = todayDate.dayOfMonth.toLong(),
+                    hour = 9,
+                    title = strings.digestMorningTitle,
+                    body = strings.digestMorningTasks(todayUncompletedTasks.size, earliestTask?.title ?: ""),
+                    deepLinkUrl = link
+                )
+            } else if (todayFutureEvents.isNotEmpty()) {
+                val eventTitlesStr = todayFutureEvents.joinToString(" ➔ ") { it.title }
+                val earliestEvent = todayFutureEvents.firstOrNull()
+                val link = earliestEvent?.let { "planora://share/event?eventId=${it.id}" }
+                scheduleCalendarDigest(
+                    identifier = "planora_digest_morning",
+                    year = todayDate.year.toLong(),
+                    month = todayDate.monthNumber.toLong(),
+                    day = todayDate.dayOfMonth.toLong(),
                     hour = 9,
                     title = strings.digestMorningTitle,
                     body = strings.digestMorningEvents(eventTitlesStr),
-                    deepLinkUrl = earliestEvent?.let { "planora://share/task?taskId=${it.id}" }
+                    deepLinkUrl = link
                 )
             } else {
                 scheduleCalendarDigest(
                     identifier = "planora_digest_morning",
+                    year = todayDate.year.toLong(),
+                    month = todayDate.monthNumber.toLong(),
+                    day = todayDate.dayOfMonth.toLong(),
                     hour = 9,
                     title = strings.digestMorningTitle,
                     body = strings.digestMorningEmpty,
@@ -265,40 +341,60 @@ class IosReminderManager : ReminderManager {
         }
 
         // 2. Overdue Check (12:00)
-        val overdueTasks = uncompletedTasks.filter { task ->
-            val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
-            val taskDate = kotlinx.datetime.Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
-            taskDate < todayDate && taskDate >= kotlinx.datetime.LocalDate(todayDate.year, todayDate.month, todayDate.dayOfMonth).let {
-                // Last 3 days
-                kotlinx.datetime.Instant.fromEpochMilliseconds(now - 3 * 24 * 3600 * 1000L).toLocalDateTime(timeZone).date
+        if (nowDateTime.hour < 12) {
+            val overdueTasks = activeTasks.filter { task ->
+                if (task.type != TaskType.TASK) return@filter false
+                val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                val taskDate = Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
+                val threeDaysAgo = Instant.fromEpochMilliseconds(now - 3 * 24 * 3600 * 1000L).toLocalDateTime(timeZone).date
+                taskDate < todayDate && taskDate >= threeDaysAgo
             }
-        }
-        if (overdueTasks.isNotEmpty()) {
-            val urgentTask = overdueTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
-            scheduleCalendarDigest(
-                identifier = "planora_digest_overdue",
-                hour = 12,
-                title = strings.overdueTitle,
-                body = strings.overdueBody(overdueTasks.size),
-                deepLinkUrl = urgentTask?.let { "planora://share/task?taskId=${it.id}" }
-            )
+            if (overdueTasks.isNotEmpty()) {
+                val urgentTask = overdueTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+                val link = urgentTask?.let { "planora://share/task?taskId=${it.id}" }
+                scheduleCalendarDigest(
+                    identifier = "planora_digest_overdue",
+                    year = todayDate.year.toLong(),
+                    month = todayDate.monthNumber.toLong(),
+                    day = todayDate.dayOfMonth.toLong(),
+                    hour = 12,
+                    title = strings.overdueTitle,
+                    body = strings.overdueBody(overdueTasks.size),
+                    deepLinkUrl = link
+                )
+            }
         }
 
         // 3. Afternoon Check (16:00)
-        if (todayTasks.isNotEmpty()) {
-            val nextTask = todayTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
-            scheduleCalendarDigest(
-                identifier = "planora_digest_afternoon",
-                hour = 16,
-                title = strings.afternoonTitle,
-                body = strings.afternoonBody(todayTasks.size),
-                deepLinkUrl = nextTask?.let { "planora://share/task?taskId=${it.id}" }
-            )
+        if (nowDateTime.hour < 16) {
+            val todayRemainingTasks = activeTasks.filter { task ->
+                if (task.type != TaskType.TASK) return@filter false
+                val baseTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                val taskDate = Instant.fromEpochMilliseconds(baseTime).toLocalDateTime(timeZone).date
+                taskDate == todayDate
+            }
+            if (todayRemainingTasks.isNotEmpty()) {
+                val nextTask = todayRemainingTasks.minByOrNull { (it.specificDetails as? ItemDetails.Task)?.deadline ?: it.startTime }
+                val link = nextTask?.let { "planora://share/task?taskId=${it.id}" }
+                scheduleCalendarDigest(
+                    identifier = "planora_digest_afternoon",
+                    year = todayDate.year.toLong(),
+                    month = todayDate.monthNumber.toLong(),
+                    day = todayDate.dayOfMonth.toLong(),
+                    hour = 16,
+                    title = strings.afternoonTitle,
+                    body = strings.afternoonBody(todayRemainingTasks.size),
+                    deepLinkUrl = link
+                )
+            }
         }
     }
 
     private fun scheduleCalendarDigest(
         identifier: String,
+        year: Long,
+        month: Long,
+        day: Long,
         hour: Long,
         title: String,
         body: String,
@@ -308,17 +404,22 @@ class IosReminderManager : ReminderManager {
             setTitle(title)
             setBody(body)
             setSound(UNNotificationSound.soundNamed("planora_chime.wav"))
+            setCategoryIdentifier("PLANORA_GENERAL_CATEGORY")
             deepLinkUrl?.let { setUserInfo(mapOf("deepLink" to it)) }
         }
 
         val dateComponents = NSDateComponents().apply {
+            setYear(year)
+            setMonth(month)
+            setDay(day)
             setHour(hour)
             setMinute(0)
+            setSecond(0)
         }
 
         val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(
             dateComponents = dateComponents,
-            repeats = true
+            repeats = false
         )
 
         val request = UNNotificationRequest.requestWithIdentifier(
@@ -340,13 +441,31 @@ class IosReminderManager : ReminderManager {
         taskId: String,
         taskTitle: String,
         reminderMinutes: Int,
-        taskType: TaskType
+        taskType: TaskType,
+        sharedRoomIds: List<String> = emptyList()
     ) {
+        val now = getCurrentTimeMs()
+        val secondsFromNow = (triggerTimeMs - now) / 1000.0
+
+        // Strict future check: Do NOT schedule or immediately fire past reminders
+        if (secondsFromNow < 1.0) {
+            Napier.w("Skipping reminder $identifier because trigger time is in the past ($secondsFromNow s)", tag = TAG)
+            return
+        }
+
         val isTr = isTurkishLocale()
         val strings = ReminderStrings(isTr)
         val style = notificationStyleFor(taskType, strings)
-
         val timeText = strings.reminderTimeText(reminderMinutes)
+
+        val roomId = sharedRoomIds.firstOrNull() ?: ""
+        val deepLink = if (taskType == TaskType.EVENT) {
+            if (roomId.isNotEmpty()) "planora://share/event?eventId=$taskId&roomId=$roomId"
+            else "planora://share/event?eventId=$taskId"
+        } else {
+            if (roomId.isNotEmpty()) "planora://share/task?taskId=$taskId&roomId=$roomId"
+            else "planora://share/task?taskId=$taskId"
+        }
 
         val content = UNMutableNotificationContent().apply {
             setTitle("${style.emoji} ${style.titlePrefix}")
@@ -360,17 +479,14 @@ class IosReminderManager : ReminderManager {
                     "taskId" to taskId,
                     "taskTitle" to taskTitle,
                     "taskType" to taskType.name,
-                    "deepLink" to "planora://share/task?taskId=$taskId"
+                    "roomId" to roomId,
+                    "deepLink" to deepLink
                 )
             )
         }
 
-        val secondsFromNow =
-            (triggerTimeMs - com.yusufteker.planora.core.utils.getCurrentTimeMs()) / 1000.0
-        val interval = if (secondsFromNow <= 0.0) 1.0 else secondsFromNow
-
         val trigger = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(
-            timeInterval = interval,
+            timeInterval = secondsFromNow,
             repeats = false
         )
 
@@ -382,10 +498,7 @@ class IosReminderManager : ReminderManager {
 
         center.addNotificationRequest(request) { error ->
             if (error != null) {
-                Napier.e(
-                    "Failed to schedule $identifier: ${error.localizedDescription}",
-                    tag = TAG
-                )
+                Napier.e("Failed to schedule $identifier: ${error.localizedDescription}", tag = TAG)
             } else {
                 Napier.d("Scheduled $identifier in ${secondsFromNow}s", tag = TAG)
             }
@@ -398,7 +511,7 @@ class IosReminderManager : ReminderManager {
         taskType: TaskType,
         delayMinutes: Int
     ) {
-        val triggerTimeMs = com.yusufteker.planora.core.utils.getCurrentTimeMs() + (delayMinutes * 60_000L)
+        val triggerTimeMs = getCurrentTimeMs() + (delayMinutes * 60_000L)
         val identifier = "$taskId:snooze_$delayMinutes"
         scheduleNotification(
             identifier = identifier,
@@ -411,6 +524,16 @@ class IosReminderManager : ReminderManager {
         Napier.i("Snoozed iOS reminder for $delayMinutes mins ($taskTitle)", tag = TAG)
     }
 }
+
+private data class ReminderCandidate(
+    val identifier: String,
+    val triggerTimeMs: Long,
+    val taskId: String,
+    val taskTitle: String,
+    val reminderMinutes: Int,
+    val taskType: TaskType,
+    val sharedRoomIds: List<String>
+)
 
 private data class NotificationStyle(
     val emoji: String,

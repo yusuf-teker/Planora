@@ -8,6 +8,9 @@ actual object NotificationSyncBridge {
     actual fun setSyncHandler(handler: suspend () -> Unit) {
     }
 
+    actual fun setRoomSyncHandler(handler: suspend () -> Unit) {
+    }
+
     actual fun triggerWidgetUpdate() {
         try {
             onWidgetUpdateRequested?.invoke()

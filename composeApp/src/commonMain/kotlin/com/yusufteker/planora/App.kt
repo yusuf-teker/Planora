@@ -157,6 +157,9 @@ fun App() {
                 com.yusufteker.planora.core.utils.NotificationSyncBridge.setSyncHandler {
                     planRepository.fetchMyTasks()
                 }
+                com.yusufteker.planora.core.utils.NotificationSyncBridge.setRoomSyncHandler {
+                    planRepository.fetchMyRooms()
+                }
             } else {
                 val currentScreen = navigator.backStack.lastOrNull()
                 if (currentScreen != null && 

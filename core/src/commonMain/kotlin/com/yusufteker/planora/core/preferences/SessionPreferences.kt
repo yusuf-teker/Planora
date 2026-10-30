@@ -9,6 +9,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.yusufteker.planora.core.utils.TimelineViewOption
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -83,6 +86,20 @@ open class SessionPreferences(
         
     val userIdFlow: kotlinx.coroutines.flow.Flow<String?> =
         dataStore.data.map { it[userIdKey] }.distinctUntilChanged()
+
+    var cachedUserId: String? = null
+        private set
+
+    val cachedUserIdInt: Int?
+        get() = cachedUserId?.toIntOrNull()
+
+    init {
+        CoroutineScope(Dispatchers.Default).launch {
+            userIdFlow.collect {
+                cachedUserId = it
+            }
+        }
+    }
         
     val followersCountFlow: kotlinx.coroutines.flow.Flow<Int> =
         dataStore.data.map { it[followersCountKey] ?: 0 }.distinctUntilChanged()
@@ -197,6 +214,7 @@ open class SessionPreferences(
     }
 
     suspend fun saveUserProfile(userId: String, name: String, avatarId: String, profileImageUrl: String?, followersCount: Int = 0, followingCount: Int = 0, username: String? = null) {
+        cachedUserId = userId
         dataStore.edit { prefs ->
             prefs[userIdKey] = userId
             prefs[userNameKey] = name
@@ -227,6 +245,7 @@ open class SessionPreferences(
     }
 
     suspend fun clearSession() {
+        cachedUserId = null
         // Clear secure tokens
         secureSettings.settings.remove(accessTokenKeyString)
         secureSettings.settings.remove(refreshTokenKeyString)

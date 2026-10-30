@@ -47,7 +47,7 @@ actual val platformCoreModule = module {
     single<SqlDriver> { NativeSqliteDriver(PlanoraDatabase.Schema, "planora.db") }
 
     // Reminder Manager
-    single<ReminderManager> { IosReminderManager() }
+    single<ReminderManager> { IosReminderManager(get()) }
 
     // Offline AI Manager
     single<OfflineAiManager> { IosAiManager(get()) }

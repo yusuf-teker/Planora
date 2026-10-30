@@ -5,22 +5,34 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.yusufteker.planora.core.preferences.SessionPreferences
+import com.yusufteker.planora.core.utils.RecurringTaskEvaluator
 import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.RecurrenceRule
 import com.yusufteker.planora.shared.api.TaskDto
+import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
+import com.yusufteker.planora.shared.api.TaskVisibility
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.json.Json
 
 /**
  * Android implementation of [ReminderManager] using [AlarmManager].
  *
- * Uses [AlarmManager.setExactAndAllowWhileIdle] for precise alarms
+ * Uses [AlarmManager.setExactAndAllowWhileIdle] or [AlarmManager.setAlarmClock] for precise alarms
  * that work even in Doze mode.
  *
- * Scheduled alarm request codes are persisted in SharedPreferences
- * so they can be reliably cancelled later.
+ * Guarantees that:
+ * 1. Notifications/alarms are NEVER scheduled in the past.
+ * 2. Events that have already started or ended are strictly excluded.
+ * 3. In shared rooms, alarms are only scheduled for assigned members (or creator / all when unassigned).
+ * 4. Completed tasks and folders are filtered out.
+ * 5. Recurring tasks within the next 14 days are evaluated and scheduled.
  */
-class AndroidReminderManager(private val context: Context) : ReminderManager {
+class AndroidReminderManager(
+    private val context: Context,
+    private val sessionPreferences: SessionPreferences? = null
+) : ReminderManager {
 
     companion object {
         private const val TAG = "ReminderManager"
@@ -31,7 +43,6 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         const val EXTRA_TASK_ID = "extra_task_id"
         const val EXTRA_TASK_TITLE = "extra_task_title"
         const val EXTRA_REMINDER_MINUTES = "extra_reminder_minutes"
-
         const val EXTRA_TASK_TYPE = "extra_task_type"
 
         // Receiver action
@@ -43,6 +54,10 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         fun generateRequestCode(taskId: String, reminderMinutes: Int): Int {
             return ("$taskId:$reminderMinutes".hashCode() and 0x7FFFFFFF)
         }
+
+        fun generateOccurrenceRequestCode(taskId: String, occurrenceMs: Long, reminderMinutes: Int): Int {
+            return ("${taskId}_${occurrenceMs}_$reminderMinutes".hashCode() and 0x7FFFFFFF)
+        }
     }
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -53,53 +68,112 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         cancelAllReminders()
 
         val now = System.currentTimeMillis()
+        val currentUserId = sessionPreferences?.cachedUserIdInt
         val newRequestCodes = mutableSetOf<Int>()
 
+        Napier.d("Evaluating ${tasks.size} tasks for Android alarm scheduling (currentUserId=$currentUserId)", tag = TAG)
 
-        // 2. Schedule new alarms for each task with reminders
+        // 2. Schedule new alarms for each valid task/event with reminders
         tasks.forEach { task ->
+            // Skip completed tasks and folders
+            if (task.status == TaskStatus.COMPLETED || task.type == TaskType.FOLDER) {
+                return@forEach
+            }
 
+            // Room duty / assignment check
+            if (task.visibility == TaskVisibility.ROOM_SHARED || task.sharedRoomIds.isNotEmpty()) {
+                if (currentUserId != null) {
+                    val isAssigned = task.creatorId == currentUserId ||
+                            task.participants.any { it.userId == currentUserId } ||
+                            task.participants.isEmpty()
+                    if (!isAssigned) {
+                        return@forEach
+                    }
+                }
+            }
+
+            // Past check for Events: Never schedule alarms for past/current events
+            if (task.type == TaskType.EVENT) {
+                val eventEndTime = task.endTime ?: task.startTime
+                if (eventEndTime <= now || task.startTime <= now) {
+                    return@forEach
+                }
+            }
 
             if (task.reminders.isEmpty()) {
                 return@forEach
             }
 
-            task.reminders.forEach { reminderMinutes ->
-                // Calculate base time for the reminder
+            // Handle recurring vs single tasks
+            val ruleStr = task.recurrenceRule
+            if (task.isRecurring && ruleStr != null) {
+                val rule = try {
+                    Json.decodeFromString<RecurrenceRule>(ruleStr)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (rule != null) {
+                    val occurrences = RecurringTaskEvaluator.generateOccurrences(
+                        startTimeMs = task.startTime,
+                        rule = rule,
+                        rangeStartMs = now,
+                        rangeEndMs = now + 14 * 24 * 3600 * 1000L
+                    )
+
+                    occurrences.forEach { occurrenceMs ->
+                        if (task.type == TaskType.EVENT && occurrenceMs <= now) {
+                            return@forEach
+                        }
+                        task.reminders.forEach { reminderMinutes ->
+                            val triggerTime = occurrenceMs - (reminderMinutes * 60_000L)
+                            if (triggerTime > now + 1_000L) {
+                                val requestCode = generateOccurrenceRequestCode(task.id, occurrenceMs, reminderMinutes)
+                                scheduleExactAlarm(
+                                    requestCode = requestCode,
+                                    triggerTimeMs = triggerTime,
+                                    taskId = task.id,
+                                    taskTitle = task.title,
+                                    reminderMinutes = reminderMinutes,
+                                    taskType = task.type
+                                )
+                                newRequestCodes.add(requestCode)
+                            }
+                        }
+                    }
+                }
+            } else {
                 val baseTime = when (task.type) {
                     TaskType.TASK -> {
                         val taskDetails = task.specificDetails as? ItemDetails.Task
                         taskDetails?.deadline ?: task.startTime
                     }
-                    else -> task.startTime // EVENT and NOTE use startTime
+                    else -> task.startTime
                 }
-                
-                val triggerTime = baseTime - (reminderMinutes * 60_000L)
 
+                if (task.type == TaskType.TASK) {
+                    val taskDeadline = (task.specificDetails as? ItemDetails.Task)?.deadline
+                    if (taskDeadline != null && taskDeadline <= now) {
+                        return@forEach
+                    }
+                }
 
-                if (triggerTime > now - 60_000L) {
+                task.reminders.forEach { reminderMinutes ->
+                    val triggerTime = baseTime - (reminderMinutes * 60_000L)
 
-                    val requestCode = generateRequestCode(task.id, reminderMinutes)
-
-                    Napier.d(
-                        "Scheduling requestCode=$requestCode at $triggerTime",
-                        tag = TAG
-                    )
-                    // Yeni
-                    scheduleExactAlarm(
-                        requestCode = requestCode,
-                        triggerTimeMs = triggerTime,
-                        taskId = task.id,
-                        taskTitle = task.title,
-                        reminderMinutes = reminderMinutes,
-                        taskType = task.type
-                    )
-                    newRequestCodes.add(requestCode)
-                }else{
-                    Napier.w(
-                        "Skipping reminder. triggerTime=$triggerTime <= now=$now",
-                        tag = TAG
-                    )
+                    // Strict future check: must be at least 1 second in future
+                    if (triggerTime > now + 1_000L) {
+                        val requestCode = generateRequestCode(task.id, reminderMinutes)
+                        scheduleExactAlarm(
+                            requestCode = requestCode,
+                            triggerTimeMs = triggerTime,
+                            taskId = task.id,
+                            taskTitle = task.title,
+                            reminderMinutes = reminderMinutes,
+                            taskType = task.type
+                        )
+                        newRequestCodes.add(requestCode)
+                    }
                 }
             }
         }
@@ -144,7 +218,6 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Show intent opens MainActivity if user taps the system clock icon on lock screen
         val showIntent = Intent().apply {
             setClassName(context.packageName, "${context.packageName}.MainActivity")
             putExtra("taskId", taskId)
@@ -158,9 +231,6 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         )
 
         try {
-            // AlarmManager.setAlarmClock is prioritized by Android as a user-facing clock alarm:
-            // 1. It guarantees exact wakeup bypassing Doze mode and manufacturer power savers.
-            // 2. It shows the alarm clock indicator in the status bar/lock screen.
             val clockInfo = AlarmManager.AlarmClockInfo(triggerTimeMs, showPendingIntent)
             alarmManager.setAlarmClock(clockInfo, pendingIntent)
             Napier.d("Scheduled Clock Alarm for $taskTitle at $triggerTimeMs (code=$requestCode)", tag = TAG)
@@ -229,7 +299,6 @@ class AndroidReminderManager(private val context: Context) : ReminderManager {
         taskTitle: String,
         reminderMinutes: Int,
         taskType: TaskType = TaskType.NOTE
-
     ): Intent {
         return Intent(ACTION_REMINDER).apply {
             setPackage(context.packageName)

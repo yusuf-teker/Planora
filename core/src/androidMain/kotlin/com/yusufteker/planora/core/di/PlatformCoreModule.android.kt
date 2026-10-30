@@ -101,7 +101,7 @@ actual val platformCoreModule = module {
     }
 
     // Reminder Manager
-    single<ReminderManager> { AndroidReminderManager(androidContext()) }
+    single<ReminderManager> { AndroidReminderManager(androidContext(), get()) }
 
     // Offline AI Manager
     single<OfflineAiManager> { AndroidAiManager(androidContext(), get()) }

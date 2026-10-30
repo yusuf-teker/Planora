@@ -17,6 +17,7 @@ object IosNotificationBridge : KoinComponent {
     private val registerFcmTokenUseCase: RegisterFcmTokenUseCase by inject()
 
     var onSyncTasksRequested: (suspend () -> Unit)? = null
+    var onSyncRoomsRequested: (suspend () -> Unit)? = null
 
     fun setFcmToken(token: String) {
         CoroutineScope(Dispatchers.Main).launch {
@@ -46,11 +47,19 @@ object IosNotificationBridge : KoinComponent {
                         println("Failed to increment calendar requests count: ${e.message}")
                     }
                 }
-                "sync_tasks" -> {
+                "sync_tasks", "event_assignment", "task_assignment", "room_event", "room_task" -> {
                     try {
                         onSyncTasksRequested?.invoke()
                     } catch (e: Exception) {
                         println("Failed to execute sync_tasks on iOS: ${e.message}")
+                    }
+                }
+                "room_invite", "room_invite_response", "room_member_removed" -> {
+                    try {
+                        onSyncRoomsRequested?.invoke()
+                        onSyncTasksRequested?.invoke()
+                    } catch (e: Exception) {
+                        println("Failed to execute room sync on iOS: ${e.message}")
                     }
                 }
             }
@@ -63,6 +72,9 @@ object IosNotificationBridge : KoinComponent {
             val taskTitle = userInfo["taskTitle"] as? String ?: ""
             val taskTypeStr = userInfo["taskType"] as? String
             val taskType = taskTypeStr?.let { runCatching { TaskType.valueOf(it) }.getOrNull() } ?: TaskType.TASK
+            val roomId = userInfo["roomId"] as? String
+            val rawDeepLink = userInfo["deepLink"] as? String
+            val type = userInfo["type"] as? String
 
             when (actionIdentifier) {
                 "PLANORA_ACTION_SNOOZE" -> {
@@ -75,10 +87,28 @@ object IosNotificationBridge : KoinComponent {
                     // Dismissed by user action
                 }
                 else -> {
-                    val deepLink = userInfo["deepLink"] as? String
-                    val url = deepLink ?: taskId?.let { "planora://share/task?taskId=$it" }
-                    if (!url.isNullOrEmpty()) {
-                        DeepLinkManager.emitLink(url)
+                    val deepLinkUrl = when {
+                        !rawDeepLink.isNullOrEmpty() -> rawDeepLink
+                        type == "room_invite" -> "planora://share/roomInvite"
+                        taskType == TaskType.EVENT -> {
+                            if (!roomId.isNullOrEmpty() && !taskId.isNullOrEmpty()) {
+                                "planora://share/event?eventId=$taskId&roomId=$roomId"
+                            } else if (!taskId.isNullOrEmpty()) {
+                                "planora://share/event?eventId=$taskId"
+                            } else null
+                        }
+                        !roomId.isNullOrEmpty() && taskId.isNullOrEmpty() -> "planora://share/joinRoom?roomId=$roomId"
+                        !taskId.isNullOrEmpty() -> {
+                            if (!roomId.isNullOrEmpty()) {
+                                "planora://share/task?taskId=$taskId&roomId=$roomId"
+                            } else {
+                                "planora://share/task?taskId=$taskId"
+                            }
+                        }
+                        else -> null
+                    }
+                    if (!deepLinkUrl.isNullOrEmpty()) {
+                        DeepLinkManager.emitLink(deepLinkUrl)
                     }
                 }
             }
