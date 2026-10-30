@@ -1,7 +1,9 @@
 package com.yusufteker.planora.admin.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -711,13 +713,266 @@ private fun UserCard(
     }
 }
 
+private data class PushQuickTemplate(
+    val chipLabel: String,
+    val title: String,
+    val body: String
+)
+
+private val PUSH_QUICK_TEMPLATES = listOf(
+    PushQuickTemplate(
+        chipLabel = "🚀 Haftalık Plan",
+        title = "Yeni Haftanı Planlama Zamanı! 📅",
+        body = "Bu haftaki hedeflerini ve görevlerini Planora'ya ekleyerek haftaya düzenli ve odaklı başla."
+    ),
+    PushQuickTemplate(
+        chipLabel = "✨ Yeni Özellik",
+        title = "Planora'da Yeni Özellikler Seni Bekliyor! ✨",
+        body = "Uygulamamızı senin için geliştirmeye devam ediyoruz. Hemen girip yenilikleri keşfet!"
+    ),
+    PushQuickTemplate(
+        chipLabel = "⏰ Günlük Hatırlatma",
+        title = "Bugünkü Görevlerine Göz Attın mı? ✅",
+        body = "Günü tamamlamadan önce Planora'daki hedeflerini kontrol etmeyi unutma."
+    ),
+    PushQuickTemplate(
+        chipLabel = "🤖 AI Asistan",
+        title = "Planora AI ile Tanıştın mı? 🤖",
+        body = "Yoğun günlerini saniyeler içinde planlamak için yapay zeka asistanına hemen bir mesaj gönder!"
+    )
+)
+
+/**
+ * Gerçek zamanlı mobil (iOS / Android) bildirim kartı önizleme bileşeni.
+ * Başlık veya mesajın kilit ekranında kesilip kesilmeyeceğini (truncation) ve
+ * genişletilmiş/daraltılmış görünümü canlı olarak simüle eder.
+ */
+@Composable
+private fun MobileNotificationPreviewCard(
+    title: String,
+    body: String,
+    recipientBadgeText: String? = null
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var isIosStyle by remember { mutableStateOf(true) }
+
+    val displayTitle = title.ifBlank { "Bildirim Başlığı Önizlemesi" }
+    val displayBody = body.ifBlank { "Kullanıcının telefon kilit ekranında ve üst bildirim barında görünecek mesaj içeriği burada yer alacak..." }
+    val isPlaceholder = title.isBlank() && body.isBlank()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Üst Kontrol Çubuğu
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Smartphone,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Canlı Mobil Önizleme",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (recipientBadgeText != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = recipientBadgeText,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.clickable { isIosStyle = !isIosStyle }
+                    ) {
+                        Text(
+                            text = if (isIosStyle) "iOS Stili" else "Android Stili",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.clickable { isExpanded = !isExpanded }
+                    ) {
+                        Text(
+                            text = if (isExpanded) "Daralt ▲" else "Genişlet ▼",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // Simüle Edilen Telefon Bildirim Kartı
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(if (isIosStyle) 18.dp else 14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+                shadowElevation = 2.dp
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isIosStyle) "PLANORA" else "Planora • Genel",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "şimdi",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = displayTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        maxLines = if (isExpanded) 2 else 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isPlaceholder) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = displayBody,
+                        fontSize = 13.sp,
+                        maxLines = if (isExpanded) 6 else 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isPlaceholder) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Uzunluk / Kesilme (Truncation) İpuçları
+            val titleWarn = title.length > 48
+            val bodyWarn = body.length > 140
+            if (titleWarn || bodyWarn) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = if (titleWarn && bodyWarn) {
+                            "Başlık (48+) ve mesaj (140+) dar kilit ekranlarında '...' ile kesilebilir."
+                        } else if (titleWarn) {
+                            "Başlık 48 karakteri aştı; bazı telefonlarda sonu '...' ile kesilebilir."
+                        } else {
+                            "Mesaj 140 karakteri aştı; bildirim genişletilmeden tamamı görünmeyebilir."
+                        },
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickTemplatesBar(
+    onSelectTemplate: (title: String, body: String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = "Hazır Şablonlar (Tek Tıkla Doldur)",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PUSH_QUICK_TEMPLATES.forEach { tpl ->
+                SuggestionChip(
+                    onClick = { onSelectTemplate(tpl.title, tpl.body) },
+                    label = { Text(tpl.chipLabel, fontSize = 12.sp) }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val fcmDevicesCount = uiState.stats?.totalFcmDevices
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
@@ -734,10 +989,35 @@ private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState
             }
         }
 
+        // Canlı Bildirim Önizlemesi
+        MobileNotificationPreviewCard(
+            title = uiState.broadcastTitle,
+            body = uiState.broadcastBody,
+            recipientBadgeText = if (fcmDevicesCount != null) "$fcmDevicesCount Aktif Cihaz" else "Tüm Cihazlar"
+        )
+
+        // Hazır Şablonlar
+        QuickTemplatesBar(
+            onSelectTemplate = { t, b ->
+                viewModel.onBroadcastTitleChanged(t)
+                viewModel.onBroadcastBodyChanged(b)
+            }
+        )
+
         OutlinedTextField(
             value = uiState.broadcastTitle,
             onValueChange = viewModel::onBroadcastTitleChanged,
             label = { Text("Duyuru Başlığı") },
+            supportingText = {
+                Text("${uiState.broadcastTitle.length}/65 karakter (Önerilen: ≤ 48)")
+            },
+            trailingIcon = {
+                if (uiState.broadcastTitle.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.onBroadcastTitleChanged("") }) {
+                        Icon(Icons.Default.Clear, contentDescription = "Temizle", modifier = Modifier.size(18.dp))
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(10.dp)
@@ -747,15 +1027,24 @@ private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState
             value = uiState.broadcastBody,
             onValueChange = viewModel::onBroadcastBodyChanged,
             label = { Text("Duyuru Metni") },
+            supportingText = {
+                Text("${uiState.broadcastBody.length}/240 karakter (Önerilen: ≤ 140)")
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp),
+                .height(130.dp),
             maxLines = 6,
             shape = RoundedCornerShape(10.dp)
         )
 
         Button(
-            onClick = viewModel::sendBroadcast,
+            onClick = {
+                if (uiState.broadcastTitle.isBlank() || uiState.broadcastBody.isBlank()) {
+                    viewModel.sendBroadcast()
+                } else {
+                    showConfirmDialog = true
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             enabled = !uiState.isSendingBroadcast,
             shape = RoundedCornerShape(10.dp)
@@ -767,9 +1056,45 @@ private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState
             } else {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Tüm Kullanıcılara Gönder")
+                Text("Önizle ve Tüm Kullanıcılara Gönder")
             }
         }
+    }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Toplu Bildirimi Onayla") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Bu bildirimi aktif FCM cihazı olan tüm kullanıcılara göndermek üzeresiniz:",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    MobileNotificationPreviewCard(
+                        title = uiState.broadcastTitle,
+                        body = uiState.broadcastBody,
+                        recipientBadgeText = if (fcmDevicesCount != null) "$fcmDevicesCount Cihaz" else "Tümü"
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        viewModel.sendBroadcast()
+                    }
+                ) {
+                    Text("Onayla ve Gönder")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Vazgeç")
+                }
+            }
+        )
     }
 }
 
@@ -845,14 +1170,38 @@ private fun SendPushDialog(
             TextButton(onClick = onDismiss, enabled = !isSending) { Text("İptal") }
         },
         title = {
-            Text("Bildirim Gönder: @${user.username}")
+            Column {
+                Text("Bildirim Gönder: @${user.username}", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(
+                    text = "${user.name} • ${user.fcmDeviceCount} Aktif Cihaz",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MobileNotificationPreviewCard(
+                    title = title,
+                    body = body,
+                    recipientBadgeText = "@${user.username}"
+                )
+
+                QuickTemplatesBar(
+                    onSelectTemplate = { t, b ->
+                        onTitleChange(t)
+                        onBodyChange(b)
+                    }
+                )
+
                 OutlinedTextField(
                     value = title,
                     onValueChange = onTitleChange,
                     label = { Text("Başlık") },
+                    supportingText = { Text("${title.length}/65") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -860,6 +1209,7 @@ private fun SendPushDialog(
                     value = body,
                     onValueChange = onBodyChange,
                     label = { Text("Mesaj") },
+                    supportingText = { Text("${body.length}/240") },
                     modifier = Modifier.fillMaxWidth().height(100.dp),
                     maxLines = 4
                 )

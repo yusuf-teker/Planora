@@ -326,6 +326,7 @@ object FcmService {
                         .setTitle(title)
                         .setBody(body)
                         .setChannelId("planora_v2_channel")
+                        .setIcon("ic_notification")
                         .setSound("planora_chime")
                         .setColor("#7C4DFF")
                         .build()
