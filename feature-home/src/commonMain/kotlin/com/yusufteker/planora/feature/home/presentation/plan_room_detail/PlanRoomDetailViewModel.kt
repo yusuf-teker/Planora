@@ -24,6 +24,10 @@ import planora.core.generated.resources.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.toInstant
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskDto
@@ -53,8 +57,46 @@ class PlanRoomDetailViewModel(
                 openInviteDialog()
             }
             PlanRoomDetailEvent.OnDismissInviteDialog -> setState { copy(isInviteDialogOpen = false) }
-            PlanRoomDetailEvent.OnCreateTaskClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateTask(currentState.roomId))
-            PlanRoomDetailEvent.OnCreateEventClick -> setEffect(PlanRoomDetailEffect.NavigateToCreateEvent(currentState.roomId))
+            PlanRoomDetailEvent.OnCreateTaskClick -> {
+                val targetDate = if (currentState.selectedTab == RoomDetailTab.CALENDAR) {
+                    currentState.calendarSelectedDate
+                } else {
+                    null
+                }
+                val initialDateMs = targetDate?.let { date ->
+                    val zone = TimeZone.currentSystemDefault()
+                    val nowMs = getCurrentTimeMs()
+                    val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
+                    LocalDateTime(
+                        year = date.year,
+                        monthNumber = date.monthNumber,
+                        dayOfMonth = date.dayOfMonth,
+                        hour = nowLdt.hour,
+                        minute = nowLdt.minute
+                    ).toInstant(zone).toEpochMilliseconds()
+                }
+                setEffect(PlanRoomDetailEffect.NavigateToCreateTask(currentState.roomId, initialDateMs))
+            }
+            PlanRoomDetailEvent.OnCreateEventClick -> {
+                val targetDate = if (currentState.selectedTab == RoomDetailTab.CALENDAR) {
+                    currentState.calendarSelectedDate
+                } else {
+                    null
+                }
+                val initialDateMs = targetDate?.let { date ->
+                    val zone = TimeZone.currentSystemDefault()
+                    val nowMs = getCurrentTimeMs()
+                    val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
+                    LocalDateTime(
+                        year = date.year,
+                        monthNumber = date.monthNumber,
+                        dayOfMonth = date.dayOfMonth,
+                        hour = nowLdt.hour,
+                        minute = nowLdt.minute
+                    ).toInstant(zone).toEpochMilliseconds()
+                }
+                setEffect(PlanRoomDetailEffect.NavigateToCreateEvent(currentState.roomId, initialDateMs))
+            }
             is PlanRoomDetailEvent.OnSearchQueryChange -> updateSearchQuery(event.query)
             is PlanRoomDetailEvent.OnUserSelectToInvite -> inviteUser(event.userId)
             is PlanRoomDetailEvent.OnTaskClick -> handleTaskClick(event.task)

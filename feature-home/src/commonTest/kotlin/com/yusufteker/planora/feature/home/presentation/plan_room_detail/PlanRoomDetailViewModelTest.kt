@@ -22,6 +22,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertNotNull
+import app.cash.turbine.test
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Unit tests for PlanRoomDetailViewModel covering room to-dos and tab navigation.
@@ -135,5 +141,74 @@ class PlanRoomDetailViewModelTest {
 
         val updatedTask = planRepository.getStoredTasks().find { it.id == "todo-101" }
         assertEquals(TaskStatus.COMPLETED, updatedTask?.status)
+    }
+
+    @Test
+    fun `OnCreateEventClick on CALENDAR tab emits NavigateToCreateEvent with selected date timestamp`() = runTest {
+        val viewModel = createViewModel()
+        val roomId = "room_123"
+        viewModel.onEvent(PlanRoomDetailEvent.LoadRoom(roomId))
+        advanceUntilIdle()
+
+        val selectedDate = LocalDate(2026, 11, 15)
+        viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.CALENDAR))
+        viewModel.onEvent(PlanRoomDetailEvent.OnCalendarDateSelected(selectedDate))
+        advanceUntilIdle()
+
+        viewModel.effect.test {
+            viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick)
+            val effect = awaitItem()
+            assertTrue(effect is PlanRoomDetailEffect.NavigateToCreateEvent)
+            assertEquals(roomId, effect.roomId)
+            assertNotNull(effect.initialDateMs)
+
+            val zone = TimeZone.currentSystemDefault()
+            val ldt = Instant.fromEpochMilliseconds(effect.initialDateMs!!).toLocalDateTime(zone)
+            assertEquals(selectedDate, ldt.date)
+        }
+    }
+
+    @Test
+    fun `OnCreateTaskClick on CALENDAR tab emits NavigateToCreateTask with selected date timestamp`() = runTest {
+        val viewModel = createViewModel()
+        val roomId = "room_123"
+        viewModel.onEvent(PlanRoomDetailEvent.LoadRoom(roomId))
+        advanceUntilIdle()
+
+        val selectedDate = LocalDate(2026, 11, 20)
+        viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.CALENDAR))
+        viewModel.onEvent(PlanRoomDetailEvent.OnCalendarDateSelected(selectedDate))
+        advanceUntilIdle()
+
+        viewModel.effect.test {
+            viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick)
+            val effect = awaitItem()
+            assertTrue(effect is PlanRoomDetailEffect.NavigateToCreateTask)
+            assertEquals(roomId, effect.roomId)
+            assertNotNull(effect.initialDateMs)
+
+            val zone = TimeZone.currentSystemDefault()
+            val ldt = Instant.fromEpochMilliseconds(effect.initialDateMs!!).toLocalDateTime(zone)
+            assertEquals(selectedDate, ldt.date)
+        }
+    }
+
+    @Test
+    fun `OnCreateEventClick on FEED tab emits NavigateToCreateEvent with null initialDateMs`() = runTest {
+        val viewModel = createViewModel()
+        val roomId = "room_123"
+        viewModel.onEvent(PlanRoomDetailEvent.LoadRoom(roomId))
+        advanceUntilIdle()
+
+        viewModel.onEvent(PlanRoomDetailEvent.OnTabSelected(RoomDetailTab.FEED))
+        advanceUntilIdle()
+
+        viewModel.effect.test {
+            viewModel.onEvent(PlanRoomDetailEvent.OnCreateEventClick)
+            val effect = awaitItem()
+            assertTrue(effect is PlanRoomDetailEffect.NavigateToCreateEvent)
+            assertEquals(roomId, effect.roomId)
+            assertNull(effect.initialDateMs)
+        }
     }
 }

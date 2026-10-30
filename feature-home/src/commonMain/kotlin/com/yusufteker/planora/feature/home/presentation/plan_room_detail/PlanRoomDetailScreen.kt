@@ -79,11 +79,12 @@ import kotlinx.datetime.toLocalDateTime
 fun PlanRoomDetailScreen(
     viewModel: PlanRoomDetailViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToCreateTask: (String) -> Unit = {},
-    onNavigateToCreateEvent: (String) -> Unit = {},
+    onNavigateToCreateTask: (roomId: String, initialDateMs: Long?) -> Unit = { _, _ -> },
+    onNavigateToCreateEvent: (roomId: String, initialDateMs: Long?) -> Unit = { _, _ -> },
     onNavigateToTaskEditor: (String) -> Unit = {},
     onNavigateToEventDetail: (String) -> Unit = {},
-    onNavigateToNoteEditor: (String) -> Unit = {}
+    onNavigateToNoteEditor: (String) -> Unit = {},
+    onNavigateToEventEditor: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -128,12 +129,12 @@ fun PlanRoomDetailScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is PlanRoomDetailEffect.NavigateBack -> onNavigateBack()
-                is PlanRoomDetailEffect.NavigateToCreateTask -> onNavigateToCreateTask(effect.roomId)
-                is PlanRoomDetailEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.roomId)
+                is PlanRoomDetailEffect.NavigateToCreateTask -> onNavigateToCreateTask(effect.roomId, effect.initialDateMs)
+                is PlanRoomDetailEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.roomId, effect.initialDateMs)
                 is PlanRoomDetailEffect.NavigateToTaskDetail -> onNavigateToTaskEditor(effect.taskId)
                 is PlanRoomDetailEffect.NavigateToTaskEditor -> onNavigateToTaskEditor(effect.taskId)
                 is PlanRoomDetailEffect.NavigateToEventDetail -> onNavigateToEventDetail(effect.eventId)
-                is PlanRoomDetailEffect.NavigateToEventEditor -> onNavigateToCreateEvent(effect.eventId)
+                is PlanRoomDetailEffect.NavigateToEventEditor -> onNavigateToEventEditor(effect.eventId)
                 is PlanRoomDetailEffect.NavigateToNoteEditor -> onNavigateToNoteEditor(effect.noteId)
                 is PlanRoomDetailEffect.ShowToast -> {
                     scope.launch {
