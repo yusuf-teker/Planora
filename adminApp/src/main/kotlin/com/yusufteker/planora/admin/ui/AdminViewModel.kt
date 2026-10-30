@@ -225,7 +225,11 @@ class AdminViewModel(
     }
 
     fun toggleRole(user: AdminUserSummaryDto) {
-        val newRole = if (user.role == "ADMIN") "USER" else "ADMIN"
+        val newRole = when (user.role) {
+            "USER" -> "NOTIFIER"
+            "NOTIFIER" -> "ADMIN"
+            else -> "USER"
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val result = apiClient.updateUserRole(user.id, newRole)

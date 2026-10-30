@@ -605,13 +605,21 @@ private fun UserCard(
                 // Role Chip
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (user.role == "ADMIN") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                    color = when (user.role) {
+                        "ADMIN" -> MaterialTheme.colorScheme.primary
+                        "NOTIFIER" -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.surface
+                    }
                 ) {
                     Text(
                         text = user.role,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (user.role == "ADMIN") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        color = when (user.role) {
+                            "ADMIN" -> MaterialTheme.colorScheme.onPrimary
+                            "NOTIFIER" -> MaterialTheme.colorScheme.onTertiary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
@@ -665,7 +673,12 @@ private fun UserCard(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                 ) {
-                    Text(if (user.role == "ADMIN") "USER Yap" else "ADMIN Yap", fontSize = 11.sp)
+                    val nextRoleLabel = when (user.role) {
+                        "USER" -> "NOTIFIER Yap"
+                        "NOTIFIER" -> "ADMIN Yap"
+                        else -> "USER Yap"
+                    }
+                    Text(nextRoleLabel, fontSize = 11.sp)
                 }
 
                 OutlinedButton(

@@ -103,7 +103,7 @@ data class AdminUserSummaryDto(
  */
 @Serializable
 data class UpdateUserRoleRequest(
-    val role: String // "ADMIN" veya "USER"
+    val role: String // "ADMIN", "NOTIFIER" veya "USER"
 )
 
 /**

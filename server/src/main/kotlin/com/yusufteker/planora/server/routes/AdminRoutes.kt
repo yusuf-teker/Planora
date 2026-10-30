@@ -20,18 +20,22 @@ import java.time.temporal.ChronoUnit
 
 /**
  * Admin yönetim rotaları.
- * Hem `X-Admin-Secret` başlığı hem de `ADMIN` rolüne sahip JWT Bearer token ile korunur.
+ * Hem `X-Admin-Secret` başlığı hem de `ADMIN` (veya bildirim rotaları için `NOTIFIER`) rolüne sahip JWT Bearer token ile korunur.
  */
 fun Route.adminRoutes() {
 
-    suspend fun ApplicationCall.ensureAdminAuthorized(): Boolean {
+    /**
+     * İstek sahibinin yetki rolünü ("ADMIN", "NOTIFIER" vb.) çözümler.
+     * `X-Admin-Secret` geçerliyse doğrudan "ADMIN" döner; aksi halde JWT doğrulanır ve veritabanındaki güncel rolü kontrol edilir.
+     */
+    suspend fun ApplicationCall.resolveAuthorizedRole(): String? {
         // 1. X-Admin-Secret başlığı kontrolü
         val secretHeader = request.headers["X-Admin-Secret"]
         if (!secretHeader.isNullOrBlank() && secretHeader == AppConfig.adminSecretKey) {
-            return true
+            return "ADMIN"
         }
 
-        // 2. JWT Bearer token içindeki "role" claim'i kontrolü
+        // 2. JWT Bearer token doğrulaması ve veritabanından anlık rol kontrolü
         val authHeader = request.headers["Authorization"]
         if (!authHeader.isNullOrBlank() && authHeader.startsWith("Bearer ", ignoreCase = true)) {
             val token = authHeader.removePrefix("Bearer ").trim()
@@ -40,18 +44,73 @@ fun Route.adminRoutes() {
                     .withIssuer(AppConfig.jwtIssuer)
                     .build()
                 val decoded = verifier.verify(token)
-                val role = decoded.getClaim("role")?.asString()
-                if (role == "ADMIN") {
-                    return true
+                val userId = decoded.getClaim("userId")?.asInt()
+                if (userId != null) {
+                    val dbRole = dbQuery {
+                        UserEntity.findById(userId)?.role
+                    }
+                    if (dbRole != null) {
+                        return dbRole.uppercase().trim()
+                    }
+                }
+                val claimRole = decoded.getClaim("role")?.asString()
+                if (!claimRole.isNullOrBlank()) {
+                    return claimRole.uppercase().trim()
                 }
             } catch (_: Exception) {}
         }
+
+        return null
+    }
+
+    /**
+     * Yalnızca tam yetkili ADMIN kullanıcıların erişebileceği rotaları korur.
+     */
+    suspend fun ApplicationCall.ensureAdminAuthorized(): Boolean {
+        val role = resolveAuthorizedRole()
+        if (role == "ADMIN") return true
 
         respond(HttpStatusCode.Forbidden, "Yetkisiz erişim: Bu işlem yalnızca ADMIN yetkisiyle gerçekleştirilebilir.")
         return false
     }
 
+    /**
+     * Hem ADMIN hem de bildirim gönderme yetkisi verilmiş NOTIFIER rolündeki kullanıcıların erişebileceği rotaları korur.
+     */
+    suspend fun ApplicationCall.ensurePushAuthorized(): Boolean {
+        val role = resolveAuthorizedRole()
+        if (role == "ADMIN" || role == "NOTIFIER") return true
+
+        respond(HttpStatusCode.Forbidden, "Yetkisiz erişim: Bu işlem için ADMIN veya NOTIFIER yetkisi gereklidir.")
+        return false
+    }
+
+    /**
+     * Web tabanlı Bildirim Konsolu (HTML) sayfasını sunar.
+     * Hem `/push-panel` hem de `/admin/panel` adreslerinden doğrudan tarayıcıyla erişilebilir.
+     */
+    suspend fun ApplicationCall.servePushPanelHtml() {
+        val htmlStream = this::class.java.classLoader.getResourceAsStream("admin/push-panel.html")
+        if (htmlStream == null) {
+            respond(HttpStatusCode.NotFound, "Push panel kaynağı bulunamadı.")
+            return
+        }
+        val htmlContent = htmlStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        respondText(htmlContent, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
+    }
+
+    get("/push-panel") {
+        call.servePushPanelHtml()
+    }
+
+    get("/admin-panel") {
+        call.servePushPanelHtml()
+    }
+
     route("/admin") {
+        get("/panel") {
+            call.servePushPanelHtml()
+        }
 
         /**
          * GET /admin/stats
@@ -186,7 +245,7 @@ fun Route.adminRoutes() {
 
         /**
          * PUT /admin/users/{id}/role
-         * Kullanıcının rolünü (ADMIN veya USER) günceller.
+         * Kullanıcının rolünü (ADMIN, NOTIFIER veya USER) günceller.
          */
         put("/users/{id}/role") {
             if (!call.ensureAdminAuthorized()) return@put
@@ -205,8 +264,8 @@ fun Route.adminRoutes() {
             }
 
             val targetRole = request.role.uppercase().trim()
-            if (targetRole != "ADMIN" && targetRole != "USER") {
-                call.respond(HttpStatusCode.BadRequest, "Rol sadece 'ADMIN' veya 'USER' olabilir")
+            if (targetRole != "ADMIN" && targetRole != "NOTIFIER" && targetRole != "USER") {
+                call.respond(HttpStatusCode.BadRequest, "Rol sadece 'ADMIN', 'NOTIFIER' veya 'USER' olabilir")
                 return@put
             }
 
@@ -338,11 +397,55 @@ fun Route.adminRoutes() {
         }
 
         /**
+         * GET /admin/push-targets
+         * Bildirim gönderme yetkisi olanların (ADMIN veya NOTIFIER) alıcı seçebilmesi için
+         * kullanıcıların özet bilgilerini ve aktif FCM cihaz sayılarını listeler.
+         */
+        get("/push-targets") {
+            if (!call.ensurePushAuthorized()) return@get
+
+            val queryParam = call.request.queryParameters["query"]?.trim()?.lowercase()
+
+            val targets = dbQuery {
+                val entities = if (!queryParam.isNullOrBlank()) {
+                    UserEntity.find {
+                        (UsersTable.username.lowerCase() like "%$queryParam%") or
+                        (UsersTable.email.lowerCase() like "%$queryParam%") or
+                        (UsersTable.name.lowerCase() like "%$queryParam%")
+                    }.limit(100)
+                } else {
+                    UserEntity.all().limit(100)
+                }
+
+                entities.map { user ->
+                    val fcmCount = FcmTokensTable.selectAll().where { FcmTokensTable.userId eq user.id.value }.count()
+
+                    AdminUserSummaryDto(
+                        id = user.id.value,
+                        name = user.name,
+                        username = user.username,
+                        email = user.email,
+                        role = user.role,
+                        isPremium = user.isPremiumActive(),
+                        premiumUntil = null,
+                        createdAt = user.createdAt.toString(),
+                        taskCount = 0,
+                        roomCount = 0,
+                        fcmDeviceCount = fcmCount
+                    )
+                }
+            }
+
+            call.respond(HttpStatusCode.OK, targets)
+        }
+
+        /**
          * POST /admin/push
          * Belirli bir kullanıcıya (userId, username veya email) ya da tüm kullanıcılara push bildirimi gönderir.
+         * Hem ADMIN hem de NOTIFIER rolündeki kullanıcılar tarafından çağrılabilir.
          */
         post("/push") {
-            if (!call.ensureAdminAuthorized()) return@post
+            if (!call.ensurePushAuthorized()) return@post
 
             val request = try {
                 call.receive<AdminSendPushRequest>()
