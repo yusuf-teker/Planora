@@ -177,6 +177,8 @@ fun Route.healthRoutes() {
                     val result = HealthAiService.analyzeFood(req.text, req.date)
                     call.respond(HttpStatusCode.OK, result)
                 } catch (e: Exception) {
+                    println("[HealthRoutes] Error in /health/ai/food: ${e.message}")
+                    e.printStackTrace()
                     call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "AI food analysis failed")))
                 }
             }
@@ -187,6 +189,8 @@ fun Route.healthRoutes() {
                     val result = HealthAiService.analyzeWorkout(req.text, req.userWeightKg, req.date)
                     call.respond(HttpStatusCode.OK, result)
                 } catch (e: Exception) {
+                    println("[HealthRoutes] Error in /health/ai/workout: ${e.message}")
+                    e.printStackTrace()
                     call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "AI workout analysis failed")))
                 }
             }

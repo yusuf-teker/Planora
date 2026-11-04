@@ -11,17 +11,17 @@ import java.time.Duration
 
 @Serializable
 data class MicronutrientDto(
-    val name: String,
-    val amount: Double,
-    val unit: String
+    val name: String = "",
+    val amount: Double = 0.0,
+    val unit: String = ""
 )
 
 @Serializable
 data class FoodItemDto(
     val id: String = java.util.UUID.randomUUID().toString(),
-    val name: String,
-    val formattedPortion: String,
-    val calories: Int,
+    val name: String = "",
+    val formattedPortion: String = "",
+    val calories: Int = 0,
     val proteinG: Double = 0.0,
     val carbsG: Double = 0.0,
     val fatG: Double = 0.0,
@@ -31,17 +31,17 @@ data class FoodItemDto(
 
 @Serializable
 data class FoodAiAnalysisResponse(
-    val summary: String,
-    val totalCalories: Int,
-    val items: List<FoodItemDto>,
+    val summary: String = "",
+    val totalCalories: Int = 0,
+    val items: List<FoodItemDto> = emptyList(),
     val disclaimer: String = "Besin değerleri tahmini yaklaşık değerlerdir."
 )
 
 @Serializable
 data class WorkoutAiAnalysisResponse(
-    val summary: String,
-    val caloriesBurned: Int,
-    val durationMinutes: Int,
+    val summary: String = "",
+    val caloriesBurned: Int = 0,
+    val durationMinutes: Int = 0,
     val disclaimer: String = "Yakılan kalori kullanıcının kilosu ve aktivite türüne göre tahmini olarak hesaplanmıştır."
 )
 
@@ -54,12 +54,13 @@ object HealthAiService {
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+        encodeDefaults = true
     }
 
     private val candidateModels = listOf(
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
-        "gemini-1.5-flash"
+        "gemini-1.5-flash",
+        "gemini-1.5-pro"
     )
 
     suspend fun analyzeFood(rawText: String, date: String): FoodAiAnalysisResponse {
@@ -140,7 +141,51 @@ object HealthAiService {
             })
             put("generationConfig", buildJsonObject {
                 put("responseMimeType", JsonPrimitive("application/json"))
-                put("maxOutputTokens", JsonPrimitive(1200))
+                put("maxOutputTokens", JsonPrimitive(2000))
+                put("responseSchema", buildJsonObject {
+                    put("type", JsonPrimitive("OBJECT"))
+                    put("properties", buildJsonObject {
+                        put("summary", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                        put("totalCalories", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
+                        put("disclaimer", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                        put("items", buildJsonObject {
+                            put("type", JsonPrimitive("ARRAY"))
+                            put("items", buildJsonObject {
+                                put("type", JsonPrimitive("OBJECT"))
+                                put("properties", buildJsonObject {
+                                    put("name", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                                    put("formattedPortion", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                                    put("calories", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
+                                    put("proteinG", buildJsonObject { put("type", JsonPrimitive("NUMBER")) })
+                                    put("carbsG", buildJsonObject { put("type", JsonPrimitive("NUMBER")) })
+                                    put("fatG", buildJsonObject { put("type", JsonPrimitive("NUMBER")) })
+                                    put("fiberG", buildJsonObject { put("type", JsonPrimitive("NUMBER")) })
+                                    put("micronutrients", buildJsonObject {
+                                        put("type", JsonPrimitive("ARRAY"))
+                                        put("items", buildJsonObject {
+                                            put("type", JsonPrimitive("OBJECT"))
+                                            put("properties", buildJsonObject {
+                                                put("name", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                                                put("amount", buildJsonObject { put("type", JsonPrimitive("NUMBER")) })
+                                                put("unit", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                                            })
+                                        })
+                                    })
+                                })
+                                put("required", buildJsonArray {
+                                    add(JsonPrimitive("name"))
+                                    add(JsonPrimitive("formattedPortion"))
+                                    add(JsonPrimitive("calories"))
+                                })
+                            })
+                        })
+                    })
+                    put("required", buildJsonArray {
+                        add(JsonPrimitive("summary"))
+                        add(JsonPrimitive("totalCalories"))
+                        add(JsonPrimitive("items"))
+                    })
+                })
             })
         }
         return root.toString()
@@ -162,7 +207,21 @@ object HealthAiService {
             })
             put("generationConfig", buildJsonObject {
                 put("responseMimeType", JsonPrimitive("application/json"))
-                put("maxOutputTokens", JsonPrimitive(600))
+                put("maxOutputTokens", JsonPrimitive(800))
+                put("responseSchema", buildJsonObject {
+                    put("type", JsonPrimitive("OBJECT"))
+                    put("properties", buildJsonObject {
+                        put("summary", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                        put("caloriesBurned", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
+                        put("durationMinutes", buildJsonObject { put("type", JsonPrimitive("INTEGER")) })
+                        put("disclaimer", buildJsonObject { put("type", JsonPrimitive("STRING")) })
+                    })
+                    put("required", buildJsonArray {
+                        add(JsonPrimitive("summary"))
+                        add(JsonPrimitive("caloriesBurned"))
+                        add(JsonPrimitive("durationMinutes"))
+                    })
+                })
             })
         }
         return root.toString()
@@ -173,6 +232,7 @@ object HealthAiService {
         for (model in candidateModels) {
             val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
             try {
+                println("[HealthAiService] Calling Gemini model '$model'...")
                 val httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
@@ -181,6 +241,8 @@ object HealthAiService {
                     .build()
 
                 val httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+                println("[HealthAiService] Gemini ($model) status: ${httpResponse.statusCode()}")
+
                 if (httpResponse.statusCode() in 200..299) {
                     val rootJson = json.parseToJsonElement(httpResponse.body()) as? JsonObject
                     val candidates = (rootJson?.get("candidates") as? JsonArray)?.getOrNull(0) as? JsonObject
@@ -188,12 +250,16 @@ object HealthAiService {
                     val parts = content?.get("parts") as? JsonArray
                     val textPart = ((parts?.getOrNull(0) as? JsonObject)?.get("text") as? JsonPrimitive)?.contentOrNull
                     if (!textPart.isNullOrBlank()) {
+                        println("[HealthAiService] Gemini response parsed successfully.")
                         return textPart
                     }
                 } else {
-                    lastError = "HTTP ${httpResponse.statusCode()}: ${httpResponse.body().take(200)}"
+                    val bodySnippet = httpResponse.body().take(300)
+                    println("[HealthAiService] Gemini ($model) failed with HTTP ${httpResponse.statusCode()}: $bodySnippet")
+                    lastError = "HTTP ${httpResponse.statusCode()}: $bodySnippet"
                 }
             } catch (e: Exception) {
+                println("[HealthAiService] Gemini ($model) exception: ${e.message}")
                 lastError = e.message
             }
         }
@@ -201,11 +267,16 @@ object HealthAiService {
     }
 
     private fun cleanJson(raw: String): String {
-        var fixed = raw.trim()
-        if (fixed.startsWith("```json")) fixed = fixed.removePrefix("```json").trim()
-        if (fixed.startsWith("```")) fixed = fixed.removePrefix("```").trim()
-        if (fixed.endsWith("```")) fixed = fixed.removeSuffix("```").trim()
-        return fixed
+        var text = raw.trim()
+        val firstBrace = text.indexOf('{')
+        val lastBrace = text.lastIndexOf('}')
+        if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+            return text.substring(firstBrace, lastBrace + 1)
+        }
+        if (text.startsWith("```json")) text = text.removePrefix("```json").trim()
+        if (text.startsWith("```")) text = text.removePrefix("```").trim()
+        if (text.endsWith("```")) text = text.removeSuffix("```").trim()
+        return text
     }
 
     private fun parseFoodResponse(raw: String): FoodAiAnalysisResponse {
