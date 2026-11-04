@@ -200,9 +200,10 @@ object AiService {
 
         val requestBody = buildGeminiRequestBody(systemPrompt, fullInput)
         val candidateModels = listOf(
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
             "gemini-2.5-flash",
-            "gemini-3.5-flash",
-            "gemini-3.5-flash-lite"
+            "gemini-3.5-flash"
         )
 
         var lastError: String? = null
@@ -214,7 +215,7 @@ object AiService {
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
                     .timeout(Duration.ofSeconds(25))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .POST(HttpRequest.BodyPublishers.ofString(bodyForModel(model, requestBody)))
                     .build()
 
                 val httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
@@ -263,6 +264,18 @@ object AiService {
             quotaExceeded = false,
             errorMessage = "Yapay zeka modelleri yoğunluk nedeniyle geçici olarak yanıt veremedi. ($lastError)"
         )
+    }
+
+    /**
+     * thinkingConfig.thinkingBudget yalnızca gemini-2.5 modellerinde destekleniyor;
+     * diğer modeller (ör. gemini-3.5-flash-lite) bu alanla 400 INVALID_ARGUMENT döndürüyor.
+     */
+    private fun bodyForModel(model: String, requestBody: String): String {
+        if (model.startsWith("gemini-2.5")) return requestBody
+        val root = json.parseToJsonElement(requestBody) as? JsonObject ?: return requestBody
+        val genConfig = root["generationConfig"] as? JsonObject ?: return requestBody
+        val newGenConfig = JsonObject(genConfig - "thinkingConfig")
+        return JsonObject(root + ("generationConfig" to newGenConfig)).toString()
     }
 
     private fun getUserZoneId(context: AiChatContext): ZoneId {

@@ -217,6 +217,8 @@ class CloudAiManager {
                 put("generationConfig", buildJsonObject {
                     put("responseMimeType", JsonPrimitive("application/json"))
                     put("maxOutputTokens", JsonPrimitive(1024)) // replyText'i de sınırlar
+                    // gemini-2.5-flash "düşünme" token'ları bu limitten yiyor; kapatılmazsa yanıt MAX_TOKENS ile yarım kalıyor.
+                    put("thinkingConfig", buildJsonObject { put("thinkingBudget", JsonPrimitive(0)) })
                     put("responseSchema", buildJsonObject {
                         put("type", JsonPrimitive("OBJECT"))
                         put("properties", buildJsonObject {
@@ -544,6 +546,8 @@ class CloudAiManager {
                 put("generationConfig", buildJsonObject {
                     put("responseMimeType", JsonPrimitive("application/json"))
                     put("maxOutputTokens", JsonPrimitive(500)) // Kısa ve öz yanıt için limit
+                    // gemini-2.5-flash "düşünme" token'ları bu limitten yiyor; kapatılmazsa yanıt MAX_TOKENS ile yarım kalıyor.
+                    put("thinkingConfig", buildJsonObject { put("thinkingBudget", JsonPrimitive(0)) })
                     put("responseSchema", buildJsonObject {
                         put("type", JsonPrimitive("OBJECT"))
                         put("properties", buildJsonObject {
