@@ -26,6 +26,7 @@ import com.yusufteker.planora.server.routes.taskRoutes
 import com.yusufteker.planora.server.routes.calendarRoutes
 import com.yusufteker.planora.server.routes.aiRoutes
 import com.yusufteker.planora.server.routes.adminRoutes
+import com.yusufteker.planora.server.routes.healthRoutes
 
 import com.yusufteker.planora.server.routes.appConfigRoutes
 import com.yusufteker.planora.server.routes.fcmTokenRoutes
@@ -88,13 +89,8 @@ fun Application.module() {
         head("/ping") {
             call.respond(HttpStatusCode.OK)
         }
-        // Health check endpoint
-        get("/health") {
-            call.respondText("OK", status = HttpStatusCode.OK)
-        }
-        head("/health") {
-            call.respond(HttpStatusCode.OK)
-        }
+        // Health check & HealthTrack endpoints
+        healthRoutes()
         appConfigRoutes()
         authRoutes()
         postRoutes()
