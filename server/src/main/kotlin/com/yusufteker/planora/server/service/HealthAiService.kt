@@ -142,6 +142,9 @@ object HealthAiService {
             put("generationConfig", buildJsonObject {
                 put("responseMimeType", JsonPrimitive("application/json"))
                 put("maxOutputTokens", JsonPrimitive(2000))
+                put("thinkingConfig", buildJsonObject {
+                    put("thinkingBudget", JsonPrimitive(0))
+                })
                 put("responseSchema", buildJsonObject {
                     put("type", JsonPrimitive("OBJECT"))
                     put("properties", buildJsonObject {
@@ -208,6 +211,9 @@ object HealthAiService {
             put("generationConfig", buildJsonObject {
                 put("responseMimeType", JsonPrimitive("application/json"))
                 put("maxOutputTokens", JsonPrimitive(800))
+                put("thinkingConfig", buildJsonObject {
+                    put("thinkingBudget", JsonPrimitive(0))
+                })
                 put("responseSchema", buildJsonObject {
                     put("type", JsonPrimitive("OBJECT"))
                     put("properties", buildJsonObject {
@@ -236,7 +242,7 @@ object HealthAiService {
                 val httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(25))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build()
 

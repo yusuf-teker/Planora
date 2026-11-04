@@ -213,7 +213,7 @@ object AiService {
                 val httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(25))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build()
 
@@ -349,6 +349,9 @@ object AiService {
             put("generationConfig", buildJsonObject {
                 put("responseMimeType", JsonPrimitive("application/json"))
                 put("maxOutputTokens", JsonPrimitive(450))
+                put("thinkingConfig", buildJsonObject {
+                    put("thinkingBudget", JsonPrimitive(0))
+                })
                 put("responseSchema", buildJsonObject {
                     put("type", JsonPrimitive("OBJECT"))
                     put("properties", buildJsonObject {
