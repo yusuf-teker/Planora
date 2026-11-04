@@ -36,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.yusufteker.planora.core.theme.PlanoraColors
 import com.yusufteker.planora.core.ui.components.bounceClick
+aimport com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.yusufteker.planora.shared.api.UserProfileResponse
@@ -267,6 +268,9 @@ fun PlanRoomDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
+                .clearFocusOnTap()
         ) {
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yusufteker.planora.core.theme.PlanoraColors
 import com.yusufteker.planora.core.ui.components.GlassCard
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import com.yusufteker.planora.feature.home.presentation.components.EmptyStateComponent
 import com.yusufteker.planora.feature.home.presentation.home.components.RoundCheckbox
 import com.yusufteker.planora.shared.api.ItemDetails
@@ -113,6 +114,7 @@ fun RoomTodosComponent(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .clearFocusOnTap()
             .padding(horizontal = 16.dp)
     ) {
         // --- Quick Add To-Do Bar ---

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
@@ -206,6 +207,9 @@ fun NoteEditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
+                .clearFocusOnTap()
                 .background(MaterialTheme.colorScheme.background)
         ) {
             if (state.isLoading && state.id != null && state.title.isBlank()) {

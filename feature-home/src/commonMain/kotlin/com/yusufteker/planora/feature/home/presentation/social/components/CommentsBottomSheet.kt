@@ -93,7 +93,10 @@ fun CommentsBottomSheet(
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 4.dp,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     if (replyToComment != null) {

@@ -1,7 +1,12 @@
 package com.yusufteker.planora.feature.home.presentation.task_detail
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
@@ -47,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.yusufteker.planora.core.ui.components.GradientText
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import com.yusufteker.planora.core.ui.components.getOptimizedCloudinaryUrl
 import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
@@ -59,7 +66,7 @@ import org.jetbrains.compose.resources.stringResource
 import planora.core.generated.resources.Res
 import planora.core.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TaskDetailScreen(
     viewModel: TaskDetailViewModel,
@@ -72,6 +79,7 @@ fun TaskDetailScreen(
     onNavigateToPlanRoom: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val isKeyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -242,32 +250,38 @@ fun TaskDetailScreen(
             )
         },
         bottomBar = {
-            Surface(
-                tonalElevation = 8.dp,
-                shadowElevation = 12.dp,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            AnimatedVisibility(
+                visible = !isKeyboardOpen,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                Surface(
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
-                    Button(
-                        onClick = { viewModel.onEvent(TaskDetailEvent.OnEditClick) },
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(Res.string.action_edit_task),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Button(
+                            onClick = { viewModel.onEvent(TaskDetailEvent.OnEditClick) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(Res.string.action_edit_task),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
                     }
                 }
             }
@@ -284,6 +298,9 @@ fun TaskDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .imePadding()
+                    .clearFocusOnTap()
                     .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
