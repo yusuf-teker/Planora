@@ -58,9 +58,8 @@ object HealthAiService {
     }
 
     private val candidateModels = listOf(
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro"
+        "gemini-2.5-flash",
+        "gemini-flash-latest"
     )
 
     suspend fun analyzeFood(rawText: String, date: String): FoodAiAnalysisResponse {
