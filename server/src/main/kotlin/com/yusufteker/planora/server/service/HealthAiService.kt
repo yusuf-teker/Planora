@@ -66,9 +66,9 @@ object HealthAiService {
     )
 
     suspend fun analyzeFood(rawText: String, date: String): FoodAiAnalysisResponse {
-        val apiKey = AppConfig.geminiApiKey
+        val apiKey = AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
-            throw IllegalStateException("GEMINI_API_KEY is not configured on server.")
+            throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
         }
 
         val systemPrompt = """
@@ -119,9 +119,9 @@ object HealthAiService {
     }
 
     suspend fun analyzeWorkout(rawText: String, userWeightKg: Double?, date: String): WorkoutAiAnalysisResponse {
-        val apiKey = AppConfig.geminiApiKey
+        val apiKey = AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
-            throw IllegalStateException("GEMINI_API_KEY is not configured on server.")
+            throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
         }
 
         val weightStr = if (userWeightKg != null && userWeightKg > 0) "$userWeightKg kg" else "70 kg (varsayılan)"

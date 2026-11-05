@@ -14,8 +14,13 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
 
-    <!-- Queries for system Calendar & File/Share interactions -->
+    <!-- Queries for system Calendar & File/Share interactions & HealthTrack Ecosystem -->
     <queries>
+        <package android:name="com.yusufteker.healthtrack" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="healthtrack" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.INSERT" />
             <data android:scheme="content" android:host="com.android.calendar" />
@@ -51,12 +56,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            <!-- Deep link for sharing events/tasks -->
+            <!-- Deep link for ecosystem & sharing events/tasks -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="planora" android:host="share" />
+                <data android:scheme="planora" />
             </intent-filter>
             
             <!-- HTTP/HTTPS Deep link to make URLs clickable in SMS -->

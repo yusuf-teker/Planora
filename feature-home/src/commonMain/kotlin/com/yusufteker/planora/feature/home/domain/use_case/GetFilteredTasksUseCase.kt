@@ -72,23 +72,65 @@ class GetFilteredTasksUseCase {
             filtered = filtered.filter { it.status != TaskStatus.COMPLETED }
         }
 
-        // 5. Recurring next-only filter
-        if (options.showOnlyNextRecurring) {
-            val uniqueTasks = mutableListOf<TaskDto>()
-            val seenRecurringBaseIds = mutableSetOf<String>()
+        // 5. Recurring next-only filter (Sadece Yaklaşan Tekrarlar)
+        // Tekrarlayan görevlerin sonsuz gelecekteki kopyalarını gizleyip liste görünümünü temiz tutar:
+        // - Bugün veya sonrasındaki ilk aktif (sıradaki) kopyayı gösterir.
+        // - Kullanıcı tamamlananları görmek istiyorsa bugün/geçmişte tamamlanmış kopyaları korur.
+        // - Takvim (CALENDAR) görünümünde uygulanmaz çünkü takvim ızgarasında ve seçili günde
+        //   ilgili tarihin planlanmış tüm kopyaları görünmelidir.
+        if (options.showOnlyNextRecurring && viewOption != TimelineViewOption.CALENDAR) {
+            val nowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+            val timeZone = TimeZone.currentSystemDefault()
+            val todayDate = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone).date
+
+            val nonRecurringTasks = mutableListOf<TaskDto>()
+            val recurringTasksByBaseId = mutableMapOf<String, MutableList<TaskDto>>()
 
             for (task in filtered) {
                 if (task.isRecurring) {
                     val baseId = task.id.extractBaseTaskId()
-                    if (baseId !in seenRecurringBaseIds) {
-                        seenRecurringBaseIds.add(baseId)
-                        uniqueTasks.add(task)
-                    }
+                    recurringTasksByBaseId.getOrPut(baseId) { mutableListOf() }.add(task)
                 } else {
-                    uniqueTasks.add(task)
+                    nonRecurringTasks.add(task)
                 }
             }
-            filtered = uniqueTasks
+
+            val finalRecurringTasks = mutableListOf<TaskDto>()
+
+            for ((_, occurrences) in recurringTasksByBaseId) {
+                val sortedOccurrences = occurrences.sortedBy { task ->
+                    (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                }
+
+                // Bugün veya sonrasındaki kopyaları filtrele
+                val upcomingOccurrences = sortedOccurrences.filter { task ->
+                    val effectiveTime = (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+                    val taskDate = Instant.fromEpochMilliseconds(effectiveTime).toLocalDateTime(timeZone).date
+                    taskDate >= todayDate
+                }
+
+                // Sıradaki yaklaşan aktif kopya: Bugün veya sonrasındaki ilk tamamlanmamış görev.
+                // Eğer hepsi tamamlanmışsa en yakın olanı, gelecekte kopya yoksa son kopyayı koru.
+                val nextActiveOccurrence = upcomingOccurrences.firstOrNull { it.status != TaskStatus.COMPLETED }
+                    ?: upcomingOccurrences.firstOrNull()
+                    ?: sortedOccurrences.lastOrNull()
+
+                // Tamamlanmış kopyalar (showCompleted açıksa veya TASKS hub'ında tutulmalı)
+                val completedToKeep = sortedOccurrences.filter { task ->
+                    task.status == TaskStatus.COMPLETED &&
+                        (options.showCompleted || viewOption == TimelineViewOption.TASKS) &&
+                        task.id != nextActiveOccurrence?.id
+                }
+
+                if (nextActiveOccurrence != null) {
+                    finalRecurringTasks.add(nextActiveOccurrence)
+                }
+                finalRecurringTasks.addAll(completedToKeep)
+            }
+
+            filtered = (nonRecurringTasks + finalRecurringTasks).sortedBy { task ->
+                (task.specificDetails as? ItemDetails.Task)?.deadline ?: task.startTime
+            }
         }
 
         // 6. Calendar filtering

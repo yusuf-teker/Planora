@@ -26,9 +26,15 @@ object AppConfig {
         ?: error("CRITICAL SECURITY ERROR: JWT_SECRET is not configured! Define it in server/.env or system environment.")
     val jwtIssuer: String = getEnv("JWT_ISSUER") ?: "planora"
 
-    // Gemini AI Key
-    val geminiApiKey: String = getEnv("GEMINI_API_KEY")
+    // Gemini AI Keys
+    // Planora AI uses PLANORA_GEMINI_API_KEY, falling back to GEMINI_API_KEY
+    val geminiApiKey: String = getEnv("PLANORA_GEMINI_API_KEY")
+        ?: getEnv("GEMINI_API_KEY")
         ?: error("CRITICAL SECURITY ERROR: GEMINI_API_KEY is not configured! Define it in server/.env or system environment.")
+
+    // HealthTrack AI uses HEALTH_GEMINI_API_KEY, falling back to GEMINI_API_KEY if not configured
+    val healthGeminiApiKey: String = getEnv("HEALTH_GEMINI_API_KEY")
+        ?: geminiApiKey
 
     // Admin Secret Key for managing users and sending admin push notifications
     val adminSecretKey: String = getEnv("ADMIN_SECRET_KEY")

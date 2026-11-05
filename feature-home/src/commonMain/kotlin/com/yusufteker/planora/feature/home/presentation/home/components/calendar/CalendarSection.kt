@@ -60,24 +60,6 @@ fun CalendarSection(
             filteredTasks = filteredTasks.filter { it.status != TaskStatus.COMPLETED }
         }
 
-        if (state.filterOptions.showOnlyNextRecurring) {
-            val uniqueTasks = mutableListOf<TaskDto>()
-            val seenRecurringBaseIds = mutableSetOf<String>()
-
-            for (task in filteredTasks) {
-                if (task.isRecurring) {
-                    val baseId = task.id.extractBaseTaskId()
-                    if (baseId !in seenRecurringBaseIds) {
-                        seenRecurringBaseIds.add(baseId)
-                        uniqueTasks.add(task)
-                    }
-                } else {
-                    uniqueTasks.add(task)
-                }
-            }
-            filteredTasks = uniqueTasks
-        }
-
         val tasksMap = mutableMapOf<LocalDate, MutableList<TaskDto>>()
         for (task in filteredTasks) {
             val effectiveTime = (task.specificDetails as? com.yusufteker.planora.shared.api.ItemDetails.Task)?.deadline ?: task.startTime
@@ -111,24 +93,6 @@ fun CalendarSection(
 
             if (!state.filterOptions.showCompleted) {
                 filteredUserTasks = filteredUserTasks.filter { it.status != TaskStatus.COMPLETED }
-            }
-
-            if (state.filterOptions.showOnlyNextRecurring) {
-                val uniqueTasks = mutableListOf<TaskDto>()
-                val seenRecurringBaseIds = mutableSetOf<String>()
-
-                for (task in filteredUserTasks) {
-                    if (task.isRecurring) {
-                        val baseId = task.id.extractBaseTaskId()
-                        if (baseId !in seenRecurringBaseIds) {
-                            seenRecurringBaseIds.add(baseId)
-                            uniqueTasks.add(task)
-                        }
-                    } else {
-                        uniqueTasks.add(task)
-                    }
-                }
-                filteredUserTasks = uniqueTasks
             }
 
             val tasksMap = mutableMapOf<LocalDate, MutableList<TaskDto>>()
