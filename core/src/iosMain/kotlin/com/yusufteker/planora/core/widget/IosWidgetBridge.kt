@@ -20,7 +20,9 @@ import platform.Foundation.timeIntervalSince1970
  */
 object IosWidgetBridge : KoinComponent {
 
-    private val database: PlanoraDatabase by inject()
+    private val database: PlanoraDatabase?
+        get() = runCatching { getKoin().get<PlanoraDatabase>() }.getOrNull()
+
     private const val SUITE_NAME = "group.com.yusufteker.planora"
     private const val WIDGET_DATA_KEY = "widget_data_json"
 
@@ -28,7 +30,7 @@ object IosWidgetBridge : KoinComponent {
 
     fun syncWidgetData() {
         try {
-            val db = database
+            val db = database ?: return
             val entities = db.planoraDatabaseQueries.getAllTasks().executeAsList()
 
             val now = NSDate()

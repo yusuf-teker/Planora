@@ -4,14 +4,21 @@ import FoundationModels
 import ComposeApp
 import FirebaseCore
 import FirebaseMessaging
+import FirebaseCrashlytics
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
+        // 1. Initialize Planora core services (Koin, Napier, sync bridges) immediately
+        MainViewControllerKt.initPlanora()
+
+        // 2. Configure Firebase & Crashlytics
         FirebaseApp.configure()
+        setupCrashlyticsBridge()
         
+        // 3. Configure Notifications
         UNUserNotificationCenter.current().delegate = self
         
         let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
@@ -41,16 +48,35 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             IosNotificationBridge.shared.setFcmToken(token: token)
         }
     }
+
     func application(
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable : Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        if let type = userInfo["type"] as? String {
-            IosNotificationBridge.shared.handlePushData(type: type)
+        var hasCompleted = false
+        let lock = NSLock()
+        let completeOnce: (UIBackgroundFetchResult) -> Void = { result in
+            lock.lock()
+            defer { lock.unlock() }
+            if !hasCompleted {
+                hasCompleted = true
+                completionHandler(result)
+            }
         }
         
-        completionHandler(.newData)
+        // Safety timeout so iOS watchdog never terminates the app if network hangs
+        DispatchQueue.main.asyncAfter(deadline: .now() + 25.0) {
+            completeOnce(.newData)
+        }
+        
+        if let type = userInfo["type"] as? String {
+            IosNotificationBridge.shared.handlePushData(type: type) {
+                completeOnce(.newData)
+            }
+        } else {
+            completeOnce(.noData)
+        }
     }
 
     func userNotificationCenter(
@@ -60,7 +86,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         let userInfo = notification.request.content.userInfo
         if let type = userInfo["type"] as? String {
-            IosNotificationBridge.shared.handlePushData(type: type)
+            IosNotificationBridge.shared.handlePushData(type: type, onComplete: nil)
         }
         completionHandler([.banner, .list, .sound, .badge])
     }
@@ -74,7 +100,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let actionIdentifier = response.actionIdentifier
         
         if let type = userInfo["type"] as? String {
-            IosNotificationBridge.shared.handlePushData(type: type)
+            IosNotificationBridge.shared.handlePushData(type: type, onComplete: nil)
         }
         
         IosNotificationBridge.shared.handleNotificationResponse(
@@ -91,6 +117,8 @@ struct PlanoraApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     init() {
+        MainViewControllerKt.initPlanora()
+        setupCrashlyticsBridge()
         setupAiBridge()
         setupWidgetBridge()
         setupAppIconBridge()
@@ -105,6 +133,23 @@ struct PlanoraApp: App {
                     IosWidgetBridge.shared.syncWidgetData()
                 }
         }
+    }
+}
+
+func setupCrashlyticsBridge() {
+    IosCrashlyticsBridge.shared.onSetUserId = { userId in
+        Crashlytics.crashlytics().setUserID(userId)
+    }
+    IosCrashlyticsBridge.shared.onRecordError = { name, message, stackTrace in
+        let userInfo: [String: Any] = [
+            NSLocalizedDescriptionKey: message,
+            "StackTrace": stackTrace
+        ]
+        let error = NSError(domain: name, code: -1, userInfo: userInfo)
+        Crashlytics.crashlytics().record(error: error)
+    }
+    IosCrashlyticsBridge.shared.onLog = { msg in
+        Crashlytics.crashlytics().log(msg)
     }
 }
 

@@ -68,6 +68,7 @@ data class NutritionGoalSyncDto(
     val ironMg: Double = 14.0,
     val calciumMg: Double = 1000.0,
     val magnesiumMg: Double = 350.0,
+    val fitnessGoal: String? = null,
     val updatedAt: Long,
     val isDeleted: Boolean = false
 )

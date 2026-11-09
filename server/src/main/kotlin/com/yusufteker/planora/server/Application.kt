@@ -53,7 +53,11 @@ fun Application.module() {
 
     // 2. JSON veri alıp göndermek için ContentNegotiation eklentisini kur.
     install(ContentNegotiation) {
-        json()
+        json(kotlinx.serialization.json.Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = true
+        })
     }
 
     // 3. İstek takibi ve dağıtık izleme için CallId (Request ID / Correlation ID) eklentisini kur.
