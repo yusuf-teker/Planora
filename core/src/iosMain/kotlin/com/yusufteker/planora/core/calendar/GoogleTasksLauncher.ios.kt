@@ -3,6 +3,7 @@ package com.yusufteker.planora.core.calendar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import com.yusufteker.planora.core.preferences.SessionPreferences
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.submitForm
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.koin.compose.koinInject
 import platform.AuthenticationServices.ASWebAuthenticationPresentationContextProvidingProtocol
 import platform.AuthenticationServices.ASWebAuthenticationSession
 import platform.CoreCrypto.CC_SHA256
@@ -43,6 +45,7 @@ private data class GoogleTokenResponse(
     val access_token: String? = null,
     val token_type: String? = null,
     val expires_in: Long? = null,
+    val refresh_token: String? = null,
     val error: String? = null,
     val error_description: String? = null
 )
@@ -63,12 +66,16 @@ private class WebAuthPresentationContextProvider(
  *
  * Utilizes Apple's native [ASWebAuthenticationSession] with standard OAuth 2.0 PKCE (RFC 7636)
  * to securely authorize with Google and fetch tasks via [GoogleTasksClient].
+ *
+ * Persists OAuth access and refresh tokens in [SessionPreferences] so that subsequent syncs
+ * do not prompt the user for authorization repeatedly.
  */
 @Composable
 actual fun rememberGoogleTasksLauncher(
     onResult: (List<CalendarImportItem>?, String?) -> Unit
 ): GoogleTasksLauncher {
     val coroutineScope = rememberCoroutineScope()
+    val sessionPreferences = koinInject<SessionPreferences>()
 
     return remember {
         object : GoogleTasksLauncher {
@@ -100,11 +107,69 @@ actual fun rememberGoogleTasksLauncher(
                     "planora"
                 }
 
+                // Check for existing valid access token or refresh token first to avoid repeated prompts
+                coroutineScope.launch {
+                    val cachedToken = sessionPreferences.getGoogleAccessToken()
+                    val cachedEmail = sessionPreferences.getGoogleAccountEmail() ?: "Google Account"
+
+                    if (!cachedToken.isNullOrBlank()) {
+                        try {
+                            val items = withContext(Dispatchers.IO) {
+                                GoogleTasksClient.fetchAllGoogleData(cachedToken, cachedEmail)
+                            }
+                            onResult(items, null)
+                            return@launch
+                        } catch (e: Exception) {
+                            println("[GoogleTasksLauncher] Cached token fetch failed, attempting silent refresh: ${e.message}")
+                        }
+                    }
+
+                    val refreshToken = sessionPreferences.getGoogleRefreshToken()
+                    if (!refreshToken.isNullOrBlank()) {
+                        val newTokens = refreshAccessToken(clientId, refreshToken)
+                        val newAccessToken = newTokens?.access_token
+                        if (!newAccessToken.isNullOrBlank()) {
+                            sessionPreferences.saveGoogleTokens(
+                                accessToken = newAccessToken,
+                                refreshToken = newTokens.refresh_token ?: refreshToken,
+                                expiresInSeconds = newTokens.expires_in ?: 3600L,
+                                email = cachedEmail
+                            )
+                            try {
+                                val items = withContext(Dispatchers.IO) {
+                                    GoogleTasksClient.fetchAllGoogleData(newAccessToken, cachedEmail)
+                                }
+                                onResult(items, null)
+                                return@launch
+                            } catch (e: Exception) {
+                                println("[GoogleTasksLauncher] Refreshed token fetch failed: ${e.message}")
+                            }
+                        }
+                    }
+
+                    // Fallback to interactive OAuth session
+                    startWebAuthSession(
+                        clientId = clientId,
+                        redirectUri = redirectUri,
+                        callbackScheme = callbackScheme,
+                        sessionPreferences = sessionPreferences,
+                        onResult = onResult
+                    )
+                }
+            }
+
+            private fun startWebAuthSession(
+                clientId: String,
+                redirectUri: String,
+                callbackScheme: String,
+                sessionPreferences: SessionPreferences,
+                onResult: (List<CalendarImportItem>?, String?) -> Unit
+            ) {
                 // 1. Generate PKCE verifier and challenge
                 val codeVerifier = generateCodeVerifier()
                 val codeChallenge = generateCodeChallenge(codeVerifier)
 
-                // 2. Build Google OAuth 2.0 URL
+                // 2. Build Google OAuth 2.0 URL with offline access to receive a refresh token
                 val components = NSURLComponents.componentsWithString("https://accounts.google.com/o/oauth2/v2/auth") ?: run {
                     onResult(null, "OAuth URL oluşturulamadı.")
                     return
@@ -115,6 +180,8 @@ actual fun rememberGoogleTasksLauncher(
                     NSURLQueryItem.queryItemWithName("redirect_uri", value = redirectUri),
                     NSURLQueryItem.queryItemWithName("response_type", value = "code"),
                     NSURLQueryItem.queryItemWithName("scope", value = "https://www.googleapis.com/auth/tasks.readonly https://www.googleapis.com/auth/calendar.events.readonly email"),
+                    NSURLQueryItem.queryItemWithName("access_type", value = "offline"),
+                    NSURLQueryItem.queryItemWithName("prompt", value = "consent"),
                     NSURLQueryItem.queryItemWithName("code_challenge", value = codeChallenge),
                     NSURLQueryItem.queryItemWithName("code_challenge_method", value = "S256")
                 )
@@ -166,17 +233,26 @@ actual fun rememberGoogleTasksLauncher(
                     // 5. Exchange code for access token in coroutine
                     coroutineScope.launch {
                         try {
-                            val token = exchangeCodeForToken(
+                            val tokenResp = exchangeCodeForToken(
                                 clientId = clientId,
                                 code = authCode,
                                 codeVerifier = codeVerifier,
                                 redirectUri = redirectUri
                             )
 
+                            val token = tokenResp?.access_token
                             if (token.isNullOrBlank()) {
                                 onResult(null, "Google erişim belirteci alınamadı.")
                                 return@launch
                             }
+
+                            // Cache tokens securely so future calls don't require user consent
+                            sessionPreferences.saveGoogleTokens(
+                                accessToken = token,
+                                refreshToken = tokenResp.refresh_token,
+                                expiresInSeconds = tokenResp.expires_in ?: 3600L,
+                                email = "Google Account"
+                            )
 
                             val items = withContext(Dispatchers.IO) {
                                 GoogleTasksClient.fetchAllGoogleData(token, "Google Account")
@@ -218,7 +294,7 @@ private suspend fun exchangeCodeForToken(
     code: String,
     codeVerifier: String,
     redirectUri: String
-): String? = withContext(Dispatchers.IO) {
+): GoogleTokenResponse? = withContext(Dispatchers.IO) {
     val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -245,10 +321,48 @@ private suspend fun exchangeCodeForToken(
             throw Exception("Token hatası (${response.status.value}): $rawBody")
         }
 
-        val tokenResp = Json { ignoreUnknownKeys = true; isLenient = true }
+        Json { ignoreUnknownKeys = true; isLenient = true }
             .decodeFromString<GoogleTokenResponse>(rawBody)
+    } finally {
+        client.close()
+    }
+}
 
-        tokenResp.access_token
+/**
+ * Silently refreshes the OAuth 2.0 access token using a stored refresh token.
+ */
+private suspend fun refreshAccessToken(
+    clientId: String,
+    refreshToken: String
+): GoogleTokenResponse? = withContext(Dispatchers.IO) {
+    val client = HttpClient {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
+    }
+
+    try {
+        val response = client.submitForm(
+            url = "https://oauth2.googleapis.com/token",
+            formParameters = parameters {
+                append("client_id", clientId)
+                append("refresh_token", refreshToken)
+                append("grant_type", "refresh_token")
+            }
+        )
+
+        val rawBody = response.bodyAsText()
+        if (!response.status.isSuccess()) {
+            null
+        } else {
+            Json { ignoreUnknownKeys = true; isLenient = true }
+                .decodeFromString<GoogleTokenResponse>(rawBody)
+        }
+    } catch (e: Exception) {
+        null
     } finally {
         client.close()
     }

@@ -38,4 +38,15 @@ sealed interface TaskEditorEvent : UiEvent {
     data object OnShareClick : TaskEditorEvent
     data class OnAddTag(val tag: String) : TaskEditorEvent
     data class OnRemoveTag(val tag: String) : TaskEditorEvent
+
+    // --- Grup Odası Seçimi ---
+    /**
+     * Grup odası seçim alt sayfasının görünürlüğünü değiştirir.
+     */
+    data class OnRoomPickerVisibilityChanged(val isVisible: Boolean) : TaskEditorEvent
+
+    /**
+     * Yeni bir grup odası seçildiğinde (veya null ile kişisel seçildiğinde) tetiklenir.
+     */
+    data class OnRoomSelected(val roomId: String?) : TaskEditorEvent
 }

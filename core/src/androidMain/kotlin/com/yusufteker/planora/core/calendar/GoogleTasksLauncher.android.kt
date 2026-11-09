@@ -140,13 +140,41 @@ actual fun rememberGoogleTasksLauncher(
         object : GoogleTasksLauncher {
             override fun launch() {
                 try {
+                    val tasksScope = Scope("https://www.googleapis.com/auth/tasks.readonly")
+                    val calScope = Scope("https://www.googleapis.com/auth/calendar.events.readonly")
+
+                    // Check if user is already signed in with required scopes to avoid asking every time
+                    val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+                    if (lastAccount != null && GoogleSignIn.hasPermissions(lastAccount, tasksScope, calScope)) {
+                        val email = lastAccount.email ?: "Google Tasks"
+                        val androidAccount = lastAccount.account ?: Account(email, "com.google")
+                        val scope = "oauth2:https://www.googleapis.com/auth/tasks.readonly https://www.googleapis.com/auth/calendar.events.readonly"
+                        coroutineScope.launch {
+                            try {
+                                val accessToken = withContext(Dispatchers.IO) {
+                                    GoogleAuthUtil.getToken(context, androidAccount, scope)
+                                }
+                                val items = withContext(Dispatchers.IO) {
+                                    GoogleTasksClient.fetchAllGoogleData(accessToken, email)
+                                }
+                                onResult(items, null)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Cached account token error, launching intent: ${e.message}")
+                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                    .requestEmail()
+                                    .requestScopes(tasksScope, calScope)
+                                    .build()
+                                val client = GoogleSignIn.getClient(context, gso)
+                                launcher.launch(client.signInIntent)
+                            }
+                        }
+                        return
+                    }
+
                     Log.d(TAG, "Launching Google Sign-In with tasks.readonly and calendar.events.readonly scopes...")
                     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestEmail()
-                        .requestScopes(
-                            Scope("https://www.googleapis.com/auth/tasks.readonly"),
-                            Scope("https://www.googleapis.com/auth/calendar.events.readonly")
-                        )
+                        .requestScopes(tasksScope, calScope)
                         .build()
                     val client = GoogleSignIn.getClient(context, gso)
                     launcher.launch(client.signInIntent)

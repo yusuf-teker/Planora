@@ -6,6 +6,7 @@ import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.planora.shared.api.extractBaseTaskId
 import com.yusufteker.planora.shared.api.ItemDetails
+import com.yusufteker.planora.shared.api.RoomMemberStatus
 import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
@@ -14,8 +15,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.TaskVisibility
@@ -26,6 +31,8 @@ import planora.core.generated.resources.*
 
 /**
  * ViewModel for TaskDetailScreen (Read-only view of a Task with completion toggling and actions).
+ * Manages task details, quick child notes, duplication, and moving the task between personal
+ * state and group plan rooms with member assignment.
  */
 class TaskDetailViewModel(
     private val planRepository: PlanRepository,
@@ -39,6 +46,26 @@ class TaskDetailViewModel(
     private val _effect = MutableSharedFlow<TaskDetailEffect>()
     val effect = _effect.asSharedFlow()
 
+    init {
+        // Mevcut grup odalarını sürekli dinle
+        viewModelScope.launch {
+            planRepository.observeAllPlanRooms().collect { rooms ->
+                _state.update { currentState ->
+                    val currentRoomId = currentState.planRoomId ?: currentState.task?.sharedRoomIds?.firstOrNull()
+                    val matchingRoom = rooms.find { it.id == currentRoomId }
+                    currentState.copy(
+                        availableRooms = rooms,
+                        planRoomName = matchingRoom?.name ?: currentState.planRoomName,
+                        planRoomImageUrl = matchingRoom?.imageUrl ?: currentState.planRoomImageUrl
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Handles incoming UI events for task detail actions.
+     */
     fun onEvent(event: TaskDetailEvent) {
         when (event) {
             is TaskDetailEvent.OnLoadTask -> loadTask(
@@ -75,6 +102,168 @@ class TaskDetailViewModel(
             is TaskDetailEvent.OnQuickDuplicate -> quickDuplicateTask(event.targetDateMs)
             is TaskDetailEvent.OnAddQuickNote -> addQuickNote(event.content)
             is TaskDetailEvent.OnDeleteNote -> deleteNote(event.noteId)
+
+            // Grup Odasına Taşıma
+            TaskDetailEvent.OnOpenMoveToRoomSheet -> openMoveToRoomSheet()
+            TaskDetailEvent.OnDismissMoveToRoomSheet -> _state.update { it.copy(isMoveToRoomSheetVisible = false) }
+            is TaskDetailEvent.OnSelectTargetRoom -> selectTargetRoom(event.roomId)
+            is TaskDetailEvent.OnToggleTargetParticipant -> toggleTargetParticipant(event.userId)
+            is TaskDetailEvent.OnConfirmMoveToRoom -> confirmMoveToRoom(event.targetRoomId, event.participantIds)
+        }
+    }
+
+    /**
+     * Taşıma alt sayfasını açar ve geçerli odanın üyelerini yükler.
+     */
+    private fun openMoveToRoomSheet() {
+        val currentRoomId = _state.value.planRoomId ?: _state.value.task?.sharedRoomIds?.firstOrNull()
+        val currentParticipantIds = _state.value.participants.map { it.userId }.toSet()
+
+        _state.update {
+            it.copy(
+                isMoveToRoomSheetVisible = true,
+                selectedParticipantIds = currentParticipantIds
+            )
+        }
+
+        if (currentRoomId != null) {
+            loadTargetRoomMembers(currentRoomId)
+        } else {
+            _state.update { it.copy(targetRoomMembers = emptyList()) }
+        }
+    }
+
+    /**
+     * Taşıma alt sayfasında seçilen hedef odayı günceller ve üyelerini çeker.
+     *
+     * @param roomId Hedef oda ID'si veya kişisel yapılacaksa null.
+     */
+    private fun selectTargetRoom(roomId: String?) {
+        if (roomId == null) {
+            _state.update {
+                it.copy(
+                    targetRoomMembers = emptyList(),
+                    selectedParticipantIds = emptySet()
+                )
+            }
+        } else {
+            loadTargetRoomMembers(roomId)
+        }
+    }
+
+    /**
+     * Hedef odanın üyelerini yükler ve mevcut kullanıcıyı varsayılan olarak seçili katılımcılara ekler.
+     *
+     * @param roomId Hedef grup odasının ID'si.
+     */
+    private fun loadTargetRoomMembers(roomId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isTargetRoomMembersLoading = true) }
+            val rooms = _state.value.availableRooms.ifEmpty {
+                planRepository.observeAllPlanRooms().firstOrNull() ?: emptyList()
+            }
+            val room = rooms.find { it.id == roomId }
+            if (room != null) {
+                val validMembers = room.members.filter { it.status != RoomMemberStatus.DECLINED }
+                val profiles = coroutineScope {
+                    validMembers.map { member ->
+                        async {
+                            profileRepository.getProfile(member.userId.toString()).getOrNull()
+                        }
+                    }.awaitAll().filterNotNull()
+                }
+
+                val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                val initialParticipants = _state.value.selectedParticipantIds.toMutableSet()
+                if (currentUserId != null && !initialParticipants.contains(currentUserId)) {
+                    initialParticipants.add(currentUserId)
+                }
+
+                _state.update {
+                    it.copy(
+                        targetRoomMembers = profiles,
+                        isTargetRoomMembersLoading = false,
+                        selectedParticipantIds = initialParticipants
+                    )
+                }
+            } else {
+                _state.update { it.copy(isTargetRoomMembersLoading = false) }
+            }
+        }
+    }
+
+    /**
+     * Taşıma alt sayfasında bir katılımcının seçim durumunu tersine çevirir.
+     *
+     * @param userId Katılımcının kullanıcı ID'si.
+     */
+    private fun toggleTargetParticipant(userId: Int) {
+        val current = _state.value.selectedParticipantIds
+        val updated = if (current.contains(userId)) current - userId else current + userId
+        _state.update { it.copy(selectedParticipantIds = updated) }
+    }
+
+    /**
+     * Görevi hedef odaya taşır veya kişisel göreve dönüştürür.
+     * Yerel veritabanında günceller ve arka planda sunucu senkronizasyonunu başlatır.
+     *
+     * @param targetRoomId Hedef grup odasının ID'si (kişisel ise null).
+     * @param participantIds Atanan kullanıcıların ID kümesi.
+     */
+    private fun confirmMoveToRoom(targetRoomId: String?, participantIds: Set<Int>) {
+        viewModelScope.launch {
+            val currentTask = _state.value.task ?: return@launch
+            val baseId = currentTask.id.extractBaseTaskId()
+            _state.update { it.copy(isLoading = true, isMoveToRoomSheetVisible = false) }
+
+            val participantsMap = if (targetRoomId != null) {
+                val membersMap = _state.value.targetRoomMembers.associate { it.id to it.name }
+                val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                val currentUserName = sessionPreferences.getUserName()
+                participantIds.associateWith { id ->
+                    membersMap[id] ?: if (id == currentUserId && currentUserName != null) currentUserName else "Üye $id"
+                }
+            } else emptyMap()
+
+            val request = CreateTaskRequest(
+                title = currentTask.title,
+                description = currentTask.description,
+                startTime = currentTask.startTime,
+                endTime = currentTask.endTime,
+                type = currentTask.type,
+                status = currentTask.status,
+                visibility = if (targetRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
+                sharedRoomIds = targetRoomId?.let { listOf(it) } ?: emptyList(),
+                isRecurring = currentTask.isRecurring,
+                recurrenceRule = currentTask.recurrenceRule,
+                isFlexible = currentTask.isFlexible,
+                isOptional = currentTask.isOptional,
+                isPostponable = currentTask.isPostponable,
+                isAllDay = currentTask.isAllDay,
+                parentId = currentTask.parentId,
+                aiMetadata = currentTask.aiMetadata,
+                reminders = currentTask.reminders,
+                specificDetails = currentTask.specificDetails,
+                tags = currentTask.tags,
+                color = currentTask.color,
+                participants = participantsMap,
+                isPinned = currentTask.isPinned
+            )
+
+            val result = planRepository.updateTask(baseId, request, triggerSync = true)
+            _state.update { it.copy(isLoading = false) }
+
+            if (result.isSuccess) {
+                val msg = if (targetRoomId != null) {
+                    val roomName = _state.value.availableRooms.find { it.id == targetRoomId }?.name ?: ""
+                    runCatching { getString(Res.string.msg_moved_to_room, roomName) }.getOrDefault("Görev '$roomName' odasına taşındı")
+                } else {
+                    runCatching { getString(Res.string.msg_converted_to_personal) }.getOrDefault("Görev kişisel göreve dönüştürüldü")
+                }
+                setEffect(TaskDetailEffect.ShowSnackbar(msg))
+            } else {
+                setEffect(TaskDetailEffect.ShowSnackbar("Hata oluştu"))
+            }
         }
     }
 

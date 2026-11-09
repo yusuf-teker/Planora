@@ -12,12 +12,10 @@ import platform.Foundation.timeIntervalSince1970
  * iOS implementation of [CalendarSyncManager].
  *
  * Interacts with Apple Calendar via EventKit framework to add events directly
- * to the user's default calendar.
+ * to the user's default calendar and import events across all account calendars.
  */
 @OptIn(ExperimentalForeignApi::class)
 actual class CalendarSyncManager : CalendarService {
-
-    private val eventStore = EKEventStore()
 
     actual override fun addToSystemCalendar(
         title: String,
@@ -27,22 +25,46 @@ actual class CalendarSyncManager : CalendarService {
         endTimeEpochMillis: Long?
     ): Boolean {
         return try {
+            val store = EKEventStore()
             val endMillis = endTimeEpochMillis ?: (startTimeEpochMillis + 3600000L)
-            
-            eventStore.requestAccessToEntityType(EKEntityType.EKEntityTypeEvent) { granted, error ->
-                if (granted && error == null) {
-                    val event = EKEvent.eventWithEventStore(eventStore)
-                    event.title = title
-                    event.notes = description
-                    event.location = location
-                    event.startDate = NSDate.dateWithTimeIntervalSince1970(startTimeEpochMillis / 1000.0)
-                    event.endDate = NSDate.dateWithTimeIntervalSince1970(endMillis / 1000.0)
-                    event.calendar = eventStore.defaultCalendarForNewEvents
+            val status = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeEvent)
 
-                    eventStore.saveEvent(event, span = platform.EventKit.EKSpan.EKSpanThisEvent, commit = true, error = null)
+            val performSave = {
+                val event = EKEvent.eventWithEventStore(store)
+                event.title = title
+                event.notes = description
+                event.location = location
+                event.startDate = NSDate.dateWithTimeIntervalSince1970(startTimeEpochMillis / 1000.0)
+                event.endDate = NSDate.dateWithTimeIntervalSince1970(endMillis / 1000.0)
+
+                val allCalendars = (store.calendarsForEntityType(EKEntityType.EKEntityTypeEvent) as? List<*>)
+                    ?.filterIsInstance<platform.EventKit.EKCalendar>()
+                    ?: emptyList()
+
+                event.calendar = store.defaultCalendarForNewEvents
+                    ?: allCalendars.firstOrNull { it.allowsContentModifications }
+
+                if (event.calendar != null) {
+                    store.saveEvent(event, span = platform.EventKit.EKSpan.EKSpanThisEvent, commit = true, error = null)
                 }
             }
-            true
+
+            // 3L = FullAccess, 4L = WriteOnly (iOS 17+)
+            if (status == 3L || status == 4L) {
+                performSave()
+                true
+            } else {
+                if (store.respondsToSelector(platform.Foundation.NSSelectorFromString("requestWriteOnlyAccessToEventsWithCompletion:"))) {
+                    store.requestWriteOnlyAccessToEventsWithCompletion { granted, _ ->
+                        if (granted) performSave()
+                    }
+                } else {
+                    store.requestAccessToEntityType(EKEntityType.EKEntityTypeEvent) { granted, _ ->
+                        if (granted) performSave()
+                    }
+                }
+                true
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -66,16 +88,41 @@ actual class CalendarSyncManager : CalendarService {
             return@withContext emptyList()
         }
 
-        try {
-            eventStore.reset()
-        } catch (e: Exception) {
-            println("[CalendarSyncManager] Error resetting eventStore: ${e.message}")
+        // Always instantiate a fresh EKEventStore after authorization is confirmed
+        val store = EKEventStore()
+
+        // 1. Explicitly fetch calendars to ensure all accounts (iCloud, Google, Exchange, Local) are loaded
+        val allCalendars = (store.calendarsForEntityType(EKEntityType.EKEntityTypeEvent) as? List<*>)
+            ?.filterIsInstance<platform.EventKit.EKCalendar>()
+            ?: emptyList()
+
+        println("[CalendarSyncManager] Found ${allCalendars.size} calendars in EventKit.")
+
+        // Filter out birthday calendars and holiday spam, but KEEP iCloud, Exchange, Google, Local, and user calendars
+        val filteredCalendars = allCalendars.filter { cal ->
+            val calType = cal.type
+            val calTitle = cal.title.lowercase().trim()
+            val isBirthday = calType == platform.EventKit.EKCalendarType.EKCalendarTypeBirthday
+            val isHolidaySpam = calTitle.startsWith("holidays in") || calTitle.startsWith("resmi tatiller") || calTitle == "birthdays" || calTitle == "doğum günleri"
+            !isBirthday && !isHolidaySpam
+        }
+
+        val calendarsToQuery = if (filteredCalendars.isNotEmpty()) filteredCalendars else (allCalendars.ifEmpty { null })
+
+        // 2. EventKit 4-year limit protection:
+        // Querying intervals greater than 4 years causes EventKit predicate to silently fail and return 0 events.
+        val maxIntervalSec = 3L * 365L * 86400L // 3 years max
+        val queryEndMillis = if ((endEpochMillis - startEpochMillis) / 1000L > maxIntervalSec) {
+            startEpochMillis + (maxIntervalSec * 1000L)
+        } else {
+            endEpochMillis
         }
 
         val startDate = NSDate.dateWithTimeIntervalSince1970(startEpochMillis / 1000.0)
-        val endDate = NSDate.dateWithTimeIntervalSince1970(endEpochMillis / 1000.0)
-        val predicate = eventStore.predicateForEventsWithStartDate(startDate, endDate = endDate, calendars = null)
-        val rawEvents = eventStore.eventsMatchingPredicate(predicate)
+        val endDate = NSDate.dateWithTimeIntervalSince1970(queryEndMillis / 1000.0)
+
+        val predicate = store.predicateForEventsWithStartDate(startDate, endDate = endDate, calendars = calendarsToQuery)
+        val rawEvents = store.eventsMatchingPredicate(predicate)
         val eventsList = mutableListOf<CalendarImportItem>()
 
         @Suppress("UNCHECKED_CAST")
@@ -87,24 +134,6 @@ actual class CalendarSyncManager : CalendarService {
 
         for (ekEvent in ekEvents) {
             val cal = ekEvent.calendar
-            val calTitle = cal?.title?.lowercase()?.trim() ?: ""
-
-            // Exclude Apple Holidays subscription feeds, birthdays, and holiday calendars
-            val type = cal?.type
-            if (type == platform.EventKit.EKCalendarType.EKCalendarTypeBirthday ||
-                type == platform.EventKit.EKCalendarType.EKCalendarTypeSubscription
-            ) {
-                continue
-            }
-
-            val systemCalendarNames = listOf(
-                "holidays", "holidays in", "türkiye'deki resmi tatiller", "türkiye'deki tatiller",
-                "resmi tatiller", "tatiller", "dini bayramlar", "bayramlar", "birthdays", "doğum günleri"
-            )
-            if (systemCalendarNames.any { calTitle.startsWith(it) || calTitle == it }) {
-                continue
-            }
-
             val rawTitle = ekEvent.title
             val title = if (!rawTitle.isNullOrBlank()) rawTitle else "Untitled Event"
             val startMs = ekEvent.startDate?.let { (it.timeIntervalSince1970 * 1000.0).toLong() } ?: startEpochMillis
@@ -136,21 +165,23 @@ actual class CalendarSyncManager : CalendarService {
             )
         }
 
-        // Fetch Apple Reminders (Tasks) if Reminders permission is granted
+        // 3. Fetch Apple Reminders (Tasks) with strict 4-second timeout to avoid UI hangs
         val reminderStatus = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeReminder)
         if (reminderStatus == 3L) {
             try {
-                val reminderPredicate = eventStore.predicateForIncompleteRemindersWithDueDateStarting(
+                val reminderPredicate = store.predicateForIncompleteRemindersWithDueDateStarting(
                     startDate,
                     ending = endDate,
                     calendars = null
                 )
                 val deferred = kotlinx.coroutines.CompletableDeferred<List<platform.EventKit.EKReminder>?>()
-                eventStore.fetchRemindersMatchingPredicate(reminderPredicate) { reminders ->
+                store.fetchRemindersMatchingPredicate(reminderPredicate) { reminders ->
                     @Suppress("UNCHECKED_CAST")
                     deferred.complete(reminders as? List<platform.EventKit.EKReminder>)
                 }
-                val ekReminders = deferred.await() ?: emptyList()
+                val ekReminders = kotlinx.coroutines.withTimeoutOrNull(4000L) {
+                    deferred.await()
+                } ?: emptyList()
 
                 for (rem in ekReminders) {
                     val rawTitle = rem.title
@@ -181,7 +212,7 @@ actual class CalendarSyncManager : CalendarService {
                     )
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                println("[CalendarSyncManager] Error fetching reminders: ${e.message}")
             }
         }
 

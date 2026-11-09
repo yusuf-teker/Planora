@@ -237,7 +237,7 @@ data class AutoScheduleRequest(
 
 fun String.extractBaseTaskId(): String {
     val suffix = this.substringAfterLast("_")
-    return if (suffix.toLongOrNull() != null) {
+    return if (suffix.length >= 10 && suffix.toLongOrNull() != null) {
         this.substringBeforeLast("_")
     } else {
         this

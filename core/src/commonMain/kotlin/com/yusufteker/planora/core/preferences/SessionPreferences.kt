@@ -205,6 +205,65 @@ open class SessionPreferences(
         secureSettings.settings.putString(refreshTokenKeyString, refreshToken)
     }
 
+    // Keys for Google OAuth tokens
+    private val googleAccessTokenKeyString = "google_access_token"
+    private val googleRefreshTokenKeyString = "google_refresh_token"
+    private val googleTokenExpiresAtKeyString = "google_token_expires_at"
+    private val googleAccountEmailKeyString = "google_account_email"
+
+    /**
+     * Stores Google OAuth 2.0 access and refresh tokens securely.
+     */
+    suspend fun saveGoogleTokens(
+        accessToken: String,
+        refreshToken: String?,
+        expiresInSeconds: Long = 3600L,
+        email: String? = null
+    ) {
+        secureSettings.settings.putString(googleAccessTokenKeyString, accessToken)
+        refreshToken?.let { secureSettings.settings.putString(googleRefreshTokenKeyString, it) }
+        val expiresAt = com.yusufteker.planora.core.utils.getCurrentTimeMs() + (expiresInSeconds * 1000L)
+        secureSettings.settings.putLong(googleTokenExpiresAtKeyString, expiresAt)
+        email?.let { secureSettings.settings.putString(googleAccountEmailKeyString, it) }
+    }
+
+    /**
+     * Retrieves the cached Google OAuth access token if not expired.
+     */
+    suspend fun getGoogleAccessToken(): String? {
+        val expiresAt = secureSettings.settings.getLongOrNull(googleTokenExpiresAtKeyString) ?: 0L
+        val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+        // If expired or expiring within 60 seconds, return null to trigger refresh
+        if (now >= expiresAt - 60_000L) {
+            return null
+        }
+        return secureSettings.settings.getStringOrNull(googleAccessTokenKeyString)
+    }
+
+    /**
+     * Retrieves the stored Google OAuth refresh token.
+     */
+    suspend fun getGoogleRefreshToken(): String? {
+        return secureSettings.settings.getStringOrNull(googleRefreshTokenKeyString)
+    }
+
+    /**
+     * Retrieves the stored Google account email address.
+     */
+    suspend fun getGoogleAccountEmail(): String? {
+        return secureSettings.settings.getStringOrNull(googleAccountEmailKeyString)
+    }
+
+    /**
+     * Clears stored Google OAuth tokens (e.g. on logout or disconnect).
+     */
+    suspend fun clearGoogleTokens() {
+        secureSettings.settings.remove(googleAccessTokenKeyString)
+        secureSettings.settings.remove(googleRefreshTokenKeyString)
+        secureSettings.settings.remove(googleTokenExpiresAtKeyString)
+        secureSettings.settings.remove(googleAccountEmailKeyString)
+    }
+
     suspend fun saveFcmToken(token: String) {
         secureSettings.settings.putString(fcmTokenKeyString, token)
     }
@@ -249,6 +308,7 @@ open class SessionPreferences(
         // Clear secure tokens
         secureSettings.settings.remove(accessTokenKeyString)
         secureSettings.settings.remove(refreshTokenKeyString)
+        clearGoogleTokens()
         
         // Clear DataStore profile info (Logout means you become guest, data stays in DB but you can't see it until you login)
         dataStore.edit { prefs ->

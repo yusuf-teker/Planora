@@ -33,4 +33,30 @@ sealed interface TaskDetailEvent {
      * @param noteId The ID of the note to be deleted.
      */
     data class OnDeleteNote(val noteId: String) : TaskDetailEvent
+
+    // --- Grup Odasına Taşıma Olayları ---
+    /**
+     * Görevi grup odasına taşıma alt sayfasını açar.
+     */
+    data object OnOpenMoveToRoomSheet : TaskDetailEvent
+
+    /**
+     * Taşıma alt sayfasını kapatır.
+     */
+    data object OnDismissMoveToRoomSheet : TaskDetailEvent
+
+    /**
+     * Taşıma alt sayfasında hedef oda seçildiğinde tetiklenir (null ise kişisel).
+     */
+    data class OnSelectTargetRoom(val roomId: String?) : TaskDetailEvent
+
+    /**
+     * Taşıma alt sayfasında atanacak üye seçimi değiştirildiğinde tetiklenir.
+     */
+    data class OnToggleTargetParticipant(val userId: Int) : TaskDetailEvent
+
+    /**
+     * Taşıma ve üye atama işlemini onaylar ve kaydeder.
+     */
+    data class OnConfirmMoveToRoom(val targetRoomId: String?, val participantIds: Set<Int>) : TaskDetailEvent
 }

@@ -268,4 +268,37 @@ class TaskEditorStateAndCancellationTest {
         viewModel.onEvent(TaskEditorEvent.OnRemoveTag("is"))
         assertEquals(listOf("Toplanti"), viewModel.state.value.tags)
     }
+
+    // ========================================================================
+    // 7. GRUP ODASI SEÇİMİ VE TAŞIMA TESTLERİ
+    // ========================================================================
+
+    @Test
+    fun `oda secildiginde planRoomId guncellenmeli ve odasiz secildiginde sifirlanmalidir`() = runTest {
+        val roomResult = fakePlanRepository.createPlanRoom(com.yusufteker.planora.shared.api.CreatePlanRoomRequest("Yazılım Ekibi"))
+        val roomId = roomResult.getOrThrow().id
+
+        val viewModel = createViewModel()
+        runCurrent()
+
+        // Oda picker aç
+        viewModel.onEvent(TaskEditorEvent.OnRoomPickerVisibilityChanged(true))
+        assertTrue(viewModel.state.value.isRoomPickerVisible)
+
+        // Odayı seç
+        viewModel.onEvent(TaskEditorEvent.OnRoomSelected(roomId))
+        runCurrent()
+
+        assertEquals(roomId, viewModel.state.value.planRoomId)
+        assertEquals("Yazılım Ekibi", viewModel.state.value.planRoomName)
+        assertFalse(viewModel.state.value.isRoomPickerVisible)
+
+        // Kişisele geri döndür (null seçimi)
+        viewModel.onEvent(TaskEditorEvent.OnRoomSelected(null))
+        runCurrent()
+
+        assertEquals(null, viewModel.state.value.planRoomId)
+        assertEquals(null, viewModel.state.value.planRoomName)
+        assertTrue(viewModel.state.value.participants.isEmpty())
+    }
 }

@@ -143,7 +143,7 @@ open class FakePlanRepository : PlanRepository {
         if (shouldFailNetwork) {
             return Result.failure(RuntimeException(networkErrorMessage))
         }
-        val existing = tasksMap[taskId] ?: return Result.failure(NoSuchElementException("Görev bulunamadı: $taskId"))
+        val existing = tasksMap[taskId] ?: tasksMap[taskId.extractBaseTaskId()] ?: return Result.failure(NoSuchElementException("Görev bulunamadı: $taskId"))
         val updated = existing.copy(
             title = request.title,
             description = request.description,
@@ -160,7 +160,7 @@ open class FakePlanRepository : PlanRepository {
     }
 
     override suspend fun toggleTaskPinLocal(taskId: String, isPinned: Boolean): Result<Unit> {
-        val existing = tasksMap[taskId] ?: return Result.failure(NoSuchElementException("Görev bulunamadı: $taskId"))
+        val existing = tasksMap[taskId] ?: tasksMap[taskId.extractBaseTaskId()] ?: return Result.failure(NoSuchElementException("Görev bulunamadı: $taskId"))
         tasksMap[taskId] = existing.copy(isPinned = isPinned)
         _tasksFlow.value = tasksMap.values.toList()
         return Result.success(Unit)

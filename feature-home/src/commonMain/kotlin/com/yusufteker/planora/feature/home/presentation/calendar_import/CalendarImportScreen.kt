@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yusufteker.planora.core.base.CollectEffect
 import com.yusufteker.planora.core.calendar.CalendarImportDateRange
@@ -91,6 +92,8 @@ import planora.core.generated.resources.calendar_import_google_tasks_oauth_error
 import planora.core.generated.resources.calendar_import_google_tasks_success
 import planora.core.generated.resources.calendar_import_google_tasks_title
 import planora.core.generated.resources.calendar_import_grant_permission
+import planora.core.generated.resources.calendar_import_open_settings
+import planora.core.generated.resources.calendar_import_permission_full_access_hint
 import planora.core.generated.resources.calendar_import_in_progress
 import planora.core.generated.resources.calendar_import_loading
 import planora.core.generated.resources.calendar_import_or_google_cta
@@ -119,6 +122,11 @@ fun CalendarImportScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.onEvent(CalendarImportUiEvent.CheckPermission)
+        onPauseOrDispose { }
+    }
 
     val permissionLauncher = rememberCalendarPermissionLauncher { isGranted ->
         viewModel.onEvent(CalendarImportUiEvent.PermissionResult(isGranted))
@@ -422,6 +430,7 @@ fun CalendarImportScreen(
                                 googleTasksLauncher.launch()
                             },
                             isGoogleLoading = state.isGoogleTasksLoading,
+                            isPermissionDenied = state.isPermissionDenied,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(24.dp)
@@ -578,6 +587,7 @@ private fun PermissionRequiredCard(
     onGrantPermission: () -> Unit,
     onConnectGoogle: () -> Unit,
     isGoogleLoading: Boolean,
+    isPermissionDenied: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -630,6 +640,17 @@ private fun PermissionRequiredCard(
                 lineHeight = 20.sp
             )
 
+            if (isPermissionDenied) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.calendar_import_permission_full_access_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp
+                )
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
@@ -641,7 +662,11 @@ private fun PermissionRequiredCard(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = stringResource(Res.string.calendar_import_grant_permission),
+                    text = if (isPermissionDenied) {
+                        stringResource(Res.string.calendar_import_open_settings)
+                    } else {
+                        stringResource(Res.string.calendar_import_grant_permission)
+                    },
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Bold
                     )

@@ -1,10 +1,12 @@
 package com.yusufteker.planora.feature.home.presentation.task_detail
 
+import com.yusufteker.planora.shared.api.PlanRoomDto
 import com.yusufteker.planora.shared.api.RecurrenceRule
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskParticipantDto
 import com.yusufteker.planora.shared.api.TaskPriority
 import com.yusufteker.planora.shared.api.TaskStatus
+import com.yusufteker.planora.shared.api.UserProfileResponse
 
 data class TaskDetailState(
     val taskId: String? = null,
@@ -28,5 +30,12 @@ data class TaskDetailState(
     val sharedSender: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val task: TaskDto? = null
+    val task: TaskDto? = null,
+
+    // Grup Odasına Taşıma Durumları
+    val availableRooms: List<PlanRoomDto> = emptyList(),
+    val isMoveToRoomSheetVisible: Boolean = false,
+    val targetRoomMembers: List<UserProfileResponse> = emptyList(),
+    val selectedParticipantIds: Set<Int> = emptySet(),
+    val isTargetRoomMembersLoading: Boolean = false
 )

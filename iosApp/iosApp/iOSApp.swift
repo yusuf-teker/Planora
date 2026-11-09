@@ -12,7 +12,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
         // 1. Initialize Planora core services (Koin, Napier, sync bridges) immediately
-        MainViewControllerKt.initPlanora()
+        MainViewControllerKt.doInitPlanora()
 
         // 2. Configure Firebase & Crashlytics
         FirebaseApp.configure()
@@ -117,7 +117,7 @@ struct PlanoraApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     init() {
-        MainViewControllerKt.initPlanora()
+        MainViewControllerKt.doInitPlanora()
         setupCrashlyticsBridge()
         setupAiBridge()
         setupWidgetBridge()

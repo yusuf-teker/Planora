@@ -72,14 +72,15 @@ class TaskEditorViewModel(
             .onEach { autoSaveTask() }
             .launchIn(viewModelScope)
 
-        var cachedRooms = emptyList<com.yusufteker.planora.shared.api.PlanRoomDto>()
         viewModelScope.launch {
             planRepository.observeAllPlanRooms().collect { rooms ->
-                cachedRooms = rooms
                 _state.update { currentState ->
                     val currentRoomId = currentState.planRoomId ?: currentState.originalTask?.sharedRoomIds?.firstOrNull()
                     val roomName = rooms.find { it.id == currentRoomId }?.name
-                    currentState.copy(planRoomName = roomName ?: currentState.planRoomName)
+                    currentState.copy(
+                        availableRooms = rooms,
+                        planRoomName = roomName ?: currentState.planRoomName
+                    )
                 }
             }
         }
@@ -196,6 +197,8 @@ class TaskEditorViewModel(
                     }
                 }
             }
+            is TaskEditorEvent.OnRoomPickerVisibilityChanged -> _state.update { it.copy(isRoomPickerVisible = event.isVisible) }
+            is TaskEditorEvent.OnRoomSelected -> selectRoom(event.roomId)
             is TaskEditorEvent.OnPriorityChanged -> {
                 _state.update { it.copy(priority = event.priority, isPriorityPickerVisible = false) }
                 _saveTrigger.tryEmit(Unit)
@@ -440,6 +443,39 @@ class TaskEditorViewModel(
     }
 
     /**
+     * Kullanıcının görev için seçtiği grup odasını günceller veya kişisele çeker.
+     *
+     * @param roomId Seçilen grup odası ID'si (kişisel ise null).
+     */
+    private fun selectRoom(roomId: String?) {
+        if (roomId == null) {
+            _state.update {
+                it.copy(
+                    planRoomId = null,
+                    planRoomName = null,
+                    participants = emptyMap(),
+                    roomMembers = emptyList(),
+                    isRoomPickerVisible = false
+                )
+            }
+            _saveTrigger.tryEmit(Unit)
+        } else {
+            val room = _state.value.availableRooms.find { it.id == roomId }
+            _state.update {
+                it.copy(
+                    planRoomId = roomId,
+                    planRoomName = room?.name,
+                    isRoomPickerVisible = false
+                )
+            }
+            viewModelScope.launch {
+                loadRoomMembers(roomId)
+            }
+            _saveTrigger.tryEmit(Unit)
+        }
+    }
+
+    /**
      * Odanın üyelerini planRepository üzerinden çeker ve profil bilgilerini tamamlar.
      * `CoroutineScope` üzerinden extension fonksiyon olarak tanımlanmıştır.
      * Bu sayede üst coroutine (loadJob) iptal edildiğinde akış dinleme otomatik olarak sonlanır.
@@ -462,17 +498,23 @@ class TaskEditorViewModel(
                     }
                     _state.update { currentState ->
                         val isNewTask = currentState.id == null && !currentState.isCopyMode
+                        val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                        val currentUserName = sessionPreferences.getUserName()
                         val newParticipants = if (!defaultParticipantsApplied && isNewTask && profiles.isNotEmpty()) {
                             defaultParticipantsApplied = true
                             val map = profiles.associate { p -> p.id to p.name }.toMutableMap()
-                            val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
-                            val currentUserName = sessionPreferences.getUserName()
                             if (currentUserId != null && currentUserName != null && !map.containsKey(currentUserId)) {
                                 map[currentUserId] = currentUserName
                             }
                             map
+                        } else if (currentState.participants.isEmpty() && currentUserId != null && currentUserName != null) {
+                            mapOf(currentUserId to currentUserName)
                         } else {
-                            currentState.participants
+                            val memberIds = profiles.map { it.id }.toSet()
+                            val filtered = currentState.participants.filterKeys { it in memberIds || it == currentUserId }
+                            if (filtered.isEmpty() && currentUserId != null && currentUserName != null) {
+                                mapOf(currentUserId to currentUserName)
+                            } else filtered
                         }
 
                         currentState.copy(
@@ -556,7 +598,7 @@ class TaskEditorViewModel(
             endTime = state.originalTask?.endTime,
             type = state.originalTask?.type ?: TaskType.TASK,
             status = state.status,
-            visibility = if (state.planRoomId != null) TaskVisibility.ROOM_SHARED else (state.originalTask?.visibility ?: TaskVisibility.PRIVATE),
+            visibility = if (state.planRoomId != null) TaskVisibility.ROOM_SHARED else TaskVisibility.PRIVATE,
             sharedRoomIds = state.planRoomId?.let { listOf(it) } ?: emptyList(),
             isRecurring = if (state.hasDeadline) (state.isRecurring || state.recurrenceRule != null) else false,
             recurrenceRule = recurrenceStr,

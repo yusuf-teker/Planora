@@ -76,7 +76,7 @@ enum class CalendarImportDateRange(val labelRes: StringResource) {
                     Pair(nowMs - 180L * oneDayMs, nowMs + 185L * oneDayMs)
                 }
             }
-            ALL -> Pair(nowMs - 10L * 365L * oneDayMs, nowMs + 10L * 365L * oneDayMs)
+            ALL -> Pair(nowMs - 540L * oneDayMs, nowMs + 540L * oneDayMs)
         }
     }
 }

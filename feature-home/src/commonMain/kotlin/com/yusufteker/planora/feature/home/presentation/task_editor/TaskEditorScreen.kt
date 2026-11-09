@@ -31,6 +31,7 @@ import com.yusufteker.planora.feature.home.presentation.components.FormSwitchRow
 import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
+import com.yusufteker.planora.feature.home.presentation.components.PlanRoomPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.PriorityPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.TagInputSection
 import com.yusufteker.planora.core.ui.components.GradientText
@@ -394,9 +395,21 @@ fun TaskEditorScreen(
                     )
                 }
 
-                // Context specific: Plan Room Participants
-                if (state.planRoomId != null || state.participants.isNotEmpty()) {
-                    FormSection {
+                // Plan Room & Assignees Section
+                FormSection {
+                    val roomText = state.planRoomName ?: stringResource(Res.string.personal_task_label)
+                    FormRow(
+                        label = stringResource(Res.string.group_room_label),
+                        value = roomText,
+                        onClick = { viewModel.onEvent(TaskEditorEvent.OnRoomPickerVisibilityChanged(true)) }
+                    )
+
+                    if (state.planRoomId != null) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
                         val participantsText = if (state.participants.isEmpty()) {
                             stringResource(Res.string.option_not_selected)
                         } else {
@@ -406,9 +419,7 @@ fun TaskEditorScreen(
                             label = stringResource(Res.string.assignees_label),
                             value = participantsText,
                             onClick = { 
-                                if (state.planRoomId != null) {
-                                    viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) 
-                                }
+                                viewModel.onEvent(TaskEditorEvent.OnParticipantPickerVisibilityChanged(true)) 
                             }
                         )
                     }
@@ -526,6 +537,17 @@ fun TaskEditorScreen(
             sheetState = prioritySheetState,
             onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnPriorityPickerVisibilityChanged(false)) },
             onPrioritySelected = { priority -> viewModel.onEvent(TaskEditorEvent.OnPriorityChanged(priority)) }
+        )
+    }
+
+    if (state.isRoomPickerVisible) {
+        val roomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        PlanRoomPickerSheet(
+            availableRooms = state.availableRooms,
+            selectedRoomId = state.planRoomId,
+            sheetState = roomSheetState,
+            onDismissRequest = { viewModel.onEvent(TaskEditorEvent.OnRoomPickerVisibilityChanged(false)) },
+            onRoomSelected = { roomId -> viewModel.onEvent(TaskEditorEvent.OnRoomSelected(roomId)) }
         )
     }
 }

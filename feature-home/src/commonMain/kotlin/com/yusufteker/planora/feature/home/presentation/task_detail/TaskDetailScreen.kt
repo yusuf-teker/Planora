@@ -216,6 +216,25 @@ fun TaskDetailScreen(
                                 }
                             )
                             DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (state.planRoomId != null) stringResource(Res.string.action_change_room)
+                                        else stringResource(Res.string.action_move_to_room)
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Group,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(TaskDetailEvent.OnOpenMoveToRoomSheet)
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.action_copy)) },
                                 leadingIcon = {
                                     Icon(
@@ -307,7 +326,7 @@ fun TaskDetailScreen(
             ) {
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Plan Room Banner if associated
+                // Plan Room Banner if associated, or action card to move personal task to a group room
                 if (state.planRoomId != null || state.planRoomName != null) {
                     Surface(
                         modifier = Modifier
@@ -358,21 +377,103 @@ fun TaskDetailScreen(
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = state.planRoomName ?: stringResource(Res.string.connected_room),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Column {
+                                    Text(
+                                        text = stringResource(Res.string.group_room_label),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = state.planRoomName ?: stringResource(Res.string.connected_room),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
-                            if (state.planRoomId != null) {
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { viewModel.onEvent(TaskDetailEvent.OnOpenMoveToRoomSheet) },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = stringResource(Res.string.action_change_room),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                if (state.planRoomId != null) {
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
                             }
+                        }
+                    }
+                } else {
+                    // Kişisel görevi grup odasına taşıma hızlı kartı
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { viewModel.onEvent(TaskDetailEvent.OnOpenMoveToRoomSheet) },
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                        shadowElevation = 1.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Group,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(Res.string.action_move_to_room),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = stringResource(Res.string.personal_task_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                     }
                 }
@@ -1175,6 +1276,24 @@ fun TaskDetailScreen(
             onDateTimeSelected = { selectedMs ->
                 showQuickDuplicateSheet = false
                 viewModel.onEvent(TaskDetailEvent.OnQuickDuplicate(selectedMs))
+            }
+        )
+    }
+
+    if (state.isMoveToRoomSheetVisible) {
+        val moveSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        com.yusufteker.planora.feature.home.presentation.components.MoveTaskToRoomSheet(
+            availableRooms = state.availableRooms,
+            initialRoomId = state.planRoomId,
+            roomMembers = state.targetRoomMembers,
+            selectedParticipantIds = state.selectedParticipantIds,
+            isLoadingMembers = state.isTargetRoomMembersLoading,
+            sheetState = moveSheetState,
+            onDismissRequest = { viewModel.onEvent(TaskDetailEvent.OnDismissMoveToRoomSheet) },
+            onRoomSelected = { roomId -> viewModel.onEvent(TaskDetailEvent.OnSelectTargetRoom(roomId)) },
+            onParticipantToggled = { userId -> viewModel.onEvent(TaskDetailEvent.OnToggleTargetParticipant(userId)) },
+            onConfirmMove = { targetRoomId, participantIds ->
+                viewModel.onEvent(TaskDetailEvent.OnConfirmMoveToRoom(targetRoomId, participantIds))
             }
         )
     }

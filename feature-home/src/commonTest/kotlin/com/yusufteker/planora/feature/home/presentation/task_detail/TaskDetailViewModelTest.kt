@@ -159,4 +159,72 @@ class TaskDetailViewModelTest {
             assertEquals(taskId, effect.taskId)
         }
     }
+
+    @Test
+    fun confirmMoveToRoom_movesTaskToGroupRoomAndEmitsSnackbar() = runTest {
+        val roomResult = fakePlanRepository.createPlanRoom(com.yusufteker.planora.shared.api.CreatePlanRoomRequest("Test Odası"))
+        val roomId = roomResult.getOrThrow().id
+
+        val taskResult = fakePlanRepository.createTask(
+            CreateTaskRequest(
+                title = "Kişisel Görev",
+                startTime = 1000L,
+                type = TaskType.TASK
+            )
+        )
+        val taskId = taskResult.getOrThrow().id
+        viewModel.onEvent(TaskDetailEvent.OnLoadTask(taskId = taskId))
+        advanceUntilIdle()
+
+        viewModel.effect.test {
+            viewModel.onEvent(TaskDetailEvent.OnConfirmMoveToRoom(targetRoomId = roomId, participantIds = setOf(1)))
+            advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is TaskDetailEffect.ShowSnackbar)
+        }
+
+        fakePlanRepository.observeAllTasks().test {
+            val allTasks = awaitItem()
+            val updatedTask = allTasks.find { it.id == taskId }
+            assertTrue(updatedTask != null)
+            assertTrue(updatedTask.sharedRoomIds.contains(roomId))
+            assertEquals(com.yusufteker.planora.shared.api.TaskVisibility.ROOM_SHARED, updatedTask.visibility)
+        }
+    }
+
+    @Test
+    fun confirmMoveToRoom_nullTargetRoom_convertsToPersonalTask() = runTest {
+        val roomResult = fakePlanRepository.createPlanRoom(com.yusufteker.planora.shared.api.CreatePlanRoomRequest("Test Odası"))
+        val roomId = roomResult.getOrThrow().id
+
+        val taskResult = fakePlanRepository.createTask(
+            CreateTaskRequest(
+                title = "Oda Görevi",
+                startTime = 1000L,
+                type = TaskType.TASK,
+                visibility = com.yusufteker.planora.shared.api.TaskVisibility.ROOM_SHARED,
+                sharedRoomIds = listOf(roomId)
+            )
+        )
+        val taskId = taskResult.getOrThrow().id
+        viewModel.onEvent(TaskDetailEvent.OnLoadTask(taskId = taskId, planRoomId = roomId))
+        advanceUntilIdle()
+
+        viewModel.effect.test {
+            viewModel.onEvent(TaskDetailEvent.OnConfirmMoveToRoom(targetRoomId = null, participantIds = emptySet()))
+            advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is TaskDetailEffect.ShowSnackbar)
+        }
+
+        fakePlanRepository.observeAllTasks().test {
+            val allTasks = awaitItem()
+            val updatedTask = allTasks.find { it.id == taskId }
+            assertTrue(updatedTask != null)
+            assertTrue(updatedTask.sharedRoomIds.isEmpty())
+            assertEquals(com.yusufteker.planora.shared.api.TaskVisibility.PRIVATE, updatedTask.visibility)
+        }
+    }
 }

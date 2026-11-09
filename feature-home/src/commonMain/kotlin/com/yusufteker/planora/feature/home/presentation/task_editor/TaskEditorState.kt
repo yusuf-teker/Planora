@@ -1,5 +1,6 @@
 package com.yusufteker.planora.feature.home.presentation.task_editor
 
+import com.yusufteker.planora.shared.api.PlanRoomDto
 import com.yusufteker.planora.shared.api.UserProfileResponse
 import com.yusufteker.planora.core.base.UiState
 import com.yusufteker.planora.shared.api.RecurrenceRule
@@ -30,6 +31,8 @@ data class TaskEditorState(
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
     val isPriorityPickerVisible: Boolean = false,
+    val isRoomPickerVisible: Boolean = false,
+    val availableRooms: List<PlanRoomDto> = emptyList(),
     val roomMembers: List<UserProfileResponse> = emptyList(),
     val isRoomMembersLoading: Boolean = false,
     val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),
