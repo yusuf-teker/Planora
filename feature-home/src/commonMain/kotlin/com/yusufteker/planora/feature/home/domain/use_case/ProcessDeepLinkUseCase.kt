@@ -48,19 +48,25 @@ class ProcessDeepLinkUseCase(
 
         try {
             val url = Url(deepLinkUrl)
-            val isPlanoraScheme = url.protocol.name == "planora" && url.host == "share"
+            val isPlanoraShare = url.protocol.name == "planora" && url.host == "share"
+            val isPlanoraDirectTask = url.protocol.name == "planora" && (url.host == "todo" || url.host == "task")
             val pathSegments = url.rawSegments.filter { it.isNotEmpty() }
             val isHttpScheme = (url.protocol.name == "http" || url.protocol.name == "https") &&
                                (url.host == "planora.yusufteker.com" || url.host == "pulse.yusufteker.com") &&
                                pathSegments.firstOrNull() == "share"
 
-            if (!isPlanoraScheme && !isHttpScheme) {
+            if (!isPlanoraShare && !isPlanoraDirectTask && !isHttpScheme) {
                 return DeepLinkResult.InvalidOrIgnored
             }
 
-            val type = if (isHttpScheme) pathSegments.getOrNull(1) ?: "" else pathSegments.firstOrNull() ?: ""
+            val type = when {
+                isPlanoraDirectTask -> "task"
+                isHttpScheme -> pathSegments.getOrNull(1) ?: ""
+                else -> pathSegments.firstOrNull() ?: ""
+            }
             val title = url.parameters["title"]
-            val note = url.parameters["note"]
+            val rawItems = url.parameters["items"]
+            val note = url.parameters["note"] ?: rawItems?.split(";")?.filter { it.isNotBlank() }?.joinToString("\n") { "• $it" }
             val dateString = url.parameters["date"]
             val date = dateString?.toLongOrNull()
             val sender = url.parameters["sender"]

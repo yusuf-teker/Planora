@@ -72,13 +72,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        val action = intent?.action
+        val type = intent?.type
         val dataString = intent?.dataString
         val selectedDate = intent?.getStringExtra(com.yusufteker.planora.android.widget.PlanoraWidgetUpdater.EXTRA_SELECTED_DATE)
         val taskId = intent?.getStringExtra(com.yusufteker.planora.android.widget.PlanoraWidgetUpdater.EXTRA_TASK_ID)
 
-        println("DEEPLINK DEBUG: MainActivity handleIntent dataString='$dataString', selectedDate='$selectedDate', taskId='$taskId'")
+        println("DEEPLINK DEBUG: MainActivity handleIntent action='$action', type='$type', dataString='$dataString', selectedDate='$selectedDate', taskId='$taskId'")
 
-        if (selectedDate != null) {
+        if (action == Intent.ACTION_SEND && type?.startsWith("text/") == true) {
+            val title = intent.getStringExtra(Intent.EXTRA_TITLE)
+                ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+                ?: "Market Listesi"
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
+            val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+            val encodedNote = java.net.URLEncoder.encode(text, "UTF-8")
+            DeepLinkManager.emitLink("planora://share/task?title=$encodedTitle&note=$encodedNote")
+        } else if (selectedDate != null) {
             DeepLinkManager.emitLink("planora://share/calendar?date=$selectedDate")
         } else if (taskId != null) {
             DeepLinkManager.emitLink("planora://share/task?taskId=$taskId")

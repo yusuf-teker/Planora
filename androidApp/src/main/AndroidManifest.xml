@@ -74,6 +74,13 @@
                 <data android:scheme="http" android:host="pulse.yusufteker.com" android:pathPrefix="/share" />
                 <data android:scheme="https" android:host="pulse.yusufteker.com" android:pathPrefix="/share" />
             </intent-filter>
+
+            <!-- Support system text share from other apps (e.g. HealthTrack, notes, browser) -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <!-- Dynamic App Icon Launcher Aliases -->

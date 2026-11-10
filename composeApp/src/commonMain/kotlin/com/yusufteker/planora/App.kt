@@ -208,15 +208,26 @@ fun App() {
                         )
                     }
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToTask -> {
-                        navigator.navigate(
-                            Screen.TaskDetail(
-                                taskId = result.taskId,
-                                sharedTitle = result.sharedTitle,
-                                sharedNote = result.sharedNote,
-                                sharedDate = result.sharedDate,
-                                sharedSender = result.sharedSender
+                        if (result.taskId.isNullOrEmpty()) {
+                            navigator.navigate(
+                                Screen.TaskEditor(
+                                    sharedTitle = result.sharedTitle,
+                                    sharedNote = result.sharedNote,
+                                    sharedDate = result.sharedDate,
+                                    sharedSender = result.sharedSender
+                                )
                             )
-                        )
+                        } else {
+                            navigator.navigate(
+                                Screen.TaskDetail(
+                                    taskId = result.taskId,
+                                    sharedTitle = result.sharedTitle,
+                                    sharedNote = result.sharedNote,
+                                    sharedDate = result.sharedDate,
+                                    sharedSender = result.sharedSender
+                                )
+                            )
+                        }
                     }
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToNote -> {
                         navigator.navigate(
