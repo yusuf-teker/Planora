@@ -65,7 +65,12 @@ object HealthAiService {
         "gemini-3.5-flash"
     )
 
-    suspend fun analyzeFood(rawText: String, date: String): FoodAiAnalysisResponse {
+    suspend fun analyzeFood(
+        rawText: String,
+        date: String,
+        imageBase64: String? = null,
+        imageMimeType: String? = "image/jpeg"
+    ): FoodAiAnalysisResponse {
         val apiKey = AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
             throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
@@ -73,12 +78,13 @@ object HealthAiService {
 
         val systemPrompt = """
         Sen uzman bir diyetisyen ve besin analizi yapay zekasısın.
-        Kullanıcının Türkçe serbest metin olarak girdiği yemek ve öğünleri ayrıştırıp analiz edeceksin.
+        Kullanıcının Türkçe serbest metin olarak veya yüklediği yemek/tabak/besin etiketi fotoğrafından yemek ve öğünleri ayrıştırıp analiz edeceksin.
         Tarih: $date
         
         GÖREV:
-        1. Kullanıcının metnindeki her bir yiyecek ve içeceği porsiyonuyla birlikte ayrıştır.
-        2. Her öğe için:
+        1. Eğer bir fotoğraf gönderildiyse (tabak veya besin etiketi), fotoğraftaki yiyecekleri, porsiyonları ve kalori/makro değerlerini doğrudan tespit et.
+        2. Kullanıcının metnindeki veya fotoğraftaki her bir yiyecek ve içeceği porsiyonuyla birlikte ayrıştır.
+        3. Her öğe için:
            - name: Yiyeceğin düzgün Türkçe adı (Örn: "Yumurta", "Tam Buğday Ekmeği", "Zeytin")
            - formattedPortion: Miktar ve birimi (Örn: "2 Adet", "1 Dilim", "5 Adet")
            - calories: Kalori (kcal, tam sayı)
@@ -87,9 +93,9 @@ object HealthAiService {
            - fatG: Yağ (gram, ondalıklı sayı)
            - fiberG: Lif (gram, ondalıklı sayı)
            - micronutrients: Temel vitamin ve mineraller listesi (name, amount, unit: "mg" veya "µg"). Özellikle C vitamini, D vitamini, B12, Demir, Kalsiyum, Magnezyum belirt.
-        3. totalCalories: Tüm öğelerin kalori toplamı (tam sayı).
-        4. summary: Günün beslenmesine dair 1-2 cümlelik samimi ve motive edici Türkçe özet.
-        5. disclaimer: "Besin değerleri tahmini yaklaşık değerlerdir."
+        4. totalCalories: Tüm öğelerin kalori toplamı (tam sayı).
+        5. summary: Günün beslenmesine dair 1-2 cümlelik samimi ve motive edici Türkçe özet.
+        6. disclaimer: "Besin değerleri tahmini yaklaşık değerlerdir."
         
         SADECE VE SADECE aşağıdaki JSON şemasına uygun geçerli bir JSON objesi döndür:
         {
@@ -113,7 +119,8 @@ object HealthAiService {
         }
         """.trimIndent()
 
-        val requestBody = buildFoodRequestBody(systemPrompt, rawText)
+        val promptText = rawText.ifBlank { "Lütfen fotoğraftaki tabağı/besin etiketini analiz et ve besin değerlerini çıkar." }
+        val requestBody = buildFoodRequestBody(systemPrompt, promptText, imageBase64, imageMimeType)
         val responseText = executeGeminiRequest(apiKey, requestBody)
         return parseFoodResponse(responseText)
     }
@@ -152,11 +159,24 @@ object HealthAiService {
         return parseWorkoutResponse(responseText)
     }
 
-    private fun buildFoodRequestBody(systemPrompt: String, userInput: String): String {
+    private fun buildFoodRequestBody(
+        systemPrompt: String,
+        userInput: String,
+        imageBase64: String? = null,
+        imageMimeType: String? = "image/jpeg"
+    ): String {
         val root = buildJsonObject {
             put("contents", buildJsonArray {
                 add(buildJsonObject {
                     put("parts", buildJsonArray {
+                        if (!imageBase64.isNullOrBlank()) {
+                            add(buildJsonObject {
+                                put("inlineData", buildJsonObject {
+                                    put("mimeType", JsonPrimitive(imageMimeType ?: "image/jpeg"))
+                                    put("data", JsonPrimitive(imageBase64))
+                                })
+                            })
+                        }
                         add(buildJsonObject { put("text", JsonPrimitive(userInput)) })
                     })
                 })

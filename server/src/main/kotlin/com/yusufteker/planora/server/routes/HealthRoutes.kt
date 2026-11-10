@@ -31,7 +31,9 @@ data class HealthCheckResponse(
 @Serializable
 data class FoodAiRequest(
     val text: String,
-    val date: String
+    val date: String,
+    val imageBase64: String? = null,
+    val imageMimeType: String? = "image/jpeg"
 )
 
 @Serializable
@@ -175,7 +177,12 @@ fun Route.healthRoutes() {
             post("/ai/food") {
                 val req = call.receive<FoodAiRequest>()
                 try {
-                    val result = HealthAiService.analyzeFood(req.text, req.date)
+                    val result = HealthAiService.analyzeFood(
+                        rawText = req.text,
+                        date = req.date,
+                        imageBase64 = req.imageBase64,
+                        imageMimeType = req.imageMimeType
+                    )
                     call.respond(HttpStatusCode.OK, result)
                 } catch (e: Exception) {
                     println("[HealthRoutes] Error in /health/ai/food: ${e.message}")
