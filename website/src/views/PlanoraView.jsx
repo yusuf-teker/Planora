@@ -69,7 +69,7 @@ export default function PlanoraView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <CheckSquare className="w-4 h-4" />
             </div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
@@ -290,3 +290,4 @@ export default function PlanoraView() {
     </div>
   );
 }
+

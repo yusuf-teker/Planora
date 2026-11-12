@@ -49,14 +49,14 @@ export default function LoginView() {
             {/* Logolar yan yana ve aralıklı */}
             <div className="flex items-center gap-4 mb-5">
               {/* HealthTrack Pod */}
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1.5px] shadow-glow-health">
-                <div className="w-full h-full bg-[#0B0F19] rounded-[14px] flex items-center justify-center font-black text-emerald-400 text-xl tracking-tighter">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 p-[2px] shadow-glow-health">
+                <div className="w-full h-full bg-[#0B0F19] rounded-full flex items-center justify-center font-black text-emerald-400 text-xl tracking-tighter">
                   H
                 </div>
               </div>
               {/* Planora Pod */}
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-400 p-[1.5px] shadow-glow-planora">
-                <div className="w-full h-full bg-[#0B0F19] rounded-[14px] flex items-center justify-center font-black text-indigo-400 text-xl tracking-tighter">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-400 p-[2px] shadow-glow-planora">
+                <div className="w-full h-full bg-[#0B0F19] rounded-full flex items-center justify-center font-black text-indigo-400 text-xl tracking-tighter">
                   P
                 </div>
               </div>

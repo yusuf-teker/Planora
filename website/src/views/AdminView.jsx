@@ -217,7 +217,7 @@ export default function AdminView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-glow-gold">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-glow-gold">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
@@ -830,3 +830,4 @@ export default function AdminView() {
     </div>
   );
 }
+

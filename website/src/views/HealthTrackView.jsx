@@ -30,10 +30,9 @@ export default function HealthTrackView() {
     goal: null,
     workouts: [],
     weights: [],
-    appointments: [],
   });
 
-  const [activeTab, setActiveTab] = useState('foods'); // 'foods', 'workouts', 'weights', 'appointments', 'report'
+  const [activeTab, setActiveTab] = useState('foods'); // 'foods', 'workouts', 'weights', 'report'
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const loadData = async () => {
@@ -43,10 +42,9 @@ export default function HealthTrackView() {
       const data = await getHealthData(token, 0);
       setHealthData({
         foods: (data.foods || []).filter(f => !f.isDeleted),
-        goal: data.goal || null,
+        goal: data.nutritionGoals || data.goal || null,
         workouts: (data.workouts || []).filter(w => !w.isDeleted),
         weights: (data.weights || []).filter(wt => !wt.isDeleted),
-        appointments: (data.appointments || []).filter(a => !a.isDeleted),
       });
     } catch (err) {
       console.error('Failed to load health data:', err);
@@ -112,9 +110,6 @@ export default function HealthTrackView() {
     healthData.weights.forEach(wt => {
       csv += `Kilo,"${wt.date}","Tartı Kaydı",${wt.weightKg} kg\n`;
     });
-    healthData.appointments.forEach(a => {
-      csv += `Randevu,"${a.dateTime}","${a.doctorName || ''} - ${a.hospitalName || ''} (${a.department || ''})",-\n`;
-    });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -133,7 +128,7 @@ export default function HealthTrackView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <Heart className="w-4 h-4" />
             </div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
@@ -369,18 +364,6 @@ export default function HealthTrackView() {
         </button>
 
         <button
-          onClick={() => setActiveTab('appointments')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all whitespace-nowrap ${
-            activeTab === 'appointments'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>Doktor & Randevular ({healthData.appointments.length})</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('report')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all whitespace-nowrap ${
             activeTab === 'report'
@@ -389,7 +372,7 @@ export default function HealthTrackView() {
           }`}
         >
           <Printer className="w-3.5 h-3.5" />
-          <span>Doktora Rapor İhracı</span>
+          <span>Sağlık Raporu & Çıktı</span>
         </button>
       </div>
 
@@ -547,52 +530,7 @@ export default function HealthTrackView() {
         </div>
       )}
 
-      {/* Tab 4: Appointments Content */}
-      {activeTab === 'appointments' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
-              Doktor & Klinik Randevuları
-            </h2>
-            <span className="text-xs text-gray-500">Toplam {healthData.appointments.length} randevu</span>
-          </div>
-
-          {healthData.appointments.length === 0 ? (
-            <div className="glass-panel rounded-3xl p-10 text-center border border-white/5">
-              <Calendar className="w-8 h-8 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-gray-300">Kayıtlı doktor randevunuz bulunmuyor.</p>
-              <p className="text-xs text-gray-500 mt-1">Eklediğiniz randevular otomatik olarak Planora takviminize de yansır.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {healthData.appointments.map((a) => (
-                <div key={a.id} className="glass-panel rounded-2xl p-5 border border-white/10 space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-emerald-400">{a.department || 'Genel Muayene'}</span>
-                    <span className="text-gray-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {a.dateTime}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-bold text-white">{a.doctorName || 'Doktor'}</h3>
-                    <p className="text-xs text-gray-400">{a.hospitalName || 'Sağlık Kuruluşu'}</p>
-                  </div>
-
-                  {a.notes && (
-                    <p className="text-xs text-gray-300 bg-white/5 p-2 rounded-xl border border-white/5">
-                      {a.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 5: Export / Printable Medical Report */}
+      {/* Tab 4: Export / Printable Medical Report */}
       {activeTab === 'report' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between no-print">
@@ -689,3 +627,4 @@ export default function HealthTrackView() {
     </div>
   );
 }
+

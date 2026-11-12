@@ -20,6 +20,7 @@ import com.yusufteker.planora.server.plugins.configureCallLogging
 import com.yusufteker.planora.server.plugins.configureStatusPages
 import com.yusufteker.planora.server.plugins.configureRateLimiting
 import com.yusufteker.planora.server.plugins.configureCallId
+import com.yusufteker.planora.server.plugins.configureCors
 import com.yusufteker.planora.server.routes.authRoutes
 import com.yusufteker.planora.server.routes.postRoutes
 import com.yusufteker.planora.server.routes.commentRoutes
@@ -77,6 +78,9 @@ fun Application.module() {
 
     // 7. Çağrı loglarını yapılandır (Renkli loglar + Request ID)
     configureCallLogging()
+
+    // 8. Web ve mobil istekleri için CORS yapılandırması
+    configureCors()
 
     // Firebase Init
     FcmService.init()

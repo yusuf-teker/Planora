@@ -32,10 +32,20 @@ export default function App() {
       <Navbar />
 
       <main className="flex-1 pb-16">
-        {activeWorkspace === 'selector' && <AppSelectorView />}
-        {activeWorkspace === 'healthtrack' && <HealthTrackView />}
-        {activeWorkspace === 'planora' && <PlanoraView />}
-        {activeWorkspace === 'admin' && (isAdmin ? <AdminView /> : <AppSelectorView />)}
+        <div className={activeWorkspace === 'selector' ? 'block' : 'hidden'}>
+          <AppSelectorView />
+        </div>
+        <div className={activeWorkspace === 'healthtrack' ? 'block' : 'hidden'}>
+          <HealthTrackView />
+        </div>
+        <div className={activeWorkspace === 'planora' ? 'block' : 'hidden'}>
+          <PlanoraView />
+        </div>
+        {isAdmin && (
+          <div className={activeWorkspace === 'admin' ? 'block' : 'hidden'}>
+            <AdminView />
+          </div>
+        )}
       </main>
 
       <footer className="border-t border-white/5 py-6 text-center text-xs text-gray-500 no-print">
@@ -47,3 +57,4 @@ export default function App() {
     </div>
   );
 }
+

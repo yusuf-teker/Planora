@@ -44,10 +44,10 @@ export default function AppSelectorView() {
           className="group relative glass-panel rounded-3xl p-7 border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-glow-health transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
         >
           {/* Ambient Corner Glow */}
-          <div className="absolute -top-12 -right-12 w-36 h-36 bg-emerald-500/15 rounded-full blur-2xl group-hover:bg-emerald-500/25 transition-all" />
+          <div className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all" />
 
           <div>
-            <div className="w-13 h-13 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-emerald-500/10">
               <Heart className="w-7 h-7" />
             </div>
 
@@ -96,10 +96,10 @@ export default function AppSelectorView() {
           className="group relative glass-panel rounded-3xl p-7 border border-indigo-500/20 hover:border-indigo-500/50 hover:shadow-glow-planora transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
         >
           {/* Ambient Corner Glow */}
-          <div className="absolute -top-12 -right-12 w-36 h-36 bg-indigo-500/15 rounded-full blur-2xl group-hover:bg-indigo-500/25 transition-all" />
+          <div className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all" />
 
           <div>
-            <div className="w-13 h-13 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-full bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-indigo-500/10">
               <CheckSquare className="w-7 h-7" />
             </div>
 
@@ -149,10 +149,10 @@ export default function AppSelectorView() {
             className="group relative glass-panel rounded-3xl p-7 border border-amber-500/30 hover:border-amber-500/60 hover:shadow-glow-gold transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
           >
             {/* Ambient Corner Glow */}
-            <div className="absolute -top-12 -right-12 w-36 h-36 bg-amber-500/15 rounded-full blur-2xl group-hover:bg-amber-500/25 transition-all" />
+            <div className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all" />
 
             <div>
-              <div className="w-13 h-13 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-105 transition-transform">
+              <div className="w-14 h-14 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/10">
                 <ShieldCheck className="w-7 h-7" />
               </div>
 
@@ -201,3 +201,4 @@ export default function AppSelectorView() {
     </div>
   );
 }
+

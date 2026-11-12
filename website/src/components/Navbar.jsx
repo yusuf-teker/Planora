@@ -44,14 +44,14 @@ export default function Navbar() {
         >
           <div className="flex items-center gap-1.5">
             {/* HealthTrack H mark */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1px] shadow-glow-health">
-              <div className="w-full h-full bg-[#0B0F19] rounded-[11px] flex items-center justify-center font-black text-emerald-400 text-sm tracking-tighter">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1.5px] shadow-glow-health">
+              <div className="w-full h-full bg-[#0B0F19] rounded-full flex items-center justify-center font-black text-emerald-400 text-sm tracking-tighter">
                 H
               </div>
             </div>
             {/* Planora P mark */}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-400 p-[1px] shadow-glow-planora">
-              <div className="w-full h-full bg-[#0B0F19] rounded-[11px] flex items-center justify-center font-black text-indigo-400 text-sm tracking-tighter">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-400 p-[1.5px] shadow-glow-planora">
+              <div className="w-full h-full bg-[#0B0F19] rounded-full flex items-center justify-center font-black text-indigo-400 text-sm tracking-tighter">
                 P
               </div>
             </div>
