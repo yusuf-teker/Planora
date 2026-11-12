@@ -18,10 +18,13 @@ export function AuthProvider({ children }) {
       const savedSecret = localStorage.getItem('admin_secret');
       const savedWorkspace = localStorage.getItem('active_workspace') || 'selector';
 
-      if (savedToken && savedUser) {
+      if (savedToken && savedToken !== 'undefined' && savedToken !== 'null' && savedUser) {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
         setActiveWorkspace(savedWorkspace);
+      } else {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
       }
       if (savedSecret) {
         setAdminSecret(savedSecret);
@@ -35,7 +38,8 @@ export function AuthProvider({ children }) {
 
   const handleLogin = async (identifier, password) => {
     const res = await api.login(identifier, password);
-    // res contains: { token, refreshToken, userId, name, username, isPremium, premiumUntil, role }
+    // res contains: { accessToken, token, refreshToken, userId, name, username, isPremium, premiumUntil, role }
+    const authToken = res.accessToken || res.token;
     const userData = {
       id: res.userId,
       name: res.name || res.username,
@@ -47,9 +51,9 @@ export function AuthProvider({ children }) {
       avatarId: res.avatarId,
     };
 
-    setToken(res.token);
+    setToken(authToken);
     setUser(userData);
-    localStorage.setItem('auth_token', res.token);
+    localStorage.setItem('auth_token', authToken);
     localStorage.setItem('auth_user', JSON.stringify(userData));
 
     // Default workspace after login:
@@ -111,3 +115,4 @@ export function useAuth() {
   }
   return context;
 }
+

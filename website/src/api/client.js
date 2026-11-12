@@ -5,10 +5,14 @@
 
 const DEFAULT_REMOTE_URL = 'https://pulse-7b4z.onrender.com';
 
+// Automatically clean up any corrupted custom URL from earlier sessions
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    localStorage.removeItem('custom_backend_url');
+  } catch (_) {}
+}
+
 export function getBaseUrl() {
-  const custom = localStorage.getItem('custom_backend_url');
-  if (custom && custom.trim()) return custom.trim().replace(/\/$/, '');
-  
   // If running in development with Vite proxy:
   if (import.meta.env.DEV) {
     return '/api';
@@ -25,11 +29,7 @@ export function getBaseUrl() {
 }
 
 export function setCustomBaseUrl(url) {
-  if (!url || !url.trim()) {
-    localStorage.removeItem('custom_backend_url');
-  } else {
-    localStorage.setItem('custom_backend_url', url.trim());
-  }
+  // Deprecated - intentionally no-op to prevent broken URLs
 }
 
 async function request(path, options = {}) {
@@ -182,13 +182,32 @@ export async function sendAdminPush(token, pushPayload, secret) {
 
 export async function checkServerPing() {
   const start = performance.now();
+  const baseUrl = getBaseUrl();
+
   try {
-    await request('/health');
-    const latency = Math.round(performance.now() - start);
-    return { ok: true, latency };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`${baseUrl}/health`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      const latency = Math.round(performance.now() - start);
+      return { ok: true, latency };
+    }
+  } catch (_) {}
+
+  // Fallback to /ping
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${baseUrl}/ping`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      const latency = Math.round(performance.now() - start);
+      return { ok: true, latency };
+    }
+  } catch (_) {}
+
+  return { ok: false, error: 'Sunucuya ulaşılamıyor' };
 }
 
 export async function checkDbStatus(token) {
@@ -201,3 +220,4 @@ export async function checkDbStatus(token) {
     return { ok: false, error: err.message };
   }
 }
+

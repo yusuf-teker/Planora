@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getBaseUrl, setCustomBaseUrl } from '../api/client';
-import { ShieldCheck, Heart, CheckSquare, Key, User, ArrowRight, Server, AlertCircle, Sparkles } from 'lucide-react';
+import { User, Key, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function LoginView() {
   const { login } = useAuth();
@@ -9,8 +8,6 @@ export default function LoginView() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showServerConfig, setShowServerConfig] = useState(false);
-  const [customUrl, setCustomUrl] = useState(getBaseUrl());
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,13 +33,6 @@ export default function LoginView() {
     }
   };
 
-  const handleSaveCustomUrl = (e) => {
-    e.preventDefault();
-    setCustomBaseUrl(customUrl);
-    alert('Sunucu adresi güncellendi.');
-    setShowServerConfig(false);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#0B0F19]">
       {/* Background Decorative Ambient Glows */}
@@ -55,8 +45,9 @@ export default function LoginView() {
         <div className="glass-panel rounded-3xl p-8 sm:p-10 shadow-2xl border border-white/10 relative">
           
           {/* Brand Header */}
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="flex items-center -space-x-3 mb-5">
+          <div className="flex flex-col items-center text-center mb-6">
+            {/* Logolar yan yana ve aralıklı */}
+            <div className="flex items-center gap-4 mb-5">
               {/* HealthTrack Pod */}
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1.5px] shadow-glow-health">
                 <div className="w-full h-full bg-[#0B0F19] rounded-[14px] flex items-center justify-center font-black text-emerald-400 text-xl tracking-tighter">
@@ -72,11 +63,13 @@ export default function LoginView() {
             </div>
 
             <h1 className="text-2xl font-extrabold tracking-tight text-white">
-              HealthTrack <span className="text-gray-500">&</span> Planora
+              HealthTrack & Planora
             </h1>
-            <p className="text-xs text-gray-400 mt-1 max-w-xs">
-              Merkezi Sağlık Raporları, Görevler ve Sistem Yönetim Portalı
-            </p>
+          </div>
+
+          {/* Bilgilendirme Notu */}
+          <div className="mb-6 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-gray-400 text-xs text-center leading-relaxed">
+            Hem normal kullanıcılar (rapor ve verilerini görüntülemek için) hem de yöneticiler aynı giriş ekranını kullanır.
           </div>
 
           {/* Error Banner */}
@@ -139,59 +132,14 @@ export default function LoginView() {
                 </>
               ) : (
                 <>
-                  <span>Portala Giriş Yap</span>
+                  <span>Giriş Yap</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Ecosystem note */}
-          <div className="mt-6 pt-5 border-t border-white/5 text-center">
-            <p className="text-[11px] text-gray-400">
-              💡 Hem normal kullanıcılar (rapor ve verilerini görüntülemek için) hem de yöneticiler aynı giriş ekranını kullanır.
-            </p>
-          </div>
-
-          {/* Advanced Server Configuration Toggle */}
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setShowServerConfig(!showServerConfig)}
-              className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors inline-flex items-center gap-1"
-            >
-              <Server className="w-3 h-3" />
-              <span>{showServerConfig ? 'Sunucu Ayarlarını Gizle' : 'Özel Sunucu / API Bağlantısı'}</span>
-            </button>
-
-            {showServerConfig && (
-              <form onSubmit={handleSaveCustomUrl} className="mt-3 text-left p-3 rounded-xl bg-black/40 border border-white/5 space-y-2">
-                <label className="block text-[10px] text-gray-400 uppercase font-semibold">
-                  Backend API URL
-                </label>
-                <input
-                  type="text"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  placeholder="https://pulse-7b4z.onrender.com"
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white"
-                />
-                <button
-                  type="submit"
-                  className="w-full py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors"
-                >
-                  Kaydet & Yenile
-                </button>
-              </form>
-            )}
-          </div>
-
         </div>
-
-        {/* Footer info */}
-        <p className="text-center text-[11px] text-gray-500 mt-6">
-          Render Cloud & Neon PostgreSQL ile 7/24 Senkronize
-        </p>
 
       </div>
     </div>

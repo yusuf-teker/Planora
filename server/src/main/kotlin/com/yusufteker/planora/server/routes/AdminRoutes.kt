@@ -106,11 +106,11 @@ fun Route.adminRoutes() {
     }
 
     get("/push-panel") {
-        call.servePushPanelHtml()
+        call.respondRedirect("/portal", permanent = false)
     }
 
     get("/admin-panel") {
-        call.servePushPanelHtml()
+        call.respondRedirect("/portal", permanent = false)
     }
 
     get("/portal") {

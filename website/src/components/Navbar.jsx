@@ -42,7 +42,7 @@ export default function Navbar() {
           onClick={() => setActiveWorkspace('selector')}
           className="flex items-center gap-3 cursor-pointer select-none group"
         >
-          <div className="flex items-center -space-x-2">
+          <div className="flex items-center gap-1.5">
             {/* HealthTrack H mark */}
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1px] shadow-glow-health">
               <div className="w-full h-full bg-[#0B0F19] rounded-[11px] flex items-center justify-center font-black text-emerald-400 text-sm tracking-tighter">
@@ -131,13 +131,13 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {/* Server Uptime / Ping Indicator */}
           <div 
-            title={pingStatus.ok ? `Render Sunucu: Aktif (${pingStatus.latency}ms)` : 'Sunucuya ulaşılamıyor'}
+            title={pingStatus.ok ? `Render Sunucu: Aktif (${pingStatus.latency}ms)` : 'Sunucu kontrol ediliyor...'}
             className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/5 text-[11px]"
           >
-            <span className={`w-2 h-2 rounded-full ${pingStatus.ok ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+            <span className={`w-2 h-2 rounded-full ${pingStatus.ok ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
             <span className="text-gray-400">Render:</span>
-            <span className={pingStatus.ok ? 'text-gray-200 font-mono font-medium' : 'text-rose-400'}>
-              {pingStatus.ok ? (pingStatus.latency ? `${pingStatus.latency}ms` : 'Canlı') : 'Offline'}
+            <span className={pingStatus.ok ? 'text-gray-200 font-mono font-medium' : 'text-amber-400'}>
+              {pingStatus.ok ? (pingStatus.latency ? `${pingStatus.latency}ms` : 'Canlı') : 'Bağlanıyor...'}
             </span>
           </div>
 
@@ -217,3 +217,4 @@ export default function Navbar() {
     </header>
   );
 }
+
