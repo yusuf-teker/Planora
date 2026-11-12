@@ -7,6 +7,9 @@ import io.ktor.server.application.*
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.ContentType
+import io.ktor.http.withCharset
+import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.get
@@ -80,12 +83,6 @@ fun Application.module() {
 
     // 5. API rotalarını yönlendir.
     routing {
-        get("/") {
-            call.respondText("Planora Server is Running!", status = HttpStatusCode.OK)
-        }
-        head("/") {
-            call.respond(HttpStatusCode.OK)
-        }
         // Lightweight ping endpoint for keep-alive and uptime monitoring
         get("/ping") {
             call.respondText("pong", status = HttpStatusCode.OK)
@@ -93,6 +90,13 @@ fun Application.module() {
         head("/ping") {
             call.respond(HttpStatusCode.OK)
         }
+        head("/") {
+            call.respond(HttpStatusCode.OK)
+        }
+
+        // Static assets for modern web portal (/assets/...)
+        staticResources("/assets", "web/assets")
+
         // Health check & HealthTrack endpoints
         healthRoutes()
         appConfigRoutes()
@@ -106,5 +110,16 @@ fun Application.module() {
         calendarRoutes()
         aiRoutes()
         adminRoutes()
+
+        // Root fallback: serve modern Web Portal SPA (index.html) or status text
+        get("/") {
+            val webStream = this::class.java.classLoader.getResourceAsStream("web/index.html")
+            if (webStream != null) {
+                val htmlContent = webStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                call.respondText(htmlContent, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
+            } else {
+                call.respondText("Planora Server is Running!", status = HttpStatusCode.OK)
+            }
+        }
     }
 }

@@ -86,13 +86,19 @@ fun Route.adminRoutes() {
     }
 
     /**
-     * Web tabanlı Bildirim Konsolu (HTML) sayfasını sunar.
-     * Hem `/push-panel` hem de `/admin/panel` adreslerinden doğrudan tarayıcıyla erişilebilir.
+     * Web tabanlı Bildirim Konsolu ve Sağlık/Görev Yönetim Portalı (HTML) sayfasını sunar.
+     * Hem `/` hem de `/push-panel` ve `/admin/panel` adreslerinden doğrudan tarayıcıyla erişilebilir.
      */
     suspend fun ApplicationCall.servePushPanelHtml() {
+        val webStream = this::class.java.classLoader.getResourceAsStream("web/index.html")
+        if (webStream != null) {
+            val htmlContent = webStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            respondText(htmlContent, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
+            return
+        }
         val htmlStream = this::class.java.classLoader.getResourceAsStream("admin/push-panel.html")
         if (htmlStream == null) {
-            respond(HttpStatusCode.NotFound, "Push panel kaynağı bulunamadı.")
+            respond(HttpStatusCode.NotFound, "Portal kaynağı bulunamadı.")
             return
         }
         val htmlContent = htmlStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
@@ -105,6 +111,20 @@ fun Route.adminRoutes() {
 
     get("/admin-panel") {
         call.servePushPanelHtml()
+    }
+
+    get("/portal") {
+        call.servePushPanelHtml()
+    }
+
+    get("/legacy-push-panel") {
+        val htmlStream = this::class.java.classLoader.getResourceAsStream("admin/push-panel.html")
+        if (htmlStream == null) {
+            call.respond(HttpStatusCode.NotFound, "Eski push paneli bulunamadı.")
+            return@get
+        }
+        val htmlContent = htmlStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        call.respondText(htmlContent, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
     }
 
     route("/admin") {
