@@ -115,15 +115,19 @@ fun Application.module() {
         aiRoutes()
         adminRoutes()
 
-        // Root fallback: serve modern Web Portal SPA (index.html) or status text
-        get("/") {
+        // Root & Store Compliance SPA routes: serve modern Web Portal SPA (index.html) or status text
+        val serveSpaIndex: suspend io.ktor.server.application.ApplicationCall.() -> Unit = {
             val webStream = this::class.java.classLoader.getResourceAsStream("web/index.html")
             if (webStream != null) {
                 val htmlContent = webStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-                call.respondText(htmlContent, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
+                respondText(htmlContent, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
             } else {
-                call.respondText("Planora Server is Running!", status = HttpStatusCode.OK)
+                respondText("Planora Server is Running!", status = HttpStatusCode.OK)
             }
         }
+        get("/") { call.serveSpaIndex() }
+        get("/privacy") { call.serveSpaIndex() }
+        get("/terms") { call.serveSpaIndex() }
+        get("/delete-account") { call.serveSpaIndex() }
     }
 }

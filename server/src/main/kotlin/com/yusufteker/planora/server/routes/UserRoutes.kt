@@ -500,6 +500,21 @@ fun Route.userRoutes() {
 fun deleteUserAccountInternal(targetUserId: Int) {
     val targetUserEntity = UserEntity.findById(targetUserId)
 
+    // 0. HealthTrack Verileri (TasksTable'a FK referansı olabileceği için görevlerden önce temizle)
+    val userAppointmentIds = HealthAppointmentsTable
+        .selectAll()
+        .where { HealthAppointmentsTable.userId eq targetUserId }
+        .map { it[HealthAppointmentsTable.id] }
+    if (userAppointmentIds.isNotEmpty()) {
+        HealthAppointmentAttachmentsTable.deleteWhere { appointmentId inList userAppointmentIds }
+    }
+    HealthAppointmentsTable.deleteWhere { userId eq targetUserId }
+    HealthFoodLogsTable.deleteWhere { userId eq targetUserId }
+    HealthNutritionGoalsTable.deleteWhere { userId eq targetUserId }
+    HealthWorkoutsTable.deleteWhere { userId eq targetUserId }
+    HealthWeightsTable.deleteWhere { userId eq targetUserId }
+    AiUsageLogsTable.deleteWhere { userId eq targetUserId }
+
     // 1. Odalar & Üyelikler: Kurucusu olduğu odalarda devir yap
     val roomsCreatedByUser = PlanRoomEntity.find { PlanRoomsTable.creatorId eq targetUserId }
     for (room in roomsCreatedByUser) {

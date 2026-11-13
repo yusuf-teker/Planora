@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, Key, ArrowRight, AlertCircle } from 'lucide-react';
 
-export default function LoginView() {
+export default function LoginView({ onNavigateLegal }) {
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -138,6 +138,38 @@ export default function LoginView() {
               )}
             </button>
           </form>
+
+          <div className="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center justify-center gap-4 text-[11px] text-gray-400">
+            <a
+              href="/privacy"
+              onClick={(e) => {
+                if (onNavigateLegal) { e.preventDefault(); onNavigateLegal('/privacy'); }
+              }}
+              className="hover:text-emerald-400 transition-colors"
+            >
+              Gizlilik Politikası
+            </a>
+            <span className="text-gray-600">•</span>
+            <a
+              href="/terms"
+              onClick={(e) => {
+                if (onNavigateLegal) { e.preventDefault(); onNavigateLegal('/terms'); }
+              }}
+              className="hover:text-emerald-400 transition-colors"
+            >
+              Kullanım Koşulları
+            </a>
+            <span className="text-gray-600">•</span>
+            <a
+              href="/delete-account"
+              onClick={(e) => {
+                if (onNavigateLegal) { e.preventDefault(); onNavigateLegal('/delete-account'); }
+              }}
+              className="hover:text-rose-400 transition-colors"
+            >
+              Hesap Silme
+            </a>
+          </div>
 
         </div>
 

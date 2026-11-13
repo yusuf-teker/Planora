@@ -13,53 +13,115 @@ import {
   Tag, 
   Layers,
   Sparkles,
-  BarChart2
+  BarChart2,
+  History,
+  CalendarDays
 } from 'lucide-react';
 
 export default function PlanoraView() {
   const { token, user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const cacheKey = user?.id ? `planora_tasks_cache_${user.id}` : 'planora_tasks_cache_default';
+
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch (_) {}
+    return [];
+  });
+
+  const [loading, setLoading] = useState(tasks.length === 0);
   const [error, setError] = useState('');
-  const [tasks, setTasks] = useState([]);
+  const [dateFilter, setDateFilter] = useState('TODAY'); // 'TODAY', 'FUTURE', 'PAST', 'ALL'
   const [filterStatus, setFilterStatus] = useState('ALL'); // 'ALL', 'PENDING', 'COMPLETED'
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadTasks = async () => {
-    setLoading(true);
+  const loadTasks = async (isManualRefresh = false) => {
+    if (isManualRefresh || tasks.length === 0) {
+      setLoading(true);
+    }
     setError('');
     try {
       const data = await getPlanoraTasks(token);
-      setTasks(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setTasks(list);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(list));
+      } catch (_) {}
     } catch (err) {
       console.error('Failed to load Planora tasks:', err);
-      setError(err.message || 'Görevler alınırken hata oluştu.');
+      if (tasks.length === 0) {
+        setError(err.message || 'Görevler alınırken hata oluştu.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token) loadTasks();
+    if (token) {
+      loadTasks(false);
+    }
   }, [token]);
 
-  // Derived Telemetry
+  // Date Boundaries
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayEnd = todayStart + 24 * 60 * 60 * 1000 - 1;
+
+  const isTaskToday = (task) => {
+    if (!task.startTime && !task.endTime) return true; // Tarihsiz görevler bugün görünür
+    const start = task.startTime || task.endTime;
+    const end = task.endTime || task.startTime;
+    return (start >= todayStart && start <= todayEnd) || 
+           (end >= todayStart && end <= todayEnd) || 
+           (start < todayStart && end > todayEnd);
+  };
+
+  const isTaskPast = (task) => {
+    const end = task.endTime || task.startTime;
+    return Boolean(end && end < todayStart);
+  };
+
+  const isTaskFuture = (task) => {
+    const start = task.startTime;
+    return Boolean(start && start > todayEnd);
+  };
+
+  // Date counts
+  const todayCount = tasks.filter(isTaskToday).length;
+  const futureCount = tasks.filter(isTaskFuture).length;
+  const pastCount = tasks.filter(isTaskPast).length;
   const totalTasks = tasks.length;
+
   const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length;
   const pendingTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Filtered List
   const filteredTasks = tasks.filter(task => {
+    // Search query
     const matchesSearch = !searchQuery.trim() || 
       task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
+    // Status filter
     const matchesStatus = 
       filterStatus === 'ALL' ||
       (filterStatus === 'COMPLETED' && task.status === 'COMPLETED') ||
       (filterStatus === 'PENDING' && task.status !== 'COMPLETED');
 
-    return matchesSearch && matchesStatus;
+    // Date filter
+    let matchesDate = true;
+    if (dateFilter === 'TODAY') {
+      matchesDate = isTaskToday(task);
+    } else if (dateFilter === 'FUTURE') {
+      matchesDate = isTaskFuture(task);
+    } else if (dateFilter === 'PAST') {
+      matchesDate = isTaskPast(task);
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   return (
@@ -77,15 +139,15 @@ export default function PlanoraView() {
             </h1>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Masaüstünden görevlerinizi, randevularınızı ve hedeflerinizi anlık olarak takip edin
+            Masaüstünden görevlerinizi ve hedeflerinizi anlık olarak takip edin
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadTasks}
+            onClick={() => loadTasks(true)}
             disabled={loading}
-            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-2 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Yenile</span>
@@ -101,7 +163,7 @@ export default function PlanoraView() {
         </div>
       )}
 
-      {/* Productivity Telemetry Row */}
+      {/* Telemetry Bento Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
         {/* Metric 1: Total Tasks */}
@@ -111,17 +173,17 @@ export default function PlanoraView() {
             <Layers className="w-4 h-4 text-indigo-400" />
           </div>
           <div className="text-3xl font-black text-white">{totalTasks}</div>
-          <p className="text-[11px] text-gray-400 mt-2">Kayıtlı tüm görev & etkinlikler</p>
+          <p className="text-[11px] text-gray-400 mt-2">Kayıtlı tüm görevler</p>
         </div>
 
-        {/* Metric 2: Completed */}
-        <div className="glass-panel rounded-3xl p-6 border border-emerald-500/20">
-          <div className="flex items-center justify-between text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">
-            <span>Tamamlanan</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        {/* Metric 2: Today Tasks */}
+        <div className="glass-panel rounded-3xl p-6 border border-teal-500/20">
+          <div className="flex items-center justify-between text-xs text-teal-400 font-bold uppercase tracking-wider mb-2">
+            <span>Bugünkü Görevler</span>
+            <CalendarDays className="w-4 h-4 text-teal-400" />
           </div>
-          <div className="text-3xl font-black text-white">{completedTasks}</div>
-          <p className="text-[11px] text-gray-400 mt-2">Başarıyla sonuçlandırılanlar</p>
+          <div className="text-3xl font-black text-white">{todayCount}</div>
+          <p className="text-[11px] text-gray-400 mt-2">Bugün yapılması planlananlar</p>
         </div>
 
         {/* Metric 3: Pending */}
@@ -155,30 +217,81 @@ export default function PlanoraView() {
 
       </div>
 
-      {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Primary Date Filter Tabs: BUGÜN, GEÇMİŞ, GELECEK, TÜMÜ */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Görevlerde ara..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl glass-input text-xs text-white placeholder-gray-500 outline-none"
-          />
+        {/* Date Tabs */}
+        <div className="flex items-center gap-2 bg-white/[0.03] p-1 rounded-2xl border border-white/10 overflow-x-auto">
+          <button
+            onClick={() => setDateFilter('TODAY')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              dateFilter === 'TODAY'
+                ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Bugün</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${dateFilter === 'TODAY' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}>
+              {todayCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setDateFilter('FUTURE')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              dateFilter === 'FUTURE'
+                ? 'bg-gradient-to-r from-teal-600 to-emerald-500 text-white shadow-lg shadow-teal-500/25 border border-teal-400/40'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Gelecek</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${dateFilter === 'FUTURE' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}>
+              {futureCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setDateFilter('PAST')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              dateFilter === 'PAST'
+                ? 'bg-gradient-to-r from-purple-600 to-violet-500 text-white shadow-lg shadow-purple-500/25 border border-purple-400/40'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Geçmiş</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${dateFilter === 'PAST' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}>
+              {pastCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setDateFilter('ALL')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              dateFilter === 'ALL'
+                ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Tümü</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${dateFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}>
+              {totalTasks}
+            </span>
+          </button>
         </div>
 
-        {/* Status Filters */}
+        {/* Secondary: Status Filters (Tümü, Bekleyenler, Tamamlananlar) */}
         <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-xl border border-white/5 self-stretch sm:self-auto justify-center">
           <button
             onClick={() => setFilterStatus('ALL')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              filterStatus === 'ALL' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-gray-400 hover:text-white'
+              filterStatus === 'ALL' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white'
             }`}
           >
-            Tümü ({totalTasks})
+            Tüm Durumlar
           </button>
           <button
             onClick={() => setFilterStatus('PENDING')}
@@ -186,7 +299,7 @@ export default function PlanoraView() {
               filterStatus === 'PENDING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-gray-400 hover:text-white'
             }`}
           >
-            Bekleyenler ({pendingTasks})
+            Bekleyenler
           </button>
           <button
             onClick={() => setFilterStatus('COMPLETED')}
@@ -194,10 +307,22 @@ export default function PlanoraView() {
               filterStatus === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-400 hover:text-white'
             }`}
           >
-            Tamamlananlar ({completedTasks})
+            Tamamlananlar
           </button>
         </div>
 
+      </div>
+
+      {/* Search Input */}
+      <div className="relative w-full">
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={`${dateFilter === 'TODAY' ? 'Bugünkü' : dateFilter === 'FUTURE' ? 'Gelecekteki' : dateFilter === 'PAST' ? 'Geçmiş' : 'Tüm'} görevlerde ara...`}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input text-xs text-white placeholder-gray-500 outline-none border border-white/10 focus:border-indigo-500/40"
+        />
       </div>
 
       {/* Task List */}
@@ -205,14 +330,22 @@ export default function PlanoraView() {
         {filteredTasks.length === 0 ? (
           <div className="glass-panel rounded-3xl p-12 text-center border border-white/5">
             <CheckSquare className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-gray-200">Görev Bulunamadı</h3>
+            <h3 className="text-base font-bold text-gray-200">
+              {searchQuery ? 'Aramanızla Eşleşen Görev Bulunamadı' : `${dateFilter === 'TODAY' ? 'Bugün için' : dateFilter === 'FUTURE' ? 'Gelecek için' : dateFilter === 'PAST' ? 'Geçmişte' : ''} Görev Bulunmuyor`}
+            </h3>
             <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-              {searchQuery ? 'Aramanızla eşleşen görev bulunamadı.' : 'Henüz Planora uygulamasında oluşturulmuş bir görev bulunmuyor.'}
+              {searchQuery 
+                ? 'Farklı bir arama terimi deneyebilir veya filtreleri değiştirebilirsiniz.' 
+                : 'Planora mobil uygulamasından yeni görevler ve etkinlikler ekleyebilirsiniz.'}
             </p>
           </div>
         ) : (
           filteredTasks.map((task) => {
             const isCompleted = task.status === 'COMPLETED';
+            const isToday = isTaskToday(task);
+            const isPast = isTaskPast(task);
+            const isFuture = isTaskFuture(task);
+
             return (
               <div 
                 key={task.id}
@@ -243,18 +376,21 @@ export default function PlanoraView() {
                     )}
 
                     <div className="flex flex-wrap items-center gap-2 mt-3">
+                      {/* Date Badge: Bugün / Gelecek / Geçmiş */}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        isToday 
+                          ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30' 
+                          : isFuture 
+                          ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30' 
+                          : 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                      }`}>
+                        {isToday ? 'Bugün' : isFuture ? 'Gelecek' : 'Geçmiş'}
+                      </span>
+
                       {/* Type Badge */}
                       <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300">
                         {task.type || 'TASK'}
                       </span>
-
-                      {/* HealthTrack Synced Appointment Badge */}
-                      {task.tags && task.tags.includes('health') && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          HealthTrack Randevusu
-                        </span>
-                      )}
 
                       {/* Time */}
                       {task.startTime && (
@@ -290,4 +426,3 @@ export default function PlanoraView() {
     </div>
   );
 }
-

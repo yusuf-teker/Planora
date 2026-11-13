@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getHealthData, getNutritionGoals } from '../api/client';
+import { getHealthData, seedSampleHealthData } from '../api/client';
 import { 
   Heart, 
   Flame, 
@@ -18,50 +18,93 @@ import {
   TrendingDown,
   TrendingUp,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  PlusCircle,
+  CalendarDays
 } from 'lucide-react';
 
 export default function HealthTrackView() {
   const { token, user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [healthData, setHealthData] = useState({
-    foods: [],
-    goal: null,
-    workouts: [],
-    weights: [],
+  const cacheKey = user?.id ? `health_data_cache_${user.id}` : 'health_data_cache_default';
+
+  // Initialize from localStorage cache to prevent data loss on tab switches
+  const [healthData, setHealthData] = useState(() => {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch (_) {}
+    return {
+      foods: [],
+      goal: null,
+      workouts: [],
+      weights: [],
+    };
   });
 
+  const [loading, setLoading] = useState(healthData.foods.length === 0 && healthData.workouts.length === 0);
+  const [seeding, setSeeding] = useState(false);
+  const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [activeTab, setActiveTab] = useState('foods'); // 'foods', 'workouts', 'weights', 'report'
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [foodViewMode, setFoodViewMode] = useState('DATE'); // 'DATE' or 'ALL'
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isManualRefresh = false) => {
+    if (isManualRefresh || (healthData.foods.length === 0 && healthData.workouts.length === 0)) {
+      setLoading(true);
+    }
     setError('');
     try {
       const data = await getHealthData(token, 0);
-      setHealthData({
+      const parsedData = {
         foods: (data.foods || []).filter(f => !f.isDeleted),
         goal: data.nutritionGoals || data.goal || null,
         workouts: (data.workouts || []).filter(w => !w.isDeleted),
         weights: (data.weights || []).filter(wt => !wt.isDeleted),
-      });
+      };
+      setHealthData(parsedData);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(parsedData));
+      } catch (_) {}
     } catch (err) {
       console.error('Failed to load health data:', err);
-      setError(err.message || 'Sağlık verileri yüklenirken bir hata oluştu.');
+      // Keep displaying cached data if available; only show error if no data at all
+      if (healthData.foods.length === 0 && healthData.workouts.length === 0) {
+        setError(err.message || 'Sağlık verileri yüklenirken bir hata oluştu.');
+      } else {
+        setInfoMessage('Çevrimdışı / Önbelleğe alınmış sağlık verileri görüntüleniyor.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token) loadData();
+    if (token) {
+      loadData(false);
+    }
   }, [token]);
 
+  const handleSeedData = async () => {
+    setSeeding(true);
+    setError('');
+    setInfoMessage('');
+    try {
+      await seedSampleHealthData(token, selectedDate);
+      await loadData(true);
+      setInfoMessage('Örnek sağlık verileri başarıyla sunucuya kaydedildi ve yüklendi.');
+    } catch (err) {
+      console.error('Seed error:', err);
+      setError(err.message || 'Örnek veriler yüklenirken hata oluştu.');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   // Derived Stats
-  const targetCalories = healthData.goal?.calories || 2000;
-  const targetProtein = healthData.goal?.proteinG || 120;
-  const targetCarbs = healthData.goal?.carbsG || 220;
+  const targetCalories = healthData.goal?.calories || 2150;
+  const targetProtein = healthData.goal?.proteinG || 135;
+  const targetCarbs = healthData.goal?.carbsG || 210;
   const targetFat = healthData.goal?.fatG || 65;
 
   // Selected date food stats
@@ -121,6 +164,8 @@ export default function HealthTrackView() {
     document.body.removeChild(link);
   };
 
+  const isDataEmpty = healthData.foods.length === 0 && healthData.workouts.length === 0 && healthData.weights.length === 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
@@ -136,11 +181,24 @@ export default function HealthTrackView() {
             </h1>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Günlük besin dökümü, kalori hedefleri, antrenmanlar ve klinik randevu geçmişiniz
+            Günlük besin dökümü, kalori hedefleri, antrenmanlar ve vücut kompozisyonu geçmişiniz
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Quick Today Button */}
+          <button
+            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+              selectedDate === new Date().toISOString().split('T')[0]
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                : 'bg-white/5 text-gray-400 border-white/10 hover:text-white'
+            }`}
+          >
+            Bugün
+          </button>
+
+          {/* Date Picker */}
           <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
             <span className="text-xs text-gray-400">Tarih:</span>
             <input 
@@ -151,8 +209,9 @@ export default function HealthTrackView() {
             />
           </div>
 
+          {/* Refresh Button */}
           <button
-            onClick={loadData}
+            onClick={() => loadData(true)}
             title="Verileri Yenile"
             disabled={loading}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all disabled:opacity-50"
@@ -162,11 +221,52 @@ export default function HealthTrackView() {
         </div>
       </div>
 
+      {/* Info Message */}
+      {infoMessage && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{infoMessage}</span>
+          </div>
+          <button onClick={() => setInfoMessage('')} className="text-emerald-400 hover:text-white text-xs">Kapat</button>
+        </div>
+      )}
+
       {/* Error Notice */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError('')} className="text-rose-400 hover:text-white text-xs">Kapat</button>
+        </div>
+      )}
+
+      {/* Empty Database Helper Banner */}
+      {isDataEmpty && !loading && (
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-4 h-4" />
+              <span>Veri Senkronizasyonu Bekleniyor</span>
+            </div>
+            <h2 className="text-lg font-bold text-white">
+              Henüz bu hesap için kayıtlı sağlık verisi bulunmuyor
+            </h2>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              HealthTrack mobil uygulamasından öğün, kilo veya antrenman ekleyip senkronize ettiğinizde burada anlık olarak görünecektir. Dilerseniz panoyu ve grafikleri hemen test etmek için bir tıkla örnek verileri yükleyebilirsiniz.
+            </p>
+          </div>
+
+          <button
+            onClick={handleSeedData}
+            disabled={seeding}
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shrink-0"
+          >
+            <PlusCircle className={`w-4 h-4 ${seeding ? 'animate-spin' : ''}`} />
+            <span>{seeding ? 'Veriler Yükleniyor...' : 'Örnek Sağlık Verilerini Yükle'}</span>
+          </button>
         </div>
       )}
 
@@ -192,7 +292,7 @@ export default function HealthTrackView() {
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-white/5 h-2.5 rounded-full mt-4 overflow-hidden p-0.5 border border-white/5">
+          <div className="w-full bg-white/5 h-2 rounded-full mt-4 overflow-hidden">
             <div 
               className={`h-full rounded-full transition-all duration-500 ${
                 totalCaloriesDate > targetCalories ? 'bg-orange-500' : 'bg-gradient-to-r from-emerald-500 to-teal-400'
@@ -201,14 +301,14 @@ export default function HealthTrackView() {
             />
           </div>
 
-          <div className="flex justify-between items-center text-[11px] text-gray-400 mt-2">
+          <div className="mt-3 flex items-center justify-between text-[11px] text-gray-400">
             <span>Kalan: {Math.max(0, targetCalories - totalCaloriesDate)} kcal</span>
             <span>%{Math.round((totalCaloriesDate / (targetCalories || 1)) * 100)}</span>
           </div>
         </div>
 
-        {/* Metric 2: Macros */}
-        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden border border-white/10">
+        {/* Metric 2: Macro Nutrients */}
+        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden border border-teal-500/20">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-teal-400">
               Makro Dağılımı ({selectedDate})
@@ -216,16 +316,16 @@ export default function HealthTrackView() {
             <Utensils className="w-4 h-4 text-teal-400" />
           </div>
 
-          <div className="space-y-2 mt-2">
+          <div className="space-y-2 text-xs">
             {/* Protein */}
             <div>
               <div className="flex justify-between text-[11px] mb-1">
-                <span className="text-orange-400 font-semibold">Protein</span>
+                <span className="text-gray-400">Protein</span>
                 <span className="text-gray-300 font-mono">{Math.round(dateProtein)}g / {targetProtein}g</span>
               </div>
               <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                 <div 
-                  className="bg-orange-500 h-full rounded-full"
+                  className="bg-indigo-400 h-full rounded-full" 
                   style={{ width: `${Math.min(100, Math.round((dateProtein / (targetProtein || 1)) * 100))}%` }}
                 />
               </div>
@@ -234,12 +334,12 @@ export default function HealthTrackView() {
             {/* Carbs */}
             <div>
               <div className="flex justify-between text-[11px] mb-1">
-                <span className="text-cyan-400 font-semibold">Karbonhidrat</span>
+                <span className="text-gray-400">Karbonhidrat</span>
                 <span className="text-gray-300 font-mono">{Math.round(dateCarbs)}g / {targetCarbs}g</span>
               </div>
               <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                 <div 
-                  className="bg-cyan-500 h-full rounded-full"
+                  className="bg-amber-400 h-full rounded-full" 
                   style={{ width: `${Math.min(100, Math.round((dateCarbs / (targetCarbs || 1)) * 100))}%` }}
                 />
               </div>
@@ -248,12 +348,12 @@ export default function HealthTrackView() {
             {/* Fat */}
             <div>
               <div className="flex justify-between text-[11px] mb-1">
-                <span className="text-amber-400 font-semibold">Yağ</span>
+                <span className="text-gray-400">Yağ</span>
                 <span className="text-gray-300 font-mono">{Math.round(dateFat)}g / {targetFat}g</span>
               </div>
               <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                 <div 
-                  className="bg-amber-500 h-full rounded-full"
+                  className="bg-rose-400 h-full rounded-full" 
                   style={{ width: `${Math.min(100, Math.round((dateFat / (targetFat || 1)) * 100))}%` }}
                 />
               </div>
@@ -261,11 +361,11 @@ export default function HealthTrackView() {
           </div>
         </div>
 
-        {/* Metric 3: Weight Status */}
-        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden border border-white/10">
+        {/* Metric 3: Weight Scale */}
+        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden border border-emerald-500/20">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              Güncel Tartı
+              Vücut Ağırlığı
             </span>
             <Scale className="w-4 h-4 text-emerald-400" />
           </div>
@@ -348,7 +448,7 @@ export default function HealthTrackView() {
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
-          <span>Egzersizler ({healthData.workouts.length})</span>
+          <span>Antrenmanlar ({healthData.workouts.length})</span>
         </button>
 
         <button
@@ -360,7 +460,7 @@ export default function HealthTrackView() {
           }`}
         >
           <Scale className="w-3.5 h-3.5" />
-          <span>Kilo Geçmişi ({healthData.weights.length})</span>
+          <span>Kilo Takibi ({healthData.weights.length})</span>
         </button>
 
         <button
@@ -379,22 +479,63 @@ export default function HealthTrackView() {
       {/* Tab 1: Food Logs Content */}
       {activeTab === 'foods' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
-              Kayıtlı Öğünler ({dateFoods.length} öğün seçili tarihte: {selectedDate})
-            </h2>
-            <span className="text-xs text-gray-500">Tüm tarihlerde toplam {healthData.foods.length} öğün</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">
+                {foodViewMode === 'DATE' 
+                  ? `Seçili Günün Öğünleri (${dateFoods.length} öğün: ${selectedDate})` 
+                  : `Tüm Kayıtlı Öğünler (${healthData.foods.length} öğün)`}
+              </h2>
+              <span className="text-xs text-gray-500">
+                Toplam kalori ve besin değeri dağılımı
+              </span>
+            </div>
+
+            {/* Toggle: Seçili Gün vs Tüm Tarihler */}
+            <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-xl border border-white/5">
+              <button
+                onClick={() => setFoodViewMode('DATE')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  foodViewMode === 'DATE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Seçili Tarih ({selectedDate})
+              </button>
+              <button
+                onClick={() => setFoodViewMode('ALL')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  foodViewMode === 'ALL' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Tüm Öğünler ({healthData.foods.length})
+              </button>
+            </div>
           </div>
 
-          {dateFoods.length === 0 ? (
-            <div className="glass-panel rounded-3xl p-10 text-center border border-white/5">
-              <Utensils className="w-8 h-8 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-gray-300">Bu tarihte kayıtlı öğün bulunamadı.</p>
-              <p className="text-xs text-gray-500 mt-1">HealthTrack mobil uygulamasından fotoğraf veya serbest metinle öğün ekleyebilirsiniz.</p>
+          {/* Food List */}
+          {((foodViewMode === 'DATE' ? dateFoods : healthData.foods).length === 0) ? (
+            <div className="glass-panel rounded-3xl p-10 text-center border border-white/5 space-y-3">
+              <Utensils className="w-8 h-8 text-gray-600 mx-auto" />
+              <p className="text-sm font-semibold text-gray-300">
+                {foodViewMode === 'DATE' 
+                  ? `Bu tarihte (${selectedDate}) kayıtlı öğün bulunamadı.` 
+                  : 'Henüz hiçbir tarihte kayıtlı öğün bulunmuyor.'}
+              </p>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                HealthTrack mobil uygulamasından fotoğraf veya serbest metinle öğün ekleyebilirsiniz.
+              </p>
+              {healthData.foods.length > 0 && foodViewMode === 'DATE' && (
+                <button
+                  onClick={() => setFoodViewMode('ALL')}
+                  className="mt-2 px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-emerald-300 font-semibold transition-all"
+                >
+                  Diğer Günlerdeki Öğünleri Gör ({healthData.foods.length} öğün)
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dateFoods.map((food) => {
+              {(foodViewMode === 'DATE' ? dateFoods : healthData.foods).map((food) => {
                 let parsedItems = [];
                 if (food.itemsJson) {
                   try {
@@ -428,17 +569,36 @@ export default function HealthTrackView() {
                     {/* Breakdown items */}
                     {Array.isArray(parsedItems) && parsedItems.length > 0 && (
                       <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
-                        {parsedItems.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs text-gray-300">
-                            <span>• {item.name || item.foodName} ({item.amount || item.portion || '1 porsiyon'})</span>
-                            <div className="flex items-center gap-3 font-mono text-[11px] text-gray-400">
-                              <span>P: {Math.round(item.protein || item.proteinG || 0)}g</span>
-                              <span>K: {Math.round(item.carbs || item.carbsG || 0)}g</span>
-                              <span>Y: {Math.round(item.fat || item.fatG || 0)}g</span>
-                              <span className="text-orange-400 font-semibold">{item.calories} kcal</span>
+                        <span className="text-[11px] font-bold uppercase text-gray-400 tracking-wider block">
+                          İçerik & Makro Detayları
+                        </span>
+                        <div className="divide-y divide-white/5">
+                          {parsedItems.map((item, idx) => (
+                            <div key={idx} className="py-1.5 flex items-center justify-between text-xs">
+                              <span className="text-gray-300">{item.name || item.foodName}</span>
+                              <div className="flex items-center gap-3">
+                                {(item.protein || item.proteinG) && (
+                                  <span className="text-[10px] text-indigo-300 font-mono">
+                                    {item.protein || item.proteinG}g P
+                                  </span>
+                                )}
+                                {(item.carbs || item.carbsG) && (
+                                  <span className="text-[10px] text-amber-300 font-mono">
+                                    {item.carbs || item.carbsG}g K
+                                  </span>
+                                )}
+                                {(item.fat || item.fatG) && (
+                                  <span className="text-[10px] text-rose-300 font-mono">
+                                    {item.fat || item.fatG}g Y
+                                  </span>
+                                )}
+                                <span className="font-semibold text-gray-200 font-mono">
+                                  {item.calories} kcal
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -477,6 +637,12 @@ export default function HealthTrackView() {
                     {w.rawText}
                   </h3>
 
+                  {w.aiAnalysis && (
+                    <p className="text-xs text-gray-400 bg-white/[0.03] p-2.5 rounded-xl border border-white/5 mb-3">
+                      {w.aiAnalysis}
+                    </p>
+                  )}
+
                   <div className="flex items-center justify-between pt-3 border-t border-white/5 text-xs">
                     <span className="text-gray-400">Yakılan Enerji:</span>
                     <span className="text-base font-black text-orange-400">{w.caloriesBurned || 0} kcal</span>
@@ -498,31 +664,52 @@ export default function HealthTrackView() {
             <span className="text-xs text-gray-500">Toplam {healthData.weights.length} kayıt</span>
           </div>
 
-          {sortedWeights.length === 0 ? (
+          {healthData.weights.length === 0 ? (
             <div className="glass-panel rounded-3xl p-10 text-center border border-white/5">
               <Scale className="w-8 h-8 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-gray-300">Henüz kilo kaydı girilmemiş.</p>
+              <p className="text-sm font-semibold text-gray-300">Henüz kayıtlı kilo geçmişi bulunmuyor.</p>
             </div>
           ) : (
-            <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 bg-white/[0.02] text-gray-400 uppercase font-semibold">
-                    <th className="py-3.5 px-4">Tarih</th>
-                    <th className="py-3.5 px-4">Kilo (kg)</th>
-                    <th className="py-3.5 px-4">Notlar / Açıklama</th>
+            <div className="glass-panel rounded-3xl p-6 border border-white/10 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-white/10 text-gray-400">
+                  <tr>
+                    <th className="pb-3 font-semibold">Tarih</th>
+                    <th className="pb-3 font-semibold">Ölçülen Kilo</th>
+                    <th className="pb-3 font-semibold">Hedef Kilo</th>
+                    <th className="pb-3 font-semibold">Fark</th>
+                    <th className="pb-3 font-semibold">Not / Açıklama</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {sortedWeights.map((wt) => (
-                    <tr key={wt.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 px-4 font-semibold text-white">{wt.date}</td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-sm text-emerald-400">{wt.weightKg} kg</span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-400">{wt.notes || '-'}</td>
-                    </tr>
-                  ))}
+                  {sortedWeights.map((wt) => {
+                    const diff = wt.targetWeightKg ? (wt.weightKg - wt.targetWeightKg).toFixed(1) : null;
+                    return (
+                      <tr key={wt.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 text-gray-300 font-medium">{wt.date}</td>
+                        <td className="py-3">
+                          <span className="text-sm font-bold text-white font-mono">{wt.weightKg} kg</span>
+                        </td>
+                        <td className="py-3 text-gray-400 font-mono">
+                          {wt.targetWeightKg ? `${wt.targetWeightKg} kg` : '--'}
+                        </td>
+                        <td className="py-3">
+                          {diff !== null ? (
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                              Number(diff) <= 0 
+                                ? 'bg-emerald-500/15 text-emerald-300' 
+                                : 'bg-orange-500/15 text-orange-300'
+                            }`}>
+                              {Number(diff) > 0 ? `+${diff}` : diff} kg
+                            </span>
+                          ) : '--'}
+                        </td>
+                        <td className="py-3 text-gray-400 italic">
+                          {wt.note || 'Ölçüm kaydı'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -530,19 +717,21 @@ export default function HealthTrackView() {
         </div>
       )}
 
-      {/* Tab 4: Export / Printable Medical Report */}
+      {/* Tab 4: Health Report & Export */}
       {activeTab === 'report' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between no-print">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-white">Diyetisyen & Doktor Rapor Görünümü</h2>
-              <p className="text-xs text-gray-400">Bu raporu PDF olarak yazdırabilir veya CSV formatında indirebilirsiniz.</p>
+              <h2 className="text-lg font-bold text-white">Biyo-Telemetri & Beslenme Raporu</h2>
+              <p className="text-xs text-gray-400">
+                Seçili tarih ve genel sağlık geçmişinizin detaylı dökümü
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={handleExportCSV}
-                className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white flex items-center gap-2 transition-all"
+                className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-gray-200 flex items-center gap-2 transition-all"
               >
                 <Download className="w-4 h-4 text-emerald-400" />
                 <span>CSV Olarak İndir</span>
@@ -616,7 +805,7 @@ export default function HealthTrackView() {
               </div>
             </div>
 
-            {/* Doctor Note Disclaimer */}
+            {/* Disclaimer */}
             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-gray-400">
               * Bu rapor, kullanıcının HealthTrack mobil uygulaması üzerinden kaydettiği biyo-telemetri ve besin tüketim verilerini içerir. Tıbbi tanı yerine geçmez, danışman hekim ve diyetisyen değerlendirmesi için hazırlanmıştır.
             </div>
@@ -627,4 +816,3 @@ export default function HealthTrackView() {
     </div>
   );
 }
-
