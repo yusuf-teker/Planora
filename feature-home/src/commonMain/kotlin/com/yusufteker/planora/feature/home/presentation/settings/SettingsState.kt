@@ -22,6 +22,8 @@ data class SettingsState(
     val showDeleteConfirmDialog: Boolean = false,
     val isDeletingAccount: Boolean = false,
     val showExportBottomSheet: Boolean = false,
+    val customGeminiApiKey: String = "",
+    val showCustomApiKeyDialog: Boolean = false,
     val errorMessage: String? = null
 ) : UiState
 

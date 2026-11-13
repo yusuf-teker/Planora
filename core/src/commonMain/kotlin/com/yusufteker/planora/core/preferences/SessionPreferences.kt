@@ -38,6 +38,26 @@ open class SessionPreferences(
     private val accessTokenKeyString = "access_token"
     private val refreshTokenKeyString = "refresh_token"
     private val fcmTokenKeyString = "fcm_token"
+    private val customGeminiApiKeyString = "custom_gemini_api_key"
+
+    private val _customGeminiApiKeyFlow = kotlinx.coroutines.flow.MutableStateFlow(
+        secureSettings.settings.getStringOrNull(customGeminiApiKeyString)?.takeIf { it.isNotBlank() }
+    )
+    val customGeminiApiKeyFlow: kotlinx.coroutines.flow.StateFlow<String?> = _customGeminiApiKeyFlow
+
+    fun getCustomGeminiApiKey(): String? {
+        return secureSettings.settings.getStringOrNull(customGeminiApiKeyString)?.takeIf { it.isNotBlank() }
+    }
+
+    fun setCustomGeminiApiKey(apiKey: String?) {
+        val cleaned = apiKey?.trim()?.takeIf { it.isNotBlank() }
+        if (cleaned != null) {
+            secureSettings.settings.putString(customGeminiApiKeyString, cleaned)
+        } else {
+            secureSettings.settings.remove(customGeminiApiKeyString)
+        }
+        _customGeminiApiKeyFlow.value = cleaned
+    }
 
     // Keys for DataStore (Profile info)
     private val userNameKey = stringPreferencesKey("user_name")

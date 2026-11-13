@@ -232,6 +232,22 @@ export async function getNutritionGoals(token) {
   });
 }
 
+export async function analyzeFoodAi(token, text, date) {
+  return request('/health/ai/food', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ text, date }),
+  });
+}
+
+export async function analyzeWorkoutAi(token, text, userWeightKg, date) {
+  return request('/health/ai/workout', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ text, userWeightKg: userWeightKg || null, date }),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // PLANORA DATA
 // ─────────────────────────────────────────────────────────────
@@ -244,6 +260,29 @@ export async function getPlanoraTasks(token, fromTime = null, toTime = null) {
   if (params.length > 0) query = `?${params.join('&')}`;
 
   return request(`/tasks${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function createPlanoraTask(token, taskData) {
+  return request('/tasks', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(taskData),
+  });
+}
+
+export async function updatePlanoraTask(token, taskId, taskData) {
+  return request(`/tasks/${encodeURIComponent(taskId)}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(taskData),
+  });
+}
+
+export async function deletePlanoraTask(token, taskId) {
+  return request(`/tasks/${encodeURIComponent(taskId)}`, {
+    method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
 }

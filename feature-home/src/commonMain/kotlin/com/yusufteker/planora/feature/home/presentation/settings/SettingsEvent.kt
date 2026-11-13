@@ -21,5 +21,9 @@ sealed interface SettingsEvent : UiEvent {
     data class ExportTasksWithFormat(val format: com.yusufteker.planora.core.export.ExportFormat) : SettingsEvent
     /** Triggered when the user selects a launcher app icon color. */
     data class AppIconSelected(val icon: com.yusufteker.planora.core.icon.AppIcon) : SettingsEvent
+    data object CustomApiKeyClicked : SettingsEvent
+    data object CustomApiKeyDismissed : SettingsEvent
+    data class CustomApiKeySaved(val apiKey: String) : SettingsEvent
+    data object CustomApiKeyCleared : SettingsEvent
 }
 

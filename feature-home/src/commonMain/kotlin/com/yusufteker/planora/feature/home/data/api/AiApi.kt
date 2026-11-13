@@ -6,6 +6,7 @@ import com.yusufteker.planora.shared.ai.AiQuotaDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.plugins.timeout
@@ -21,10 +22,16 @@ open class AiApi(private val httpClient: HttpClient? = null) {
      * Sunucuya AI sohbet isteği gönderir.
      * Kota kontrolü ve Gemini API işlemi sunucu tarafında yürütülür.
      */
-    open suspend fun sendChatMessage(request: AiChatServerRequest): Result<AiChatServerResponse> = runCatching {
+    open suspend fun sendChatMessage(
+        request: AiChatServerRequest,
+        customApiKey: String? = null
+    ): Result<AiChatServerResponse> = runCatching {
         val client = httpClient ?: error("HttpClient is null")
         client.post("ai/chat") {
             contentType(ContentType.Application.Json)
+            if (!customApiKey.isNullOrBlank()) {
+                header("X-Gemini-Api-Key", customApiKey.trim())
+            }
             setBody(request)
             timeout {
                 requestTimeoutMillis = 35000L

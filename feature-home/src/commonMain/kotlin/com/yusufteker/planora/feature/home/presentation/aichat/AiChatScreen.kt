@@ -126,35 +126,51 @@ fun AiChatScreen(
                     }
                 },
                 actions = {
-                    val isQuotaExhausted = state.quota.dailyRemaining <= 0 || state.quota.weeklyRemaining <= 0
-                    Surface(
-                        color = if (isQuotaExhausted) MaterialTheme.colorScheme.errorContainer
-                            else if (state.quota.isPremium) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .clickable { onNavigateToPremium() }
-                    ) {
-                        val badgeText = if (state.quota.isPremium) {
-                            stringResource(Res.string.ai_quota_badge_premium, state.quota.dailyRemaining, state.quota.dailyLimit)
-                        } else {
-                            stringResource(
-                                Res.string.ai_quota_badge_free,
-                                state.quota.dailyRemaining,
-                                state.quota.dailyLimit,
-                                state.quota.weeklyRemaining,
-                                state.quota.weeklyLimit
+                    if (state.hasCustomApiKey) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Text(
+                                text = "Özel API Key",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
-                        Text(
-                            text = badgeText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isQuotaExhausted) MaterialTheme.colorScheme.onErrorContainer
-                                else if (state.quota.isPremium) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                    } else {
+                        val isQuotaExhausted = state.quota.dailyRemaining <= 0 || state.quota.weeklyRemaining <= 0
+                        Surface(
+                            color = if (isQuotaExhausted) MaterialTheme.colorScheme.errorContainer
+                                else if (state.quota.isPremium) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .clickable { onNavigateToPremium() }
+                        ) {
+                            val badgeText = if (state.quota.isPremium) {
+                                stringResource(Res.string.ai_quota_badge_premium, state.quota.dailyRemaining, state.quota.dailyLimit)
+                            } else {
+                                stringResource(
+                                    Res.string.ai_quota_badge_free,
+                                    state.quota.dailyRemaining,
+                                    state.quota.dailyLimit,
+                                    state.quota.weeklyRemaining,
+                                    state.quota.weeklyLimit
+                                )
+                            }
+                            Text(
+                                text = badgeText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isQuotaExhausted) MaterialTheme.colorScheme.onErrorContainer
+                                    else if (state.quota.isPremium) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

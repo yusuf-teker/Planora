@@ -116,12 +116,18 @@ object AiService {
 
     /**
      * AI sohbet mesajını işler.
+     * [customApiKey] sağlanırsa kullanıcı kendi Gemini API anahtarını kullanır ve sunucu kotasından düşülmez.
      */
-    suspend fun processChat(userId: Int, request: AiChatServerRequest): AiChatServerResponse {
+    suspend fun processChat(
+        userId: Int,
+        request: AiChatServerRequest,
+        customApiKey: String? = null
+    ): AiChatServerResponse {
+        val usingCustomKey = !customApiKey.isNullOrBlank()
         val quota = getUserQuota(userId)
 
-        // Kota kontrolü
-        if (quota.dailyRemaining <= 0 || quota.weeklyRemaining <= 0) {
+        // Kota kontrolü (özel API anahtarı kullanılıyorsa kota kontrolünü atla)
+        if (!usingCustomKey && (quota.dailyRemaining <= 0 || quota.weeklyRemaining <= 0)) {
             val message = if (quota.dailyRemaining <= 0) {
                 if (quota.isPremium) {
                     "Günlük Premium AI limitinize (50/50) ulaştınız. Yarın tekrar deneyebilirsiniz."
@@ -143,7 +149,7 @@ object AiService {
             )
         }
 
-        val apiKey = AppConfig.geminiApiKey
+        val apiKey = if (usingCustomKey) customApiKey else AppConfig.geminiApiKey
         if (apiKey.isBlank()) {
             return AiChatServerResponse(
                 result = null,
@@ -225,14 +231,16 @@ object AiService {
                     println("[AiService] Gemini ($model) Raw Body: ${httpResponse.body().take(500)}...")
                     val parsedResult = parseGeminiResponse(httpResponse.body(), effectiveContext, fullInput)
                     println("[AiService] Gemini ($model) Parsed Successfully: intent=${parsedResult.intent}, replyText=${parsedResult.replyText}")
-                    // Başarılı kullanım kaydet
-                    recordUsage(userId, parsedResult.intent.name)
-
-                    // Güncellenmiş kotayı hesapla
-                    val updatedQuota = quota.copy(
-                        dailyRemaining = (quota.dailyRemaining - 1).coerceAtLeast(0),
-                        weeklyRemaining = (quota.weeklyRemaining - 1).coerceAtLeast(0)
-                    )
+                    // Başarılı kullanım kaydet (özel API anahtarı kullanılıyorsa sunucu kotasından düşme)
+                    val updatedQuota = if (usingCustomKey) {
+                        quota
+                    } else {
+                        recordUsage(userId, parsedResult.intent.name)
+                        quota.copy(
+                            dailyRemaining = (quota.dailyRemaining - 1).coerceAtLeast(0),
+                            weeklyRemaining = (quota.weeklyRemaining - 1).coerceAtLeast(0)
+                        )
+                    }
 
                     return AiChatServerResponse(
                         result = parsedResult,
@@ -242,6 +250,16 @@ object AiService {
                 } else {
                     val errorBody = httpResponse.body()
                     println("[AiService] Gemini ($model) Error HTTP ${httpResponse.statusCode()}: $errorBody")
+                    if (usingCustomKey && (httpResponse.statusCode() == 401 || httpResponse.statusCode() == 403 ||
+                            (httpResponse.statusCode() == 400 && errorBody.contains("API_KEY_INVALID", ignoreCase = true)))
+                    ) {
+                        return AiChatServerResponse(
+                            result = null,
+                            quota = quota,
+                            quotaExceeded = false,
+                            errorMessage = "Özel Gemini API anahtarınız geçersiz veya yetkisiz. Lütfen Ayarlar'dan anahtarınızı kontrol edin."
+                        )
+                    }
                     lastError = "Model $model (${httpResponse.statusCode()}): $errorBody"
                     // 503 (High demand), 429 (Rate limit) veya 5xx sunucu hatalarında diğer modele geç
                     if (httpResponse.statusCode() == 503 || httpResponse.statusCode() == 429 || httpResponse.statusCode() >= 500) {

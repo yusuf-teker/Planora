@@ -53,7 +53,10 @@ class FakeAiApi : AiApi() {
         return quotaResult
     }
 
-    override suspend fun sendChatMessage(request: AiChatServerRequest): Result<AiChatServerResponse> {
+    override suspend fun sendChatMessage(
+        request: AiChatServerRequest,
+        customApiKey: String?
+    ): Result<AiChatServerResponse> {
         sendChatMessageCallCount++
         if (simulateDelayMs > 0) delay(simulateDelayMs)
         return chatResponseResult

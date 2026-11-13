@@ -176,12 +176,14 @@ fun Route.healthRoutes() {
             // --- AI Endpoints ---
             post("/ai/food") {
                 val req = call.receive<FoodAiRequest>()
+                val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
                 try {
                     val result = HealthAiService.analyzeFood(
                         rawText = req.text,
                         date = req.date,
                         imageBase64 = req.imageBase64,
-                        imageMimeType = req.imageMimeType
+                        imageMimeType = req.imageMimeType,
+                        customApiKey = customApiKey
                     )
                     call.respond(HttpStatusCode.OK, result)
                 } catch (e: Exception) {
@@ -193,8 +195,9 @@ fun Route.healthRoutes() {
 
             post("/ai/workout") {
                 val req = call.receive<WorkoutAiRequest>()
+                val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
                 try {
-                    val result = HealthAiService.analyzeWorkout(req.text, req.userWeightKg, req.date)
+                    val result = HealthAiService.analyzeWorkout(req.text, req.userWeightKg, req.date, customApiKey)
                     call.respond(HttpStatusCode.OK, result)
                 } catch (e: Exception) {
                     println("[HealthRoutes] Error in /health/ai/workout: ${e.message}")

@@ -69,9 +69,11 @@ object HealthAiService {
         rawText: String,
         date: String,
         imageBase64: String? = null,
-        imageMimeType: String? = "image/jpeg"
+        imageMimeType: String? = "image/jpeg",
+        customApiKey: String? = null
     ): FoodAiAnalysisResponse {
-        val apiKey = AppConfig.healthGeminiApiKey
+        val usingCustomKey = !customApiKey.isNullOrBlank()
+        val apiKey = customApiKey?.takeIf { it.isNotBlank() } ?: AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
             throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
         }
@@ -121,12 +123,18 @@ object HealthAiService {
 
         val promptText = rawText.ifBlank { "Lütfen fotoğraftaki tabağı/besin etiketini analiz et ve besin değerlerini çıkar." }
         val requestBody = buildFoodRequestBody(systemPrompt, promptText, imageBase64, imageMimeType)
-        val responseText = executeGeminiRequest(apiKey, requestBody)
+        val responseText = executeGeminiRequest(apiKey, requestBody, usingCustomKey)
         return parseFoodResponse(responseText)
     }
 
-    suspend fun analyzeWorkout(rawText: String, userWeightKg: Double?, date: String): WorkoutAiAnalysisResponse {
-        val apiKey = AppConfig.healthGeminiApiKey
+    suspend fun analyzeWorkout(
+        rawText: String,
+        userWeightKg: Double?,
+        date: String,
+        customApiKey: String? = null
+    ): WorkoutAiAnalysisResponse {
+        val usingCustomKey = !customApiKey.isNullOrBlank()
+        val apiKey = customApiKey?.takeIf { it.isNotBlank() } ?: AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
             throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
         }
@@ -155,7 +163,7 @@ object HealthAiService {
         """.trimIndent()
 
         val requestBody = buildWorkoutRequestBody(systemPrompt, rawText)
-        val responseText = executeGeminiRequest(apiKey, requestBody)
+        val responseText = executeGeminiRequest(apiKey, requestBody, usingCustomKey)
         return parseWorkoutResponse(responseText)
     }
 
@@ -230,7 +238,7 @@ object HealthAiService {
         return JsonObject(root + ("generationConfig" to newGenConfig)).toString()
     }
 
-    private fun executeGeminiRequest(apiKey: String, requestBody: String): String {
+    private fun executeGeminiRequest(apiKey: String, requestBody: String, isCustomKey: Boolean = false): String {
         var lastError: String? = null
         for (model in candidateModels) {
             val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
@@ -267,8 +275,15 @@ object HealthAiService {
                 } else {
                     val bodySnippet = httpResponse.body().take(300)
                     println("[HealthAiService] Gemini ($model) failed with HTTP ${httpResponse.statusCode()}: $bodySnippet")
+                    if (isCustomKey && (httpResponse.statusCode() == 401 || httpResponse.statusCode() == 403 ||
+                            (httpResponse.statusCode() == 400 && bodySnippet.contains("API_KEY_INVALID", ignoreCase = true)))
+                    ) {
+                        throw IllegalArgumentException("Özel Gemini API anahtarınız geçersiz veya yetkisiz. Lütfen Profil ayarlarından anahtarınızı kontrol edin.")
+                    }
                     lastError = "HTTP ${httpResponse.statusCode()}: $bodySnippet"
                 }
+            } catch (e: IllegalArgumentException) {
+                throw e
             } catch (e: Exception) {
                 println("[HealthAiService] Gemini ($model) exception: ${e.message}")
                 lastError = e.message

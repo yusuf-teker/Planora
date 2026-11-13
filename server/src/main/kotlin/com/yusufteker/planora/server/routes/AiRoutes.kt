@@ -38,7 +38,8 @@ fun Route.aiRoutes() {
                     }
 
                     val request = call.receive<AiChatServerRequest>()
-                    val response = AiService.processChat(currentUserId, request)
+                    val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
+                    val response = AiService.processChat(currentUserId, request, customApiKey)
                     call.respond(HttpStatusCode.OK, response)
                 }
             }

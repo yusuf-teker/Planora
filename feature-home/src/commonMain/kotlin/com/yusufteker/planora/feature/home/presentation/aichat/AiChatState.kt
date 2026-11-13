@@ -30,6 +30,9 @@ data class AiChatState(
     val quota: AiQuotaDto = AiQuotaDto(),
     val isQuotaLoading: Boolean = false,
     val showLimitReachedDialog: Boolean = false,
-    val fallbackUsed: Boolean = false
-) : UiState
+    val fallbackUsed: Boolean = false,
+    val customApiKey: String? = null
+) : UiState {
+    val hasCustomApiKey: Boolean get() = !customApiKey.isNullOrBlank()
+}
 

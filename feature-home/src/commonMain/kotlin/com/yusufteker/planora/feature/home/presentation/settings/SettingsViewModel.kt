@@ -60,6 +60,12 @@ class SettingsViewModel(
                 setState { copy(isPremium = isPrem) }
             }
         }
+        // Observe custom Gemini API key reactively
+        launch {
+            sessionPreferences.customGeminiApiKeyFlow.collect { key ->
+                setState { copy(customGeminiApiKey = key.orEmpty()) }
+            }
+        }
     }
 
     override fun onEvent(event: SettingsEvent) {
@@ -180,6 +186,25 @@ class SettingsViewModel(
                         setEffect(SettingsEffect.ShowSnackbar(Res.string.export_tasks_error))
                     }
                 }
+            }
+
+            is SettingsEvent.CustomApiKeyClicked -> {
+                setState { copy(showCustomApiKeyDialog = true) }
+            }
+
+            is SettingsEvent.CustomApiKeyDismissed -> {
+                setState { copy(showCustomApiKeyDialog = false) }
+            }
+
+            is SettingsEvent.CustomApiKeySaved -> {
+                val trimmed = event.apiKey.trim()
+                sessionPreferences.setCustomGeminiApiKey(trimmed)
+                setState { copy(customGeminiApiKey = trimmed, showCustomApiKeyDialog = false) }
+            }
+
+            is SettingsEvent.CustomApiKeyCleared -> {
+                sessionPreferences.setCustomGeminiApiKey(null)
+                setState { copy(customGeminiApiKey = "", showCustomApiKeyDialog = false) }
             }
         }
     }
