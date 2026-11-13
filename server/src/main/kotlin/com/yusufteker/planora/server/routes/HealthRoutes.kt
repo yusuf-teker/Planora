@@ -6,6 +6,7 @@ import com.yusufteker.planora.server.plugins.AI_RATE_LIMIT
 import com.yusufteker.planora.server.service.HealthAiQuotaDto
 import com.yusufteker.planora.server.service.HealthAiQuotaExceededException
 import com.yusufteker.planora.server.service.HealthAiService
+import com.yusufteker.planora.server.service.HealthLeaderboardService
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.TaskVisibility
@@ -663,6 +664,26 @@ fun Route.healthRoutes() {
                 }
 
                 call.respond(HttpStatusCode.OK, pullData)
+            }
+
+            // --- Leaderboard (Global & Friends, Daily & Weekly) ---
+            get("/leaderboard") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+                val period = call.request.queryParameters["period"] ?: "WEEKLY"
+                val scope = call.request.queryParameters["scope"] ?: "GLOBAL"
+                val category = call.request.queryParameters["category"] ?: "DISCIPLINE_XP"
+                val dateIso = call.request.queryParameters["date"]
+
+                val leaderboard = HealthLeaderboardService.getLeaderboard(
+                    currentUserId = userId,
+                    period = period,
+                    scope = scope,
+                    category = category,
+                    dateIso = dateIso
+                )
+                call.respond(HttpStatusCode.OK, leaderboard)
             }
         }
     }
