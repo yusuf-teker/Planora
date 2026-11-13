@@ -55,11 +55,56 @@ export default function AdminView() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [dbStatus, setDbStatus] = useState(null);
 
+  // Force Update / App Configs State
+  const [appConfigs, setAppConfigs] = useState([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(false);
+  const [savingConfigAppId, setSavingConfigAppId] = useState(null);
+  const [configFeedback, setConfigFeedback] = useState(null);
+
   // Load Initial Data
   useEffect(() => {
     loadStats();
     loadUsers();
+    loadAppConfigs();
   }, [token, adminSecret]);
+
+  const loadAppConfigs = async () => {
+    setLoadingConfigs(true);
+    try {
+      const data = await api.getAdminAppConfigs(token, adminSecret);
+      setAppConfigs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('App configs load error:', err);
+    } finally {
+      setLoadingConfigs(false);
+    }
+  };
+
+  const handleAppConfigFieldChange = (appId, field, value) => {
+    setAppConfigs((prev) =>
+      prev.map((cfg) => (cfg.appId === appId ? { ...cfg, [field]: value } : cfg))
+    );
+  };
+
+  const handleSaveAppConfig = async (cfg) => {
+    setSavingConfigAppId(cfg.appId);
+    setConfigFeedback(null);
+    try {
+      const updated = await api.updateAdminAppConfig(token, cfg.appId, cfg, adminSecret);
+      setAppConfigs((prev) => prev.map((c) => (c.appId === cfg.appId ? updated : c)));
+      setConfigFeedback({
+        type: 'success',
+        message: `${cfg.appId === 'healthtrack' ? 'HealthTrack' : 'Planora'} Force Update ayarları kaydedildi.`,
+      });
+    } catch (err) {
+      setConfigFeedback({
+        type: 'error',
+        message: err.message || 'Versiyon ayarları kaydedilemedi.',
+      });
+    } finally {
+      setSavingConfigAppId(null);
+    }
+  };
 
   const loadStats = async () => {
     setLoadingStats(true);
@@ -297,6 +342,18 @@ export default function AdminView() {
         >
           <Database className="w-3.5 h-3.5" />
           <span>Sistem & Neon DB Telemetrisi</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('versions')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+            activeTab === 'versions'
+              ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-sm'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>Force Update & Versiyon</span>
         </button>
       </div>
 
@@ -823,6 +880,175 @@ export default function AdminView() {
                 <p className="text-[11px] text-indigo-400">Uptime Robot 5 dk aralıklı canlandırma aktif</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: FORCE UPDATE & VERSION MANAGEMENT */}
+      {activeTab === 'versions' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-indigo-400" />
+                <span>Force Update & Uzaktan Versiyon Yönetimi</span>
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Minimum desteklenen sürümü yükselterek eski sürümleri zorunlu güncellemeye yönlendirebilirsiniz.
+              </p>
+            </div>
+            <button
+              onClick={loadAppConfigs}
+              disabled={loadingConfigs}
+              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 flex items-center gap-1.5 border border-white/10"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingConfigs ? 'animate-spin' : ''}`} />
+              <span>Yenile</span>
+            </button>
+          </div>
+
+          {configFeedback && (
+            <div
+              className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2 ${
+                configFeedback.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+              }`}
+            >
+              {configFeedback.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0" />
+              )}
+              <span>{configFeedback.message}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {appConfigs.map((cfg) => {
+              const isHealth = cfg.appId === 'healthtrack';
+              return (
+                <div
+                  key={cfg.appId}
+                  className="glass-panel rounded-3xl p-6 border border-white/10 space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                          isHealth
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                        }`}
+                      >
+                        {isHealth ? 'HealthTrack' : 'Planora'}
+                      </span>
+                      <span className="text-xs text-gray-500 font-mono">
+                        /api/app-config?app={cfg.appId}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                        Minimum Zorunlu Sürüm
+                      </label>
+                      <input
+                        type="text"
+                        value={cfg.minSupportedVersion || ''}
+                        onChange={(e) =>
+                          handleAppConfigFieldChange(cfg.appId, 'minSupportedVersion', e.target.value)
+                        }
+                        placeholder="1.0.0"
+                        className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                        En Güncel Sürüm (Opsiyonel Uyarı)
+                      </label>
+                      <input
+                        type="text"
+                        value={cfg.latestVersion || ''}
+                        onChange={(e) =>
+                          handleAppConfigFieldChange(cfg.appId, 'latestVersion', e.target.value)
+                        }
+                        placeholder="1.1.0"
+                        className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                        Android Store URL
+                      </label>
+                      <input
+                        type="text"
+                        value={cfg.storeUrlAndroid || ''}
+                        onChange={(e) =>
+                          handleAppConfigFieldChange(cfg.appId, 'storeUrlAndroid', e.target.value)
+                        }
+                        placeholder="https://play.google.com/store/apps/details?id=..."
+                        className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                        iOS App Store URL
+                      </label>
+                      <input
+                        type="text"
+                        value={cfg.storeUrlIos || ''}
+                        onChange={(e) =>
+                          handleAppConfigFieldChange(cfg.appId, 'storeUrlIos', e.target.value)
+                        }
+                        placeholder="https://apps.apple.com/app/..."
+                        className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                      Zorunlu Güncelleme Başlığı (TR)
+                    </label>
+                    <input
+                      type="text"
+                      value={cfg.forceUpdateTitleTr || ''}
+                      onChange={(e) =>
+                        handleAppConfigFieldChange(cfg.appId, 'forceUpdateTitleTr', e.target.value)
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                      Zorunlu Güncelleme Mesajı (TR)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={cfg.forceUpdateMessageTr || ''}
+                      onChange={(e) =>
+                        handleAppConfigFieldChange(cfg.appId, 'forceUpdateMessageTr', e.target.value)
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => handleSaveAppConfig(cfg)}
+                    disabled={savingConfigAppId === cfg.appId}
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+                  >
+                    {savingConfigAppId === cfg.appId ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

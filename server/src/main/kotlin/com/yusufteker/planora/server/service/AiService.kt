@@ -81,13 +81,21 @@ object AiService {
 
         val dailyCount = AiUsageLogsTable
             .selectAll()
-            .where { (AiUsageLogsTable.userId eq userId) and (AiUsageLogsTable.createdAt greaterEq oneDayAgo) }
+            .where {
+                (AiUsageLogsTable.userId eq userId) and
+                    (AiUsageLogsTable.actionType notLike "HEALTH_%") and
+                    (AiUsageLogsTable.createdAt greaterEq oneDayAgo)
+            }
             .count()
             .toInt()
 
         val weeklyCount = AiUsageLogsTable
             .selectAll()
-            .where { (AiUsageLogsTable.userId eq userId) and (AiUsageLogsTable.createdAt greaterEq oneWeekAgo) }
+            .where {
+                (AiUsageLogsTable.userId eq userId) and
+                    (AiUsageLogsTable.actionType notLike "HEALTH_%") and
+                    (AiUsageLogsTable.createdAt greaterEq oneWeekAgo)
+            }
             .count()
             .toInt()
 
@@ -276,6 +284,29 @@ object AiService {
             }
         }
 
+        if (!usingCustomKey) {
+            val fallbackJson = AiFallbackClient.requestJson(
+                systemPrompt = systemPrompt,
+                userPrompt = fullInput,
+                maxTokens = 512,
+                isPremium = quota.isPremium
+            )
+            if (fallbackJson != null) {
+                val parsedResult = parseAiJsonText(fallbackJson, effectiveContext, fullInput)
+                println("[AiService] Fallback Parsed Successfully: intent=${parsedResult.intent}, replyText=${parsedResult.replyText}")
+                recordUsage(userId, parsedResult.intent.name)
+                val updatedQuota = quota.copy(
+                    dailyRemaining = (quota.dailyRemaining - 1).coerceAtLeast(0),
+                    weeklyRemaining = (quota.weeklyRemaining - 1).coerceAtLeast(0)
+                )
+                return AiChatServerResponse(
+                    result = parsedResult,
+                    quota = updatedQuota,
+                    quotaExceeded = false
+                )
+            }
+        }
+
         return AiChatServerResponse(
             result = null,
             quota = quota,
@@ -440,6 +471,10 @@ object AiService {
         val textPart = ((parts?.getOrNull(0) as? JsonObject)?.get("text") as? JsonPrimitive)?.contentOrNull
             ?: ""
 
+        return parseAiJsonText(textPart, context, userInput)
+    }
+
+    private fun parseAiJsonText(textPart: String, context: AiChatContext, userInput: String): AiChatResult {
         var fixed = textPart.trim()
         if (fixed.startsWith("```json")) fixed = fixed.removePrefix("```json").trim()
         if (fixed.startsWith("```")) fixed = fixed.removePrefix("```").trim()

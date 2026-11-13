@@ -19,7 +19,7 @@ class AppVersionApi(private val httpClient: HttpClient) {
      */
     suspend fun fetchAppVersionConfig(): Result<AppVersionConfigDto> {
         return try {
-            val response: AppVersionConfigDto = httpClient.get("api/app-config").body()
+            val response: AppVersionConfigDto = httpClient.get("api/app-config?app=planora").body()
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)

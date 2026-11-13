@@ -82,4 +82,10 @@ val coreModule = module {
     // Holiday Management
     single { com.yusufteker.planora.core.holiday.HolidayApi(get()) }
     single { com.yusufteker.planora.core.holiday.HolidayRepository(get(), get()) }
+
+    // Subscription & Billing
+    single { com.yusufteker.planora.core.billing.SubscriptionApi(get()) }
+    single<com.yusufteker.planora.core.billing.StoreBillingClient> {
+        com.yusufteker.planora.core.billing.PendingStoreBillingClient()
+    }
 }

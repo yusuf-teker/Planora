@@ -391,6 +391,30 @@ fun Route.adminRoutes() {
             dbQuery {
                 userEntity.isPremium = request.isPremium
                 userEntity.premiumUntil = premiumUntil
+
+                val now = Instant.now()
+                if (request.isPremium) {
+                    SubscriptionEntity.new {
+                        this.user = userEntity
+                        this.appId = "ecosystem"
+                        this.planId = if (request.days != null && request.days!! > 0) "admin_grant_${request.days}d" else "admin_grant_lifetime"
+                        this.provider = "ADMIN_GRANT"
+                        this.status = "ACTIVE"
+                        this.autoRenew = false
+                        this.startedAt = now
+                        this.expiresAt = premiumUntil
+                        this.createdAt = now
+                        this.updatedAt = now
+                    }
+                } else {
+                    SubscriptionEntity.find {
+                        (SubscriptionsTable.userId eq userEntity.id) and (SubscriptionsTable.status eq "ACTIVE")
+                    }.forEach { sub ->
+                        sub.status = "CANCELLED"
+                        sub.autoRenew = false
+                        sub.updatedAt = now
+                    }
+                }
             }
 
             val message = if (request.isPremium) {
@@ -561,6 +585,94 @@ fun Route.adminRoutes() {
                     recipientCount = 1
                 )
             )
+        }
+
+        /**
+         * GET /admin/app-configs
+         * Planora ve HealthTrack için uzaktan versiyon & zorunlu güncelleme (Force Update) ayarlarını döner.
+         */
+        get("/app-configs") {
+            if (!call.ensureAdminAuthorized()) return@get
+
+            val configs = dbQuery {
+                val existing = AppConfigEntity.all().associateBy { it.id.value }
+                listOf("planora", "healthtrack").map { appId ->
+                    val entity = existing[appId]
+                    val appLabel = if (appId == "healthtrack") "HealthTrack" else "Planora"
+                    AdminAppConfigDto(
+                        appId = appId,
+                        minSupportedVersion = entity?.minSupportedVersion ?: "1.0.0",
+                        latestVersion = entity?.latestVersion ?: "1.0.0",
+                        forceUpdateTitleTr = entity?.forceUpdateTitleTr ?: "Zorunlu Güncelleme",
+                        forceUpdateTitleEn = entity?.forceUpdateTitleEn ?: "Update Required",
+                        forceUpdateMessageTr = entity?.forceUpdateMessageTr
+                            ?: "$appLabel uygulamasını kullanmaya devam edebilmek için lütfen son sürüme güncelleyin.",
+                        forceUpdateMessageEn = entity?.forceUpdateMessageEn
+                            ?: "Please update $appLabel to the latest version to continue using the application.",
+                        storeUrlAndroid = entity?.storeUrlAndroid ?: "",
+                        storeUrlIos = entity?.storeUrlIos ?: "",
+                        updatedAt = entity?.updatedAt?.toString()
+                    )
+                }
+            }
+            call.respond(HttpStatusCode.OK, configs)
+        }
+
+        /**
+         * PUT /admin/app-configs/{appId}
+         * Belirtilen uygulama ('planora' veya 'healthtrack') için Force Update versiyonlarını günceller.
+         */
+        put("/app-configs/{appId}") {
+            if (!call.ensureAdminAuthorized()) return@put
+
+            val appId = call.parameters["appId"]?.lowercase()?.trim()
+            if (appId != "planora" && appId != "healthtrack") {
+                call.respond(HttpStatusCode.BadRequest, "Geçersiz appId. 'planora' veya 'healthtrack' olmalıdır.")
+                return@put
+            }
+
+            val req = try {
+                call.receive<UpdateAppConfigRequest>()
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, "Geçersiz istek gövdesi: ${e.message}")
+                return@put
+            }
+
+            val updated = dbQuery {
+                val now = Instant.now()
+                val existing = AppConfigEntity.findById(appId)
+                val appLabel = if (appId == "healthtrack") "HealthTrack" else "Planora"
+                val entity = existing ?: AppConfigEntity.new(appId) {
+                    forceUpdateTitleTr = "Zorunlu Güncelleme"
+                    forceUpdateTitleEn = "Update Required"
+                    forceUpdateMessageTr = "$appLabel uygulamasını kullanmaya devam edebilmek için lütfen son sürüme güncelleyin."
+                    forceUpdateMessageEn = "Please update $appLabel to the latest version to continue using the application."
+                }
+                entity.minSupportedVersion = req.minSupportedVersion.trim()
+                entity.latestVersion = req.latestVersion.trim()
+                req.forceUpdateTitleTr?.trim()?.takeIf { it.isNotBlank() }?.let { entity.forceUpdateTitleTr = it }
+                req.forceUpdateTitleEn?.trim()?.takeIf { it.isNotBlank() }?.let { entity.forceUpdateTitleEn = it }
+                req.forceUpdateMessageTr?.trim()?.takeIf { it.isNotBlank() }?.let { entity.forceUpdateMessageTr = it }
+                req.forceUpdateMessageEn?.trim()?.takeIf { it.isNotBlank() }?.let { entity.forceUpdateMessageEn = it }
+                req.storeUrlAndroid?.trim()?.let { entity.storeUrlAndroid = it }
+                req.storeUrlIos?.trim()?.let { entity.storeUrlIos = it }
+                entity.updatedAt = now
+
+                AdminAppConfigDto(
+                    appId = entity.id.value,
+                    minSupportedVersion = entity.minSupportedVersion,
+                    latestVersion = entity.latestVersion,
+                    forceUpdateTitleTr = entity.forceUpdateTitleTr,
+                    forceUpdateTitleEn = entity.forceUpdateTitleEn,
+                    forceUpdateMessageTr = entity.forceUpdateMessageTr,
+                    forceUpdateMessageEn = entity.forceUpdateMessageEn,
+                    storeUrlAndroid = entity.storeUrlAndroid,
+                    storeUrlIos = entity.storeUrlIos,
+                    updatedAt = entity.updatedAt.toString()
+                )
+            }
+
+            call.respond(HttpStatusCode.OK, updated)
         }
     }
 }

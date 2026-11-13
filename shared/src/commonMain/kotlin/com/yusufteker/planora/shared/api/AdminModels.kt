@@ -99,6 +99,38 @@ data class AdminUserSummaryDto(
 )
 
 /**
+ * Admin panelinde uygulama bazlı (planora / healthtrack) Force Update ve versiyon konfigürasyonu.
+ */
+@Serializable
+data class AdminAppConfigDto(
+    val appId: String,
+    val minSupportedVersion: String,
+    val latestVersion: String,
+    val forceUpdateTitleTr: String,
+    val forceUpdateTitleEn: String,
+    val forceUpdateMessageTr: String,
+    val forceUpdateMessageEn: String,
+    val storeUrlAndroid: String,
+    val storeUrlIos: String,
+    val updatedAt: String? = null
+)
+
+/**
+ * Admin panelinden uygulama versiyon / force update ayarlarını güncelleme isteği.
+ */
+@Serializable
+data class UpdateAppConfigRequest(
+    val minSupportedVersion: String,
+    val latestVersion: String,
+    val forceUpdateTitleTr: String? = null,
+    val forceUpdateTitleEn: String? = null,
+    val forceUpdateMessageTr: String? = null,
+    val forceUpdateMessageEn: String? = null,
+    val storeUrlAndroid: String? = null,
+    val storeUrlIos: String? = null
+)
+
+/**
  * Kullanıcı rolünü değiştirmek için kullanılan istek modeli.
  */
 @Serializable

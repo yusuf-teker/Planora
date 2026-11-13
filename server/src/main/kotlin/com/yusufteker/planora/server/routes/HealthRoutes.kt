@@ -2,6 +2,9 @@ package com.yusufteker.planora.server.routes
 
 import com.yusufteker.planora.server.database.DatabaseFactory.dbQuery
 import com.yusufteker.planora.server.database.tables.*
+import com.yusufteker.planora.server.plugins.AI_RATE_LIMIT
+import com.yusufteker.planora.server.service.HealthAiQuotaDto
+import com.yusufteker.planora.server.service.HealthAiQuotaExceededException
 import com.yusufteker.planora.server.service.HealthAiService
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
@@ -10,6 +13,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -41,6 +45,13 @@ data class WorkoutAiRequest(
     val text: String,
     val userWeightKg: Double? = null,
     val date: String
+)
+
+@Serializable
+data class HealthAiErrorResponse(
+    val error: String,
+    val code: String = "AI_ERROR",
+    val quota: HealthAiQuotaDto? = null
 )
 
 // Sync DTOs
@@ -174,35 +185,73 @@ fun Route.healthRoutes() {
         route("/health") {
 
             // --- AI Endpoints ---
-            post("/ai/food") {
-                val req = call.receive<FoodAiRequest>()
-                val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
-                try {
-                    val result = HealthAiService.analyzeFood(
-                        rawText = req.text,
-                        date = req.date,
-                        imageBase64 = req.imageBase64,
-                        imageMimeType = req.imageMimeType,
-                        customApiKey = customApiKey
-                    )
-                    call.respond(HttpStatusCode.OK, result)
-                } catch (e: Exception) {
-                    println("[HealthRoutes] Error in /health/ai/food: ${e.message}")
-                    e.printStackTrace()
-                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "AI food analysis failed")))
-                }
+            get("/ai/quota") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val quota = HealthAiService.getUserQuota(userId)
+                call.respond(HttpStatusCode.OK, quota)
             }
 
-            post("/ai/workout") {
-                val req = call.receive<WorkoutAiRequest>()
-                val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
-                try {
-                    val result = HealthAiService.analyzeWorkout(req.text, req.userWeightKg, req.date, customApiKey)
-                    call.respond(HttpStatusCode.OK, result)
-                } catch (e: Exception) {
-                    println("[HealthRoutes] Error in /health/ai/workout: ${e.message}")
-                    e.printStackTrace()
-                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "AI workout analysis failed")))
+            rateLimit(AI_RATE_LIMIT) {
+                post("/ai/food") {
+                    val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                        ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val req = call.receive<FoodAiRequest>()
+                    val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
+                    try {
+                        val result = HealthAiService.analyzeFood(
+                            userId = userId,
+                            rawText = req.text,
+                            date = req.date,
+                            imageBase64 = req.imageBase64,
+                            imageMimeType = req.imageMimeType,
+                            customApiKey = customApiKey
+                        )
+                        call.respond(HttpStatusCode.OK, result)
+                    } catch (e: HealthAiQuotaExceededException) {
+                        call.respond(
+                            HttpStatusCode.TooManyRequests,
+                            HealthAiErrorResponse(
+                                error = e.message,
+                                code = "QUOTA_EXCEEDED",
+                                quota = e.quota
+                            )
+                        )
+                    } catch (e: Exception) {
+                        println("[HealthRoutes] Error in /health/ai/food: ${e.message}")
+                        e.printStackTrace()
+                        call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "AI food analysis failed")))
+                    }
+                }
+
+                post("/ai/workout") {
+                    val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                        ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val req = call.receive<WorkoutAiRequest>()
+                    val customApiKey = call.request.headers["X-Gemini-Api-Key"]?.trim()?.takeIf { it.isNotBlank() }
+                    try {
+                        val result = HealthAiService.analyzeWorkout(
+                            userId = userId,
+                            rawText = req.text,
+                            userWeightKg = req.userWeightKg,
+                            date = req.date,
+                            customApiKey = customApiKey
+                        )
+                        call.respond(HttpStatusCode.OK, result)
+                    } catch (e: HealthAiQuotaExceededException) {
+                        call.respond(
+                            HttpStatusCode.TooManyRequests,
+                            HealthAiErrorResponse(
+                                error = e.message,
+                                code = "QUOTA_EXCEEDED",
+                                quota = e.quota
+                            )
+                        )
+                    } catch (e: Exception) {
+                        println("[HealthRoutes] Error in /health/ai/workout: ${e.message}")
+                        e.printStackTrace()
+                        call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (e.message ?: "AI workout analysis failed")))
+                    }
                 }
             }
 

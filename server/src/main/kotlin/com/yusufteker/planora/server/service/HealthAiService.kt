@@ -1,13 +1,22 @@
 package com.yusufteker.planora.server.service
 
 import com.yusufteker.planora.server.AppConfig
+import com.yusufteker.planora.server.database.DatabaseFactory.dbQuery
+import com.yusufteker.planora.server.database.tables.AiUsageLogsTable
+import com.yusufteker.planora.server.database.tables.UserEntity
+import com.yusufteker.planora.server.database.tables.isPremiumActive
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Serializable
 data class MicronutrientDto(
@@ -45,7 +54,28 @@ data class WorkoutAiAnalysisResponse(
     val disclaimer: String = "Yakılan kalori kullanıcının kilosu ve aktivite türüne göre tahmini olarak hesaplanmıştır."
 )
 
+@Serializable
+data class HealthAiQuotaDto(
+    val isPremium: Boolean = false,
+    val dailyRemaining: Int = HealthAiService.HEALTH_AI_DAILY_LIMIT_FREE,
+    val dailyLimit: Int = HealthAiService.HEALTH_AI_DAILY_LIMIT_FREE
+)
+
+class HealthAiQuotaExceededException(
+    val quota: HealthAiQuotaDto,
+    override val message: String
+) : RuntimeException(message)
+
 object HealthAiService {
+
+    // ─────────────────────────────────────────────────────────────
+    // HEALTHTRACK AI KOTA LİMİTLERİ (KODDAN DEĞİŞTİRİLEBİLİR SABİTLER)
+    // ─────────────────────────────────────────────────────────────
+    const val HEALTH_AI_DAILY_LIMIT_FREE = 3
+    const val HEALTH_AI_DAILY_LIMIT_PREMIUM = 50
+    private const val ACTION_PREFIX = "HEALTH_"
+    private const val ACTION_FOOD = "HEALTH_FOOD"
+    private const val ACTION_WORKOUT = "HEALTH_WORKOUT"
 
     private val httpClient: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
@@ -65,7 +95,52 @@ object HealthAiService {
         "gemini-3.5-flash"
     )
 
+    suspend fun getUserQuota(userId: Int): HealthAiQuotaDto = dbQuery {
+        val user = UserEntity.findById(userId) ?: return@dbQuery HealthAiQuotaDto()
+        val isPremium = user.isPremiumActive()
+        val dailyLimit = if (isPremium) HEALTH_AI_DAILY_LIMIT_PREMIUM else HEALTH_AI_DAILY_LIMIT_FREE
+        val oneDayAgo = Instant.now().minus(24, ChronoUnit.HOURS)
+
+        val dailyCount = AiUsageLogsTable
+            .selectAll()
+            .where {
+                (AiUsageLogsTable.userId eq userId) and
+                    (AiUsageLogsTable.actionType like "${ACTION_PREFIX}%") and
+                    (AiUsageLogsTable.createdAt greaterEq oneDayAgo)
+            }
+            .count()
+            .toInt()
+
+        HealthAiQuotaDto(
+            isPremium = isPremium,
+            dailyRemaining = (dailyLimit - dailyCount).coerceAtLeast(0),
+            dailyLimit = dailyLimit
+        )
+    }
+
+    private suspend fun ensureQuotaAvailable(userId: Int): HealthAiQuotaDto {
+        val quota = getUserQuota(userId)
+        if (quota.dailyRemaining <= 0) {
+            val message = if (quota.isPremium) {
+                "Günlük Premium AI limitinize (${quota.dailyLimit}/${quota.dailyLimit}) ulaştınız. Yarın tekrar deneyebilirsiniz."
+            } else {
+                "Günlük ücretsiz AI hakkınız (${quota.dailyLimit}/${quota.dailyLimit}) doldu. Premium'a geçerek veya Profil > Özel API Key ekleyerek devam edebilirsiniz."
+            }
+            throw HealthAiQuotaExceededException(quota, message)
+        }
+        return quota
+    }
+
+    private suspend fun recordUsage(userId: Int, actionType: String) = dbQuery {
+        AiUsageLogsTable.insert {
+            it[AiUsageLogsTable.userId] = userId
+            it[AiUsageLogsTable.actionType] = actionType
+            it[AiUsageLogsTable.createdAt] = Instant.now()
+        }
+    }
+
     suspend fun analyzeFood(
+        userId: Int,
         rawText: String,
         date: String,
         imageBase64: String? = null,
@@ -73,6 +148,7 @@ object HealthAiService {
         customApiKey: String? = null
     ): FoodAiAnalysisResponse {
         val usingCustomKey = !customApiKey.isNullOrBlank()
+        val quota = if (!usingCustomKey) ensureQuotaAvailable(userId) else null
         val apiKey = customApiKey?.takeIf { it.isNotBlank() } ?: AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
             throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
@@ -123,17 +199,30 @@ object HealthAiService {
 
         val promptText = rawText.ifBlank { "Lütfen fotoğraftaki tabağı/besin etiketini analiz et ve besin değerlerini çıkar." }
         val requestBody = buildFoodRequestBody(systemPrompt, promptText, imageBase64, imageMimeType)
-        val responseText = executeGeminiRequest(apiKey, requestBody, usingCustomKey)
-        return parseFoodResponse(responseText)
+        val responseText = executeGeminiRequest(
+            apiKey = apiKey,
+            requestBody = requestBody,
+            isCustomKey = usingCustomKey,
+            fallbackSystemPrompt = if (imageBase64.isNullOrBlank()) systemPrompt else null,
+            fallbackUserPrompt = if (imageBase64.isNullOrBlank()) promptText else null,
+            isPremium = quota?.isPremium == true
+        )
+        val parsed = parseFoodResponse(responseText)
+        if (!usingCustomKey) {
+            recordUsage(userId, ACTION_FOOD)
+        }
+        return parsed
     }
 
     suspend fun analyzeWorkout(
+        userId: Int,
         rawText: String,
         userWeightKg: Double?,
         date: String,
         customApiKey: String? = null
     ): WorkoutAiAnalysisResponse {
         val usingCustomKey = !customApiKey.isNullOrBlank()
+        val quota = if (!usingCustomKey) ensureQuotaAvailable(userId) else null
         val apiKey = customApiKey?.takeIf { it.isNotBlank() } ?: AppConfig.healthGeminiApiKey
         if (apiKey.isBlank()) {
             throw IllegalStateException("HEALTH_GEMINI_API_KEY (or GEMINI_API_KEY) is not configured on server.")
@@ -163,8 +252,19 @@ object HealthAiService {
         """.trimIndent()
 
         val requestBody = buildWorkoutRequestBody(systemPrompt, rawText)
-        val responseText = executeGeminiRequest(apiKey, requestBody, usingCustomKey)
-        return parseWorkoutResponse(responseText)
+        val responseText = executeGeminiRequest(
+            apiKey = apiKey,
+            requestBody = requestBody,
+            isCustomKey = usingCustomKey,
+            fallbackSystemPrompt = systemPrompt,
+            fallbackUserPrompt = rawText,
+            isPremium = quota?.isPremium == true
+        )
+        val parsed = parseWorkoutResponse(responseText)
+        if (!usingCustomKey) {
+            recordUsage(userId, ACTION_WORKOUT)
+        }
+        return parsed
     }
 
     private fun buildFoodRequestBody(
@@ -238,7 +338,14 @@ object HealthAiService {
         return JsonObject(root + ("generationConfig" to newGenConfig)).toString()
     }
 
-    private fun executeGeminiRequest(apiKey: String, requestBody: String, isCustomKey: Boolean = false): String {
+    private fun executeGeminiRequest(
+        apiKey: String,
+        requestBody: String,
+        isCustomKey: Boolean = false,
+        fallbackSystemPrompt: String? = null,
+        fallbackUserPrompt: String? = null,
+        isPremium: Boolean = false
+    ): String {
         var lastError: String? = null
         for (model in candidateModels) {
             val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
@@ -287,6 +394,18 @@ object HealthAiService {
             } catch (e: Exception) {
                 println("[HealthAiService] Gemini ($model) exception: ${e.message}")
                 lastError = e.message
+            }
+        }
+        if (!isCustomKey && !fallbackSystemPrompt.isNullOrBlank() && !fallbackUserPrompt.isNullOrBlank()) {
+            val fallbackJson = AiFallbackClient.requestJson(
+                systemPrompt = fallbackSystemPrompt,
+                userPrompt = fallbackUserPrompt,
+                maxTokens = 1024,
+                isPremium = isPremium
+            )
+            if (fallbackJson != null) {
+                println("[HealthAiService] Fallback succeeded.")
+                return fallbackJson
             }
         }
         throw RuntimeException("Gemini API çağrısı başarısız oldu: $lastError")

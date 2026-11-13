@@ -78,3 +78,56 @@ data class PremiumFeatureItem(
     val description: String,
     val iconName: String
 )
+
+/**
+ * Mağaza satın alma doğrulama isteği (Google Play Billing, Apple StoreKit, RevenueCat).
+ */
+@Serializable
+data class VerifyPurchaseRequest(
+    val appId: String = "planora",
+    val planId: String,
+    val provider: String, // GOOGLE_PLAY, APPLE_APP_STORE, REVENUECAT
+    val purchaseToken: String? = null,
+    val transactionId: String? = null,
+    val receiptData: String? = null
+)
+
+/**
+ * Mağaza satın alma doğrulama yanıtı.
+ */
+@Serializable
+data class VerifyPurchaseResponse(
+    val success: Boolean,
+    val isPremium: Boolean = false,
+    val premiumUntil: String? = null,
+    val planId: String? = null,
+    val provider: String? = null,
+    val status: String? = null,
+    val message: String = "",
+    val billingConfigured: Boolean = false
+)
+
+/**
+ * Kullanıcının güncel abonelik durumu yanıtı.
+ */
+@Serializable
+data class SubscriptionStatusResponse(
+    val isPremium: Boolean = false,
+    val premiumUntil: String? = null,
+    val activePlanId: String? = null,
+    val provider: String? = null,
+    val status: String = "NONE",
+    val autoRenew: Boolean = false,
+    val billingConfigured: Boolean = false
+)
+
+/**
+ * Satın alımları geri yükleme isteği.
+ */
+@Serializable
+data class RestorePurchaseRequest(
+    val appId: String = "planora",
+    val provider: String,
+    val purchaseToken: String? = null,
+    val transactionId: String? = null
+)

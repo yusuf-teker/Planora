@@ -355,6 +355,20 @@ export async function sendAdminPush(token, pushPayload, secret) {
   });
 }
 
+export async function getAdminAppConfigs(token, secret) {
+  return request('/admin/app-configs', {
+    headers: getAdminHeaders(token, secret),
+  });
+}
+
+export async function updateAdminAppConfig(token, appId, configPayload, secret) {
+  return request(`/admin/app-configs/${appId}`, {
+    method: 'PUT',
+    headers: getAdminHeaders(token, secret),
+    body: JSON.stringify(configPayload),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // SYSTEM TELEMETRY & HEALTH
 // ─────────────────────────────────────────────────────────────

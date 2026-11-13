@@ -33,6 +33,7 @@ import com.yusufteker.planora.server.routes.adminRoutes
 import com.yusufteker.planora.server.routes.healthRoutes
 
 import com.yusufteker.planora.server.routes.appConfigRoutes
+import com.yusufteker.planora.server.routes.subscriptionRoutes
 import com.yusufteker.planora.server.routes.fcmTokenRoutes
 import com.yusufteker.planora.server.service.FcmService
 
@@ -104,6 +105,7 @@ fun Application.module() {
         // Health check & HealthTrack endpoints
         healthRoutes()
         appConfigRoutes()
+        subscriptionRoutes()
         authRoutes()
         postRoutes()
         commentRoutes()
