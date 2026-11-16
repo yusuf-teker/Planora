@@ -3,6 +3,7 @@ package com.yusufteker.planora.server.routes
 import com.yusufteker.planora.server.database.DatabaseFactory.dbQuery
 import com.yusufteker.planora.server.database.tables.*
 import com.yusufteker.planora.server.plugins.AI_RATE_LIMIT
+import com.yusufteker.planora.server.service.FcmService
 import com.yusufteker.planora.server.service.HealthAiQuotaDto
 import com.yusufteker.planora.server.service.HealthAiQuotaExceededException
 import com.yusufteker.planora.server.service.HealthAiService
@@ -18,6 +19,7 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -302,6 +304,13 @@ fun Route.healthRoutes() {
                 val syncedWeightIds = mutableListOf<String>()
                 val syncedAppointmentIds = mutableListOf<String>()
 
+                val recentPushCutoffMs = System.currentTimeMillis() - 60 * 60 * 1000L
+                val newFoodsForPush = mutableListOf<FoodLogSyncDto>()
+                val newWorkoutsForPush = mutableListOf<WorkoutSyncDto>()
+                var actorName = ""
+                var actorUsername = ""
+                var followerIds = emptyList<Int>()
+
                 dbQuery {
                     // 1. Process Foods
                     req.foods.forEach { food ->
@@ -321,6 +330,9 @@ fun Route.healthRoutes() {
                                 it[createdAt] = Instant.now()
                                 it[updatedAt] = food.updatedAt
                                 it[isDeleted] = food.isDeleted
+                            }
+                            if (!food.isDeleted && food.totalCalories > 0 && food.updatedAt >= recentPushCutoffMs && !food.id.startsWith("fdev_")) {
+                                newFoodsForPush.add(food)
                             }
                             syncedFoodIds.add(food.id)
                         } else if (food.updatedAt > existing[HealthFoodLogsTable.updatedAt]) {
@@ -407,6 +419,9 @@ fun Route.healthRoutes() {
                                 it[updatedAt] = w.updatedAt
                                 it[isDeleted] = w.isDeleted
                             }
+                            if (!w.isDeleted && !w.id.startsWith("wdev_") && (w.caloriesBurned > 0 || w.durationMinutes > 0) && w.updatedAt >= recentPushCutoffMs) {
+                                newWorkoutsForPush.add(w)
+                            }
                             syncedWorkoutIds.add(w.id)
                         } else if (w.updatedAt > existing[HealthWorkoutsTable.updatedAt]) {
                             HealthWorkoutsTable.update({ HealthWorkoutsTable.id eq w.id }) {
@@ -419,6 +434,11 @@ fun Route.healthRoutes() {
                                 it[aiAnalysis] = w.aiAnalysis
                                 it[updatedAt] = w.updatedAt
                                 it[isDeleted] = w.isDeleted
+                            }
+                            val wasUnlogged = existing[HealthWorkoutsTable.caloriesBurned] == 0 &&
+                                existing[HealthWorkoutsTable.durationMinutes] == 0
+                            if (wasUnlogged && !w.isDeleted && !w.id.startsWith("wdev_") && (w.caloriesBurned > 0 || w.durationMinutes > 0) && w.updatedAt >= recentPushCutoffMs) {
+                                newWorkoutsForPush.add(w)
                             }
                             syncedWorkoutIds.add(w.id)
                         } else {
@@ -547,6 +567,78 @@ fun Route.healthRoutes() {
                             }
                         }
                         syncedAppointmentIds.add(appt.id)
+                    }
+
+                    if (newFoodsForPush.isNotEmpty() || newWorkoutsForPush.isNotEmpty()) {
+                        val actor = UserEntity.findById(userId)
+                        actorName = actor?.name?.takeIf { it.isNotBlank() } ?: actor?.username.orEmpty()
+                        actorUsername = actor?.username.orEmpty()
+                        followerIds = FollowerEntity.find { FollowersTable.followedId eq userId }
+                            .map { it.follower.id.value }
+                            .filter { it != userId }
+                            .distinct()
+                    }
+                }
+
+                if (followerIds.isNotEmpty() && actorName.isNotBlank()) {
+                    val app = call.application
+                    val latestWorkout = newWorkoutsForPush.maxByOrNull { it.updatedAt }
+                    val latestFood = newFoodsForPush.maxByOrNull { it.updatedAt }
+                    app.launch {
+                        if (latestWorkout != null) {
+                            runCatching {
+                                val title = "$actorName antrenman tamamladı"
+                                val label = latestWorkout.rawText.trim().take(42)
+                                val body = buildString {
+                                    if (label.isNotBlank()) append("$label • ")
+                                    append("${latestWorkout.caloriesBurned} kcal")
+                                    if (latestWorkout.durationMinutes > 0) {
+                                        append(" • ${latestWorkout.durationMinutes} dk")
+                                    }
+                                }
+                                FcmService.sendPushToUsers(
+                                    userIds = followerIds,
+                                    title = title,
+                                    body = body,
+                                    data = mapOf(
+                                        "title" to title,
+                                        "body" to body,
+                                        "activityType" to "WORKOUT",
+                                        "actorUserId" to userId.toString(),
+                                        "actorName" to actorName,
+                                        "actorUsername" to actorUsername,
+                                        "notificationId" to "push_workout_${userId}_${latestWorkout.id}"
+                                    )
+                                )
+                            }
+                        }
+                        if (latestFood != null) {
+                            runCatching {
+                                val title = "$actorName öğün ekledi"
+                                val label = (latestFood.summary?.takeIf { it.isNotBlank() } ?: latestFood.rawText)
+                                    .trim()
+                                    .take(45)
+                                val body = if (label.isNotBlank()) {
+                                    "$label • ${latestFood.totalCalories} kcal"
+                                } else {
+                                    "${latestFood.totalCalories} kcal öğün kaydetti."
+                                }
+                                FcmService.sendPushToUsers(
+                                    userIds = followerIds,
+                                    title = title,
+                                    body = body,
+                                    data = mapOf(
+                                        "title" to title,
+                                        "body" to body,
+                                        "activityType" to "MEAL",
+                                        "actorUserId" to userId.toString(),
+                                        "actorName" to actorName,
+                                        "actorUsername" to actorUsername,
+                                        "notificationId" to "push_meal_${userId}_${latestFood.id}"
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
 

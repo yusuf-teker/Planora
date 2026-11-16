@@ -90,11 +90,24 @@ object HealthLeaderboardService {
             val followedIds = FollowerEntity.find { FollowersTable.followerId eq currentUserId }
                 .map { it.followed.id.value }
                 .toSet()
+            val followerIds = FollowerEntity.find { FollowersTable.followedId eq currentUserId }
+                .map { it.follower.id.value }
+                .toSet()
+            val friendIds = followedIds + followerIds
 
-            // Determine candidate users
+            // Determine candidate users:
+            // - FRIENDS always includes mutual/connected friends + currentUserId
+            // - GLOBAL includes all registered users (guaranteed superset of FRIENDS)
             val participantIds: Set<Int> = if (normalizedScope == "FRIENDS") {
-                followedIds + currentUserId
+                friendIds + currentUserId
             } else {
+                val registeredUsers = UsersTable
+                    .selectAll()
+                    .map { it[UsersTable.id].value }
+                val nutritionGoalUsers = HealthNutritionGoalsTable
+                    .selectAll()
+                    .where { HealthNutritionGoalsTable.isDeleted eq false }
+                    .map { it[HealthNutritionGoalsTable.userId].value }
                 val foodUsers = HealthFoodLogsTable
                     .selectAll()
                     .where {
@@ -119,7 +132,7 @@ object HealthLeaderboardService {
                             (HealthWeightsTable.date lessEq endIso)
                     }
                     .map { it[HealthWeightsTable.userId].value }
-                (foodUsers + workoutUsers + weightUsers + currentUserId).toSet()
+                (registeredUsers + nutritionGoalUsers + foodUsers + workoutUsers + weightUsers + friendIds + currentUserId).toSet()
             }
 
             if (participantIds.isEmpty()) {
@@ -130,7 +143,7 @@ object HealthLeaderboardService {
                     startDate = startIso,
                     endDate = endIso,
                     totalParticipants = 0,
-                    friendsCount = followedIds.size,
+                    friendsCount = friendIds.size,
                     entries = emptyList(),
                     myEntry = null
                 )
@@ -303,7 +316,7 @@ object HealthLeaderboardService {
                 startDate = startIso,
                 endDate = endIso,
                 totalParticipants = sorted.size,
-                friendsCount = followedIds.size,
+                friendsCount = friendIds.size,
                 entries = topEntries,
                 myEntry = myEntry
             )
