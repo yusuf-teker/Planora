@@ -305,7 +305,6 @@ fun Route.healthRoutes() {
                 val syncedAppointmentIds = mutableListOf<String>()
 
                 val recentPushCutoffMs = System.currentTimeMillis() - 60 * 60 * 1000L
-                val newFoodsForPush = mutableListOf<FoodLogSyncDto>()
                 val newWorkoutsForPush = mutableListOf<WorkoutSyncDto>()
                 var actorName = ""
                 var actorUsername = ""
@@ -330,9 +329,6 @@ fun Route.healthRoutes() {
                                 it[createdAt] = Instant.now()
                                 it[updatedAt] = food.updatedAt
                                 it[isDeleted] = food.isDeleted
-                            }
-                            if (!food.isDeleted && food.totalCalories > 0 && food.updatedAt >= recentPushCutoffMs && !food.id.startsWith("fdev_")) {
-                                newFoodsForPush.add(food)
                             }
                             syncedFoodIds.add(food.id)
                         } else if (food.updatedAt > existing[HealthFoodLogsTable.updatedAt]) {
@@ -569,12 +565,15 @@ fun Route.healthRoutes() {
                         syncedAppointmentIds.add(appt.id)
                     }
 
-                    if (newFoodsForPush.isNotEmpty() || newWorkoutsForPush.isNotEmpty()) {
+                    if (newWorkoutsForPush.isNotEmpty()) {
                         val actor = UserEntity.findById(userId)
                         actorName = actor?.name?.takeIf { it.isNotBlank() } ?: actor?.username.orEmpty()
                         actorUsername = actor?.username.orEmpty()
-                        followerIds = FollowerEntity.find { FollowersTable.followedId eq userId }
+                        val followerSide = FollowerEntity.find { FollowersTable.followedId eq userId }
                             .map { it.follower.id.value }
+                        val followedSide = FollowerEntity.find { FollowersTable.followerId eq userId }
+                            .map { it.followed.id.value }
+                        followerIds = (followerSide + followedSide)
                             .filter { it != userId }
                             .distinct()
                     }
@@ -583,7 +582,6 @@ fun Route.healthRoutes() {
                 if (followerIds.isNotEmpty() && actorName.isNotBlank()) {
                     val app = call.application
                     val latestWorkout = newWorkoutsForPush.maxByOrNull { it.updatedAt }
-                    val latestFood = newFoodsForPush.maxByOrNull { it.updatedAt }
                     app.launch {
                         if (latestWorkout != null) {
                             runCatching {
@@ -608,33 +606,6 @@ fun Route.healthRoutes() {
                                         "actorName" to actorName,
                                         "actorUsername" to actorUsername,
                                         "notificationId" to "push_workout_${userId}_${latestWorkout.id}"
-                                    )
-                                )
-                            }
-                        }
-                        if (latestFood != null) {
-                            runCatching {
-                                val title = "$actorName öğün ekledi"
-                                val label = (latestFood.summary?.takeIf { it.isNotBlank() } ?: latestFood.rawText)
-                                    .trim()
-                                    .take(45)
-                                val body = if (label.isNotBlank()) {
-                                    "$label • ${latestFood.totalCalories} kcal"
-                                } else {
-                                    "${latestFood.totalCalories} kcal öğün kaydetti."
-                                }
-                                FcmService.sendPushToUsers(
-                                    userIds = followerIds,
-                                    title = title,
-                                    body = body,
-                                    data = mapOf(
-                                        "title" to title,
-                                        "body" to body,
-                                        "activityType" to "MEAL",
-                                        "actorUserId" to userId.toString(),
-                                        "actorName" to actorName,
-                                        "actorUsername" to actorUsername,
-                                        "notificationId" to "push_meal_${userId}_${latestFood.id}"
                                     )
                                 )
                             }
