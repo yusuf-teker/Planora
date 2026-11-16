@@ -184,24 +184,36 @@ object FcmService {
         userId: Int,
         title: String,
         body: String,
-        data: Map<String, String> = emptyMap()
+        data: Map<String, String> = emptyMap(),
+        targetApp: String = "PLANORA"
     ) {
         if (!ensureInitialized()) {
             logger.warn("Firebase Admin is not initialized. Skipping push notification '$title' to user $userId.")
             return
         }
 
-        val tokens = dbQuery {
-            FcmTokenEntity.find { FcmTokensTable.userId eq userId }.map { it.token }
+        val allTokens = dbQuery {
+            FcmTokenEntity.find { FcmTokensTable.userId eq userId }
+                .map { it.token to it.platform }
         }
 
-        if (tokens.isEmpty()) {
-            logger.warn("No FCM token registered for user $userId. Push notification '$title' skipped.")
+        val filteredTokens = when (targetApp.uppercase()) {
+            "HEALTHTRACK" -> allTokens.filter { (_, platform) ->
+                platform.startsWith("HEALTHTRACK", ignoreCase = true)
+            }
+            "BOTH" -> allTokens
+            else -> allTokens.filter { (_, platform) ->
+                !platform.startsWith("HEALTHTRACK", ignoreCase = true)
+            }
+        }
+
+        if (filteredTokens.isEmpty()) {
+            logger.warn("No $targetApp FCM token registered for user $userId. Push notification '$title' skipped.")
             return
         }
 
-        tokens.forEach { token ->
-            sendToToken(token, title, body, data, userId)
+        filteredTokens.forEach { (token, platform) ->
+            sendToToken(token, platform, title, body, data, userId)
         }
     }
 
@@ -212,11 +224,12 @@ object FcmService {
         userIds: List<Int>,
         title: String,
         body: String,
-        data: Map<String, String> = emptyMap()
+        data: Map<String, String> = emptyMap(),
+        targetApp: String = "PLANORA"
     ) {
         if (userIds.isEmpty() || !ensureInitialized()) return
         userIds.distinct().forEach { userId ->
-            sendPushToUser(userId, title, body, data)
+            sendPushToUser(userId, title, body, data, targetApp)
         }
     }
 
@@ -246,10 +259,11 @@ object FcmService {
 
         if (memberUserIds.isEmpty()) return
 
-        // Collect all tokens for all room members
+        // Collect all Planora tokens for all room members
         val allTokens = dbQuery {
             memberUserIds.flatMap { memberId ->
                 FcmTokenEntity.find { FcmTokensTable.userId eq memberId }
+                    .filter { !it.platform.startsWith("HEALTHTRACK", ignoreCase = true) }
                     .map { it.token to memberId }
             }
         }
@@ -296,11 +310,13 @@ object FcmService {
      */
     private suspend fun sendToToken(
         token: String,
+        platform: String,
         title: String,
         body: String,
         data: Map<String, String>,
         userId: Int
     ) {
+        val isHealthTrackToken = platform.startsWith("HEALTHTRACK", ignoreCase = true)
         try {
             val apnsConfig = com.google.firebase.messaging.ApnsConfig.builder()
                 .putHeader("apns-priority", "10")
@@ -320,17 +336,24 @@ object FcmService {
                 )
                 .build()
 
+            val androidNotificationBuilder = com.google.firebase.messaging.AndroidNotification.builder()
+                .setTitle(title)
+                .setBody(body)
+                .setIcon("ic_notification")
+            if (isHealthTrackToken) {
+                androidNotificationBuilder
+                    .setChannelId("ht_friend_activity_push")
+                    .setSound("default")
+                    .setColor("#10B981")
+            } else {
+                androidNotificationBuilder
+                    .setChannelId("planora_v2_channel")
+                    .setSound("planora_chime")
+                    .setColor("#7C4DFF")
+            }
+
             val androidConfig = com.google.firebase.messaging.AndroidConfig.builder()
-                .setNotification(
-                    com.google.firebase.messaging.AndroidNotification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .setChannelId("planora_v2_channel")
-                        .setIcon("ic_notification")
-                        .setSound("planora_chime")
-                        .setColor("#7C4DFF")
-                        .build()
-                )
+                .setNotification(androidNotificationBuilder.build())
                 .setPriority(com.google.firebase.messaging.AndroidConfig.Priority.HIGH)
                 .build()
 
@@ -346,6 +369,7 @@ object FcmService {
                 .setAndroidConfig(androidConfig)
                 .putData("title", title)
                 .putData("body", body)
+                .putData("targetApp", if (isHealthTrackToken) "HEALTHTRACK" else "PLANORA")
 
             // Add custom data fields
             data.forEach { (key, value) ->

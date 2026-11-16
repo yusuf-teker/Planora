@@ -585,14 +585,19 @@ fun Route.healthRoutes() {
                     app.launch {
                         if (latestWorkout != null) {
                             runCatching {
-                                val title = "$actorName antrenman tamamladı"
-                                val label = latestWorkout.rawText.trim().take(42)
-                                val body = buildString {
-                                    if (label.isNotBlank()) append("$label • ")
-                                    append("${latestWorkout.caloriesBurned} kcal")
-                                    if (latestWorkout.durationMinutes > 0) {
-                                        append(" • ${latestWorkout.durationMinutes} dk")
-                                    }
+                                val nickname = actorName.trim()
+                                    .substringBefore(" ")
+                                    .ifBlank { actorUsername.ifBlank { "Arkadaşın" } }
+                                val sport = detectWorkoutSportDisplay(latestWorkout.rawText)
+                                val title = if (latestWorkout.durationMinutes > 0) {
+                                    "${sport.emoji} $nickname ${latestWorkout.durationMinutes} dk ${sport.phraseTr}"
+                                } else {
+                                    "${sport.emoji} $nickname ${sport.phraseTr}"
+                                }
+                                val body = if (latestWorkout.caloriesBurned > 0) {
+                                    "🔥 ${latestWorkout.caloriesBurned} kcal yaktı • Sen de serini koru!"
+                                } else {
+                                    "HealthTrack'te yeni antrenman kaydı!"
                                 }
                                 FcmService.sendPushToUsers(
                                     userIds = followerIds,
@@ -602,11 +607,14 @@ fun Route.healthRoutes() {
                                         "title" to title,
                                         "body" to body,
                                         "activityType" to "WORKOUT",
+                                        "sportType" to sport.sportKey,
                                         "actorUserId" to userId.toString(),
-                                        "actorName" to actorName,
+                                        "actorName" to nickname,
                                         "actorUsername" to actorUsername,
+                                        "targetApp" to "HEALTHTRACK",
                                         "notificationId" to "push_workout_${userId}_${latestWorkout.id}"
-                                    )
+                                    ),
+                                    targetApp = "HEALTHTRACK"
                                 )
                             }
                         }
@@ -749,5 +757,56 @@ fun Route.healthRoutes() {
                 call.respond(HttpStatusCode.OK, leaderboard)
             }
         }
+    }
+}
+
+private data class WorkoutSportDisplay(
+    val emoji: String,
+    val sportKey: String,
+    val phraseTr: String,
+    val phraseEn: String
+)
+
+private val kortRegex = Regex("""\bkort(ta|da)?\b""")
+private val potaRegex = Regex("""\bpota(ya|da)?\b""")
+private val kaleRegex = Regex("""\bkale(de|si|ye)?\b""")
+private val gymRegex = Regex("""\bgym\b""")
+private val runWordRegex = Regex("""\b(run|runs|koşu|kosu|koşma|kosma)\b""")
+
+private fun detectWorkoutSportDisplay(rawText: String): WorkoutSportDisplay {
+    val lower = rawText.lowercase()
+    return when {
+        lower.contains("tenis") || lower.contains("tennis") || kortRegex.containsMatchIn(lower) ->
+            WorkoutSportDisplay("🎾", "TENNIS", "tenis oynadı", "played tennis")
+        lower.contains("basketbol") || lower.contains("basketball") || lower.contains("basket") || potaRegex.containsMatchIn(lower) ->
+            WorkoutSportDisplay("🏀", "BASKETBALL", "basketbol oynadı", "played basketball")
+        lower.contains("futbol") || lower.contains("football") || lower.contains("soccer") || lower.contains("halı saha") || lower.contains("hali saha") || kaleRegex.containsMatchIn(lower) ->
+            WorkoutSportDisplay("⚽", "FOOTBALL", "futbol oynadı", "played football")
+        lower.contains("voleybol") || lower.contains("volleyball") || lower.contains("plaj voleybolu") || lower.contains("smaç") || lower.contains("smac") ->
+            WorkoutSportDisplay("🏐", "VOLLEYBALL", "voleybol oynadı", "played volleyball")
+        lower.contains("boks") || lower.contains("boxing") || lower.contains("kickboks") || lower.contains("kickbox") || lower.contains("mma") || lower.contains("muay thai") || lower.contains("dövüş") || lower.contains("dovus") || lower.contains("karate") || lower.contains("taekwondo") || lower.contains("tekvando") || lower.contains("judo") || lower.contains("güreş") || lower.contains("gures") ->
+            WorkoutSportDisplay("🥊", "BOXING", "boks yaptı", "did a boxing session")
+        lower.contains("kürek") || lower.contains("kurek") || lower.contains("rowing") || lower.contains("ergometre") || lower.contains("ergometer") ->
+            WorkoutSportDisplay("🚣", "ROWING", "kürek çekti", "did a rowing session")
+        lower.contains("hiit") || lower.contains("crossfit") || lower.contains("tabata") || lower.contains("kardiyo") || lower.contains("cardio") || lower.contains("circuit") || lower.contains("ip atlama") || lower.contains("jump rope") || lower.contains("burpee") ->
+            WorkoutSportDisplay("⚡", "HIIT", "HIIT antrenmanı yaptı", "did a HIIT workout")
+        lower.contains("kalistenik") || lower.contains("calisthenics") || lower.contains("street workout") || lower.contains("barfiks") || lower.contains("pull-up") || lower.contains("pullup") || lower.contains("şınav") || lower.contains("sinav") || lower.contains("push-up") || lower.contains("pushup") || lower.contains("dips") || lower.contains("plank") || lower.contains("cimnastik") || lower.contains("gymnastics") ->
+            WorkoutSportDisplay("🤸", "CALISTHENICS", "kalistenik yaptı", "did calisthenics")
+        lower.contains("dans") || lower.contains("dance") || lower.contains("zumba") || lower.contains("aerobik") || lower.contains("aerobics") || lower.contains("step aerobik") || lower.contains("salsa") || lower.contains("hip hop") ->
+            WorkoutSportDisplay("💃", "DANCE", "dans antrenmanı yaptı", "did a dance workout")
+        lower.contains("fitness") || lower.contains("ağırlık") || lower.contains("agirlik") || lower.contains("dambıl") || lower.contains("dambil") || lower.contains("dumbell") || lower.contains("dumbbell") || lower.contains("bodybuilding") || lower.contains("hipertrofi") || lower.contains("strength") || lower.contains("weight training") || lower.contains("weights") || gymRegex.containsMatchIn(lower) || lower.contains("bench") || lower.contains("squat") || lower.contains("deadlift") ->
+            WorkoutSportDisplay("🏋️", "FITNESS", "fitness yaptı", "did a fitness workout")
+        lower.contains("koşu") || lower.contains("kosu") || lower.contains("koş") || lower.contains("running") || lower.contains("jogging") || lower.contains("treadmill") || lower.contains("koşu bandı") || lower.contains("kosu bandi") || runWordRegex.containsMatchIn(lower) ->
+            WorkoutSportDisplay("🏃", "RUNNING", "koşu yaptı", "went for a run")
+        lower.contains("bisiklet") || lower.contains("cycling") || lower.contains("eliptik") || lower.contains("elliptical") || lower.contains("pedal") || lower.contains("spin") ->
+            WorkoutSportDisplay("🚴", "CYCLING", "bisiklet sürdü", "went cycling")
+        lower.contains("yüzme") || lower.contains("yuzme") || lower.contains("swimming") || lower.contains("swim") || lower.contains("havuz") ->
+            WorkoutSportDisplay("🏊", "SWIMMING", "yüzdü", "went swimming")
+        lower.contains("yürüyüş") || lower.contains("yuruyus") || lower.contains("walking") || lower.contains("yürü") || lower.contains("yuru") || lower.contains("trekking") || lower.contains("hiking") ->
+            WorkoutSportDisplay("🚶", "WALKING", "yürüyüş yaptı", "went for a walk")
+        lower.contains("yoga") || lower.contains("pilates") || lower.contains("esneme") || lower.contains("stretching") ->
+            WorkoutSportDisplay("🧘", "YOGA_PILATES", "yoga & pilates yaptı", "did yoga & pilates")
+        else ->
+            WorkoutSportDisplay("💪", "OTHER", "antrenman yaptı", "completed a workout")
     }
 }

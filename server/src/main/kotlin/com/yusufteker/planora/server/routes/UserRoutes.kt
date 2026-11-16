@@ -223,6 +223,7 @@ fun Route.userRoutes() {
 
                 var isNewRequestSent = false
                 var currentUsername = ""
+                var currentActorName = ""
 
                 dbQuery {
                     val targetUser = UserEntity.findById(targetUserId)
@@ -268,16 +269,24 @@ fun Route.userRoutes() {
                         
                         isNewRequestSent = true
                         currentUsername = currentUser.username
+                        currentActorName = currentUser.name.ifBlank { currentUser.username }
                     }
                 }
 
                 if (isNewRequestSent) {
-                    // Send push notification to target user
+                    // Send push notification to target user (Planora + HealthTrack)
                     com.yusufteker.planora.server.service.FcmService.sendPushToUser(
                         userId = targetUserId,
                         title = "Yeni Takip İsteği",
                         body = "@$currentUsername seni takip etmek istiyor.",
-                        data = mapOf("type" to "follow_request")
+                        data = mapOf(
+                            "type" to "follow_request",
+                            "activityType" to "FOLLOW_REQUEST",
+                            "actorUserId" to currentUserId.toString(),
+                            "actorName" to currentActorName,
+                            "actorUsername" to currentUsername
+                        ),
+                        targetApp = "BOTH"
                     )
                 }
 
@@ -402,7 +411,8 @@ fun Route.userRoutes() {
                         userId = pushRequesterId,
                         title = "Takip İsteği Kabul Edildi",
                         body = "@$pushTargetUsername takip isteğinizi kabul etti.",
-                        data = mapOf("type" to "follow_request_accepted")
+                        data = mapOf("type" to "follow_request_accepted"),
+                        targetApp = "BOTH"
                     )
                 }
 

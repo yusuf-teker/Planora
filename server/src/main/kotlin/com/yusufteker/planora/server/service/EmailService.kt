@@ -166,19 +166,25 @@ object EmailService {
      * @param resetCode 6-digit OTP code generated for password reset.
      * @return `true` if email was dispatched successfully, `false` otherwise.
      */
-    suspend fun sendPasswordResetEmail(toEmail: String, resetCode: String): Boolean {
-        val subject = "Planora - Şifre Sıfırlama Kodu / Password Reset Code"
+    suspend fun sendPasswordResetEmail(
+        toEmail: String,
+        resetCode: String,
+        isHealthTrack: Boolean = false
+    ): Boolean {
+        val brandName = if (isHealthTrack) "HealthTrack by Planora" else "Planora"
+        val accentColor = if (isHealthTrack) "#10B981" else "#6200EE"
+        val subject = "$brandName - Şifre Sıfırlama Kodu / Password Reset Code"
         val htmlContent = """
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <h2 style="color: #6200EE; text-align: center;">Planora App</h2>
+                <h2 style="color: $accentColor; text-align: center;">$brandName</h2>
                 <p>Merhaba,</p>
-                <p>Planora hesabınız için bir şifre sıfırlama talebinde bulundunuz. Şifrenizi değiştirmek için aşağıdaki 6 haneli doğrulama kodunu kullanabilirsiniz:</p>
+                <p>$brandName hesabınız için bir şifre sıfırlama talebinde bulundunuz. Şifrenizi değiştirmek için aşağıdaki 6 haneli doğrulama kodunu kullanabilirsiniz:</p>
                 <div style="background-color: #f5f5f5; padding: 15px; text-align: center; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">
                     $resetCode
                 </div>
                 <p style="margin-top: 20px;">Bu kod <strong>15 dakika</strong> boyunca geçerlidir. Eğer şifre sıfırlama talebinde bulunmadıysanız bu e-postayı dikkate almayınız.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-size: 12px; color: #888; text-align: center;">Planora Team</p>
+                <p style="font-size: 12px; color: #888; text-align: center;">$brandName Team</p>
             </div>
         """.trimIndent()
 
@@ -192,19 +198,25 @@ object EmailService {
      * @param verificationCode 6-digit OTP verification code.
      * @return `true` if email was dispatched successfully, `false` otherwise.
      */
-    suspend fun sendRegistrationVerificationEmail(toEmail: String, verificationCode: String): Boolean {
-        val subject = "Planora - Hesap Doğrulama Kodu / Account Verification Code"
+    suspend fun sendRegistrationVerificationEmail(
+        toEmail: String,
+        verificationCode: String,
+        isHealthTrack: Boolean = false
+    ): Boolean {
+        val brandName = if (isHealthTrack) "HealthTrack by Planora" else "Planora"
+        val accentColor = if (isHealthTrack) "#10B981" else "#6200EE"
+        val subject = "$brandName - Hesap Doğrulama Kodu / Account Verification Code"
         val htmlContent = """
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <h2 style="color: #6200EE; text-align: center;">Planora App</h2>
+                <h2 style="color: $accentColor; text-align: center;">$brandName</h2>
                 <p>Merhaba,</p>
-                <p>Planora kayıt işleminizi tamamlamak için aşağıdaki 6 haneli e-posta doğrulama kodunu kullanabilirsiniz:</p>
+                <p>$brandName kayıt işleminizi tamamlamak için aşağıdaki 6 haneli e-posta doğrulama kodunu kullanabilirsiniz:</p>
                 <div style="background-color: #f5f5f5; padding: 15px; text-align: center; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">
                     $verificationCode
                 </div>
                 <p style="margin-top: 20px;">Bu kod <strong>15 dakika</strong> boyunca geçerlidir. Eğer siz kayıt olmadıysanız bu e-postayı dikkate almayınız.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-size: 12px; color: #888; text-align: center;">Planora Team</p>
+                <p style="font-size: 12px; color: #888; text-align: center;">$brandName Team</p>
             </div>
         """.trimIndent()
 
@@ -219,16 +231,31 @@ object EmailService {
      * @param userName Name of the user.
      * @return `true` if email was dispatched successfully, `false` otherwise.
      */
-    suspend fun sendWelcomeEmail(toEmail: String, userName: String): Boolean {
-        val subject = "Planora'a Hoş Geldiniz! / Welcome to Planora!"
+    suspend fun sendWelcomeEmail(
+        toEmail: String,
+        userName: String,
+        isHealthTrack: Boolean = false
+    ): Boolean {
+        val brandName = if (isHealthTrack) "HealthTrack by Planora" else "Planora"
+        val accentColor = if (isHealthTrack) "#10B981" else "#6200EE"
+        val subject = if (isHealthTrack) {
+            "HealthTrack by Planora'ya Hoş Geldiniz! / Welcome to HealthTrack by Planora!"
+        } else {
+            "Planora'a Hoş Geldiniz! / Welcome to Planora!"
+        }
+        val bodyDesc = if (isHealthTrack) {
+            "Artık beslenme, spor, kilo ve sağlık verilerinizi takip edebilir ve arkadaşlarınızla yarışabilirsiniz."
+        } else {
+            "Artık görevlerinizi yönetebilir, oda oluşturabilir ve ekibinizle senkronize çalışabilirsiniz."
+        }
         val htmlContent = """
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <h2 style="color: #6200EE; text-align: center;">Planora App</h2>
+                <h2 style="color: $accentColor; text-align: center;">$brandName</h2>
                 <p>Merhaba <strong>$userName</strong>,</p>
-                <p>Planora ailesine katıldığınız için teşekkür ederiz! Hesabınız başarıyla oluşturuldu.</p>
-                <p>Artık görevlerinizi yönetebilir, oda oluşturabilir ve ekibinizle senkronize çalışabilirsiniz.</p>
+                <p>$brandName ailesine katıldığınız için teşekkür ederiz! Hesabınız başarıyla oluşturuldu.</p>
+                <p>$bodyDesc</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-size: 12px; color: #888; text-align: center;">Planora Team</p>
+                <p style="font-size: 12px; color: #888; text-align: center;">$brandName Team</p>
             </div>
         """.trimIndent()
 

@@ -62,6 +62,12 @@ class PlanoraFcmService : FirebaseMessagingService(), KoinComponent {
         super.onMessageReceived(message)
         Napier.d("FCM Message Received: ${message.data}", tag = "PlanoraFcmService")
 
+        if (message.data["targetApp"].equals("HEALTHTRACK", ignoreCase = true) ||
+            message.data["activityType"].equals("WORKOUT", ignoreCase = true)
+        ) {
+            return
+        }
+
         when (val type = message.data["type"]) {
             "sync_tasks" -> handleSyncTasksTrigger()
             "room_invite" -> {

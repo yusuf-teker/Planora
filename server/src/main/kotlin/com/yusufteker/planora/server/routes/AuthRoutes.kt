@@ -85,8 +85,11 @@ fun Route.authRoutes() {
                 }
             }
 
+            val isHealthTrack = call.request.headers["X-App-Source"].equals("healthtrack", ignoreCase = true) ||
+                call.request.queryParameters["app"].equals("healthtrack", ignoreCase = true)
+
             CoroutineScope(Dispatchers.IO).launch {
-                EmailService.sendRegistrationVerificationEmail(cleanEmail, verificationCode)
+                EmailService.sendRegistrationVerificationEmail(cleanEmail, verificationCode, isHealthTrack)
             }
 
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Verification code sent to email"))
@@ -165,8 +168,10 @@ fun Route.authRoutes() {
             }
 
             // Kayıt olan kullanıcıya hoş geldin e-postasını arka planda gönderiyoruz.
+            val isHealthTrack = call.request.headers["X-App-Source"].equals("healthtrack", ignoreCase = true) ||
+                call.request.queryParameters["app"].equals("healthtrack", ignoreCase = true)
             CoroutineScope(Dispatchers.IO).launch {
-                EmailService.sendWelcomeEmail(newUser.email, newUser.name)
+                EmailService.sendWelcomeEmail(newUser.email, newUser.name, isHealthTrack)
             }
 
             // İşlem başarılı! Uygulamaya token'ları ve kullanıcı bilgilerini dönüyoruz.
@@ -295,8 +300,10 @@ fun Route.authRoutes() {
                 }
 
                 // E-posta gönderimini arka planda (asenkron) yapıyoruz ki mobil uygulama beklemede (loading) kalmasın
+                val isHealthTrack = call.request.headers["X-App-Source"].equals("healthtrack", ignoreCase = true) ||
+                    call.request.queryParameters["app"].equals("healthtrack", ignoreCase = true)
                 CoroutineScope(Dispatchers.IO).launch {
-                    EmailService.sendPasswordResetEmail(user.email, resetCode)
+                    EmailService.sendPasswordResetEmail(user.email, resetCode, isHealthTrack)
                 }
             }
 

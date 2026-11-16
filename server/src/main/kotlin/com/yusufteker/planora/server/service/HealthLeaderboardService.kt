@@ -181,8 +181,8 @@ object HealthLeaderboardService {
                 .where {
                     (HealthWeightsTable.userId inList idList) and
                         (HealthWeightsTable.isDeleted eq false) and
-                        (HealthWeightsTable.date greaterEq startIso) and
-                        (HealthWeightsTable.date lessEq endIso)
+                        (HealthWeightsTable.date greaterEq streakLookbackIso) and
+                        (HealthWeightsTable.date lessEq targetIso.maxDate(endIso))
                 }
                 .toList()
 
@@ -199,7 +199,11 @@ object HealthLeaderboardService {
 
                 val userFoodsAll = foodsByUser[uid].orEmpty()
                 val userWorkoutsAll = workoutsByUser[uid].orEmpty()
-                val userWeightsPeriod = weightsByUser[uid].orEmpty()
+                val userWeightsAll = weightsByUser[uid].orEmpty()
+                val userWeightsPeriod = userWeightsAll.filter {
+                    val d = it[HealthWeightsTable.date]
+                    d >= startIso && d <= endIso
+                }
 
                 val userFoodsPeriod = userFoodsAll.filter {
                     val d = it[HealthFoodLogsTable.date]
@@ -207,7 +211,14 @@ object HealthLeaderboardService {
                 }
                 val userWorkoutsPeriod = userWorkoutsAll.filter {
                     val d = it[HealthWorkoutsTable.date]
-                    d >= startIso && d <= endIso && (it[HealthWorkoutsTable.caloriesBurned] > 0 || it[HealthWorkoutsTable.durationMinutes] > 0)
+                    d >= startIso && d <= endIso &&
+                        (it[HealthWorkoutsTable.caloriesBurned] > 0 || it[HealthWorkoutsTable.durationMinutes] > 0) &&
+                        !isDailyStepsOrBackfill(
+                            id = it[HealthWorkoutsTable.id].value,
+                            rawText = it[HealthWorkoutsTable.rawText],
+                            dateIso = d,
+                            createdAt = it[HealthWorkoutsTable.createdAt]
+                        )
                 }
 
                 val caloriesBurned = userWorkoutsPeriod.sumOf { it[HealthWorkoutsTable.caloriesBurned].coerceAtLeast(0) }
@@ -238,18 +249,44 @@ object HealthLeaderboardService {
 
                 val foodDatesPeriod = foodScoresByDate.keys
                 val workoutDatesPeriod = userWorkoutsPeriod.map { it[HealthWorkoutsTable.date] }.toSet()
-                val weightDatesPeriod = userWeightsPeriod.map { it[HealthWeightsTable.date] }.toSet()
-                val activeDatesPeriod = foodDatesPeriod + workoutDatesPeriod
+                val weightDatesPeriod = userWeightsPeriod.filter {
+                    !isWeightBackfill(
+                        note = it[HealthWeightsTable.note],
+                        dateIso = it[HealthWeightsTable.date],
+                        createdAt = it[HealthWeightsTable.createdAt]
+                    )
+                }.map { it[HealthWeightsTable.date] }.toSet()
+                val activeDatesPeriod = foodDatesPeriod + workoutDatesPeriod + weightDatesPeriod
 
                 val disciplineXp = foodDatesPeriod.sumOf { d ->
                     val bonus = if ((foodScoresByDate[d] ?: 0) >= 70) 15 else 0
                     25 + bonus
                 } + (workoutDatesPeriod.size * 30) + (weightDatesPeriod.size * 10)
 
+                val nonStepWorkoutDatesAll = userWorkoutsAll.filter {
+                    (it[HealthWorkoutsTable.caloriesBurned] > 0 || it[HealthWorkoutsTable.durationMinutes] > 0) &&
+                        !isDailyStepsOrBackfill(
+                            id = it[HealthWorkoutsTable.id].value,
+                            rawText = it[HealthWorkoutsTable.rawText],
+                            dateIso = it[HealthWorkoutsTable.date],
+                            createdAt = it[HealthWorkoutsTable.createdAt]
+                        )
+                }.map { it[HealthWorkoutsTable.date] }.toSet()
+
+                val validWeightDatesAll = userWeightsAll.filter {
+                    it[HealthWeightsTable.weightKg] > 0.0 &&
+                        !isWeightBackfill(
+                            note = it[HealthWeightsTable.note],
+                            dateIso = it[HealthWeightsTable.date],
+                            createdAt = it[HealthWeightsTable.createdAt]
+                        )
+                }.map { it[HealthWeightsTable.date] }.toSet()
+
                 val streakDays = computeStreakDays(
                     targetDate = targetDate,
                     activeDates = userFoodsAll.filter { it[HealthFoodLogsTable.totalCalories] > 0 }.map { it[HealthFoodLogsTable.date] }.toSet() +
-                        userWorkoutsAll.filter { it[HealthWorkoutsTable.caloriesBurned] > 0 || it[HealthWorkoutsTable.durationMinutes] > 0 }.map { it[HealthWorkoutsTable.date] }.toSet()
+                        nonStepWorkoutDatesAll +
+                        validWeightDatesAll
                 )
 
                 val (score, primaryLabel, secondaryLabel) = when (normalizedCategory) {
@@ -337,6 +374,42 @@ object HealthLeaderboardService {
         } catch (_: Exception) {
             0.0 to 0.0
         }
+    }
+
+    private fun isDailyStepsOrBackfill(
+        id: String,
+        rawText: String,
+        dateIso: String,
+        createdAt: java.time.Instant
+    ): Boolean {
+        if (id.endsWith("_steps") ||
+            id.contains("daily_steps") ||
+            rawText.contains("Adım • Günlük Hareket", ignoreCase = true) ||
+            rawText.contains("Steps • Daily Activity", ignoreCase = true)
+        ) {
+            return true
+        }
+        if (id.startsWith("wdev_")) {
+            val syncedDate = java.time.LocalDate.ofInstant(createdAt, istanbulZone)
+            if (dateIso < syncedDate.minusDays(1).toString()) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun isWeightBackfill(
+        note: String?,
+        dateIso: String,
+        createdAt: java.time.Instant
+    ): Boolean {
+        if (note != null && note.startsWith("⚖️")) {
+            val syncedDate = java.time.LocalDate.ofInstant(createdAt, istanbulZone)
+            if (dateIso < syncedDate.minusDays(1).toString()) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun computeStreakDays(targetDate: LocalDate, activeDates: Set<String>): Int {

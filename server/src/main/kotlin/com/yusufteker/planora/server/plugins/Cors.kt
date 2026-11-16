@@ -13,6 +13,7 @@ fun Application.configureCors() {
         allowHeader(HttpHeaders.Accept)
         allowHeader("X-Admin-Secret")
         allowHeader("X-Gemini-Api-Key")
+        allowHeader("X-App-Source")
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
