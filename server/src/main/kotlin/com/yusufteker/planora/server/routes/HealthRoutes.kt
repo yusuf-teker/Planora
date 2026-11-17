@@ -280,6 +280,7 @@ fun Route.healthRoutes() {
                                 ironMg = it[HealthNutritionGoalsTable.ironMg],
                                 calciumMg = it[HealthNutritionGoalsTable.calciumMg],
                                 magnesiumMg = it[HealthNutritionGoalsTable.magnesiumMg],
+                                fitnessGoal = it[HealthNutritionGoalsTable.fitnessGoal],
                                 updatedAt = it[HealthNutritionGoalsTable.updatedAt]
                             )
                         }.firstOrNull()
@@ -314,7 +315,7 @@ fun Route.healthRoutes() {
                     // 1. Process Foods
                     req.foods.forEach { food ->
                         val existing = HealthFoodLogsTable.selectAll()
-                            .where { (HealthFoodLogsTable.id eq food.id) and (HealthFoodLogsTable.userId eq userId) }
+                            .where { HealthFoodLogsTable.id eq food.id }
                             .firstOrNull()
 
                         if (existing == null) {
@@ -331,8 +332,10 @@ fun Route.healthRoutes() {
                                 it[isDeleted] = food.isDeleted
                             }
                             syncedFoodIds.add(food.id)
+                        } else if (existing[HealthFoodLogsTable.userId].value != userId) {
+                            // Ownership guard: do not overwrite or crash on another user's record
                         } else if (food.updatedAt > existing[HealthFoodLogsTable.updatedAt]) {
-                            HealthFoodLogsTable.update({ HealthFoodLogsTable.id eq food.id }) {
+                            HealthFoodLogsTable.update({ (HealthFoodLogsTable.id eq food.id) and (HealthFoodLogsTable.userId eq userId) }) {
                                 it[date] = food.date
                                 it[rawText] = food.rawText
                                 it[summary] = food.summary
@@ -354,8 +357,12 @@ fun Route.healthRoutes() {
                             .firstOrNull()
 
                         if (existing == null) {
+                            val idTaken = HealthNutritionGoalsTable.selectAll()
+                                .where { HealthNutritionGoalsTable.id eq goal.id }
+                                .count() > 0
+                            val safeGoalId = if (idTaken) UUID.randomUUID().toString() else goal.id
                             HealthNutritionGoalsTable.insert {
-                                it[id] = goal.id
+                                it[id] = safeGoalId
                                 it[HealthNutritionGoalsTable.userId] = userId
                                 it[calories] = goal.calories
                                 it[proteinG] = goal.proteinG
@@ -368,10 +375,11 @@ fun Route.healthRoutes() {
                                 it[ironMg] = goal.ironMg
                                 it[calciumMg] = goal.calciumMg
                                 it[magnesiumMg] = goal.magnesiumMg
+                                it[fitnessGoal] = goal.fitnessGoal
                                 it[updatedAt] = goal.updatedAt
                                 it[isDeleted] = goal.isDeleted
                             }
-                            syncedGoalId = goal.id
+                            syncedGoalId = safeGoalId
                         } else if (goal.updatedAt > existing[HealthNutritionGoalsTable.updatedAt]) {
                             HealthNutritionGoalsTable.update({ HealthNutritionGoalsTable.userId eq userId }) {
                                 it[calories] = goal.calories
@@ -385,6 +393,7 @@ fun Route.healthRoutes() {
                                 it[ironMg] = goal.ironMg
                                 it[calciumMg] = goal.calciumMg
                                 it[magnesiumMg] = goal.magnesiumMg
+                                it[fitnessGoal] = goal.fitnessGoal
                                 it[updatedAt] = goal.updatedAt
                                 it[isDeleted] = goal.isDeleted
                             }
@@ -397,8 +406,12 @@ fun Route.healthRoutes() {
                     // 3. Process Workouts
                     req.workouts.forEach { w ->
                         val existing = HealthWorkoutsTable.selectAll()
-                            .where { (HealthWorkoutsTable.id eq w.id) and (HealthWorkoutsTable.userId eq userId) }
+                            .where { HealthWorkoutsTable.id eq w.id }
                             .firstOrNull()
+
+                        val isStepSummary = w.id.endsWith("_steps") ||
+                            w.rawText.contains("Adım • Günlük Hareket", ignoreCase = true) ||
+                            w.rawText.contains("Steps • Daily Movement", ignoreCase = true)
 
                         if (existing == null) {
                             HealthWorkoutsTable.insert {
@@ -415,12 +428,14 @@ fun Route.healthRoutes() {
                                 it[updatedAt] = w.updatedAt
                                 it[isDeleted] = w.isDeleted
                             }
-                            if (!w.isDeleted && !w.id.startsWith("wdev_") && (w.caloriesBurned > 0 || w.durationMinutes > 0) && w.updatedAt >= recentPushCutoffMs) {
+                            if (!w.isDeleted && !isStepSummary && (w.caloriesBurned > 0 || w.durationMinutes > 0) && w.updatedAt >= recentPushCutoffMs) {
                                 newWorkoutsForPush.add(w)
                             }
                             syncedWorkoutIds.add(w.id)
+                        } else if (existing[HealthWorkoutsTable.userId].value != userId) {
+                            // Ownership guard
                         } else if (w.updatedAt > existing[HealthWorkoutsTable.updatedAt]) {
-                            HealthWorkoutsTable.update({ HealthWorkoutsTable.id eq w.id }) {
+                            HealthWorkoutsTable.update({ (HealthWorkoutsTable.id eq w.id) and (HealthWorkoutsTable.userId eq userId) }) {
                                 it[date] = w.date
                                 it[rawText] = w.rawText
                                 it[caloriesBurned] = w.caloriesBurned
@@ -433,7 +448,7 @@ fun Route.healthRoutes() {
                             }
                             val wasUnlogged = existing[HealthWorkoutsTable.caloriesBurned] == 0 &&
                                 existing[HealthWorkoutsTable.durationMinutes] == 0
-                            if (wasUnlogged && !w.isDeleted && !w.id.startsWith("wdev_") && (w.caloriesBurned > 0 || w.durationMinutes > 0) && w.updatedAt >= recentPushCutoffMs) {
+                            if (wasUnlogged && !w.isDeleted && !isStepSummary && (w.caloriesBurned > 0 || w.durationMinutes > 0) && w.updatedAt >= recentPushCutoffMs) {
                                 newWorkoutsForPush.add(w)
                             }
                             syncedWorkoutIds.add(w.id)
@@ -445,7 +460,7 @@ fun Route.healthRoutes() {
                     // 4. Process Weights
                     req.weights.forEach { wt ->
                         val existing = HealthWeightsTable.selectAll()
-                            .where { (HealthWeightsTable.id eq wt.id) and (HealthWeightsTable.userId eq userId) }
+                            .where { HealthWeightsTable.id eq wt.id }
                             .firstOrNull()
 
                         if (existing == null) {
@@ -461,8 +476,10 @@ fun Route.healthRoutes() {
                                 it[isDeleted] = wt.isDeleted
                             }
                             syncedWeightIds.add(wt.id)
+                        } else if (existing[HealthWeightsTable.userId].value != userId) {
+                            // Ownership guard
                         } else if (wt.updatedAt > existing[HealthWeightsTable.updatedAt]) {
-                            HealthWeightsTable.update({ HealthWeightsTable.id eq wt.id }) {
+                            HealthWeightsTable.update({ (HealthWeightsTable.id eq wt.id) and (HealthWeightsTable.userId eq userId) }) {
                                 it[date] = wt.date
                                 it[weightKg] = wt.weightKg
                                 it[targetWeightKg] = wt.targetWeightKg
@@ -479,18 +496,22 @@ fun Route.healthRoutes() {
                     // 5. Process Appointments & Mirror into Planora Tasks
                     req.appointments.forEach { appt ->
                         val existing = HealthAppointmentsTable.selectAll()
-                            .where { (HealthAppointmentsTable.id eq appt.id) and (HealthAppointmentsTable.userId eq userId) }
+                            .where { HealthAppointmentsTable.id eq appt.id }
                             .firstOrNull()
 
-                        var planoraTaskId = appt.planoraTaskId
+                        if (existing != null && existing[HealthAppointmentsTable.userId].value != userId) {
+                            return@forEach // Ownership guard
+                        }
+
+                        var planoraTaskId = existing?.get(HealthAppointmentsTable.planoraTaskId)?.value ?: appt.planoraTaskId
 
                         if (appt.isDeleted) {
-                            // If deleted, remove mirrored task if exists
+                            // If deleted, remove mirrored task if owned by user
                             existing?.get(HealthAppointmentsTable.planoraTaskId)?.value?.let { pTaskId ->
-                                TasksTable.deleteWhere { TasksTable.id eq pTaskId }
+                                TasksTable.deleteWhere { (TasksTable.id eq pTaskId) and (TasksTable.creatorId eq userId) }
                             }
                             if (existing != null) {
-                                HealthAppointmentsTable.update({ HealthAppointmentsTable.id eq appt.id }) {
+                                HealthAppointmentsTable.update({ (HealthAppointmentsTable.id eq appt.id) and (HealthAppointmentsTable.userId eq userId) }) {
                                     it[isDeleted] = true
                                     it[updatedAt] = appt.updatedAt
                                     it[HealthAppointmentsTable.planoraTaskId] = null
@@ -500,15 +521,19 @@ fun Route.healthRoutes() {
                             return@forEach
                         }
 
-                        // Mirror or update Planora task (EVENT)
+                        // Mirror or update Planora task (EVENT) — strictly verify ownership
                         val taskTitle = "Randevu: ${appt.doctorName} - ${appt.hospitalName}"
                         val taskDesc = appt.notes ?: "Sağlık Randevusu"
                         val eventStart = appt.dateTime
                         val eventEnd = appt.dateTime + (30 * 60 * 1000L) // 30 min duration default
 
-                        if (planoraTaskId != null && TasksTable.selectAll().where { TasksTable.id eq planoraTaskId }.count() > 0) {
-                            // Update existing Planora task
-                            TasksTable.update({ TasksTable.id eq planoraTaskId }) {
+                        val ownsTask = planoraTaskId != null && TasksTable.selectAll()
+                            .where { (TasksTable.id eq planoraTaskId) and (TasksTable.creatorId eq userId) }
+                            .count() > 0
+
+                        if (ownsTask && planoraTaskId != null) {
+                            // Update existing owned Planora task
+                            TasksTable.update({ (TasksTable.id eq planoraTaskId) and (TasksTable.creatorId eq userId) }) {
                                 it[title] = taskTitle
                                 it[description] = taskDesc
                                 it[startTime] = eventStart
@@ -550,7 +575,7 @@ fun Route.healthRoutes() {
                                 it[isDeleted] = appt.isDeleted
                             }
                         } else if (appt.updatedAt > existing[HealthAppointmentsTable.updatedAt]) {
-                            HealthAppointmentsTable.update({ HealthAppointmentsTable.id eq appt.id }) {
+                            HealthAppointmentsTable.update({ (HealthAppointmentsTable.id eq appt.id) and (HealthAppointmentsTable.userId eq userId) }) {
                                 it[dateTime] = appt.dateTime
                                 it[doctorName] = appt.doctorName
                                 it[hospitalName] = appt.hospitalName
@@ -569,13 +594,23 @@ fun Route.healthRoutes() {
                         val actor = UserEntity.findById(userId)
                         actorName = actor?.name?.takeIf { it.isNotBlank() } ?: actor?.username.orEmpty()
                         actorUsername = actor?.username.orEmpty()
-                        val followerSide = FollowerEntity.find { FollowersTable.followedId eq userId }
+                        val allFollowers = FollowerEntity.find { FollowersTable.followedId eq userId }
                             .map { it.follower.id.value }
-                        val followedSide = FollowerEntity.find { FollowersTable.followerId eq userId }
-                            .map { it.followed.id.value }
-                        followerIds = (followerSide + followedSide)
                             .filter { it != userId }
                             .distinct()
+
+                        val mutedFollowers = if (allFollowers.isNotEmpty()) {
+                            HealthWorkoutNotificationMutesTable
+                                .selectAll()
+                                .where {
+                                    (HealthWorkoutNotificationMutesTable.mutedUserId eq userId) and
+                                    (HealthWorkoutNotificationMutesTable.userId inList allFollowers)
+                                }
+                                .map { it[HealthWorkoutNotificationMutesTable.userId].value }
+                                .toSet()
+                        } else emptySet()
+
+                        followerIds = allFollowers.filter { it !in mutedFollowers }
                     }
                 }
 
@@ -672,6 +707,7 @@ fun Route.healthRoutes() {
                                 ironMg = it[HealthNutritionGoalsTable.ironMg],
                                 calciumMg = it[HealthNutritionGoalsTable.calciumMg],
                                 magnesiumMg = it[HealthNutritionGoalsTable.magnesiumMg],
+                                fitnessGoal = it[HealthNutritionGoalsTable.fitnessGoal],
                                 updatedAt = it[HealthNutritionGoalsTable.updatedAt],
                                 isDeleted = it[HealthNutritionGoalsTable.isDeleted]
                             )
@@ -755,6 +791,57 @@ fun Route.healthRoutes() {
                     dateIso = dateIso
                 )
                 call.respond(HttpStatusCode.OK, leaderboard)
+            }
+
+            // --- Friend Workout Notification Preferences ---
+            get("/friends/muted-workouts") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+                val mutedIds = dbQuery {
+                    HealthWorkoutNotificationMutesTable
+                        .selectAll()
+                        .where { HealthWorkoutNotificationMutesTable.userId eq userId }
+                        .map { it[HealthWorkoutNotificationMutesTable.mutedUserId].value }
+                }
+                call.respond(HttpStatusCode.OK, mutedIds)
+            }
+
+            post("/friends/{targetUserId}/toggle-workout-notifications") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val targetUserId = call.parameters["targetUserId"]?.toIntOrNull()
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid target user ID")
+
+                if (userId == targetUserId) {
+                    return@post call.respond(HttpStatusCode.BadRequest, "Cannot mute yourself")
+                }
+
+                val isNowMuted = dbQuery {
+                    val existing = HealthWorkoutNotificationMutesTable
+                        .selectAll()
+                        .where {
+                            (HealthWorkoutNotificationMutesTable.userId eq userId) and
+                            (HealthWorkoutNotificationMutesTable.mutedUserId eq targetUserId)
+                        }
+                        .firstOrNull()
+
+                    if (existing != null) {
+                        HealthWorkoutNotificationMutesTable.deleteWhere {
+                            (HealthWorkoutNotificationMutesTable.userId eq userId) and
+                            (HealthWorkoutNotificationMutesTable.mutedUserId eq targetUserId)
+                        }
+                        false
+                    } else {
+                        HealthWorkoutNotificationMutesTable.insert {
+                            it[HealthWorkoutNotificationMutesTable.userId] = userId
+                            it[HealthWorkoutNotificationMutesTable.mutedUserId] = targetUserId
+                            it[createdAt] = Instant.now()
+                        }
+                        true
+                    }
+                }
+                call.respond(HttpStatusCode.OK, mapOf("targetUserId" to targetUserId, "isMuted" to isNowMuted))
             }
         }
     }

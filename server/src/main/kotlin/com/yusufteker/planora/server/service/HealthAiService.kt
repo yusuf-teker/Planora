@@ -10,13 +10,17 @@ import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
-import java.time.temporal.ChronoUnit
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.concurrent.ConcurrentHashMap
 
 @Serializable
 data class MicronutrientDto(
@@ -95,18 +99,27 @@ object HealthAiService {
         "gemini-3.5-flash"
     )
 
+    private val istanbulZone = ZoneId.of("Europe/Istanbul")
+    private val userMutexes = ConcurrentHashMap<Int, Mutex>()
+    private const val MAX_IMAGE_BASE64_LENGTH = 8_000_000 // ~6 MB
+
+    private fun mutexFor(userId: Int): Mutex = userMutexes.computeIfAbsent(userId) { Mutex() }
+
+    private fun startOfTodayIstanbul(): Instant =
+        LocalDate.now(istanbulZone).atStartOfDay(istanbulZone).toInstant()
+
     suspend fun getUserQuota(userId: Int): HealthAiQuotaDto = dbQuery {
         val user = UserEntity.findById(userId) ?: return@dbQuery HealthAiQuotaDto()
         val isPremium = user.isPremiumActive()
         val dailyLimit = if (isPremium) HEALTH_AI_DAILY_LIMIT_PREMIUM else HEALTH_AI_DAILY_LIMIT_FREE
-        val oneDayAgo = Instant.now().minus(24, ChronoUnit.HOURS)
+        val startOfDay = startOfTodayIstanbul()
 
         val dailyCount = AiUsageLogsTable
             .selectAll()
             .where {
                 (AiUsageLogsTable.userId eq userId) and
                     (AiUsageLogsTable.actionType like "${ACTION_PREFIX}%") and
-                    (AiUsageLogsTable.createdAt greaterEq oneDayAgo)
+                    (AiUsageLogsTable.createdAt greaterEq startOfDay)
             }
             .count()
             .toInt()
@@ -146,7 +159,10 @@ object HealthAiService {
         imageBase64: String? = null,
         imageMimeType: String? = "image/jpeg",
         customApiKey: String? = null
-    ): FoodAiAnalysisResponse {
+    ): FoodAiAnalysisResponse = mutexFor(userId).withLock {
+        if (!imageBase64.isNullOrBlank() && imageBase64.length > MAX_IMAGE_BASE64_LENGTH) {
+            throw IllegalArgumentException("Görsel boyutu çok büyük (maksimum 6 MB).")
+        }
         val usingCustomKey = !customApiKey.isNullOrBlank()
         val quota = if (!usingCustomKey) ensureQuotaAvailable(userId) else null
         val apiKey = customApiKey?.takeIf { it.isNotBlank() } ?: AppConfig.healthGeminiApiKey
@@ -211,7 +227,7 @@ object HealthAiService {
         if (!usingCustomKey) {
             recordUsage(userId, ACTION_FOOD)
         }
-        return parsed
+        parsed
     }
 
     suspend fun analyzeWorkout(
@@ -220,7 +236,7 @@ object HealthAiService {
         userWeightKg: Double?,
         date: String,
         customApiKey: String? = null
-    ): WorkoutAiAnalysisResponse {
+    ): WorkoutAiAnalysisResponse = mutexFor(userId).withLock {
         val usingCustomKey = !customApiKey.isNullOrBlank()
         val quota = if (!usingCustomKey) ensureQuotaAvailable(userId) else null
         val apiKey = customApiKey?.takeIf { it.isNotBlank() } ?: AppConfig.healthGeminiApiKey
@@ -264,7 +280,7 @@ object HealthAiService {
         if (!usingCustomKey) {
             recordUsage(userId, ACTION_WORKOUT)
         }
-        return parsed
+        parsed
     }
 
     private fun buildFoodRequestBody(

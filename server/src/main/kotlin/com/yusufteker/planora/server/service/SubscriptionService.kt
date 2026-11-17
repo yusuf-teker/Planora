@@ -10,8 +10,16 @@ import com.yusufteker.planora.shared.billing.SubscriptionPlan
 import com.yusufteker.planora.shared.billing.SubscriptionStatusResponse
 import com.yusufteker.planora.shared.billing.VerifyPurchaseRequest
 import com.yusufteker.planora.shared.billing.VerifyPurchaseResponse
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -51,55 +59,64 @@ object SubscriptionService {
         return googlePlayConfigured || appleStoreConfigured || revenueCatConfigured
     }
 
-    fun getPlansForApp(appId: String): List<SubscriptionPlan> {
+    private val httpClient: HttpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build()
+
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    fun getPlansForApp(appId: String, offer: String? = null): List<SubscriptionPlan> {
         val normalized = appId.lowercase().trim()
-        return if (normalized == "healthtrack" || normalized == "health") {
-            listOf(
-                SubscriptionPlan(
-                    id = "healthtrack_premium_annual",
-                    name = "Yıllık",
-                    priceText = "799.99 ₺ / Yıl",
-                    priceAmount = 799.99,
-                    period = SubscriptionPeriod.ANNUAL,
-                    discountPercentage = 33,
-                    isPopular = true,
-                    description = "Aylık sadece 66.60 ₺ (%33 Tasarruf)"
-                ),
-                SubscriptionPlan(
-                    id = "healthtrack_premium_monthly",
-                    name = "Aylık",
-                    priceText = "99.99 ₺ / Ay",
-                    priceAmount = 99.99,
-                    period = SubscriptionPeriod.MONTHLY,
-                    discountPercentage = 0,
-                    isPopular = false,
-                    description = "İstediğiniz zaman iptal edebilirsiniz"
-                )
+        val isHealth = normalized == "healthtrack" || normalized == "health"
+        val prefix = if (isHealth) "healthtrack" else "planora"
+        val isSpecialOffer = !offer.isNullOrBlank()
+
+        val annualPlan = if (isSpecialOffer) {
+            SubscriptionPlan(
+                id = "${prefix}_premium_annual_offer",
+                name = "Özel Yıllık Fırsat",
+                priceText = "249.99 ₺ / Yıl",
+                priceAmount = 249.99,
+                period = SubscriptionPeriod.ANNUAL,
+                discountPercentage = 48,
+                isPopular = true,
+                isLimitedTimeOffer = true,
+                originalPriceText = "299.99 ₺",
+                offerBadgeText = "🔥 SINIRLI SÜRELİ FIRSAT",
+                storeOfferId = "limited_annual_offer",
+                description = "Aylık sadece 20.80 ₺ (%48 Tasarruf)"
             )
         } else {
-            listOf(
-                SubscriptionPlan(
-                    id = "planora_premium_annual",
-                    name = "Yıllık",
-                    priceText = "799.99 ₺ / Yıl",
-                    priceAmount = 799.99,
-                    period = SubscriptionPeriod.ANNUAL,
-                    discountPercentage = 33,
-                    isPopular = true,
-                    description = "Aylık sadece 66.60 ₺ (%33 Tasarruf)"
-                ),
-                SubscriptionPlan(
-                    id = "planora_premium_monthly",
-                    name = "Aylık",
-                    priceText = "99.99 ₺ / Ay",
-                    priceAmount = 99.99,
-                    period = SubscriptionPeriod.MONTHLY,
-                    discountPercentage = 0,
-                    isPopular = false,
-                    description = "İstediğiniz zaman iptal edebilirsiniz"
-                )
+            SubscriptionPlan(
+                id = "${prefix}_premium_annual",
+                name = "Yıllık",
+                priceText = "299.99 ₺ / Yıl",
+                priceAmount = 299.99,
+                period = SubscriptionPeriod.ANNUAL,
+                discountPercentage = 37,
+                isPopular = true,
+                isLimitedTimeOffer = false,
+                originalPriceText = null,
+                offerBadgeText = null,
+                storeOfferId = null,
+                description = "Aylık sadece 25.00 ₺ (%37 Tasarruf)"
             )
         }
+
+        val monthlyPlan = SubscriptionPlan(
+            id = "${prefix}_premium_monthly",
+            name = "Aylık",
+            priceText = "39.99 ₺ / Ay",
+            priceAmount = 39.99,
+            period = SubscriptionPeriod.MONTHLY,
+            discountPercentage = 0,
+            isPopular = false,
+            isLimitedTimeOffer = false,
+            storeOfferId = null,
+            description = "İstediğiniz zaman iptal edebilirsiniz"
+        )
+
+        return listOf(annualPlan, monthlyPlan)
     }
 
     suspend fun getStatus(userId: Int): SubscriptionStatusResponse = dbQuery {
@@ -145,46 +162,208 @@ object SubscriptionService {
             )
         }
 
-        // TODO: Plug in live store API verification when credentials are added:
-        // - GOOGLE_PLAY: AndroidPublisher.purchases().subscriptionsv2().get(packageName, purchaseToken)
-        // - APPLE_APP_STORE: Verify JWS signedTransactionInfo with Apple Root CA / App Store Server API
-        // - REVENUECAT: GET https://api.revenuecat.com/v1/subscribers/$userId
+        val cleanToken = request.purchaseToken?.trim()?.takeIf { it.isNotBlank() }
+        val cleanTxId = request.transactionId?.trim()?.takeIf { it.isNotBlank() }
+        if (cleanToken == null && cleanTxId == null && request.receiptData.isNullOrBlank()) {
+            return VerifyPurchaseResponse(
+                success = false,
+                isPremium = false,
+                planId = request.planId,
+                provider = provider,
+                status = "INVALID_RECEIPT",
+                message = "Satın alma makbuzu veya işlem kimliği eksik.",
+                billingConfigured = true
+            )
+        }
+
+        // Prevent cross-account replay of the same purchaseToken or transactionId
+        val alreadyClaimedByOtherUser = dbQuery {
+            SubscriptionEntity.find {
+                SubscriptionsTable.userId neq userId
+            }.any { existing ->
+                (cleanToken != null && existing.purchaseToken == cleanToken) ||
+                    (cleanTxId != null && existing.transactionId == cleanTxId)
+            }
+        }
+        if (alreadyClaimedByOtherUser) {
+            return VerifyPurchaseResponse(
+                success = false,
+                isPremium = false,
+                planId = request.planId,
+                provider = provider,
+                status = "TOKEN_ALREADY_CLAIMED",
+                message = "Bu satın alma makbuzu zaten başka bir hesapla ilişkilendirilmiş.",
+                billingConfigured = true
+            )
+        }
+
+        val verificationResult = verifyWithStoreProvider(userId, provider, request)
+        if (!verificationResult.isValid) {
+            return VerifyPurchaseResponse(
+                success = false,
+                isPremium = false,
+                planId = request.planId,
+                provider = provider,
+                status = "VERIFICATION_FAILED",
+                message = verificationResult.reason ?: "Mağaza makbuz doğrulaması başarısız oldu.",
+                billingConfigured = true
+            )
+        }
+
         val now = Instant.now()
         val daysToAdd = if (request.planId.contains("annual", ignoreCase = true)) 365L else 30L
-        val expiresAt = now.plus(daysToAdd, ChronoUnit.DAYS)
+        var resolvedExpiresAt = now.plus(daysToAdd, ChronoUnit.DAYS)
 
         dbQuery {
             val user = UserEntity.findById(userId) ?: return@dbQuery
+            val baseTime = user.premiumUntil?.takeIf { it.isAfter(now) } ?: now
+            resolvedExpiresAt = verificationResult.verifiedExpiresAt ?: baseTime.plus(daysToAdd, ChronoUnit.DAYS)
             user.isPremium = true
-            user.premiumUntil = expiresAt
+            user.premiumUntil = resolvedExpiresAt
 
-            SubscriptionEntity.new {
-                this.user = user
-                this.appId = request.appId.lowercase().trim()
-                this.planId = request.planId
-                this.provider = provider
-                this.purchaseToken = request.purchaseToken
-                this.transactionId = request.transactionId
-                this.status = "ACTIVE"
-                this.autoRenew = true
-                this.startedAt = now
-                this.expiresAt = expiresAt
-                this.rawPayload = request.receiptData
-                this.createdAt = now
-                this.updatedAt = now
+            val existingSameToken = SubscriptionEntity.find {
+                SubscriptionsTable.userId eq user.id
+            }.firstOrNull { sub ->
+                (cleanToken != null && sub.purchaseToken == cleanToken) ||
+                    (cleanTxId != null && sub.transactionId == cleanTxId)
+            }
+
+            if (existingSameToken != null) {
+                existingSameToken.status = "ACTIVE"
+                existingSameToken.expiresAt = resolvedExpiresAt
+                existingSameToken.updatedAt = now
+            } else {
+                SubscriptionEntity.new {
+                    this.user = user
+                    this.appId = request.appId.lowercase().trim()
+                    this.planId = request.planId
+                    this.provider = provider
+                    this.purchaseToken = cleanToken
+                    this.transactionId = cleanTxId
+                    this.status = "ACTIVE"
+                    this.autoRenew = true
+                    this.startedAt = now
+                    this.expiresAt = resolvedExpiresAt
+                    this.rawPayload = request.receiptData
+                    this.createdAt = now
+                    this.updatedAt = now
+                }
             }
         }
 
         return VerifyPurchaseResponse(
             success = true,
             isPremium = true,
-            premiumUntil = expiresAt.toString(),
+            premiumUntil = resolvedExpiresAt.toString(),
             planId = request.planId,
             provider = provider,
             status = "ACTIVE",
             message = "Abonelik doğrulandı ve Premium aktifleştirildi.",
             billingConfigured = true
         )
+    }
+
+    private data class StoreVerificationResult(
+        val isValid: Boolean,
+        val verifiedExpiresAt: Instant? = null,
+        val reason: String? = null
+    )
+
+    private fun verifyWithStoreProvider(
+        userId: Int,
+        provider: String,
+        request: VerifyPurchaseRequest
+    ): StoreVerificationResult {
+        return when (provider) {
+            "REVENUECAT" -> verifyWithRevenueCat(userId)
+            "GOOGLE_PLAY", "APPLE_APP_STORE", "APPLE_PAY" -> {
+                // Fail closed until native Google Play Developer API / Apple App Store Server API verification client is wired
+                StoreVerificationResult(
+                    isValid = false,
+                    reason = "$provider canlı makbuz doğrulama istemcisi henüz yapılandırılmadı; sahte aktivasyon engellendi."
+                )
+            }
+            else -> StoreVerificationResult(isValid = false, reason = "Desteklenmeyen ödeme sağlayıcısı: $provider")
+        }
+    }
+
+    private fun verifyWithRevenueCat(userId: Int): StoreVerificationResult {
+        val secretKey = System.getenv("REVENUECAT_SECRET_KEY")?.trim().orEmpty()
+        if (secretKey.isBlank()) return StoreVerificationResult(false, reason = "RevenueCat anahtarı eksik.")
+        return try {
+            val httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.revenuecat.com/v1/subscribers/$userId"))
+                .header("Authorization", "Bearer $secretKey")
+                .header("Accept", "application/json")
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build()
+            val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
+            if (response.statusCode() !in 200..299) {
+                return StoreVerificationResult(false, reason = "RevenueCat HTTP ${response.statusCode()}")
+            }
+            val root = json.parseToJsonElement(response.body()).jsonObject
+            val entitlements = root["subscriber"]?.jsonObject?.get("entitlements")?.jsonObject
+            if (entitlements.isNullOrEmpty()) {
+                return StoreVerificationResult(false, reason = "Aktif RevenueCat yetkisi bulunamadı.")
+            }
+            val now = Instant.now()
+            val latestExpiry = entitlements.values.mapNotNull { entry ->
+                val expStr = entry.jsonObject["expires_date"]?.jsonPrimitive?.content
+                runCatching { expStr?.let { Instant.parse(it) } }.getOrNull()
+            }.maxOrNull()
+
+            if (latestExpiry == null || latestExpiry.isAfter(now)) {
+                StoreVerificationResult(isValid = true, verifiedExpiresAt = latestExpiry)
+            } else {
+                StoreVerificationResult(false, reason = "RevenueCat aboneliğinin süresi dolmuş.")
+            }
+        } catch (e: Exception) {
+            StoreVerificationResult(false, reason = "RevenueCat doğrulama hatası: ${e.message}")
+        }
+    }
+
+    suspend fun handleWebhook(provider: String, payload: String) {
+        val normalizedProvider = provider.uppercase().trim()
+        runCatching {
+            val root = json.parseToJsonElement(payload).jsonObject
+            val eventObj = root["event"]?.jsonObject ?: root
+            val eventType = eventObj["type"]?.jsonPrimitive?.content?.uppercase().orEmpty()
+            val appUserId = eventObj["app_user_id"]?.jsonPrimitive?.content?.toIntOrNull()
+            val transactionId = eventObj["transaction_id"]?.jsonPrimitive?.content
+                ?: eventObj["original_transaction_id"]?.jsonPrimitive?.content
+
+            val isRevokedOrExpired = eventType.contains("EXPIR") ||
+                eventType.contains("REVOK") ||
+                eventType.contains("REFUND") ||
+                eventType.contains("CANCEL")
+
+            if (isRevokedOrExpired && (appUserId != null || !transactionId.isNullOrBlank())) {
+                val now = Instant.now()
+                dbQuery {
+                    val targetSub = if (!transactionId.isNullOrBlank()) {
+                        SubscriptionEntity.find { SubscriptionsTable.transactionId eq transactionId }.firstOrNull()
+                    } else null
+
+                    val targetUser = targetSub?.user ?: appUserId?.let { UserEntity.findById(it) }
+                    if (targetSub != null && (eventType.contains("EXPIR") || eventType.contains("REVOK") || eventType.contains("REFUND"))) {
+                        targetSub.status = if (eventType.contains("REFUND") || eventType.contains("REVOK")) "REVOKED" else "EXPIRED"
+                        targetSub.autoRenew = false
+                        targetSub.updatedAt = now
+                    } else if (targetSub != null && eventType.contains("CANCEL")) {
+                        targetSub.autoRenew = false
+                        targetSub.updatedAt = now
+                    }
+                    if (targetUser != null && (eventType.contains("EXPIR") || eventType.contains("REVOK") || eventType.contains("REFUND"))) {
+                        targetUser.isPremium = false
+                        targetUser.premiumUntil = now
+                    }
+                }
+            }
+            println("[SubscriptionService] Processed webhook provider=$normalizedProvider eventType=$eventType")
+        }.onFailure { err ->
+            println("[SubscriptionService] Webhook parse error for $normalizedProvider: ${err.message}")
+        }
     }
 
     suspend fun restorePurchases(

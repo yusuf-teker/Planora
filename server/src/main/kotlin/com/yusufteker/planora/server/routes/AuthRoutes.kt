@@ -35,10 +35,19 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.lowerCase
+import java.security.SecureRandom
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
+private val otpSecureRandom = SecureRandom()
+private val otpFailedAttempts = ConcurrentHashMap<String, Int>()
+private const val MAX_OTP_ATTEMPTS = 5
+
+private fun generateSecureOtp(): String = (100000 + otpSecureRandom.nextInt(900000)).toString()
+
 
 
 /**
@@ -69,7 +78,8 @@ fun Route.authRoutes() {
                 return@post
             }
 
-            val verificationCode = (100000..999999).random().toString()
+            val verificationCode = generateSecureOtp()
+            otpFailedAttempts.remove("reg:$cleanEmail")
             val expiresAt = Instant.now().plus(java.time.Duration.ofMinutes(15))
 
             dbQuery {
@@ -121,14 +131,19 @@ fun Route.authRoutes() {
             }
 
             // Doğrulama kodunu kontrol ediyoruz.
+            val regAttemptKey = "reg:$cleanEmail"
             val tokenEntity = dbQuery {
                 com.yusufteker.planora.server.database.tables.EmailVerificationTokenEntity.find {
-                    (com.yusufteker.planora.server.database.tables.EmailVerificationTokensTable.email eq cleanEmail) and
-                    (com.yusufteker.planora.server.database.tables.EmailVerificationTokensTable.token eq request.code)
+                    com.yusufteker.planora.server.database.tables.EmailVerificationTokensTable.email eq cleanEmail
                 }.firstOrNull()
             }
 
-            if (tokenEntity == null) {
+            if (tokenEntity == null || tokenEntity.token != request.code) {
+                val attempts = otpFailedAttempts.merge(regAttemptKey, 1, Int::plus) ?: 1
+                if (attempts >= MAX_OTP_ATTEMPTS && tokenEntity != null) {
+                    dbQuery { tokenEntity.delete() }
+                    otpFailedAttempts.remove(regAttemptKey)
+                }
                 call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.INVALID_VERIFICATION_CODE, "Invalid verification code")
                 return@post
             }
@@ -137,6 +152,7 @@ fun Route.authRoutes() {
                 call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_VERIFICATION_CODE, "Expired verification code")
                 return@post
             }
+            otpFailedAttempts.remove(regAttemptKey)
 
             // Güvenlik: Gelen düz metin şifreyi BCrypt ile hashliyoruz.
             val hashedPassword = HashingService.hashPassword(request.password)
@@ -280,8 +296,9 @@ fun Route.authRoutes() {
 
             // Güvenlik: Kullanıcı bulunamazsa da aynı mesajı dönerek e-posta keşfini (enumeration) engelliyoruz.
             if (user != null) {
-                // 6 haneli rastgele OTP kodu üret
-                val resetCode = (100000..999999).random().toString()
+                // 6 haneli güvenli rastgele OTP kodu üret
+                val resetCode = generateSecureOtp()
+                otpFailedAttempts.remove("reset:$cleanEmail")
                 val expiresAt = Instant.now().plus(java.time.Duration.ofMinutes(15))
 
                 dbQuery {
@@ -328,14 +345,24 @@ fun Route.authRoutes() {
                 return@post
             }
 
+            val resetAttemptKey = "reset:$cleanEmail"
             val resetTokenEntity = dbQuery {
                 com.yusufteker.planora.server.database.tables.PasswordResetTokenEntity.find {
-                    (com.yusufteker.planora.server.database.tables.PasswordResetTokensTable.userId eq user.id.value) and
-                    (com.yusufteker.planora.server.database.tables.PasswordResetTokensTable.token eq request.code)
+                    com.yusufteker.planora.server.database.tables.PasswordResetTokensTable.userId eq user.id.value
                 }.firstOrNull()
             }
 
-            if (resetTokenEntity == null || resetTokenEntity.expiresAt.isBefore(Instant.now())) {
+            if (resetTokenEntity == null || resetTokenEntity.token != request.code) {
+                val attempts = otpFailedAttempts.merge(resetAttemptKey, 1, Int::plus) ?: 1
+                if (attempts >= MAX_OTP_ATTEMPTS && resetTokenEntity != null) {
+                    dbQuery { resetTokenEntity.delete() }
+                    otpFailedAttempts.remove(resetAttemptKey)
+                }
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_RESET_CODE, "Invalid or expired reset code")
+                return@post
+            }
+
+            if (resetTokenEntity.expiresAt.isBefore(Instant.now())) {
                 call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_RESET_CODE, "Invalid or expired reset code")
                 return@post
             }
@@ -358,17 +385,28 @@ fun Route.authRoutes() {
                 return@post
             }
 
+            val resetAttemptKey = "reset:$cleanEmail"
             val resetTokenEntity = dbQuery {
                 com.yusufteker.planora.server.database.tables.PasswordResetTokenEntity.find {
-                    (com.yusufteker.planora.server.database.tables.PasswordResetTokensTable.userId eq user.id.value) and
-                    (com.yusufteker.planora.server.database.tables.PasswordResetTokensTable.token eq request.code)
+                    com.yusufteker.planora.server.database.tables.PasswordResetTokensTable.userId eq user.id.value
                 }.firstOrNull()
             }
 
-            if (resetTokenEntity == null || resetTokenEntity.expiresAt.isBefore(Instant.now())) {
+            if (resetTokenEntity == null || resetTokenEntity.token != request.code) {
+                val attempts = otpFailedAttempts.merge(resetAttemptKey, 1, Int::plus) ?: 1
+                if (attempts >= MAX_OTP_ATTEMPTS && resetTokenEntity != null) {
+                    dbQuery { resetTokenEntity.delete() }
+                    otpFailedAttempts.remove(resetAttemptKey)
+                }
                 call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_RESET_CODE, "Invalid or expired reset code")
                 return@post
             }
+
+            if (resetTokenEntity.expiresAt.isBefore(Instant.now())) {
+                call.respondError(HttpStatusCode.BadRequest, ApiErrorCode.EXPIRED_RESET_CODE, "Invalid or expired reset code")
+                return@post
+            }
+            otpFailedAttempts.remove(resetAttemptKey)
 
             // Yeni şifreyi BCrypt ile hashle ve güncelle
             val newHashedPassword = HashingService.hashPassword(request.newPassword)

@@ -45,7 +45,11 @@ data class SubscriptionPlan(
     val period: SubscriptionPeriod,
     val discountPercentage: Int = 0,
     val isPopular: Boolean = false,
-    val description: String = ""
+    val description: String = "",
+    val originalPriceText: String? = null,
+    val isLimitedTimeOffer: Boolean = false,
+    val offerBadgeText: String? = null,
+    val storeOfferId: String? = null
 )
 
 /**

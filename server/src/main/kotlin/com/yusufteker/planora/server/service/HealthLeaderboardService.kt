@@ -7,9 +7,11 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -58,6 +60,19 @@ object HealthLeaderboardService {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     private val istanbulZone = ZoneId.of("Europe/Istanbul")
 
+    private const val GLOBAL_CACHE_TTL_MS = 60_000L
+
+    private data class CachedGlobalLeaderboard(
+        val period: String,
+        val category: String,
+        val startDate: String,
+        val endDate: String,
+        val sortedEntries: List<HealthLeaderboardEntryDto>,
+        val computedAtMs: Long
+    )
+
+    private val globalCache = ConcurrentHashMap<String, CachedGlobalLeaderboard>()
+
     suspend fun getLeaderboard(
         currentUserId: Int,
         period: String,
@@ -75,6 +90,39 @@ object HealthLeaderboardService {
         }
 
         val targetDate = parseDateOrToday(dateIso)
+
+        if (normalizedScope == "GLOBAL") {
+            val cacheKey = "${normalizedPeriod}|${normalizedCategory}|$targetDate"
+            val cached = globalCache[cacheKey]
+            val nowMs = System.currentTimeMillis()
+            if (cached != null && (nowMs - cached.computedAtMs) <= GLOBAL_CACHE_TTL_MS) {
+                val (followedIds, friendCount) = dbQuery {
+                    val followed = FollowerEntity.find { FollowersTable.followerId eq currentUserId }
+                        .map { it.followed.id.value }.toSet()
+                    val followers = FollowerEntity.find { FollowersTable.followedId eq currentUserId }
+                        .map { it.follower.id.value }.toSet()
+                    followed to (followed + followers).size
+                }
+                val personalized = cached.sortedEntries.map { entry ->
+                    entry.copy(
+                        isCurrentUser = entry.userId == currentUserId,
+                        isFollowedByMe = followedIds.contains(entry.userId)
+                    )
+                }
+                return HealthLeaderboardResponseDto(
+                    period = cached.period,
+                    scope = normalizedScope,
+                    category = cached.category,
+                    startDate = cached.startDate,
+                    endDate = cached.endDate,
+                    totalParticipants = personalized.size,
+                    friendsCount = friendCount,
+                    entries = personalized.take(50),
+                    myEntry = personalized.firstOrNull { it.isCurrentUser }
+                )
+            }
+        }
+
         val (startDate, endDate) = if (normalizedPeriod == "DAILY") {
             targetDate to targetDate
         } else {
@@ -289,28 +337,42 @@ object HealthLeaderboardService {
                         validWeightDatesAll
                 )
 
+                val isDaily = normalizedPeriod == "DAILY"
                 val (score, primaryLabel, secondaryLabel) = when (normalizedCategory) {
                     "CALORIES_BURNED" -> Triple(
                         caloriesBurned,
                         "$caloriesBurned kcal",
-                        "$workoutMinutes dk • ${workoutDatesPeriod.size} gün"
+                        if (isDaily) "$workoutMinutes dk" else "$workoutMinutes dk • ${workoutDatesPeriod.size} gün"
                     )
                     "WORKOUT_MINUTES" -> Triple(
                         workoutMinutes,
                         "$workoutMinutes dk",
-                        "$caloriesBurned kcal • ${workoutDatesPeriod.size} gün"
+                        if (isDaily) "$caloriesBurned kcal" else "$caloriesBurned kcal • ${workoutDatesPeriod.size} gün"
                     )
                     "HEALTHY_EATING" -> Triple(
-                        if (normalizedPeriod == "DAILY") avgHealthyScore else totalHealthyScore,
-                        if (normalizedPeriod == "DAILY") "$avgHealthyScore / 100" else "$totalHealthyScore p",
-                        if (foodDatesPeriod.isEmpty()) "Henüz öğün yok" else "${foodDatesPeriod.size} gün • ort %$avgHealthyScore"
+                        if (isDaily) avgHealthyScore else totalHealthyScore,
+                        if (isDaily) "$avgHealthyScore / 100" else "$totalHealthyScore p",
+                        if (foodDatesPeriod.isEmpty()) {
+                            "Henüz öğün yok"
+                        } else if (isDaily) {
+                            "ortalama %$avgHealthyScore"
+                        } else {
+                            "${foodDatesPeriod.size} gün • ort %$avgHealthyScore"
+                        }
                     )
                     else -> Triple(
                         disciplineXp,
                         "$disciplineXp XP",
-                        "${activeDatesPeriod.size} aktif gün • $caloriesBurned kcal"
+                        if (isDaily) {
+                            if (workoutMinutes > 0) "$caloriesBurned kcal • $workoutMinutes dk" else "$caloriesBurned kcal"
+                        } else {
+                            "${activeDatesPeriod.size} aktif gün • $caloriesBurned kcal"
+                        }
                     )
                 }
+
+                val isUserPremium = userRow[UsersTable.isPremium] &&
+                    (userRow[UsersTable.premiumUntil]?.isAfter(Instant.now()) ?: true)
 
                 HealthLeaderboardEntryDto(
                     rank = 0,
@@ -319,7 +381,7 @@ object HealthLeaderboardService {
                     username = userRow[UsersTable.username],
                     avatarId = userRow[UsersTable.avatarId],
                     profileImageUrl = userRow[UsersTable.profileImageUrl],
-                    isPremium = userRow[UsersTable.isPremium],
+                    isPremium = isUserPremium,
                     isCurrentUser = uid == currentUserId,
                     isFollowedByMe = followedIds.contains(uid),
                     score = score,
@@ -345,6 +407,18 @@ object HealthLeaderboardService {
 
             val myEntry = sorted.firstOrNull { it.isCurrentUser }
             val topEntries = sorted.take(50)
+
+            if (normalizedScope == "GLOBAL") {
+                val cacheKey = "${normalizedPeriod}|${normalizedCategory}|$targetDate"
+                globalCache[cacheKey] = CachedGlobalLeaderboard(
+                    period = normalizedPeriod,
+                    category = normalizedCategory,
+                    startDate = startIso,
+                    endDate = endIso,
+                    sortedEntries = sorted.map { it.copy(isCurrentUser = false, isFollowedByMe = false) },
+                    computedAtMs = System.currentTimeMillis()
+                )
+            }
 
             HealthLeaderboardResponseDto(
                 period = normalizedPeriod,

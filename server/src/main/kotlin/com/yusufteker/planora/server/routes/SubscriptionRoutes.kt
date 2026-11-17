@@ -27,7 +27,8 @@ fun Route.subscriptionRoutes() {
          */
         get("/plans") {
             val app = call.request.queryParameters["app"] ?: "planora"
-            call.respond(HttpStatusCode.OK, SubscriptionService.getPlansForApp(app))
+            val offer = call.request.queryParameters["offer"]
+            call.respond(HttpStatusCode.OK, SubscriptionService.getPlansForApp(app, offer))
         }
 
         /**
@@ -46,7 +47,7 @@ fun Route.subscriptionRoutes() {
             }
             val provider = call.parameters["provider"] ?: "unknown"
             val payload = call.receiveText()
-            println("Subscription webhook received for provider=$provider, payloadLength=${payload.length}")
+            SubscriptionService.handleWebhook(provider, payload)
             call.respond(HttpStatusCode.OK, mapOf("received" to true, "provider" to provider))
         }
 

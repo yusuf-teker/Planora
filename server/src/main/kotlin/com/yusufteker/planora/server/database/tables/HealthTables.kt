@@ -40,6 +40,7 @@ object HealthNutritionGoalsTable : IdTable<String>("health_nutrition_goals") {
     val ironMg = double("iron_mg").default(14.0)
     val calciumMg = double("calcium_mg").default(1000.0)
     val magnesiumMg = double("magnesium_mg").default(350.0)
+    val fitnessGoal = varchar("fitness_goal", 50).nullable()
     val updatedAt = long("updated_at")
     val isDeleted = bool("is_deleted").default(false)
 
@@ -118,4 +119,18 @@ object HealthAppointmentAttachmentsTable : IdTable<String>("health_appointment_a
     val isDeleted = bool("is_deleted").default(false)
 
     override val primaryKey = PrimaryKey(id)
+}
+
+/**
+ * HealthTrack Workout Notification Mutes
+ * (Allows a user to mute/unmute a specific friend's workout notifications)
+ */
+object HealthWorkoutNotificationMutesTable : org.jetbrains.exposed.dao.id.IntIdTable("health_workout_notification_mutes") {
+    val userId = reference("user_id", UsersTable).index()
+    val mutedUserId = reference("muted_user_id", UsersTable).index()
+    val createdAt = timestamp("created_at")
+
+    init {
+        uniqueIndex(userId, mutedUserId)
+    }
 }
