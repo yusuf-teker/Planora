@@ -109,6 +109,9 @@ data class WeightSyncDto(
     val date: String,
     val weightKg: Double,
     val targetWeightKg: Double? = null,
+    val bodyFatPercent: Double? = null,
+    val muscleMassKg: Double? = null,
+    val musclePercent: Double? = null,
     val note: String? = null,
     val updatedAt: Long,
     val isDeleted: Boolean = false
@@ -470,6 +473,9 @@ fun Route.healthRoutes() {
                                 it[date] = wt.date
                                 it[weightKg] = wt.weightKg
                                 it[targetWeightKg] = wt.targetWeightKg
+                                it[bodyFatPercent] = if (wt.isDeleted) null else wt.bodyFatPercent
+                                it[muscleMassKg] = if (wt.isDeleted) null else wt.muscleMassKg
+                                it[musclePercent] = if (wt.isDeleted) null else wt.musclePercent
                                 it[note] = wt.note
                                 it[createdAt] = Instant.now()
                                 it[updatedAt] = wt.updatedAt
@@ -483,6 +489,9 @@ fun Route.healthRoutes() {
                                 it[date] = wt.date
                                 it[weightKg] = wt.weightKg
                                 it[targetWeightKg] = wt.targetWeightKg
+                                it[bodyFatPercent] = if (wt.isDeleted) null else wt.bodyFatPercent
+                                it[muscleMassKg] = if (wt.isDeleted) null else wt.muscleMassKg
+                                it[musclePercent] = if (wt.isDeleted) null else wt.musclePercent
                                 it[note] = wt.note
                                 it[updatedAt] = wt.updatedAt
                                 it[isDeleted] = wt.isDeleted
@@ -738,6 +747,9 @@ fun Route.healthRoutes() {
                                 date = it[HealthWeightsTable.date],
                                 weightKg = it[HealthWeightsTable.weightKg],
                                 targetWeightKg = it[HealthWeightsTable.targetWeightKg],
+                                bodyFatPercent = it[HealthWeightsTable.bodyFatPercent],
+                                muscleMassKg = it[HealthWeightsTable.muscleMassKg],
+                                musclePercent = it[HealthWeightsTable.musclePercent],
                                 note = it[HealthWeightsTable.note],
                                 updatedAt = it[HealthWeightsTable.updatedAt],
                                 isDeleted = it[HealthWeightsTable.isDeleted]

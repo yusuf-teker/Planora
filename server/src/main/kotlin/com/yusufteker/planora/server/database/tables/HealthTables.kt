@@ -76,6 +76,9 @@ object HealthWeightsTable : IdTable<String>("health_weights") {
     val date = varchar("date", 10).index() // YYYY-MM-DD
     val weightKg = double("weight_kg")
     val targetWeightKg = double("target_weight_kg").nullable()
+    val bodyFatPercent = double("body_fat_percent").nullable()
+    val muscleMassKg = double("muscle_mass_kg").nullable()
+    val musclePercent = double("muscle_percent").nullable()
     val note = text("note").nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = long("updated_at").index()
