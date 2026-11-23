@@ -8,10 +8,14 @@ import com.yusufteker.planora.server.service.HealthAiQuotaDto
 import com.yusufteker.planora.server.service.HealthAiQuotaExceededException
 import com.yusufteker.planora.server.service.HealthAiService
 import com.yusufteker.planora.server.service.HealthLeaderboardService
+import com.yusufteker.planora.server.service.HuaweiAuthUrlResponse
+import com.yusufteker.planora.server.service.HuaweiHealthService
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.TaskVisibility
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.withCharset
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -25,6 +29,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
@@ -183,6 +189,40 @@ fun Route.healthRoutes() {
             } else {
                 call.respond(HttpStatusCode.ServiceUnavailable, mapOf("status" to "DOWN", "database" to "DISCONNECTED"))
             }
+        }
+
+        get("/huawei/callback") {
+            val error = call.request.queryParameters["error"]
+            val errorDescription = call.request.queryParameters["error_description"]
+            val code = call.request.queryParameters["code"]
+            val state = call.request.queryParameters["state"]
+
+            val (isSuccess, statusParam, reasonText) = if (!error.isNullOrBlank()) {
+                Triple(false, "error", errorDescription?.takeIf { it.isNotBlank() } ?: error)
+            } else {
+                val res = HuaweiHealthService.handleOAuthCallback(code = code, state = state)
+                if (res.success) {
+                    Triple(true, "connected", null)
+                } else {
+                    Triple(false, "error", res.errorMessage ?: res.errorCode ?: "callback_failed")
+                }
+            }
+
+            val encodedReason = reasonText?.let {
+                URLEncoder.encode(it, StandardCharsets.UTF_8).replace("+", "%20")
+            }
+            val deepLinkUrl = if (isSuccess) {
+                "healthtrack://huawei/sync-done?status=$statusParam"
+            } else {
+                "healthtrack://huawei/sync-done?status=$statusParam&reason=${encodedReason.orEmpty()}"
+            }
+
+            val html = buildHuaweiCallbackHtml(
+                isSuccess = isSuccess,
+                deepLinkUrl = deepLinkUrl,
+                reasonText = reasonText
+            )
+            call.respondText(html, ContentType.Text.Html.withCharset(Charsets.UTF_8), HttpStatusCode.OK)
         }
     }
 
@@ -855,8 +895,161 @@ fun Route.healthRoutes() {
                 }
                 call.respond(HttpStatusCode.OK, mapOf("targetUserId" to targetUserId, "isMuted" to isNowMuted))
             }
+
+            // --- Huawei Health Service Kit Cloud Integration ---
+            get("/huawei/status") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val status = HuaweiHealthService.getConnectionStatus(userId)
+                call.respond(HttpStatusCode.OK, status)
+            }
+
+            get("/huawei/auth-url") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                if (!HuaweiHealthService.isConfigured()) {
+                    return@get call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        mapOf("error" to "Huawei Health Kit sunucuda henüz yapılandırılmadı (HUAWEI_CLIENT_SECRET eksik).")
+                    )
+                }
+                val authUrl = HuaweiHealthService.buildAuthorizationUrl(userId)
+                call.respond(HttpStatusCode.OK, HuaweiAuthUrlResponse(authUrl = authUrl, configured = true))
+            }
+
+            get("/huawei/sync") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val days = call.request.queryParameters["days"]?.toIntOrNull()?.coerceIn(1, 7) ?: 7
+                val tz = call.request.queryParameters["tz"]?.takeIf { it.isNotBlank() } ?: "Europe/Istanbul"
+                val result = HuaweiHealthService.syncHealthData(userId = userId, days = days, timeZoneId = tz)
+                call.respond(HttpStatusCode.OK, result)
+            }
+
+            delete("/huawei/disconnect") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asInt()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                HuaweiHealthService.disconnect(userId)
+                call.respond(HttpStatusCode.OK, mapOf("disconnected" to true))
+            }
         }
     }
+}
+
+private fun escapeHtml(input: String): String = buildString(input.length) {
+    for (ch in input) {
+        when (ch) {
+            '<' -> append("&lt;")
+            '>' -> append("&gt;")
+            '&' -> append("&amp;")
+            '"' -> append("&quot;")
+            '\'' -> append("&#39;")
+            else -> append(ch)
+        }
+    }
+}
+
+private fun buildHuaweiCallbackHtml(
+    isSuccess: Boolean,
+    deepLinkUrl: String,
+    reasonText: String?
+): String {
+    val safeUrlAttr = escapeHtml(deepLinkUrl)
+    val jsUrl = deepLinkUrl
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("<", "\\u003C")
+    val badgeBg = if (isSuccess) "rgba(16, 185, 129, 0.16)" else "rgba(239, 68, 68, 0.16)"
+    val badgeColor = if (isSuccess) "#34D399" else "#F87171"
+    val badgeText = if (isSuccess) "Huawei Sağlık Bağlandı ✓" else "Bağlantı Tamamlanamadı"
+    val title = if (isSuccess) "HealthTrack'e Dönülüyor..." else "Huawei Yetkilendirmesi Başarısız"
+    val subtitle = if (isSuccess) {
+        "Huawei Health Service Kit izni onaylandı. Uygulama otomatik açılmazsa aşağıdaki butona dokunun."
+    } else {
+        escapeHtml(reasonText ?: "Yetkilendirme tamamlanamadı. Uygulamaya dönüp tekrar deneyebilirsiniz.")
+    }
+
+    return """
+        <!DOCTYPE html>
+        <html lang="tr">
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta http-equiv="refresh" content="1;url=$safeUrlAttr" />
+            <title>HealthTrack · Huawei Health</title>
+            <style>
+                body {
+                    margin: 0;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #0B0F19;
+                    color: #F8FAFC;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    padding: 24px;
+                    box-sizing: border-box;
+                }
+                .card {
+                    max-width: 420px;
+                    width: 100%;
+                    background: rgba(18, 24, 38, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    border-radius: 24px;
+                    padding: 28px 24px;
+                    text-align: center;
+                    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+                }
+                .badge {
+                    display: inline-block;
+                    padding: 6px 14px;
+                    border-radius: 999px;
+                    background: $badgeBg;
+                    color: $badgeColor;
+                    font-size: 12px;
+                    font-weight: 700;
+                    margin-bottom: 16px;
+                }
+                h1 {
+                    margin: 0 0 10px;
+                    font-size: 20px;
+                    font-weight: 700;
+                }
+                p {
+                    margin: 0 0 24px;
+                    color: #94A3B8;
+                    font-size: 14px;
+                    line-height: 1.5;
+                }
+                .btn {
+                    display: inline-block;
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 14px 18px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, #0EA5E9, #10B981);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 15px;
+                    text-decoration: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="badge">$badgeText</div>
+                <h1>$title</h1>
+                <p>$subtitle</p>
+                <a class="btn" href="$safeUrlAttr">HealthTrack'e Dön</a>
+            </div>
+            <script>
+                setTimeout(function() {
+                    window.location.href = "$jsUrl";
+                }, 250);
+            </script>
+        </body>
+        </html>
+    """.trimIndent()
 }
 
 private data class WorkoutSportDisplay(

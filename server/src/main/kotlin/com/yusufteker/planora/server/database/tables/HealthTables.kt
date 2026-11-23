@@ -137,3 +137,18 @@ object HealthWorkoutNotificationMutesTable : org.jetbrains.exposed.dao.id.IntIdT
         uniqueIndex(userId, mutedUserId)
     }
 }
+
+/**
+ * Huawei Health Service Kit OAuth 2.0 Tokens Table (1 row per user)
+ */
+object HealthHuaweiTokensTable : org.jetbrains.exposed.dao.id.IntIdTable("health_huawei_tokens") {
+    val userId = reference("user_id", UsersTable).uniqueIndex()
+    val accessToken = text("access_token")
+    val refreshToken = text("refresh_token")
+    val expiresAt = long("expires_at")
+    val scope = text("scope").nullable()
+    val apiBaseUrl = varchar("api_base_url", 255).default("https://health-api.cloud.huawei.eu")
+    val lastSyncedAt = long("last_synced_at").nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = long("updated_at")
+}

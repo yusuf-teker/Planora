@@ -45,4 +45,13 @@ object AppConfig {
     // Admin Secret Key for managing users and sending admin push notifications
     val adminSecretKey: String = getEnv("ADMIN_SECRET_KEY")
         ?: error("CRITICAL SECURITY ERROR: ADMIN_SECRET_KEY is not configured! Define it in server/.env or system environment.")
+
+    // Huawei Health Service Kit (Server-to-Server Cloud REST API + OAuth 2.0)
+    val huaweiClientId: String = getEnv("HUAWEI_CLIENT_ID") ?: "119883965"
+    val huaweiClientSecret: String? = getEnv("HUAWEI_CLIENT_SECRET")
+    val huaweiRedirectUri: String = getEnv("HUAWEI_REDIRECT_URI")
+        ?: "https://pulse-7b4z.onrender.com/health/huawei/callback"
+    val huaweiApiBaseUrl: String = getEnv("HUAWEI_API_BASE_URL")
+        ?: "https://health-api.cloud.huawei.eu"
+    val huaweiScopes: String? = getEnv("HUAWEI_HEALTH_SCOPES")
 }
