@@ -40,7 +40,7 @@ fun createHttpClient(sessionPreferences: SessionPreferences): HttpClient {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
-                prettyPrint = true
+                prettyPrint = false
             })
         }
         

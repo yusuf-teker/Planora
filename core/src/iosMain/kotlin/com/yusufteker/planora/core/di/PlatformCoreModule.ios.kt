@@ -44,7 +44,23 @@ actual val platformCoreModule = module {
         SecureSettings(KeychainSettings(service = "PlanoraSecureStore"))
     }
 
-    single<SqlDriver> { NativeSqliteDriver(PlanoraDatabase.Schema, "planora.db") }
+    single<SqlDriver> {
+        NativeSqliteDriver(PlanoraDatabase.Schema, "planora.db").also { driver ->
+            try {
+                driver.execute(
+                    identifier = null,
+                    sql = "CREATE TABLE IF NOT EXISTS deletedTaskEntity (id TEXT NOT NULL PRIMARY KEY, ownerId TEXT NOT NULL, originalTaskJson TEXT NOT NULL, taskTitle TEXT NOT NULL, deletedAt INTEGER NOT NULL);",
+                    parameters = 0
+                )
+                driver.execute(
+                    identifier = null,
+                    sql = "CREATE INDEX IF NOT EXISTS index_deletedTask_ownerId ON deletedTaskEntity(ownerId);",
+                    parameters = 0
+                )
+            } catch (_: Exception) {
+            }
+        }
+    }
 
     // Reminder Manager
     single<ReminderManager> { IosReminderManager(get()) }

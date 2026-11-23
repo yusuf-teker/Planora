@@ -80,19 +80,20 @@ class HomeViewModel(
         // coroutines have settled.
         launch {
             try {
-                val showOnlyNextRecurring = sessionPreferences.getShowOnlyNextRecurring()
-                val showCompleted = sessionPreferences.getShowCompleted()
-                val showRoomTasks = sessionPreferences.getShowRoomTasks()
-                val savedViewOption = sessionPreferences.getViewOption()
-                val newFilterOptions = TimelineFilterOptions(showOnlyNextRecurring, showCompleted, showRoomTasks)
+                val prefs = sessionPreferences.getHomeFilterAndViewPrefs()
+                val newFilterOptions = TimelineFilterOptions(
+                    showOnlyNextRecurring = prefs.showOnlyNextRecurring,
+                    showCompleted = prefs.showCompleted,
+                    showRoomTasks = prefs.showRoomTasks
+                )
                 setState {
                     copy(
                         filterOptions = newFilterOptions,
-                        viewOption = savedViewOption,
+                        viewOption = prefs.viewOption,
                         upcomingTasks = if (this.allFetchedTasks.isNotEmpty()) {
                             this.getFilteredTasks(
                                 options = newFilterOptions,
-                                viewOpt = savedViewOption
+                                viewOpt = prefs.viewOption
                             )
                         } else {
                             this.upcomingTasks
@@ -108,14 +109,16 @@ class HomeViewModel(
 
         // Observe tasks range dynamically. Base range: 1 year back and 1 year forward.
         // Takvimde ileri/geri gidildikçe aralık otomatik olarak genişler.
+        // Performans: baseNowMs sabit tutulur; böylece distinctUntilChanged gerçek anlamda çalışır ve
+        // her state değişikliğinde SQLite yeniden sorgulanmaz.
         launch {
+            val baseNowMs = com.yusufteker.planora.core.utils.getCurrentTimeMs()
+            val oneYear = 86400000L * 365
             try {
                 state
                     .map { s ->
-                        val now = com.yusufteker.planora.core.utils.getCurrentTimeMs()
-                        val oneYear = 86400000L * 365
-                        var from = now - oneYear
-                        var to = now + (oneYear * s.yearsAhead)
+                        var from = baseNowMs - oneYear
+                        var to = baseNowMs + (oneYear * s.yearsAhead)
 
                         // Takvimde görüntülenen ay baz aralığın dışındaysa, aralığı genişlet
                         val visibleMonth = s.visibleCalendarMonth

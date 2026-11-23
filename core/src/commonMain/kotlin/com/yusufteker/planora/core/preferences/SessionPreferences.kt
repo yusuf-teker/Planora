@@ -11,6 +11,7 @@ import com.yusufteker.planora.core.utils.TimelineViewOption
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -19,6 +20,18 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import com.yusufteker.planora.shared.ai.AiQuotaDto
+
+data class HomeFilterAndViewPrefs(
+    val showOnlyNextRecurring: Boolean = true,
+    val showCompleted: Boolean = true,
+    val showRoomTasks: Boolean = true,
+    val viewOption: TimelineViewOption = TimelineViewOption.DATE
+)
+
+data class StartupSessionSnapshot(
+    val isFirstRun: Boolean,
+    val lastSeenOverviewIndex: Int
+)
 
 /**
  * Manages user session tokens (Access & Refresh) using SecureSettings (Keychain/EncryptedPrefs)
@@ -40,9 +53,7 @@ open class SessionPreferences(
     private val fcmTokenKeyString = "fcm_token"
     private val customGeminiApiKeyString = "custom_gemini_api_key"
 
-    private val _customGeminiApiKeyFlow = kotlinx.coroutines.flow.MutableStateFlow(
-        secureSettings.settings.getStringOrNull(customGeminiApiKeyString)?.takeIf { it.isNotBlank() }
-    )
+    private val _customGeminiApiKeyFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     val customGeminiApiKeyFlow: kotlinx.coroutines.flow.StateFlow<String?> = _customGeminiApiKeyFlow
 
     fun getCustomGeminiApiKey(): String? {
@@ -114,6 +125,11 @@ open class SessionPreferences(
         get() = cachedUserId?.toIntOrNull()
 
     init {
+        CoroutineScope(Dispatchers.IO).launch {
+            _customGeminiApiKeyFlow.value = secureSettings.settings
+                .getStringOrNull(customGeminiApiKeyString)
+                ?.takeIf { it.isNotBlank() }
+        }
         CoroutineScope(Dispatchers.Default).launch {
             userIdFlow.collect {
                 cachedUserId = it
@@ -193,6 +209,9 @@ open class SessionPreferences(
             prefs[appRunKey] = hasRun
         }
     }
+
+    val lastSeenOverviewIndexFlow: kotlinx.coroutines.flow.Flow<Int> =
+        dataStore.data.map { it[lastSeenOverviewIndexKey] ?: 0 }.distinctUntilChanged()
 
     suspend fun getLastSeenOverviewIndex(): Int {
         return dataStore.data.map { it[lastSeenOverviewIndexKey] ?: 0 }.first()
@@ -432,6 +451,29 @@ open class SessionPreferences(
             prefs[followersCountKey] = currentFollowers + followersDelta
             prefs[followingCountKey] = currentFollowing + followingDelta
         }
+    }
+
+    suspend fun getStartupSessionSnapshot(): StartupSessionSnapshot {
+        val prefs = dataStore.data.first()
+        return StartupSessionSnapshot(
+            isFirstRun = prefs[appRunKey] != true,
+            lastSeenOverviewIndex = prefs[lastSeenOverviewIndexKey] ?: 0
+        )
+    }
+
+    suspend fun getHomeFilterAndViewPrefs(): HomeFilterAndViewPrefs {
+        val prefs = dataStore.data.first()
+        val viewOpt = try {
+            TimelineViewOption.valueOf(prefs[viewOptionKey] ?: TimelineViewOption.DATE.name)
+        } catch (_: Exception) {
+            TimelineViewOption.DATE
+        }
+        return HomeFilterAndViewPrefs(
+            showOnlyNextRecurring = prefs[filterShowOnlyNextRecurringKey] ?: true,
+            showCompleted = prefs[filterShowCompletedKey] ?: true,
+            showRoomTasks = prefs[filterShowRoomTasksKey] ?: true,
+            viewOption = viewOpt
+        )
     }
 
     suspend fun getShowOnlyNextRecurring(): Boolean {

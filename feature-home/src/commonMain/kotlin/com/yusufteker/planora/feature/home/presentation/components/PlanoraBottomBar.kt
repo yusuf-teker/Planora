@@ -309,6 +309,8 @@ fun PlanoraActionIcon(
         )
     )
 
+    val sparklePath = remember { Path() }
+
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -344,66 +346,38 @@ fun PlanoraActionIcon(
             )
         }
 
-        // 2. 3 Adet Animasyonlu AI Yıldızı (Sparkle)
-        // Her yıldız sırayla belirecek: 1. -> 2. -> 3. ve ardından sönecekler.
-        val stars = listOf(
-            // Yıldız 1: Ana büyük yıldız (merkez)
-            StarConfig(
-                cx = canvasWidth * 0.50f,
-                cy = canvasHeight * 0.54f,
-                baseRadius = canvasWidth * 0.22f,
-                appearStart = 0.00f,
-                appearEnd = 0.20f
-            ),
-            // Yıldız 2: Orta boy yıldız (sağ üst)
-            StarConfig(
-                cx = canvasWidth * 0.68f,
-                cy = canvasHeight * 0.30f,
-                baseRadius = canvasWidth * 0.13f,
-                appearStart = 0.20f,
-                appearEnd = 0.40f
-            ),
-            // Yıldız 3: Küçük yıldız (sol üst)
-            StarConfig(
-                cx = canvasWidth * 0.32f,
-                cy = canvasHeight * 0.34f,
-                baseRadius = canvasWidth * 0.09f,
-                appearStart = 0.40f,
-                appearEnd = 0.60f
-            )
-        )
-
-        for (star in stars) {
-            val p = animProgress
+        // 2. 3 Adet Animasyonlu AI Yıldızı (Sparkle) — tek Path yeniden kullanılarak per-frame GC baskısı önlenir
+        val glowStroke = Stroke(width = 1.dp.toPx())
+        val p = animProgress
+        for (spec in PLANORA_STAR_SPECS) {
             val alpha = when {
-                p < star.appearStart -> 0f
-                p in star.appearStart..star.appearEnd -> (p - star.appearStart) / (star.appearEnd - star.appearStart)
-                p in star.appearEnd..star.fadeStart -> 1f
-                p in star.fadeStart..star.fadeEnd -> 1f - (p - star.fadeStart) / (star.fadeEnd - star.fadeStart)
+                p < spec.appearStart -> 0f
+                p in spec.appearStart..spec.appearEnd -> (p - spec.appearStart) / (spec.appearEnd - spec.appearStart)
+                p in spec.appearEnd..spec.fadeStart -> 1f
+                p in spec.fadeStart..spec.fadeEnd -> 1f - (p - spec.fadeStart) / (spec.fadeEnd - spec.fadeStart)
                 else -> 0f
             }
 
-            val scale = when {
-                p < star.appearStart -> 0.3f
-                p in star.appearStart..star.appearEnd -> 0.3f + 0.7f * ((p - star.appearStart) / (star.appearEnd - star.appearStart))
-                p in star.appearEnd..star.fadeStart -> 1f
-                p in star.fadeStart..star.fadeEnd -> 1f - 0.3f * ((p - star.fadeStart) / (star.fadeEnd - star.fadeStart))
-                else -> 0.3f
-            }
-
             if (alpha > 0f) {
-                val currentRadius = star.baseRadius * scale
-                val sparklePath = Path().apply {
-                    val cx = star.cx
-                    val cy = star.cy
-                    val r = currentRadius
-                    moveTo(cx, cy - r)
-                    quadraticTo(cx, cy, cx + r, cy)
-                    quadraticTo(cx, cy, cx, cy + r)
-                    quadraticTo(cx, cy, cx - r, cy)
-                    quadraticTo(cx, cy, cx, cy - r)
-                    close()
+                val scale = when {
+                    p < spec.appearStart -> 0.3f
+                    p in spec.appearStart..spec.appearEnd -> 0.3f + 0.7f * ((p - spec.appearStart) / (spec.appearEnd - spec.appearStart))
+                    p in spec.appearEnd..spec.fadeStart -> 1f
+                    p in spec.fadeStart..spec.fadeEnd -> 1f - 0.3f * ((p - spec.fadeStart) / (spec.fadeEnd - spec.fadeStart))
+                    else -> 0.3f
                 }
+
+                val cx = canvasWidth * spec.cxFraction
+                val cy = canvasHeight * spec.cyFraction
+                val r = canvasWidth * spec.radiusFraction * scale
+
+                sparklePath.reset()
+                sparklePath.moveTo(cx, cy - r)
+                sparklePath.quadraticTo(cx, cy, cx + r, cy)
+                sparklePath.quadraticTo(cx, cy, cx, cy + r)
+                sparklePath.quadraticTo(cx, cy, cx - r, cy)
+                sparklePath.quadraticTo(cx, cy, cx, cy - r)
+                sparklePath.close()
 
                 // Yıldız Dolgusu (Fill)
                 drawPath(
@@ -416,21 +390,27 @@ fun PlanoraActionIcon(
                 drawPath(
                     path = sparklePath,
                     color = Color.White.copy(alpha = alpha * glowAlpha),
-                    style = Stroke(width = 1.dp.toPx())
+                    style = glowStroke
                 )
             }
         }
     }
 }
 
-private data class StarConfig(
-    val cx: Float,
-    val cy: Float,
-    val baseRadius: Float,
+private data class StarSpec(
+    val cxFraction: Float,
+    val cyFraction: Float,
+    val radiusFraction: Float,
     val appearStart: Float,
     val appearEnd: Float,
     val fadeStart: Float = 0.75f,
     val fadeEnd: Float = 0.95f
+)
+
+private val PLANORA_STAR_SPECS = listOf(
+    StarSpec(0.50f, 0.54f, 0.22f, 0.00f, 0.20f),
+    StarSpec(0.68f, 0.30f, 0.13f, 0.20f, 0.40f),
+    StarSpec(0.32f, 0.34f, 0.09f, 0.40f, 0.60f)
 )
 
 

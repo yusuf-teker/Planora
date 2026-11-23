@@ -1,41 +1,70 @@
 package com.yusufteker.planora
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import com.google.firebase.FirebaseApp
+import com.yusufteker.planora.core.icon.AndroidAppIconManager
+import com.yusufteker.planora.core.icon.AppIcon
+import com.yusufteker.planora.core.navigation.DeepLinkManager
+import com.yusufteker.planora.core.navigation.Screen
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import com.google.firebase.FirebaseApp
-import android.content.Intent
-import com.yusufteker.planora.core.navigation.DeepLinkManager
+import kotlinx.coroutines.launch
 
 /**
  * Main activity for the Android app.
  *
- * Sets up edge-to-edge display and delegates to the shared [App] composable.
+ * Uses Android's native SplashScreen while the startup route resolves on IO,
+ * then jumps straight into Main / Login / Onboarding with no secondary custom splash.
  */
 class MainActivity : ComponentActivity() {
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        val currentIcon = com.yusufteker.planora.core.icon.AndroidAppIconManager(this).getCurrentIcon()
-        val themeRes = when (currentIcon) {
-            com.yusufteker.planora.core.icon.AppIcon.DEFAULT -> R.style.Theme_Planora
-            com.yusufteker.planora.core.icon.AppIcon.PURPLE -> R.style.Theme_Planora_Purple
-            com.yusufteker.planora.core.icon.AppIcon.GREEN -> R.style.Theme_Planora_Green
-            com.yusufteker.planora.core.icon.AppIcon.ORANGE -> R.style.Theme_Planora_Orange
-            com.yusufteker.planora.core.icon.AppIcon.PINK -> R.style.Theme_Planora_Pink
-            com.yusufteker.planora.core.icon.AppIcon.RED -> R.style.Theme_Planora_Red
+        val currentIcon = AndroidAppIconManager(this).getCurrentIcon()
+        if (currentIcon != AppIcon.DEFAULT) {
+            val themeRes = when (currentIcon) {
+                AppIcon.DEFAULT -> R.style.Theme_Planora
+                AppIcon.PURPLE -> R.style.Theme_Planora_Purple
+                AppIcon.GREEN -> R.style.Theme_Planora_Green
+                AppIcon.ORANGE -> R.style.Theme_Planora_Orange
+                AppIcon.PINK -> R.style.Theme_Planora_Pink
+                AppIcon.RED -> R.style.Theme_Planora_Red
+            }
+            setTheme(themeRes)
         }
-        setTheme(themeRes)
-        installSplashScreen()
+
+        val splashScreen = installSplashScreen()
+        val planoraApp = application as? PlanoraApplication
+        var resolvedInitialScreen by mutableStateOf<Screen?>(
+            planoraApp?.initialScreenDeferred?.let { deferred ->
+                if (deferred.isCompleted) runCatching { deferred.getCompleted() }.getOrNull() else null
+            }
+        )
+        splashScreen.setKeepOnScreenCondition { planoraApp != null && resolvedInitialScreen == null }
+
         enableEdgeToEdge()
-        FirebaseApp.initializeApp(this)
+        if (FirebaseApp.getApps(this).isEmpty()) {
+            FirebaseApp.initializeApp(this)
+        }
         super.onCreate(savedInstanceState)
 
         // Initialize Napier KMP logging (only in debug builds)
         if (BuildConfig.DEBUG) {
             Napier.base(DebugAntilog())
+        }
+
+        if (resolvedInitialScreen == null && planoraApp != null) {
+            lifecycleScope.launch {
+                resolvedInitialScreen = planoraApp.initialScreenDeferred.await()
+            }
         }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -48,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     Napier.w("Notification permission denied", tag = "MainActivity")
                 }
             }
-            
+
             if (androidx.core.content.ContextCompat.checkSelfPermission(
                     this,
                     android.Manifest.permission.POST_NOTIFICATIONS
@@ -62,7 +91,9 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-            App()
+            if (planoraApp == null || resolvedInitialScreen != null) {
+                App(initialScreen = resolvedInitialScreen)
+            }
         }
     }
 
@@ -78,7 +109,9 @@ class MainActivity : ComponentActivity() {
         val selectedDate = intent?.getStringExtra(com.yusufteker.planora.android.widget.PlanoraWidgetUpdater.EXTRA_SELECTED_DATE)
         val taskId = intent?.getStringExtra(com.yusufteker.planora.android.widget.PlanoraWidgetUpdater.EXTRA_TASK_ID)
 
-        println("DEEPLINK DEBUG: MainActivity handleIntent action='$action', type='$type', dataString='$dataString', selectedDate='$selectedDate', taskId='$taskId'")
+        if (BuildConfig.DEBUG) {
+            Napier.d("DEEPLINK DEBUG: MainActivity handleIntent action='$action', type='$type', dataString='$dataString', selectedDate='$selectedDate', taskId='$taskId'")
+        }
 
         if (action == Intent.ACTION_SEND && type?.startsWith("text/") == true) {
             val title = intent.getStringExtra(Intent.EXTRA_TITLE)

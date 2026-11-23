@@ -64,10 +64,17 @@ import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorSc
 import com.yusufteker.planora.feature.home.presentation.task_editor.TaskEditorViewModel
 import com.yusufteker.planora.feature.home.presentation.global_search.GlobalSearchScreen
 import com.yusufteker.planora.feature.home.presentation.global_search.GlobalSearchViewModel
+import org.koin.compose.getKoin
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
+
+private const val USER_ID_LOADING = "__PLANORA_USER_ID_LOADING__"
 
 /**
  * Root composable for the Planora application.
@@ -76,10 +83,15 @@ import kotlin.time.Duration.Companion.milliseconds
  * - PlanoraTheme (with automatic dark mode)
  * - Navigation 3 (NavDisplay with user-owned back stack)
  * - Screen routing to feature composables
+ *
+ * @param initialScreen Pre-resolved first destination (Android resolves this during the native
+ *   SplashScreen on IO so no custom Compose splash is needed). When null (e.g. iOS), resolves
+ *   immediately on IO with zero artificial delay.
  */
 @OptIn(FlowPreview::class)
 @Composable
-fun App() {
+fun App(initialScreen: Screen? = null) {
+    val koin = getKoin()
     val themePreferences = koinInject<ThemePreferences>()
     val isDarkModePref by themePreferences.isDarkMode.collectAsStateWithLifecycle(initialValue = null)
     val themeColorPref by themePreferences.themeColor.collectAsState()
@@ -103,7 +115,9 @@ fun App() {
         }
 
         val sessionPreferences = koinInject<SessionPreferences>()
-        val userId by sessionPreferences.userIdFlow.collectAsStateWithLifecycle(initialValue = null)
+        val rawUserId by sessionPreferences.userIdFlow.collectAsStateWithLifecycle(initialValue = USER_ID_LOADING)
+        val isUserIdLoaded = rawUserId != USER_ID_LOADING
+        val userId: String? = if (isUserIdLoaded) rawUserId else sessionPreferences.cachedUserId
         val vmKey = userId ?: "guest"
 
         val appVersionViewModel = koinViewModel<com.yusufteker.planora.core.ui.version.AppVersionViewModel>()
@@ -129,8 +143,37 @@ fun App() {
             com.yusufteker.planora.core.domain.usecase.UpdateStatus.UpToDate -> { /* Up to date */ }
         }
 
-        val backStack = remember { mutableStateListOf<Screen>(Screen.Splash) }
-        val navigator = remember { Navigator(backStack) }
+        var resolvedInitialRoute by remember(initialScreen) {
+            androidx.compose.runtime.mutableStateOf<Screen?>(initialScreen)
+        }
+        if (resolvedInitialRoute == null) {
+            LaunchedEffect(Unit) {
+                resolvedInitialRoute = withContext(Dispatchers.IO) {
+                    val snapshot = sessionPreferences.getStartupSessionSnapshot()
+                    val isLoggedIn = if (snapshot.isFirstRun) {
+                        sessionPreferences.clearSession()
+                        sessionPreferences.markAppAsRun()
+                        false
+                    } else {
+                        sessionPreferences.getRefreshToken() != null
+                    }
+                    when {
+                        snapshot.lastSeenOverviewIndex < OnboardingViewModel.TOTAL_PAGES -> Screen.Onboarding
+                        isLoggedIn -> Screen.Main()
+                        else -> Screen.Login
+                    }
+                }
+            }
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.fillMaxSize()
+            )
+            return@PlanoraTheme
+        }
+
+        val backStack = remember(resolvedInitialRoute) {
+            mutableStateListOf<Screen>(resolvedInitialRoute!!)
+        }
+        val navigator = remember(backStack) { Navigator(backStack) }
 
         LaunchedEffect(navigator.backStack.lastOrNull()) {
             val currentScreen = navigator.backStack.lastOrNull()
@@ -140,60 +183,73 @@ fun App() {
             }
         }
 
-        val registerFcmTokenUseCase = koinInject<RegisterFcmTokenUseCase>()
-        val reminderManager = koinInject<com.yusufteker.planora.core.reminder.ReminderManager>()
-        val planRepository = koinInject<com.yusufteker.planora.feature.home.domain.repository.PlanRepository>()
-        val processDeepLinkUseCase = koinInject<com.yusufteker.planora.feature.home.domain.use_case.ProcessDeepLinkUseCase>()
-        val authRepository = koinInject<com.yusufteker.planora.feature.auth.domain.repository.AuthRepository>()
-
-        LaunchedEffect(userId) {
+        // Lazy resolution: do not eagerly instantiate SQLite/HttpClient/Repositories during first frame
+        LaunchedEffect(isUserIdLoaded, userId) {
+            if (!isUserIdLoaded) return@LaunchedEffect
             if (userId != null) {
-                registerFcmTokenUseCase()
-                try {
-                    authRepository.fetchMyProfile()
-                } catch (_: Exception) {
-                    // Ignore network failure on startup sync
-                }
-                com.yusufteker.planora.core.utils.NotificationSyncBridge.setSyncHandler {
-                    planRepository.fetchMyTasks()
-                }
-                com.yusufteker.planora.core.utils.NotificationSyncBridge.setRoomSyncHandler {
-                    planRepository.fetchMyRooms()
+                withContext(Dispatchers.IO) {
+                    val registerFcmTokenUseCase = koin.get<RegisterFcmTokenUseCase>()
+                    val planRepository = koin.get<com.yusufteker.planora.feature.home.domain.repository.PlanRepository>()
+                    val authRepository = koin.get<com.yusufteker.planora.feature.auth.domain.repository.AuthRepository>()
+                    com.yusufteker.planora.core.utils.NotificationSyncBridge.setSyncHandler {
+                        planRepository.fetchMyTasks()
+                    }
+                    com.yusufteker.planora.core.utils.NotificationSyncBridge.setRoomSyncHandler {
+                        planRepository.fetchMyRooms()
+                    }
+                    try {
+                        registerFcmTokenUseCase()
+                    } catch (_: Exception) {
+                    }
+                    try {
+                        authRepository.fetchMyProfile()
+                    } catch (_: Exception) {
+                        // Ignore network failure on startup sync
+                    }
                 }
             } else {
                 val currentScreen = navigator.backStack.lastOrNull()
-                if (currentScreen != null && 
-                    currentScreen !is Screen.Splash && 
-                    currentScreen !is Screen.Onboarding && 
-                    currentScreen !is Screen.Login && 
-                    currentScreen !is Screen.Register) {
+                if (currentScreen != null &&
+                    currentScreen !is Screen.Splash &&
+                    currentScreen !is Screen.Onboarding &&
+                    currentScreen !is Screen.Login &&
+                    currentScreen !is Screen.Register
+                ) {
                     navigator.setRoot(Screen.Login)
                 }
             }
         }
 
-        // Observe all tasks and reschedule alarms whenever the task list changes
-        LaunchedEffect(userId) {
+        // Observe all tasks and reschedule alarms on IO whenever the task list changes
+        LaunchedEffect(isUserIdLoaded, userId) {
+            if (!isUserIdLoaded) return@LaunchedEffect
             if (userId != null) {
+                val planRepository = koin.get<com.yusufteker.planora.feature.home.domain.repository.PlanRepository>()
+                val reminderManager = koin.get<com.yusufteker.planora.core.reminder.ReminderManager>()
                 // Performans: debounce ile hızlı ardışık DB değişikliklerinde
-                // gereksiz cancel+reschedule döngüsünü önle
+                // gereksiz cancel+reschedule döngüsünü önle ve AlarmManager IPC'yi IO thread'de çalıştır
                 planRepository.observeAllTasks()
                     .debounce(1000L.milliseconds)
                     .collect { tasks ->
-                        reminderManager.scheduleAllReminders(tasks)
+                        withContext(Dispatchers.IO) {
+                            reminderManager.scheduleAllReminders(tasks)
+                        }
                     }
-            } else {
-                // Logged out — cancel all reminders
-                reminderManager.cancelAllReminders()
+            } else if (resolvedInitialRoute !is Screen.Login && resolvedInitialRoute !is Screen.Onboarding) {
+                // Only cancel reminders if transitioning out of a logged-in session
+                val reminderManager = koin.get<com.yusufteker.planora.core.reminder.ReminderManager>()
+                withContext(Dispatchers.IO) {
+                    reminderManager.cancelAllReminders()
+                }
             }
         }
 
         val deepLinkUrl by DeepLinkManager.deepLinkFlow.collectAsStateWithLifecycle(initialValue = "")
         val currentScreen = navigator.backStack.lastOrNull()
         LaunchedEffect(deepLinkUrl, userId, currentScreen) {
-            Napier.d("DEEPLINK DEBUG: deepLinkUrl='$deepLinkUrl', userId='$userId', currentScreen='$currentScreen'")
             if (deepLinkUrl.isNotEmpty() && userId != null && currentScreen is Screen.Main) { // Only handle if logged in
                 Napier.d("DEEPLINK DEBUG: Conditions met! Parsing URL with UseCase...")
+                val processDeepLinkUseCase = koin.get<com.yusufteker.planora.feature.home.domain.use_case.ProcessDeepLinkUseCase>()
                 when (val result = processDeepLinkUseCase(deepLinkUrl)) {
                     is com.yusufteker.planora.feature.home.domain.use_case.DeepLinkResult.NavigateToEvent -> {
                         navigator.navigate(

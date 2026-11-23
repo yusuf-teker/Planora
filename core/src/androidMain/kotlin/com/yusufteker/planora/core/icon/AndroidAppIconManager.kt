@@ -23,19 +23,22 @@ class AndroidAppIconManager(private val context: Context) : AppIconManager {
             return AppIcon.fromId(savedIconId)
         }
 
-        // 2. Fallback: inspect packageManager activity aliases
+        // 2. Fallback: inspect packageManager activity aliases once and cache result
+        var resolvedIcon = AppIcon.DEFAULT
         for (icon in AppIcon.entries) {
             try {
                 val component = ComponentName(packageName, "$packageName.${icon.aliasName}")
                 val state = packageManager.getComponentEnabledSetting(component)
                 if (state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-                    return icon
+                    resolvedIcon = icon
+                    break
                 }
             } catch (_: Exception) {
                 // Ignore query failure
             }
         }
-        return AppIcon.DEFAULT
+        prefs.edit().putString("active_icon_id", resolvedIcon.id).apply()
+        return resolvedIcon
     }
 
     override fun setIcon(icon: AppIcon) {

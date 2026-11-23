@@ -221,10 +221,13 @@ object HuaweiHealthService {
 
     fun buildAuthorizationUrl(userId: Int): String {
         val state = signState(userId)
+        val clientId = AppConfig.huaweiClientId.trim()
+        val redirectUri = AppConfig.huaweiRedirectUri.trim()
+        println("[HuaweiHealthService] Building OAuth authorize URL for userId=$userId client_id=$clientId redirect_uri=$redirectUri")
         val params = listOf(
             "response_type" to "code",
-            "client_id" to AppConfig.huaweiClientId,
-            "redirect_uri" to AppConfig.huaweiRedirectUri,
+            "client_id" to clientId,
+            "redirect_uri" to redirectUri,
             "scope" to resolvedScopes(),
             "access_type" to "offline",
             "state" to state

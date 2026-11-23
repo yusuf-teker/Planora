@@ -12,8 +12,8 @@ object AppConfig {
     }
 
     private fun getEnv(key: String): String? {
-        return System.getenv(key)?.takeIf { it.isNotBlank() }
-            ?: (try { dotenv[key] } catch (e: Exception) { null })?.takeIf { it.isNotBlank() }
+        return System.getenv(key)?.trim()?.takeIf { it.isNotBlank() }
+            ?: (try { dotenv[key] } catch (e: Exception) { null })?.trim()?.takeIf { it.isNotBlank() }
     }
 
     // Database

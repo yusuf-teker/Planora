@@ -174,7 +174,9 @@ func setupWidgetBridge() {
     IosWidgetBridge.shared.onWidgetDataReloadRequested = {
         WidgetCenter.shared.reloadAllTimelines()
     }
-    IosWidgetBridge.shared.syncWidgetData()
+    DispatchQueue.global(qos: .utility).async {
+        IosWidgetBridge.shared.syncWidgetData()
+    }
 }
 
 @available(iOS 26.0, *)
