@@ -37,6 +37,7 @@ import com.yusufteker.planora.shared.api.TaskType
 import com.yusufteker.planora.shared.api.TaskVisibility
 import com.yusufteker.planora.shared.api.extractBaseTaskId
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
+import com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs
 
 class PlanRoomDetailViewModel(
     private val planRepository: PlanRepository,
@@ -63,18 +64,7 @@ class PlanRoomDetailViewModel(
                 } else {
                     null
                 }
-                val initialDateMs = targetDate?.let { date ->
-                    val zone = TimeZone.currentSystemDefault()
-                    val nowMs = getCurrentTimeMs()
-                    val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
-                    LocalDateTime(
-                        year = date.year,
-                        monthNumber = date.monthNumber,
-                        dayOfMonth = date.dayOfMonth,
-                        hour = nowLdt.hour,
-                        minute = nowLdt.minute
-                    ).toInstant(zone).toEpochMilliseconds()
-                }
+                val initialDateMs = targetDate?.let { date -> getDefaultTaskDeadlineMs(targetDate = date) }
                 setEffect(PlanRoomDetailEffect.NavigateToCreateTask(currentState.roomId, initialDateMs))
             }
             PlanRoomDetailEvent.OnCreateEventClick -> {

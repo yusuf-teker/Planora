@@ -1,6 +1,7 @@
 package com.yusufteker.planora.core.utils
 
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -91,5 +92,59 @@ class TimeUtilsTest {
 
         // Assert: Dönen zaman bu testin çalıştığı an ile örtüşmeli
         assertTrue(resultMs in beforeMs..afterMs, "Orijinal zaman null ise şu anki zaman dönmelidir")
+    }
+
+    @Test
+    fun `getDefaultTaskDeadlineMs gun ortasinda 3 saat sonrasini ayni gunde ve saniyesiz dondurmelidir`() {
+        val nowMs = LocalDateTime(2026, kotlinx.datetime.Month.JUNE, 10, 14, 35, 42)
+            .toInstant(TimeZone.UTC)
+            .toEpochMilliseconds()
+
+        val resultMs = getDefaultTaskDeadlineMs(nowMs = nowMs, timeZone = TimeZone.UTC)
+        val resultLdt = Instant.fromEpochMilliseconds(resultMs).toLocalDateTime(TimeZone.UTC)
+
+        assertEquals(LocalDate(2026, 6, 10), resultLdt.date)
+        assertEquals(17, resultLdt.hour)
+        assertEquals(35, resultLdt.minute)
+        assertEquals(0, resultLdt.second)
+    }
+
+    @Test
+    fun `getDefaultTaskDeadlineMs gece yarisini asinca hedef tarih null veya bugunse ertesi gune gecmelidir`() {
+        val nowMs = LocalDateTime(2026, kotlinx.datetime.Month.JUNE, 10, 22, 30, 15)
+            .toInstant(TimeZone.UTC)
+            .toEpochMilliseconds()
+
+        val nullDateResult = Instant.fromEpochMilliseconds(
+            getDefaultTaskDeadlineMs(targetDate = null, nowMs = nowMs, timeZone = TimeZone.UTC)
+        ).toLocalDateTime(TimeZone.UTC)
+        assertEquals(LocalDate(2026, 6, 11), nullDateResult.date)
+        assertEquals(1, nullDateResult.hour)
+        assertEquals(30, nullDateResult.minute)
+        assertEquals(0, nullDateResult.second)
+
+        val todayDateResult = Instant.fromEpochMilliseconds(
+            getDefaultTaskDeadlineMs(targetDate = LocalDate(2026, 6, 10), nowMs = nowMs, timeZone = TimeZone.UTC)
+        ).toLocalDateTime(TimeZone.UTC)
+        assertEquals(LocalDate(2026, 6, 11), todayDateResult.date)
+        assertEquals(1, todayDateResult.hour)
+        assertEquals(30, todayDateResult.minute)
+    }
+
+    @Test
+    fun `getDefaultTaskDeadlineMs secili farkli tarih verildiginde tarihi koruyup 3 saat sonraki saati uygulamalıdır`() {
+        val nowMs = LocalDateTime(2026, kotlinx.datetime.Month.JUNE, 10, 22, 30, 0)
+            .toInstant(TimeZone.UTC)
+            .toEpochMilliseconds()
+        val selectedFutureDate = LocalDate(2026, 6, 15)
+
+        val resultLdt = Instant.fromEpochMilliseconds(
+            getDefaultTaskDeadlineMs(targetDate = selectedFutureDate, nowMs = nowMs, timeZone = TimeZone.UTC)
+        ).toLocalDateTime(TimeZone.UTC)
+
+        assertEquals(selectedFutureDate, resultLdt.date)
+        assertEquals(1, resultLdt.hour)
+        assertEquals(30, resultLdt.minute)
+        assertEquals(0, resultLdt.second)
     }
 }

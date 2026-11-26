@@ -15,7 +15,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,8 +43,10 @@ import com.yusufteker.planora.feature.home.presentation.notes.NotesScreen
 import com.yusufteker.planora.feature.home.presentation.notes.NotesViewModel
 import com.yusufteker.planora.feature.home.presentation.settings.SettingsScreen
 import com.yusufteker.planora.feature.home.presentation.settings.SettingsViewModel
+import com.yusufteker.planora.feature.home.presentation.plan_rooms.PlanRoomsEvent
 import com.yusufteker.planora.feature.home.presentation.plan_rooms.PlanRoomsScreen
 import com.yusufteker.planora.feature.home.presentation.plan_rooms.PlanRoomsViewModel
+import com.yusufteker.planora.feature.home.presentation.plan_rooms.resolveSingleRoomAutoOpenId
 import org.koin.compose.viewmodel.koinViewModel
 
 import com.yusufteker.planora.core.theme.LocalIsDarkTheme
@@ -101,6 +105,9 @@ fun MainScreen(initialDestination: String? = null) {
         mutableStateListOf<MainDestination>(initial)
     }
     val navigator = remember { Navigator(backStack) }
+    var shouldAutoOpenSingleRoom by rememberSaveable {
+        mutableStateOf(initialDestination == "PlanRooms")
+    }
 
     val currentDestination = backStack.lastOrNull() ?: MainDestination.Home
 
@@ -113,6 +120,7 @@ fun MainScreen(initialDestination: String? = null) {
                 "Settings" -> MainDestination.Settings
                 else -> MainDestination.Home
             }
+            shouldAutoOpenSingleRoom = (targetDest == MainDestination.PlanRooms)
             if (backStack.lastOrNull() != targetDest) {
                 while (backStack.size > 1) {
                     backStack.removeLastOrNull()
@@ -142,6 +150,7 @@ fun MainScreen(initialDestination: String? = null) {
 
     val navigateToTab: (MainDestination) -> Unit = { destination ->
         if (currentDestination != destination) {
+            shouldAutoOpenSingleRoom = (destination == MainDestination.PlanRooms)
             if (destination == MainDestination.Home) {
                 while (backStack.size > 1) {
                     navigator.pop()
@@ -251,11 +260,37 @@ fun MainScreen(initialDestination: String? = null) {
                         )
                         val state by viewModel.state.collectAsStateWithLifecycle()
                         val rootNav = com.yusufteker.planora.core.navigation.LocalNavigator.current
+                        val hasBlockingDialogOpen = state.isCreateRoomDialogVisible ||
+                            state.isInvitationsDialogVisible ||
+                            state.showRoomLimitDialog
+                        LaunchedEffect(shouldAutoOpenSingleRoom, state.rooms, hasBlockingDialogOpen) {
+                            val autoOpenRoomId = resolveSingleRoomAutoOpenId(
+                                autoOpenArmed = shouldAutoOpenSingleRoom,
+                                rooms = state.rooms,
+                                hasBlockingDialogOpen = hasBlockingDialogOpen
+                            )
+                            if (autoOpenRoomId != null) {
+                                shouldAutoOpenSingleRoom = false
+                                rootNav.navigate(Screen.PlanRoomDetail(autoOpenRoomId))
+                            } else if (shouldAutoOpenSingleRoom && state.rooms.size > 1) {
+                                shouldAutoOpenSingleRoom = false
+                            }
+                        }
                         PlanRoomsScreen(
                             state = state,
                             effectFlow = viewModel.effect,
-                            onEvent = viewModel::onEvent,
-                            onNavigateToRoomDetail = { roomId -> 
+                            onEvent = { event ->
+                                when (event) {
+                                    is PlanRoomsEvent.OnRoomClick,
+                                    is PlanRoomsEvent.OnCreateRoomClick,
+                                    is PlanRoomsEvent.OnInvitationsClick -> {
+                                        shouldAutoOpenSingleRoom = false
+                                    }
+                                    else -> Unit
+                                }
+                                viewModel.onEvent(event)
+                            },
+                            onNavigateToRoomDetail = { roomId ->
                                 rootNav.navigate(Screen.PlanRoomDetail(roomId))
                             },
                             onNavigateToCreateTask = {

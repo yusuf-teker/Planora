@@ -56,3 +56,23 @@ sealed interface PlanRoomsEffect : UiEffect {
     data object NavigateToCreateEvent : PlanRoomsEffect
     data object NavigateToPremium : PlanRoomsEffect
 }
+
+/**
+ * Resolves whether the Plan Rooms screen should automatically open the user's single room.
+ *
+ * Returns the sole room's ID only when auto-open is currently armed (fresh entry into the
+ * Plan Rooms tab), there is exactly one room, and no modal dialog is currently open.
+ *
+ * @param autoOpenArmed Whether auto-navigation is armed for the current tab visit.
+ * @param rooms Current list of plan rooms.
+ * @param hasBlockingDialogOpen True when a dialog (create room, invitations, or room limit) is open.
+ * @return The room ID to navigate to automatically, or `null` to stay on the room list.
+ */
+fun resolveSingleRoomAutoOpenId(
+    autoOpenArmed: Boolean,
+    rooms: List<PlanRoomDto>,
+    hasBlockingDialogOpen: Boolean
+): String? {
+    if (!autoOpenArmed || hasBlockingDialogOpen) return null
+    return rooms.singleOrNull()?.id
+}

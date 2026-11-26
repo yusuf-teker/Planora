@@ -492,7 +492,8 @@ fun App(initialScreen: Screen? = null) {
                             onNavigateToFocus = { id -> navigator.navigate(Screen.Focus(taskId = id)) },
                             onNavigateToCreateNote = { parentId -> navigator.navigate(Screen.NoteEditor(parentId = parentId, planRoomId = screen.planRoomId)) },
                             onNavigateToEditNote = { noteId -> navigator.navigate(Screen.NoteEditor(noteId = noteId, planRoomId = screen.planRoomId)) },
-                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) }
+                            onNavigateToPlanRoom = { roomId -> navigator.navigate(Screen.PlanRoomDetail(roomId = roomId)) },
+                            autoFocusTitle = screen.taskId == null && screen.copyFromTaskId == null
                         )
                     }
 

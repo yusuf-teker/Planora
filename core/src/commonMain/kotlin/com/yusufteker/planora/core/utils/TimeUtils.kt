@@ -79,3 +79,36 @@ fun getTodayWithOriginalTime(originalTimeMs: Long?): Long {
     ).toInstant(tz).toEpochMilliseconds()
 }
 
+/**
+ * Computes the default deadline timestamp for a newly created task: 3 hours ahead of [nowMs]
+ * with seconds and nanoseconds zeroed out.
+ *
+ * When [targetDate] is `null` or matches today's date in [timeZone], the date rolls over to
+ * tomorrow automatically if adding 3 hours crosses midnight (e.g., 22:30 -> tomorrow 01:30).
+ * When [targetDate] is a different explicitly selected date, [targetDate] is preserved and
+ * paired with the `+3h` hour and minute.
+ *
+ * @param targetDate Optional calendar date chosen by the user.
+ * @param nowMs Current epoch time in milliseconds (defaults to [getCurrentTimeMs]).
+ * @param timeZone Time zone used for date/time conversion (defaults to system time zone).
+ * @return Epoch milliseconds for the computed default task deadline.
+ */
+fun getDefaultTaskDeadlineMs(
+    targetDate: LocalDate? = null,
+    nowMs: Long = getCurrentTimeMs(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault()
+): Long {
+    val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(timeZone)
+    val plusThreeLdt = Instant.fromEpochMilliseconds(nowMs + 3L * 60L * 60L * 1000L).toLocalDateTime(timeZone)
+    val resolvedDate = if (targetDate == null || targetDate == nowLdt.date) plusThreeLdt.date else targetDate
+    return LocalDateTime(
+        year = resolvedDate.year,
+        month = resolvedDate.month,
+        dayOfMonth = resolvedDate.dayOfMonth,
+        hour = plusThreeLdt.hour,
+        minute = plusThreeLdt.minute,
+        second = 0,
+        nanosecond = 0
+    ).toInstant(timeZone).toEpochMilliseconds()
+}
+

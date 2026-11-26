@@ -3,6 +3,7 @@ package com.yusufteker.planora.feature.home.presentation.home
 import com.yusufteker.planora.core.base.BaseViewModel
 import com.yusufteker.planora.core.preferences.SessionPreferences
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
+import com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs
 
 import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.shared.api.CreateTaskRequest
@@ -283,18 +284,7 @@ class HomeViewModel(
                 }
             }
             is HomeEvent.CreateTaskClicked -> {
-                val zone = TimeZone.currentSystemDefault()
-                val nowMs = getCurrentTimeMs()
-                val nowLdt = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(zone)
-                val targetDate = state.value.selectedCalendarDate ?: nowLdt.date
-                val initialLdt = kotlinx.datetime.LocalDateTime(
-                    year = targetDate.year,
-                    monthNumber = targetDate.monthNumber,
-                    dayOfMonth = targetDate.dayOfMonth,
-                    hour = nowLdt.hour,
-                    minute = nowLdt.minute
-                )
-                val selectedDateMs = initialLdt.toInstant(zone).toEpochMilliseconds()
+                val selectedDateMs = getDefaultTaskDeadlineMs(targetDate = state.value.selectedCalendarDate)
                 setEffect(HomeEffect.NavigateToCreateTask(initialDateMs = selectedDateMs))
             }
             

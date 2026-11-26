@@ -17,10 +17,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,6 +44,7 @@ import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.TaskStatus
 import com.yusufteker.planora.shared.api.TaskPriority
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -54,11 +59,26 @@ fun TaskEditorScreen(
     onNavigateToFocus: (String) -> Unit = {},
     onNavigateToCreateNote: (String) -> Unit = {},
     onNavigateToEditNote: (String) -> Unit = {},
-    onNavigateToPlanRoom: (String) -> Unit = {}
+    onNavigateToPlanRoom: (String) -> Unit = {},
+    autoFocusTitle: Boolean = false
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val shareManager = org.koin.compose.koinInject<com.yusufteker.planora.core.share.ShareManager>()
+    val titleFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var hasRequestedInitialFocus by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(autoFocusTitle, state.id, state.isCopyMode) {
+        if (autoFocusTitle && !hasRequestedInitialFocus && state.id == null && !state.isCopyMode) {
+            hasRequestedInitialFocus = true
+            delay(150)
+            runCatching {
+                titleFocusRequester.requestFocus()
+                keyboardController?.show()
+            }
+        }
+    }
 
     val dateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -254,7 +274,9 @@ fun TaskEditorScreen(
                         value = state.title,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.TitleChanged(it)) },
                         placeholder = { Text(stringResource(Res.string.task_title_label), style = MaterialTheme.typography.titleLarge) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(titleFocusRequester),
                         textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -271,7 +293,10 @@ fun TaskEditorScreen(
                         value = state.description,
                         onValueChange = { viewModel.onEvent(TaskEditorEvent.DescriptionChanged(it)) },
                         placeholder = { Text(stringResource(Res.string.task_desc_label)) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        minLines = 1,
+                        maxLines = 3,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
@@ -337,19 +362,6 @@ fun TaskEditorScreen(
                             value = repeatText,
                             onClick = { viewModel.onEvent(TaskEditorEvent.OnRepeatPickerVisibilityChanged(true)) }
                         )
-                    } else {
-                        // Zamansız to-do bilgilendirme ipucu
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.task_editor_unscheduled_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
-                        }
                     }
                 }
 

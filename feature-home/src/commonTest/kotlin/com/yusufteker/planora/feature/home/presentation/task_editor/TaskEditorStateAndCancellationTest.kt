@@ -1,6 +1,8 @@
 package com.yusufteker.planora.feature.home.presentation.task_editor
 
 import app.cash.turbine.test
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
+import com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs
 import com.yusufteker.planora.feature.home.data.repository.FakePlanRepository
 import com.yusufteker.planora.feature.home.data.repository.FakeProfileRepository
 import com.yusufteker.planora.feature.home.util.FakeSessionPreferences
@@ -300,5 +302,27 @@ class TaskEditorStateAndCancellationTest {
         assertEquals(null, viewModel.state.value.planRoomId)
         assertEquals(null, viewModel.state.value.planRoomName)
         assertTrue(viewModel.state.value.participants.isEmpty())
+    }
+
+    @Test
+    fun `tarih ve saat belirle acildiginda varsayilan zaman su andan 3 saat sonrasi olmalidir`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        val beforeMs = getCurrentTimeMs()
+        viewModel.onEvent(TaskEditorEvent.OnHasDeadlineToggled(true))
+        runCurrent()
+        val afterMs = getCurrentTimeMs()
+
+        assertTrue(viewModel.state.value.hasDeadline)
+        val deadlineMs = viewModel.state.value.deadlineDateMs
+        assertTrue(deadlineMs != null)
+
+        val expectedBefore = getDefaultTaskDeadlineMs(nowMs = beforeMs)
+        val expectedAfter = getDefaultTaskDeadlineMs(nowMs = afterMs)
+        assertTrue(
+            deadlineMs == expectedBefore || deadlineMs == expectedAfter,
+            "Varsayılan bitiş saati şu andan 3 saat sonrası olmalıdır"
+        )
     }
 }

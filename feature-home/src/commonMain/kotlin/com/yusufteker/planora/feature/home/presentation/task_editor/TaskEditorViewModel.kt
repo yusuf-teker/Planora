@@ -3,6 +3,7 @@ package com.yusufteker.planora.feature.home.presentation.task_editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yusufteker.planora.core.utils.getCurrentTimeMs
+import com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs
 import com.yusufteker.planora.feature.home.domain.repository.PlanRepository
 import com.yusufteker.planora.feature.home.domain.repository.ProfileRepository
 import com.yusufteker.planora.shared.api.TaskPriority
@@ -126,7 +127,7 @@ class TaskEditorViewModel(
                     if (event.hasDeadline) {
                         it.copy(
                             hasDeadline = true,
-                            deadlineDateMs = it.deadlineDateMs ?: getCurrentTimeMs()
+                            deadlineDateMs = it.deadlineDateMs ?: getDefaultTaskDeadlineMs()
                         )
                     } else {
                         it.copy(

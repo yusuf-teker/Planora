@@ -37,7 +37,7 @@ data class PlanRoomDetailState(
     val isLeaveConfirmationOpen: Boolean = false,
     
     // View Tab & Filtering
-    val selectedTab: RoomDetailTab = RoomDetailTab.FEED,
+    val selectedTab: RoomDetailTab = RoomDetailTab.CALENDAR,
     val selectedFilter: RoomTaskFilter = RoomTaskFilter.ALL,
     val taskSearchQuery: String = "",
     

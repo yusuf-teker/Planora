@@ -48,7 +48,7 @@ fun DateTimePickerSheet(
     onDismissRequest: () -> Unit,
     onDateTimeSelected: (Long) -> Unit
 ) {
-    val initialMs = initialTimeMs ?: com.yusufteker.planora.core.utils.getCurrentTimeMs()
+    val initialMs = initialTimeMs ?: com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs()
     val tz = TimeZone.currentSystemDefault()
     val initialDateTime = Instant.fromEpochMilliseconds(initialMs).toLocalDateTime(tz)
 

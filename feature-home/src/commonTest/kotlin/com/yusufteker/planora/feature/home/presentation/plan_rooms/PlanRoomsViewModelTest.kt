@@ -18,6 +18,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -169,5 +170,57 @@ class PlanRoomsViewModelTest {
             assertEquals(PlanRoomsEffect.NavigateToPremium, effect)
         }
         assertFalse(viewModel.state.value.showRoomLimitDialog)
+    }
+
+    @Test
+    fun `resolveSingleRoomAutoOpenId tek oda ve hazir durumda iken oda id dondurur`() {
+        val singleRoom = listOf(createDummyRoom("room-1", "Tek Oda"))
+
+        assertEquals(
+            "room-1",
+            resolveSingleRoomAutoOpenId(
+                autoOpenArmed = true,
+                rooms = singleRoom,
+                hasBlockingDialogOpen = false
+            )
+        )
+    }
+
+    @Test
+    fun `resolveSingleRoomAutoOpenId geri donuldugunde veya dialog acikken veya oda sayisi farkliysa null dondurur`() {
+        val singleRoom = listOf(createDummyRoom("room-1", "Tek Oda"))
+        val twoRooms = listOf(
+            createDummyRoom("room-1", "Oda 1"),
+            createDummyRoom("room-2", "Oda 2")
+        )
+
+        assertNull(
+            resolveSingleRoomAutoOpenId(
+                autoOpenArmed = false,
+                rooms = singleRoom,
+                hasBlockingDialogOpen = false
+            )
+        )
+        assertNull(
+            resolveSingleRoomAutoOpenId(
+                autoOpenArmed = true,
+                rooms = emptyList(),
+                hasBlockingDialogOpen = false
+            )
+        )
+        assertNull(
+            resolveSingleRoomAutoOpenId(
+                autoOpenArmed = true,
+                rooms = twoRooms,
+                hasBlockingDialogOpen = false
+            )
+        )
+        assertNull(
+            resolveSingleRoomAutoOpenId(
+                autoOpenArmed = true,
+                rooms = singleRoom,
+                hasBlockingDialogOpen = true
+            )
+        )
     }
 }

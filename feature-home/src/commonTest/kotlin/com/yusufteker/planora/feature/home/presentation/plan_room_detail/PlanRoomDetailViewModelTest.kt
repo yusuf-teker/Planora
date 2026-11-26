@@ -24,6 +24,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import app.cash.turbine.test
+import com.yusufteker.planora.core.utils.getCurrentTimeMs
+import com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -59,6 +61,12 @@ class PlanRoomDetailViewModelTest {
             profileRepository = profileRepository,
             sessionPreferences = sessionPreferences
         )
+    }
+
+    @Test
+    fun `initial state defaults selectedTab to CALENDAR`() = runTest {
+        val viewModel = createViewModel()
+        assertEquals(RoomDetailTab.CALENDAR, viewModel.state.value.selectedTab)
     }
 
     @Test
@@ -181,11 +189,20 @@ class PlanRoomDetailViewModelTest {
         advanceUntilIdle()
 
         viewModel.effect.test {
+            val beforeMs = getCurrentTimeMs()
             viewModel.onEvent(PlanRoomDetailEvent.OnCreateTaskClick)
+            val afterMs = getCurrentTimeMs()
             val effect = awaitItem()
             assertTrue(effect is PlanRoomDetailEffect.NavigateToCreateTask)
             assertEquals(roomId, effect.roomId)
             assertNotNull(effect.initialDateMs)
+
+            val expectedBefore = getDefaultTaskDeadlineMs(targetDate = selectedDate, nowMs = beforeMs)
+            val expectedAfter = getDefaultTaskDeadlineMs(targetDate = selectedDate, nowMs = afterMs)
+            assertTrue(
+                effect.initialDateMs == expectedBefore || effect.initialDateMs == expectedAfter,
+                "Expected +3h deadline on selected date"
+            )
 
             val zone = TimeZone.currentSystemDefault()
             val ldt = Instant.fromEpochMilliseconds(effect.initialDateMs!!).toLocalDateTime(zone)
