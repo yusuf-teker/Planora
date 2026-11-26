@@ -6,6 +6,7 @@ import com.yusufteker.planora.core.utils.getDefaultTaskDeadlineMs
 import com.yusufteker.planora.feature.home.data.repository.FakePlanRepository
 import com.yusufteker.planora.feature.home.data.repository.FakeProfileRepository
 import com.yusufteker.planora.feature.home.util.FakeSessionPreferences
+import com.yusufteker.planora.shared.api.CreatePlanRoomRequest
 import com.yusufteker.planora.shared.api.CreateTaskRequest
 import com.yusufteker.planora.shared.api.TaskDto
 import com.yusufteker.planora.shared.api.TaskPriority
@@ -324,5 +325,39 @@ class TaskEditorStateAndCancellationTest {
             deadlineMs == expectedBefore || deadlineMs == expectedAfter,
             "Varsayılan bitiş saati şu andan 3 saat sonrası olmalıdır"
         )
+    }
+
+    @Test
+    fun `yeni gorev yuklendiginde availableRooms korunmali ve oda secilip kaydedildiginde odaya gorev eklenmelidir`() = runTest {
+        val roomResult = fakePlanRepository.createPlanRoom(CreatePlanRoomRequest("Proje Odası"))
+        val room = roomResult.getOrThrow()
+
+        val viewModel = createViewModel()
+        runCurrent()
+
+        // App.kt açılışta yeni görev modu için OnLoadTask(taskId = null) tetikler
+        viewModel.onEvent(TaskEditorEvent.OnLoadTask(taskId = null))
+        runCurrent()
+
+        assertEquals(1, viewModel.state.value.availableRooms.size)
+        assertEquals(room.id, viewModel.state.value.availableRooms.first().id)
+
+        viewModel.onEvent(TaskEditorEvent.OnRoomSelected(room.id))
+        runCurrent()
+        assertEquals(room.id, viewModel.state.value.planRoomId)
+        assertEquals("Proje Odası", viewModel.state.value.planRoomName)
+
+        viewModel.onEvent(TaskEditorEvent.TitleChanged("Oda Görevi"))
+        viewModel.effect.test {
+            viewModel.onEvent(TaskEditorEvent.SaveClicked)
+            val effect = awaitItem()
+            assertEquals(TaskEditorEffect.NavigateBack, effect)
+        }
+
+        val savedTask = fakePlanRepository.getStoredTasks().find { it.title == "Oda Görevi" }
+        assertTrue(savedTask != null)
+        assertEquals(TaskType.TASK, savedTask.type)
+        assertEquals(TaskVisibility.ROOM_SHARED, savedTask.visibility)
+        assertEquals(listOf(room.id), savedTask.sharedRoomIds)
     }
 }

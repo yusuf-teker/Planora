@@ -17,6 +17,7 @@ data class EventEditorState(
     // Context
     val planRoomId: String? = null,
     val planRoomName: String? = null,
+    val availableRooms: List<com.yusufteker.planora.shared.api.PlanRoomDto> = emptyList(),
     val participants: Map<Int, String> = emptyMap(),
     
     // Recurrence
@@ -34,6 +35,8 @@ data class EventEditorState(
     val isRepeatPickerOpen: Boolean = false,
     val isReminderPickerVisible: Boolean = false,
     val isParticipantPickerVisible: Boolean = false,
+    val isRoomPickerVisible: Boolean = false,
+    val isRoomMembersLoading: Boolean = false,
     val roomMembers: List<com.yusufteker.planora.shared.api.UserProfileResponse> = emptyList(),
     val subItems: List<com.yusufteker.planora.shared.api.TaskDto> = emptyList(),
     val isCopyMode: Boolean = false,

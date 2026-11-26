@@ -50,6 +50,7 @@ class EventEditorViewModel(
 
     private val _saveTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private var loadJob: Job? = null
+    private var roomMembersJob: Job? = null
 
     init {
         @OptIn(kotlinx.coroutines.FlowPreview::class)
@@ -57,6 +58,23 @@ class EventEditorViewModel(
             .debounce(1000L)
             .onEach { autoSaveEvent() }
             .launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            planRepository.observeAllPlanRooms().collect { rooms ->
+                _state.update { currentState ->
+                    val currentRoomId = currentState.planRoomId
+                    val roomName = rooms.find { it.id == currentRoomId }?.name
+                    currentState.copy(
+                        availableRooms = rooms,
+                        planRoomName = roomName ?: currentState.planRoomName
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            planRepository.fetchMyRooms()
+        }
     }
 
     fun onEvent(event: EventEditorEvent) {
@@ -153,6 +171,15 @@ class EventEditorViewModel(
                     }
                 }
             }
+            is EventEditorEvent.OnRoomPickerVisibilityChanged -> {
+                _state.update { it.copy(isRoomPickerVisible = event.isVisible) }
+                if (event.isVisible && _state.value.availableRooms.isEmpty()) {
+                    viewModelScope.launch {
+                        planRepository.fetchMyRooms()
+                    }
+                }
+            }
+            is EventEditorEvent.OnRoomSelected -> selectRoom(event.roomId)
             EventEditorEvent.OnSaveClick -> saveEvent()
             EventEditorEvent.OnDeleteClick -> deleteEvent()
             EventEditorEvent.OnBackClick -> setEffect(EventEditorEffect.NavigateBack)
@@ -227,6 +254,7 @@ class EventEditorViewModel(
         copyFromEventId: String? = null
     ) {
         loadJob?.cancel()
+        roomMembersJob?.cancel()
 
         loadJob = viewModelScope.launch {
             if (eventId == null) {
@@ -265,14 +293,21 @@ class EventEditorViewModel(
                 }
                 val endTime = startTime + 3600000L // +1 hour
 
-                _state.value = EventEditorState(
-                    planRoomId = planRoomId, 
-                    participants = defaultParticipants,
-                    title = sharedTitle ?: "",
-                    description = finalNote,
-                    startDateTimeMs = startTime,
-                    endDateTimeMs = endTime
-                )
+                _state.update { currentState ->
+                    val resolvedRoomName = planRoomId?.let { id ->
+                        currentState.availableRooms.find { it.id == id }?.name
+                    }
+                    EventEditorState(
+                        planRoomId = planRoomId,
+                        planRoomName = resolvedRoomName,
+                        availableRooms = currentState.availableRooms,
+                        participants = defaultParticipants,
+                        title = sharedTitle ?: "",
+                        description = finalNote,
+                        startDateTimeMs = startTime,
+                        endDateTimeMs = endTime
+                    )
+                }
 
                 if (!copyFromEventId.isNullOrBlank()) {
                     val copyBaseId = copyFromEventId.extractBaseTaskId()
@@ -288,7 +323,7 @@ class EventEditorViewModel(
 
                             val targetRoomId = planRoomId ?: sourceEvent.sharedRoomIds.firstOrNull()
                             if (targetRoomId != null) {
-                                loadRoomMembers(targetRoomId)
+                                startLoadRoomMembers(targetRoomId)
                             }
 
                             val sourceEndTime = sourceEvent.endTime
@@ -303,6 +338,9 @@ class EventEditorViewModel(
                             val todayEnd = todayStart + duration
 
                             _state.update { currentState ->
+                                val resolvedRoomName = targetRoomId?.let { id ->
+                                    currentState.availableRooms.find { it.id == id }?.name
+                                } ?: currentState.planRoomName
                                 currentState.copy(
                                     id = null,
                                     isCopyMode = true,
@@ -316,6 +354,7 @@ class EventEditorViewModel(
                                     reminders = sourceEvent.reminders,
                                     participants = sourceEvent.participants.associate { it.userId to it.name },
                                     planRoomId = targetRoomId,
+                                    planRoomName = resolvedRoomName,
                                     tags = sourceEvent.tags
                                 )
                             }
@@ -324,7 +363,7 @@ class EventEditorViewModel(
                     return@launch
                 }
                 if (planRoomId != null) {
-                    loadRoomMembers(planRoomId)
+                    startLoadRoomMembers(planRoomId)
                 }
                 return@launch
             }
@@ -334,7 +373,7 @@ class EventEditorViewModel(
             _state.update { it.copy(isLoading = true, id = baseId, planRoomId = planRoomId) }
 
             if (planRoomId != null) {
-                loadRoomMembers(planRoomId)
+                startLoadRoomMembers(planRoomId)
             }
 
             planRepository.observeAllTasks().collect { tasks ->
@@ -344,8 +383,8 @@ class EventEditorViewModel(
                 if (task != null) {
                     val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()
                     if (actualPlanRoomId != null) {
-                        if (_state.value.roomMembers.isEmpty()) {
-                            loadRoomMembers(actualPlanRoomId)
+                        if (_state.value.roomMembers.isEmpty() && roomMembersJob?.isActive != true) {
+                            startLoadRoomMembers(actualPlanRoomId)
                         }
                         viewModelScope.launch {
                             planRepository.observeAllPlanRooms().collect { rooms ->
@@ -391,12 +430,47 @@ class EventEditorViewModel(
     }
 
     /**
-     * Odanın üyelerini planRepository üzerinden çeker ve profil bilgilerini tamamlar.
-     * `CoroutineScope` üzerinden extension fonksiyon olarak tanımlanmıştır.
-     * Yeni bir etkinlik oluşturulurken odadaki tüm üyeler varsayılan olarak katılımcı olarak eklenir.
+     * Kullanıcının etkinlik için seçtiği plan odasını günceller veya kişisele çeker.
+     *
+     * @param roomId Seçilen plan odası ID'si (kişisel ise null).
      */
-    private fun CoroutineScope.loadRoomMembers(planRoomId: String) {
-        launch {
+    private fun selectRoom(roomId: String?) {
+        roomMembersJob?.cancel()
+        if (roomId == null) {
+            _state.update {
+                it.copy(
+                    planRoomId = null,
+                    planRoomName = null,
+                    participants = emptyMap(),
+                    roomMembers = emptyList(),
+                    isRoomMembersLoading = false,
+                    isRoomPickerVisible = false
+                )
+            }
+            _saveTrigger.tryEmit(Unit)
+        } else {
+            val room = _state.value.availableRooms.find { it.id == roomId }
+            _state.update {
+                it.copy(
+                    planRoomId = roomId,
+                    planRoomName = room?.name,
+                    isRoomPickerVisible = false
+                )
+            }
+            startLoadRoomMembers(roomId)
+            _saveTrigger.tryEmit(Unit)
+        }
+    }
+
+    /**
+     * Önceki oda üyesi dinleyicisini iptal eder, [planRoomId] odasının üyelerini yükler ve katılımcı listesini günceller.
+     *
+     * @param planRoomId Üyeleri yüklenecek plan odası ID'si.
+     */
+    private fun startLoadRoomMembers(planRoomId: String) {
+        roomMembersJob?.cancel()
+        roomMembersJob = viewModelScope.launch {
+            _state.update { it.copy(isRoomMembersLoading = true) }
             var defaultParticipantsApplied = false
             planRepository.observeAllPlanRooms().collect { rooms ->
                 val room = rooms.find { it.id == planRoomId }
@@ -412,25 +486,34 @@ class EventEditorViewModel(
 
                     _state.update { currentState ->
                         val isNewEvent = currentState.id == null && !currentState.isCopyMode
+                        val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
+                        val currentUserName = sessionPreferences.getUserName()
                         val newParticipants = if (!defaultParticipantsApplied && isNewEvent && profiles.isNotEmpty()) {
                             defaultParticipantsApplied = true
                             val map = profiles.associate { p -> p.id to p.name }.toMutableMap()
-                            val currentUserId = sessionPreferences.getUserId()?.toIntOrNull()
-                            val currentUserName = sessionPreferences.getUserName()
                             if (currentUserId != null && currentUserName != null && !map.containsKey(currentUserId)) {
                                 map[currentUserId] = currentUserName
                             }
                             map
+                        } else if (currentState.participants.isEmpty() && currentUserId != null && currentUserName != null) {
+                            mapOf(currentUserId to currentUserName)
                         } else {
-                            currentState.participants
+                            val memberIds = profiles.map { it.id }.toSet()
+                            val filtered = currentState.participants.filterKeys { it in memberIds || it == currentUserId }
+                            if (filtered.isEmpty() && currentUserId != null && currentUserName != null) {
+                                mapOf(currentUserId to currentUserName)
+                            } else filtered
                         }
 
                         currentState.copy(
                             roomMembers = profiles,
+                            isRoomMembersLoading = false,
                             planRoomName = currentState.planRoomName ?: room.name,
                             participants = newParticipants
                         )
                     }
+                } else {
+                    _state.update { it.copy(isRoomMembersLoading = false) }
                 }
             }
         }

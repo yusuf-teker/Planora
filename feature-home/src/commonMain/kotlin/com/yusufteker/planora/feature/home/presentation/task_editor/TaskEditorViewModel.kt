@@ -65,6 +65,7 @@ class TaskEditorViewModel(
     // Ekranda çalışan veri dinleme coroutine'inin referansı.
     // Yeni bir yükleme tetiklendiğinde eskisini iptal etmek için kullanılır.
     private var loadJob: Job? = null
+    private var roomMembersJob: Job? = null
 
     init {
 
@@ -84,6 +85,10 @@ class TaskEditorViewModel(
                     )
                 }
             }
+        }
+
+        viewModelScope.launch {
+            planRepository.fetchMyRooms()
         }
     }
 
@@ -198,7 +203,14 @@ class TaskEditorViewModel(
                     }
                 }
             }
-            is TaskEditorEvent.OnRoomPickerVisibilityChanged -> _state.update { it.copy(isRoomPickerVisible = event.isVisible) }
+            is TaskEditorEvent.OnRoomPickerVisibilityChanged -> {
+                _state.update { it.copy(isRoomPickerVisible = event.isVisible) }
+                if (event.isVisible && _state.value.availableRooms.isEmpty()) {
+                    viewModelScope.launch {
+                        planRepository.fetchMyRooms()
+                    }
+                }
+            }
             is TaskEditorEvent.OnRoomSelected -> selectRoom(event.roomId)
             is TaskEditorEvent.OnPriorityChanged -> {
                 _state.update { it.copy(priority = event.priority, isPriorityPickerVisible = false) }
@@ -266,6 +278,7 @@ class TaskEditorViewModel(
     ) {
         // Varsa önceki dinleme/yükleme coroutine'ini iptal et (Mükerrer akışları önler)
         loadJob?.cancel()
+        roomMembersJob?.cancel()
 
         loadJob = viewModelScope.launch {
             // --- GÖREV OLUŞTURMA MODU (taskId == null) ---
@@ -285,15 +298,22 @@ class TaskEditorViewModel(
                 }
 
                 val initialDeadline = sharedDate
-                _state.value = TaskEditorState(
-                    planRoomId = planRoomId, 
-                    parentId = parentId, 
-                    participants = defaultParticipants,
-                    title = sharedTitle ?: "",
-                    description = finalNote,
-                    hasDeadline = initialDeadline != null,
-                    deadlineDateMs = initialDeadline
-                )
+                _state.update { currentState ->
+                    val resolvedRoomName = planRoomId?.let { id ->
+                        currentState.availableRooms.find { it.id == id }?.name
+                    }
+                    TaskEditorState(
+                        planRoomId = planRoomId,
+                        planRoomName = resolvedRoomName,
+                        parentId = parentId,
+                        participants = defaultParticipants,
+                        title = sharedTitle ?: "",
+                        description = finalNote,
+                        hasDeadline = initialDeadline != null,
+                        deadlineDateMs = initialDeadline,
+                        availableRooms = currentState.availableRooms
+                    )
+                }
 
                 if (parentId != null && sharedDate == null) {
                     viewModelScope.launch {
@@ -326,13 +346,16 @@ class TaskEditorViewModel(
 
                             val targetRoomId = planRoomId ?: sourceTask.sharedRoomIds.firstOrNull()
                             if (targetRoomId != null) {
-                                loadRoomMembers(targetRoomId)
+                                startLoadRoomMembers(targetRoomId)
                             }
 
                             val targetDeadline = instanceTimestamp ?: details?.deadline ?: sourceTask.startTime
                             val todayDeadline = com.yusufteker.planora.core.utils.getTodayWithOriginalTime(targetDeadline)
 
                             _state.update { currentState ->
+                                val resolvedRoomName = targetRoomId?.let { id ->
+                                    currentState.availableRooms.find { it.id == id }?.name
+                                } ?: currentState.planRoomName
                                 currentState.copy(
                                     id = null, // Yeni kayıt olarak kalsın!
                                     isCopyMode = true,
@@ -347,6 +370,7 @@ class TaskEditorViewModel(
                                     reminders = sourceTask.reminders,
                                     participants = sourceTask.participants.associate { it.userId to it.name },
                                     planRoomId = targetRoomId,
+                                    planRoomName = resolvedRoomName,
                                     tags = sourceTask.tags
                                 )
                             }
@@ -357,7 +381,7 @@ class TaskEditorViewModel(
                 
                 // Oda üyelerini yükle
                 if (planRoomId != null) {
-                    loadRoomMembers(planRoomId)
+                    startLoadRoomMembers(planRoomId)
                 }
                 return@launch
             }
@@ -370,7 +394,7 @@ class TaskEditorViewModel(
 
             // Oda üyelerini yükle
             if (planRoomId != null) {
-                loadRoomMembers(planRoomId)
+                startLoadRoomMembers(planRoomId)
             }
 
             // Veritabanındaki tüm görevlerin güncel akışını dinle
@@ -383,8 +407,8 @@ class TaskEditorViewModel(
                 if (task != null) {
                     val actualPlanRoomId = _state.value.planRoomId ?: task.sharedRoomIds.firstOrNull()
                     if (actualPlanRoomId != null) {
-                        if (_state.value.roomMembers.isEmpty()) {
-                            loadRoomMembers(actualPlanRoomId)
+                        if (_state.value.roomMembers.isEmpty() && roomMembersJob?.isActive != true) {
+                            startLoadRoomMembers(actualPlanRoomId)
                         }
                         viewModelScope.launch {
                             planRepository.observeAllPlanRooms().collect { rooms ->
@@ -449,6 +473,7 @@ class TaskEditorViewModel(
      * @param roomId Seçilen grup odası ID'si (kişisel ise null).
      */
     private fun selectRoom(roomId: String?) {
+        roomMembersJob?.cancel()
         if (roomId == null) {
             _state.update {
                 it.copy(
@@ -456,6 +481,7 @@ class TaskEditorViewModel(
                     planRoomName = null,
                     participants = emptyMap(),
                     roomMembers = emptyList(),
+                    isRoomMembersLoading = false,
                     isRoomPickerVisible = false
                 )
             }
@@ -469,21 +495,17 @@ class TaskEditorViewModel(
                     isRoomPickerVisible = false
                 )
             }
-            viewModelScope.launch {
-                loadRoomMembers(roomId)
-            }
+            startLoadRoomMembers(roomId)
             _saveTrigger.tryEmit(Unit)
         }
     }
 
     /**
-     * Odanın üyelerini planRepository üzerinden çeker ve profil bilgilerini tamamlar.
-     * `CoroutineScope` üzerinden extension fonksiyon olarak tanımlanmıştır.
-     * Bu sayede üst coroutine (loadJob) iptal edildiğinde akış dinleme otomatik olarak sonlanır.
-     * Yeni bir görev oluşturulurken odadaki tüm üyeler varsayılan olarak katılımcı olarak eklenir.
+     * Önceki oda üyesi dinleyicisini iptal eder ve [planRoomId] odasının üyelerini yükler.
      */
-    private fun CoroutineScope.loadRoomMembers(planRoomId: String) {
-        launch {
+    private fun startLoadRoomMembers(planRoomId: String) {
+        roomMembersJob?.cancel()
+        roomMembersJob = viewModelScope.launch {
             _state.update { it.copy(isRoomMembersLoading = true) }
             var defaultParticipantsApplied = false
             planRepository.observeAllPlanRooms().collect { rooms ->

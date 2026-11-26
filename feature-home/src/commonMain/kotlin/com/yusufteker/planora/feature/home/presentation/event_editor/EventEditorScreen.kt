@@ -32,6 +32,7 @@ import com.yusufteker.planora.feature.home.presentation.components.FormSection
 import com.yusufteker.planora.feature.home.presentation.components.RepeatPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ReminderPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.ParticipantPickerSheet
+import com.yusufteker.planora.feature.home.presentation.components.PlanRoomPickerSheet
 import com.yusufteker.planora.feature.home.presentation.components.TagInputSection
 import com.yusufteker.planora.core.ui.components.GradientText
 import com.yusufteker.planora.core.utils.formatShortDate
@@ -81,6 +82,7 @@ fun EventEditorScreen(
     val repeatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val reminderSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val participantSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val roomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
         val scope = this
@@ -349,9 +351,20 @@ fun EventEditorScreen(
                     )
                 }
 
-                // Participants Section (if inside plan room)
-                if (state.planRoomId != null || state.participants.isNotEmpty()) {
-                    FormSection {
+                // Plan Room & Participants Section
+                FormSection {
+                    val roomText = state.planRoomName ?: stringResource(Res.string.personal_task_label)
+                    FormRow(
+                        label = stringResource(Res.string.group_room_label),
+                        value = roomText,
+                        onClick = { viewModel.onEvent(EventEditorEvent.OnRoomPickerVisibilityChanged(true)) }
+                    )
+
+                    if (state.planRoomId != null || state.participants.isNotEmpty()) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
                         val names = state.participants.values.joinToString(", ")
                         val participantSummary = if (names.isBlank()) stringResource(Res.string.option_not_selected) else names
                         FormRow(
@@ -563,11 +576,22 @@ fun EventEditorScreen(
             title = stringResource(Res.string.participants_label),
             roomMembers = state.roomMembers,
             selectedParticipantIds = state.participants.keys,
+            isLoading = state.isRoomMembersLoading,
             sheetState = participantSheetState,
             onDismissRequest = { viewModel.onEvent(EventEditorEvent.OnParticipantPickerVisibilityChanged(false)) },
             onParticipantToggled = { userId ->
                 viewModel.onEvent(EventEditorEvent.OnParticipantToggled(userId))
             }
+        )
+    }
+
+    if (state.isRoomPickerVisible) {
+        PlanRoomPickerSheet(
+            availableRooms = state.availableRooms,
+            selectedRoomId = state.planRoomId,
+            sheetState = roomSheetState,
+            onDismissRequest = { viewModel.onEvent(EventEditorEvent.OnRoomPickerVisibilityChanged(false)) },
+            onRoomSelected = { roomId -> viewModel.onEvent(EventEditorEvent.OnRoomSelected(roomId)) }
         )
     }
 }
