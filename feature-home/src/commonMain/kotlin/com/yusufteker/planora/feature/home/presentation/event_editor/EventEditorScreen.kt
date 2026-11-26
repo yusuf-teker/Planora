@@ -15,10 +15,14 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +38,7 @@ import com.yusufteker.planora.core.utils.formatShortDate
 import com.yusufteker.planora.core.utils.formatTime
 import com.yusufteker.planora.shared.api.ItemDetails
 import com.yusufteker.planora.shared.api.TaskType
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import org.jetbrains.compose.resources.stringResource
@@ -49,12 +54,27 @@ fun EventEditorScreen(
     onNavigateToCreateNote: (String) -> Unit = {},
     onNavigateToEditTask: (String) -> Unit = {},
     onNavigateToEditNote: (String) -> Unit = {},
-    onNavigateToPlanRoom: (String) -> Unit = {}
+    onNavigateToPlanRoom: (String) -> Unit = {},
+    autoFocusTitle: Boolean = false
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val shareManager = org.koin.compose.koinInject<com.yusufteker.planora.core.share.ShareManager>()
+    val titleFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var hasRequestedInitialFocus by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(autoFocusTitle, state.id, state.isCopyMode) {
+        if (autoFocusTitle && !hasRequestedInitialFocus && state.id == null && !state.isCopyMode) {
+            hasRequestedInitialFocus = true
+            delay(150)
+            runCatching {
+                titleFocusRequester.requestFocus()
+                keyboardController?.show()
+            }
+        }
+    }
 
     val startDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val endDateSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -233,7 +253,9 @@ fun EventEditorScreen(
                         value = state.title,
                         onValueChange = { viewModel.onEvent(EventEditorEvent.OnTitleChange(it)) },
                         placeholder = { Text(stringResource(Res.string.task_title_label), style = MaterialTheme.typography.titleLarge) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(titleFocusRequester),
                         textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
