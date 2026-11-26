@@ -1,5 +1,10 @@
 package com.yusufteker.planora.admin.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,6 +12,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,18 +25,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yusufteker.planora.core.ui.components.clearFocusOnTap
 import com.yusufteker.planora.shared.api.AdminUserSummaryDto
 import com.yusufteker.planora.shared.api.TaskDto
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AdminMainScreen(
     viewModel: AdminViewModel
@@ -49,7 +62,9 @@ fun AdminMainScreen(
     }
 
     if (!uiState.isAuthenticated) {
-        Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.imePadding()) }
+        ) { padding ->
             AdminLoginScreen(
                 uiState = uiState,
                 onServerUrlChange = viewModel::onServerUrlChange,
@@ -59,14 +74,21 @@ fun AdminMainScreen(
                 onModeChange = viewModel::onLoginModeChange,
                 onConnectSecret = viewModel::connectWithSecret,
                 onLoginCredentials = viewModel::loginWithCredentials,
-                modifier = Modifier.padding(padding)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .imePadding()
+                    .clearFocusOnTap()
             )
         }
         return
     }
 
+    val isImeVisible = WindowInsets.isImeVisible
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.imePadding()) },
         topBar = {
             TopAppBar(
                 title = {
@@ -108,25 +130,31 @@ fun AdminMainScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = uiState.currentTab == AdminTab.DASHBOARD,
-                    onClick = { viewModel.setTab(AdminTab.DASHBOARD) },
-                    icon = { Icon(Icons.Default.Analytics, contentDescription = null) },
-                    label = { Text("Genel Bakış") }
-                )
-                NavigationBarItem(
-                    selected = uiState.currentTab == AdminTab.USERS,
-                    onClick = { viewModel.setTab(AdminTab.USERS) },
-                    icon = { Icon(Icons.Default.People, contentDescription = null) },
-                    label = { Text("Kullanıcılar") }
-                )
-                NavigationBarItem(
-                    selected = uiState.currentTab == AdminTab.BROADCAST,
-                    onClick = { viewModel.setTab(AdminTab.BROADCAST) },
-                    icon = { Icon(Icons.Default.Campaign, contentDescription = null) },
-                    label = { Text("Toplu Bildirim") }
-                )
+            AnimatedVisibility(
+                visible = !isImeVisible,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = uiState.currentTab == AdminTab.DASHBOARD,
+                        onClick = { viewModel.setTab(AdminTab.DASHBOARD) },
+                        icon = { Icon(Icons.Default.Analytics, contentDescription = null) },
+                        label = { Text("Genel Bakış") }
+                    )
+                    NavigationBarItem(
+                        selected = uiState.currentTab == AdminTab.USERS,
+                        onClick = { viewModel.setTab(AdminTab.USERS) },
+                        icon = { Icon(Icons.Default.People, contentDescription = null) },
+                        label = { Text("Kullanıcılar") }
+                    )
+                    NavigationBarItem(
+                        selected = uiState.currentTab == AdminTab.BROADCAST,
+                        onClick = { viewModel.setTab(AdminTab.BROADCAST) },
+                        icon = { Icon(Icons.Default.Campaign, contentDescription = null) },
+                        label = { Text("Toplu Bildirim") }
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -134,6 +162,9 @@ fun AdminMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
+                .imePadding()
+                .clearFocusOnTap()
         ) {
             when (uiState.currentTab) {
                 AdminTab.DASHBOARD -> DashboardTabContent(viewModel, uiState)
@@ -161,9 +192,11 @@ fun AdminMainScreen(
     if (uiState.pushDialogUser != null) {
         SendPushDialog(
             user = uiState.pushDialogUser!!,
+            targetApp = uiState.pushTargetApp,
             title = uiState.pushTitle,
             body = uiState.pushBody,
             isSending = uiState.isSendingPush,
+            onTargetAppChange = viewModel::onPushTargetAppChanged,
             onTitleChange = viewModel::onPushTitleChanged,
             onBodyChange = viewModel::onPushBodyChanged,
             onSend = viewModel::sendPushToUser,
@@ -249,7 +282,9 @@ fun AdminLoginScreen(
                 OutlinedTextField(
                     value = uiState.serverUrl,
                     onValueChange = onServerUrlChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .keepVisibleAboveIme(),
                     label = { Text("API Base URL") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp)
@@ -300,7 +335,9 @@ fun AdminLoginScreen(
 
         if (uiState.loginMode == AdminLoginMode.SECRET_KEY) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .keepVisibleAboveIme(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -343,7 +380,9 @@ fun AdminLoginScreen(
             }
         } else {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .keepVisibleAboveIme(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -459,7 +498,11 @@ private fun DashboardTabContent(viewModel: AdminViewModel, uiState: AdminUiState
                     )
                     MetricCard(
                         modifier = Modifier.weight(1f),
-                        title = "FCM Cihazları",
+                        title = if (stats.planoraFcmDevices > 0 || stats.healthTrackFcmDevices > 0) {
+                            "FCM Cihazları (P:${stats.planoraFcmDevices} • H:${stats.healthTrackFcmDevices})"
+                        } else {
+                            "FCM Cihazları"
+                        },
                         value = "${stats.totalFcmDevices}",
                         icon = Icons.Default.NotificationsActive,
                         containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -652,7 +695,15 @@ private fun UserCard(
             ) {
                 Text("Görev: ${user.taskCount}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Oda: ${user.roomCount}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Cihaz: ${user.fcmDeviceCount}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = if (user.planoraFcmDeviceCount > 0 || user.healthTrackFcmDeviceCount > 0) {
+                        "Cihaz: ${user.fcmDeviceCount} (P:${user.planoraFcmDeviceCount} H:${user.healthTrackFcmDeviceCount})"
+                    } else {
+                        "Cihaz: ${user.fcmDeviceCount}"
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), thickness = 0.5.dp)
@@ -721,6 +772,16 @@ private data class PushQuickTemplate(
 
 private val PUSH_QUICK_TEMPLATES = listOf(
     PushQuickTemplate(
+        chipLabel = "🍏 Öğün Hatırlatma",
+        title = "🥗 Öğününü Kaydetmeyi Unutma!",
+        body = "Bugünkü öğünlerini ve makrolarını HealthTrack ile saniyeler içinde takip et."
+    ),
+    PushQuickTemplate(
+        chipLabel = "🏃 Antrenman Zamanı",
+        title = "💪 Bugünkü Antrenmanını Ekledin mi?",
+        body = "Aktif kal, yaktığın kaloriyi kaydet ve HealthTrack serini koru!"
+    ),
+    PushQuickTemplate(
         chipLabel = "🚀 Haftalık Plan",
         title = "Yeni Haftanı Planlama Zamanı! 📅",
         body = "Bu haftaki hedeflerini ve görevlerini Planora'ya ekleyerek haftaya düzenli ve odaklı başla."
@@ -742,6 +803,59 @@ private val PUSH_QUICK_TEMPLATES = listOf(
     )
 )
 
+private fun targetAppDisplayLabel(targetApp: String): String = when (targetApp.uppercase()) {
+    "HEALTHTRACK" -> "HealthTrack"
+    "BOTH" -> "Planora & HealthTrack"
+    else -> "Planora"
+}
+
+@Composable
+private fun TargetAppSelector(
+    selectedTargetApp: String,
+    onSelectTargetApp: (String) -> Unit,
+    planoraCount: Long? = null,
+    healthTrackCount: Long? = null
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = "Hedef Uygulama",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val options = listOf(
+                Triple("PLANORA", "⚡ Planora", planoraCount),
+                Triple("HEALTHTRACK", "🍏 HealthTrack", healthTrackCount),
+                Triple(
+                    "BOTH",
+                    "🌐 Her İkisi",
+                    if (planoraCount != null && healthTrackCount != null) planoraCount + healthTrackCount else null
+                )
+            )
+            options.forEach { (key, label, count) ->
+                val isSelected = selectedTargetApp.equals(key, ignoreCase = true)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onSelectTargetApp(key) },
+                    modifier = Modifier.weight(1f),
+                    label = {
+                        Text(
+                            text = if (count != null) "$label ($count)" else label,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
+
 /**
  * Gerçek zamanlı mobil (iOS / Android) bildirim kartı önizleme bileşeni.
  * Başlık veya mesajın kilit ekranında kesilip kesilmeyeceğini (truncation) ve
@@ -751,6 +865,7 @@ private val PUSH_QUICK_TEMPLATES = listOf(
 private fun MobileNotificationPreviewCard(
     title: String,
     body: String,
+    targetApp: String = "PLANORA",
     recipientBadgeText: String? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -759,6 +874,21 @@ private fun MobileNotificationPreviewCard(
     val displayTitle = title.ifBlank { "Bildirim Başlığı Önizlemesi" }
     val displayBody = body.ifBlank { "Kullanıcının telefon kilit ekranında ve üst bildirim barında görünecek mesaj içeriği burada yer alacak..." }
     val isPlaceholder = title.isBlank() && body.isBlank()
+    val appBadgeColor = when (targetApp.uppercase()) {
+        "HEALTHTRACK" -> Color(0xFF10B981)
+        "BOTH" -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val iosAppLabel = when (targetApp.uppercase()) {
+        "HEALTHTRACK" -> "HEALTHTRACK"
+        "BOTH" -> "PLANORA & HEALTHTRACK"
+        else -> "PLANORA"
+    }
+    val androidAppLabel = when (targetApp.uppercase()) {
+        "HEALTHTRACK" -> "HealthTrack • Genel"
+        "BOTH" -> "Planora & HealthTrack"
+        else -> "Planora • Genel"
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -855,19 +985,19 @@ private fun MobileNotificationPreviewCard(
                             modifier = Modifier
                                 .size(24.dp)
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.primary),
+                                .background(appBadgeColor),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.Notifications,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = Color.White,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isIosStyle) "PLANORA" else "Planora • Genel",
+                            text = if (isIosStyle) iosAppLabel else androidAppLabel,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -965,7 +1095,14 @@ private fun QuickTemplatesBar(
 private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState) {
     var showConfirmDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
-    val fcmDevicesCount = uiState.stats?.totalFcmDevices
+    val stats = uiState.stats
+    val selectedApp = uiState.broadcastTargetApp
+    val targetAppLabel = targetAppDisplayLabel(selectedApp)
+    val fcmDevicesCount = when (selectedApp.uppercase()) {
+        "HEALTHTRACK" -> stats?.healthTrackFcmDevices
+        "BOTH" -> stats?.totalFcmDevices
+        else -> stats?.planoraFcmDevices ?: stats?.totalFcmDevices
+    }
 
     Column(
         modifier = Modifier
@@ -982,18 +1119,26 @@ private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState
                 Icon(Icons.Default.Campaign, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Buradan göndereceğiniz bildirim, sistemde aktif FCM cihazı olan TÜM kullanıcılara anında ulaştırılır.",
+                    text = "Buradan göndereceğiniz bildirim, $targetAppLabel için aktif FCM cihazı kayıtlı olan TÜM kullanıcılara anında ulaştırılır.",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
+        TargetAppSelector(
+            selectedTargetApp = selectedApp,
+            onSelectTargetApp = viewModel::onBroadcastTargetAppChanged,
+            planoraCount = stats?.planoraFcmDevices,
+            healthTrackCount = stats?.healthTrackFcmDevices
+        )
+
         // Canlı Bildirim Önizlemesi
         MobileNotificationPreviewCard(
             title = uiState.broadcastTitle,
             body = uiState.broadcastBody,
-            recipientBadgeText = if (fcmDevicesCount != null) "$fcmDevicesCount Aktif Cihaz" else "Tüm Cihazlar"
+            targetApp = selectedApp,
+            recipientBadgeText = if (fcmDevicesCount != null) "$fcmDevicesCount Aktif Cihaz" else targetAppLabel
         )
 
         // Hazır Şablonlar
@@ -1018,45 +1163,54 @@ private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .keepVisibleAboveIme(),
             singleLine = true,
             shape = RoundedCornerShape(10.dp)
         )
 
-        OutlinedTextField(
-            value = uiState.broadcastBody,
-            onValueChange = viewModel::onBroadcastBodyChanged,
-            label = { Text("Duyuru Metni") },
-            supportingText = {
-                Text("${uiState.broadcastBody.length}/240 karakter (Önerilen: ≤ 140)")
-            },
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(130.dp),
-            maxLines = 6,
-            shape = RoundedCornerShape(10.dp)
-        )
-
-        Button(
-            onClick = {
-                if (uiState.broadcastTitle.isBlank() || uiState.broadcastBody.isBlank()) {
-                    viewModel.sendBroadcast()
-                } else {
-                    showConfirmDialog = true
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isSendingBroadcast,
-            shape = RoundedCornerShape(10.dp)
+                .keepVisibleAboveIme(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (uiState.isSendingBroadcast) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Gönderiliyor...")
-            } else {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Önizle ve Tüm Kullanıcılara Gönder")
+            OutlinedTextField(
+                value = uiState.broadcastBody,
+                onValueChange = viewModel::onBroadcastBodyChanged,
+                label = { Text("Duyuru Metni") },
+                supportingText = {
+                    Text("${uiState.broadcastBody.length}/240 karakter (Önerilen: ≤ 140)")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(130.dp),
+                maxLines = 6,
+                shape = RoundedCornerShape(10.dp)
+            )
+
+            Button(
+                onClick = {
+                    if (uiState.broadcastTitle.isBlank() || uiState.broadcastBody.isBlank()) {
+                        viewModel.sendBroadcast()
+                    } else {
+                        showConfirmDialog = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isSendingBroadcast,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                if (uiState.isSendingBroadcast) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Gönderiliyor...")
+                } else {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Önizle ve $targetAppLabel Kullanıcılarına Gönder")
+                }
             }
         }
     }
@@ -1064,18 +1218,19 @@ private fun BroadcastTabContent(viewModel: AdminViewModel, uiState: AdminUiState
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Toplu Bildirimi Onayla") },
+            title = { Text("Toplu Bildirimi Onayla ($targetAppLabel)") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Bu bildirimi aktif FCM cihazı olan tüm kullanıcılara göndermek üzeresiniz:",
+                        text = "Bu bildirimi $targetAppLabel için aktif FCM cihazı olan tüm kullanıcılara göndermek üzeresiniz:",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     MobileNotificationPreviewCard(
                         title = uiState.broadcastTitle,
                         body = uiState.broadcastBody,
-                        recipientBadgeText = if (fcmDevicesCount != null) "$fcmDevicesCount Cihaz" else "Tümü"
+                        targetApp = selectedApp,
+                        recipientBadgeText = if (fcmDevicesCount != null) "$fcmDevicesCount Cihaz" else targetAppLabel
                     )
                 }
             },
@@ -1150,20 +1305,32 @@ private fun UserTasksDialog(
 @Composable
 private fun SendPushDialog(
     user: AdminUserSummaryDto,
+    targetApp: String,
     title: String,
     body: String,
     isSending: Boolean,
+    onTargetAppChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onBodyChange: (String) -> Unit,
     onSend: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val targetLabel = targetAppDisplayLabel(targetApp)
+    val deviceSummary = if (user.planoraFcmDeviceCount > 0 || user.healthTrackFcmDeviceCount > 0) {
+        "${user.fcmDeviceCount} Aktif Cihaz (P:${user.planoraFcmDeviceCount} • H:${user.healthTrackFcmDeviceCount})"
+    } else {
+        "${user.fcmDeviceCount} Aktif Cihaz"
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier
+            .imePadding()
+            .clearFocusOnTap(),
         confirmButton = {
             Button(onClick = onSend, enabled = !isSending) {
                 if (isSending) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
-                else Text("Gönder")
+                else Text("$targetLabel Gönder")
             }
         },
         dismissButton = {
@@ -1173,7 +1340,7 @@ private fun SendPushDialog(
             Column {
                 Text("Bildirim Gönder: @${user.username}", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Text(
-                    text = "${user.name} • ${user.fcmDeviceCount} Aktif Cihaz",
+                    text = "${user.name} • $deviceSummary",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1184,9 +1351,17 @@ private fun SendPushDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                TargetAppSelector(
+                    selectedTargetApp = targetApp,
+                    onSelectTargetApp = onTargetAppChange,
+                    planoraCount = user.planoraFcmDeviceCount,
+                    healthTrackCount = user.healthTrackFcmDeviceCount
+                )
+
                 MobileNotificationPreviewCard(
                     title = title,
                     body = body,
+                    targetApp = targetApp,
                     recipientBadgeText = "@${user.username}"
                 )
 
@@ -1203,14 +1378,19 @@ private fun SendPushDialog(
                     label = { Text("Başlık") },
                     supportingText = { Text("${title.length}/65") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .keepVisibleAboveIme()
                 )
                 OutlinedTextField(
                     value = body,
                     onValueChange = onBodyChange,
                     label = { Text("Mesaj") },
                     supportingText = { Text("${body.length}/240") },
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .keepVisibleAboveIme(),
                     maxLines = 4
                 )
             }
@@ -1268,5 +1448,30 @@ private fun ConfirmDeleteUserDialog(
             }
         }
     )
+}
+
+/**
+ * Odaklanan input alanını (ve varsa içindeki aksiyon butonunu) klavye açıldığında
+ * kaydırılabilir üst kapsayıcının görünür alanına getirir.
+ */
+private fun Modifier.keepVisibleAboveIme(): Modifier = composed {
+    val requester = remember { BringIntoViewRequester() }
+    var hasFocus by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val imeInsets = WindowInsets.ime
+
+    LaunchedEffect(requester) {
+        snapshotFlow { hasFocus to imeInsets.getBottom(density) }
+            .collectLatest { (focused, imeBottom) ->
+                if (focused && imeBottom > 0) {
+                    delay(90)
+                    requester.bringIntoView()
+                }
+            }
+    }
+
+    this
+        .bringIntoViewRequester(requester)
+        .onFocusChanged { hasFocus = it.hasFocus }
 }
 

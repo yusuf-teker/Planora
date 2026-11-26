@@ -38,6 +38,7 @@ data class SetPremiumResponse(
  * @property username Hedef kullanıcının kullanıcı adı (opsiyonel)
  * @property email Hedef kullanıcının e-posta adresi (opsiyonel)
  * @property broadcastAll Tüm aktif FCM token sahibi kullanıcılara gönderilsin mi
+ * @property targetApp Bildirimin gönderileceği hedef uygulama: `"PLANORA"`, `"HEALTHTRACK"` veya `"BOTH"`
  * @property title Bildirim başlığı
  * @property body Bildirim metni
  * @property data İstemciye iletilecek opsiyonel ekstra anahtar-değer haritası
@@ -48,6 +49,7 @@ data class AdminSendPushRequest(
     val username: String? = null,
     val email: String? = null,
     val broadcastAll: Boolean = false,
+    val targetApp: String = "PLANORA",
     val title: String,
     val body: String,
     val data: Map<String, String>? = null
@@ -77,7 +79,9 @@ data class AdminDashboardStatsDto(
     val totalRooms: Long,
     val totalPosts: Long,
     val totalPremiumUsers: Long,
-    val totalFcmDevices: Long
+    val totalFcmDevices: Long,
+    val planoraFcmDevices: Long = 0,
+    val healthTrackFcmDevices: Long = 0
 )
 
 /**
@@ -95,7 +99,9 @@ data class AdminUserSummaryDto(
     val createdAt: String,
     val taskCount: Long = 0,
     val roomCount: Long = 0,
-    val fcmDeviceCount: Long = 0
+    val fcmDeviceCount: Long = 0,
+    val planoraFcmDeviceCount: Long = 0,
+    val healthTrackFcmDeviceCount: Long = 0
 )
 
 /**

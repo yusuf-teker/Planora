@@ -49,11 +49,13 @@ data class AdminUiState(
 
     // Push dialog
     val pushDialogUser: AdminUserSummaryDto? = null,
+    val pushTargetApp: String = "PLANORA",
     val pushTitle: String = "",
     val pushBody: String = "",
     val isSendingPush: Boolean = false,
 
     // Broadcast
+    val broadcastTargetApp: String = "PLANORA",
     val broadcastTitle: String = "",
     val broadcastBody: String = "",
     val isSendingBroadcast: Boolean = false,
@@ -272,18 +274,32 @@ class AdminViewModel(
     }
 
     fun openPushDialog(user: AdminUserSummaryDto) {
-        _uiState.update { it.copy(pushDialogUser = user, pushTitle = "", pushBody = "") }
+        val defaultTarget = if (user.healthTrackFcmDeviceCount > 0L && user.planoraFcmDeviceCount == 0L) {
+            "HEALTHTRACK"
+        } else {
+            "PLANORA"
+        }
+        _uiState.update {
+            it.copy(
+                pushDialogUser = user,
+                pushTargetApp = defaultTarget,
+                pushTitle = "",
+                pushBody = ""
+            )
+        }
     }
 
     fun closePushDialog() {
         _uiState.update { it.copy(pushDialogUser = null, pushTitle = "", pushBody = "") }
     }
 
+    fun onPushTargetAppChanged(targetApp: String) = _uiState.update { it.copy(pushTargetApp = targetApp) }
     fun onPushTitleChanged(v: String) = _uiState.update { it.copy(pushTitle = v) }
     fun onPushBodyChanged(v: String) = _uiState.update { it.copy(pushBody = v) }
 
     fun sendPushToUser() {
         val user = _uiState.value.pushDialogUser ?: return
+        val targetApp = _uiState.value.pushTargetApp
         val title = _uiState.value.pushTitle.trim()
         val body = _uiState.value.pushBody.trim()
         if (title.isBlank() || body.isBlank()) {
@@ -293,7 +309,7 @@ class AdminViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSendingPush = true) }
-            val result = apiClient.sendPushToUser(user.id, title, body)
+            val result = apiClient.sendPushToUser(user.id, title, body, targetApp = targetApp)
             result.onSuccess { res ->
                 _uiState.update {
                     it.copy(
@@ -308,10 +324,12 @@ class AdminViewModel(
         }
     }
 
+    fun onBroadcastTargetAppChanged(targetApp: String) = _uiState.update { it.copy(broadcastTargetApp = targetApp) }
     fun onBroadcastTitleChanged(v: String) = _uiState.update { it.copy(broadcastTitle = v) }
     fun onBroadcastBodyChanged(v: String) = _uiState.update { it.copy(broadcastBody = v) }
 
     fun sendBroadcast() {
+        val targetApp = _uiState.value.broadcastTargetApp
         val title = _uiState.value.broadcastTitle.trim()
         val body = _uiState.value.broadcastBody.trim()
         if (title.isBlank() || body.isBlank()) {
@@ -321,7 +339,7 @@ class AdminViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSendingBroadcast = true) }
-            val result = apiClient.sendBroadcastPush(title, body)
+            val result = apiClient.sendBroadcastPush(title, body, targetApp = targetApp)
             result.onSuccess { res ->
                 _uiState.update {
                     it.copy(

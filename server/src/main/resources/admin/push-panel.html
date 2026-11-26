@@ -766,7 +766,16 @@
             <div class="info-banner">
                 <span>💡</span>
                 <div>
-                    Buradan göndereceğiniz bildirim, Firebase Messaging servisi üzerinden sistemde <strong>aktif FCM cihazı kayıtlı olan tüm kullanıcılara</strong> anında iletilir.
+                    Buradan göndereceğiniz bildirim, Firebase Messaging servisi üzerinden seçtiğiniz uygulama(lar) için <strong>aktif FCM cihazı kayıtlı olan kullanıcılara</strong> anında iletilir.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" style="margin-bottom: 8px;">Hedef Uygulama</label>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                    <button type="button" class="tab-btn active" id="broadcastAppPlanora" onclick="setTargetApp('broadcast', 'PLANORA')">⚡ Planora</button>
+                    <button type="button" class="tab-btn" id="broadcastAppHealthTrack" onclick="setTargetApp('broadcast', 'HEALTHTRACK')">🍏 HealthTrack</button>
+                    <button type="button" class="tab-btn" id="broadcastAppBoth" onclick="setTargetApp('broadcast', 'BOTH')">🌐 Her İkisi</button>
                 </div>
             </div>
 
@@ -855,6 +864,15 @@
             <button onclick="closePushModal()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:18px;">✕</button>
         </div>
 
+        <div class="form-group">
+            <label class="form-label" style="margin-bottom: 8px;">Hedef Uygulama</label>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                <button type="button" class="tab-btn active" id="singleAppPlanora" onclick="setTargetApp('single', 'PLANORA')">⚡ Planora</button>
+                <button type="button" class="tab-btn" id="singleAppHealthTrack" onclick="setTargetApp('single', 'HEALTHTRACK')">🍏 HealthTrack</button>
+                <button type="button" class="tab-btn" id="singleAppBoth" onclick="setTargetApp('single', 'BOTH')">🌐 Her İkisi</button>
+            </div>
+        </div>
+
         <!-- Live Mobile Notification Preview inside Modal -->
         <div class="preview-wrapper">
             <div class="preview-toolbar">
@@ -925,6 +943,16 @@
 
     const QUICK_TEMPLATES = [
         {
+            chip: '🍏 Öğün Hatırlatma',
+            title: '🥗 Öğününü Kaydetmeyi Unutma!',
+            body: 'Bugünkü öğünlerini ve makrolarını HealthTrack ile saniyeler içinde takip et.'
+        },
+        {
+            chip: '🏃 Antrenman Zamanı',
+            title: '💪 Bugünkü Antrenmanını Ekledin mi?',
+            body: 'Aktif kal, yaktığın kaloriyi kaydet ve HealthTrack serini koru!'
+        },
+        {
             chip: '🚀 Haftalık Plan',
             title: 'Yeni Haftanı Planlama Zamanı! 📅',
             body: "Bu haftaki hedeflerini ve görevlerini Planora'ya ekleyerek haftaya düzenli ve odaklı başla."
@@ -947,9 +975,36 @@
     ];
 
     const previewState = {
-        broadcast: { ios: true, expanded: false },
-        single: { ios: true, expanded: false }
+        broadcast: { ios: true, expanded: false, targetApp: 'PLANORA' },
+        single: { ios: true, expanded: false, targetApp: 'PLANORA' }
     };
+
+    function targetAppDisplayName(targetApp) {
+        if (targetApp === 'HEALTHTRACK') return 'HealthTrack';
+        if (targetApp === 'BOTH') return 'Planora & HealthTrack';
+        return 'Planora';
+    }
+
+    function setTargetApp(mode, targetApp) {
+        previewState[mode].targetApp = targetApp;
+        document.getElementById(mode + 'AppPlanora').classList.toggle('active', targetApp === 'PLANORA');
+        document.getElementById(mode + 'AppHealthTrack').classList.toggle('active', targetApp === 'HEALTHTRACK');
+        document.getElementById(mode + 'AppBoth').classList.toggle('active', targetApp === 'BOTH');
+        updatePreviewAppLabel(mode);
+    }
+
+    function updatePreviewAppLabel(mode) {
+        const isIos = previewState[mode].ios;
+        const targetApp = previewState[mode].targetApp;
+        const appLabel = document.getElementById(mode + 'PreviewAppLabel');
+        if (targetApp === 'HEALTHTRACK') {
+            appLabel.textContent = isIos ? 'HEALTHTRACK' : 'HealthTrack • Genel';
+        } else if (targetApp === 'BOTH') {
+            appLabel.textContent = isIos ? 'PLANORA & HEALTHTRACK' : 'Planora & HealthTrack';
+        } else {
+            appLabel.textContent = isIos ? 'PLANORA' : 'Planora • Genel';
+        }
+    }
 
     function renderTemplateChips() {
         ['broadcast', 'single'].forEach(mode => {
@@ -980,11 +1035,10 @@
         const isIos = previewState[mode].ios;
         const card = document.getElementById(mode + 'PreviewCard');
         const btn = document.getElementById(mode + 'StyleBtn');
-        const appLabel = document.getElementById(mode + 'PreviewAppLabel');
 
         card.classList.toggle('android-style', !isIos);
         btn.textContent = isIos ? 'iOS Stili' : 'Android Stili';
-        appLabel.textContent = isIos ? 'PLANORA' : 'Planora • Genel';
+        updatePreviewAppLabel(mode);
     }
 
     function togglePreviewExpand(mode) {
@@ -1170,12 +1224,14 @@
         e.preventDefault();
         hideAlert();
 
+        const targetApp = previewState.broadcast.targetApp || 'PLANORA';
+        const targetLabel = targetAppDisplayName(targetApp);
         const title = document.getElementById('broadcastTitle').value.trim();
         const body = document.getElementById('broadcastBody').value.trim();
         const btn = document.getElementById('broadcastSendBtn');
 
         if (!title || !body) return;
-        if (!confirm(`"${title}" başlıklı bildirimi TÜM aktif kullanıcılara göndermek istediğinize emin misiniz?`)) {
+        if (!confirm(`"${title}" başlıklı bildirimi ${targetLabel} için TÜM aktif kullanıcılara göndermek istediğinize emin misiniz?`)) {
             return;
         }
 
@@ -1191,6 +1247,7 @@
                 },
                 body: JSON.stringify({
                     broadcastAll: true,
+                    targetApp: targetApp,
                     title: title,
                     body: body
                 })
@@ -1265,7 +1322,10 @@
             const initial = (u.name || u.username || '?').charAt(0).toUpperCase();
             const hasFcm = u.fcmDeviceCount > 0;
             const deviceBadgeClass = hasFcm ? 'badge badge-device active' : 'badge badge-device';
-            const deviceText = hasFcm ? `${u.fcmDeviceCount} Aktif Cihaz` : 'Cihaz Yok';
+            const pCount = u.planoraFcmDeviceCount ?? 0;
+            const hCount = u.healthTrackFcmDeviceCount ?? 0;
+            const deviceText = hasFcm ? `${u.fcmDeviceCount} Cihaz (P:${pCount} H:${hCount})` : 'Cihaz Yok';
+            const defaultApp = (hCount > 0 && pCount === 0) ? 'HEALTHTRACK' : 'PLANORA';
 
             return `
                 <div class="user-item">
@@ -1280,7 +1340,7 @@
                         </div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn btn-primary btn-sm" onclick="openPushModal(${u.id}, '${escapeJs(u.username)}', '${escapeJs(u.name)}')">
+                        <button class="btn btn-primary btn-sm" onclick="openPushModal(${u.id}, '${escapeJs(u.username)}', '${escapeJs(u.name)}', '${defaultApp}')">
                             Bildirim Gönder
                         </button>
                     </div>
@@ -1289,12 +1349,13 @@
         }).join('');
     }
 
-    function openPushModal(userId, username, name) {
+    function openPushModal(userId, username, name, defaultApp = 'PLANORA') {
         document.getElementById('modalTargetUserId').value = userId;
         document.getElementById('modalTargetTitle').textContent = `${name} (@${username})`;
         document.getElementById('singlePreviewBadge').textContent = `@${username}`;
         document.getElementById('singlePushTitle').value = '';
         document.getElementById('singlePushBody').value = '';
+        setTargetApp('single', defaultApp);
         updateLivePreview('single');
         document.getElementById('pushModal').classList.add('open');
         setTimeout(() => document.getElementById('singlePushTitle').focus(), 50);
@@ -1309,6 +1370,7 @@
         hideAlert();
 
         const userId = parseInt(document.getElementById('modalTargetUserId').value, 10);
+        const targetApp = previewState.single.targetApp || 'PLANORA';
         const title = document.getElementById('singlePushTitle').value.trim();
         const body = document.getElementById('singlePushBody').value.trim();
         const btn = document.getElementById('singlePushSendBtn');
@@ -1327,6 +1389,7 @@
                 },
                 body: JSON.stringify({
                     userId: userId,
+                    targetApp: targetApp,
                     title: title,
                     body: body
                 })

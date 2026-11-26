@@ -144,4 +144,24 @@ class AdminSecurityRoutesTest {
         assertNotEquals(HttpStatusCode.Forbidden, response.status)
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
+
+    /**
+     * Geçersiz `targetApp` değeri gönderildiğinde `POST /admin/push` rotasının
+     * 400 Bad Request döndürdüğünü doğrular.
+     */
+    @Test
+    fun adminPushWithInvalidTargetAppShouldReturnBadRequest() = testApplication {
+        application {
+            install(ContentNegotiation) { json() }
+            routing { adminRoutes() }
+        }
+
+        val response = client.post("/admin/push") {
+            header("X-Admin-Secret", AppConfig.adminSecretKey)
+            contentType(ContentType.Application.Json)
+            setBody("""{"title":"Test","body":"Hello","targetApp":"INVALID_APP"}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
 }

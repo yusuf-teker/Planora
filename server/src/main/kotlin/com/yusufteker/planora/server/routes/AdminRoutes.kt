@@ -18,6 +18,42 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
+private fun isHealthTrackPlatform(platform: String): Boolean =
+    platform.startsWith("HEALTHTRACK", ignoreCase = true)
+
+private fun matchesTargetApp(platform: String, targetApp: String): Boolean =
+    when (targetApp.uppercase()) {
+        "HEALTHTRACK" -> isHealthTrackPlatform(platform)
+        "BOTH" -> true
+        else -> !isHealthTrackPlatform(platform)
+    }
+
+private fun targetAppDisplayName(targetApp: String): String =
+    when (targetApp.uppercase()) {
+        "HEALTHTRACK" -> "HealthTrack"
+        "BOTH" -> "Planora & HealthTrack"
+        else -> "Planora"
+    }
+
+private data class UserFcmDeviceCounts(
+    val total: Long,
+    val planora: Long,
+    val healthTrack: Long
+)
+
+private fun countUserFcmDevices(userId: Int): UserFcmDeviceCounts {
+    val platforms = FcmTokensTable.selectAll()
+        .where { FcmTokensTable.userId eq userId }
+        .map { it[FcmTokensTable.platform] }
+    val healthCount = platforms.count { isHealthTrackPlatform(it) }.toLong()
+    val total = platforms.size.toLong()
+    return UserFcmDeviceCounts(
+        total = total,
+        planora = total - healthCount,
+        healthTrack = healthCount
+    )
+}
+
 /**
  * Admin yönetim rotaları.
  * Hem `X-Admin-Secret` başlığı hem de `ADMIN` (veya bildirim rotaları için `NOTIFIER`) rolüne sahip JWT Bearer token ile korunur.
@@ -145,7 +181,10 @@ fun Route.adminRoutes() {
                 val totalRooms = PlanRoomEntity.count()
                 val totalPosts = PostEntity.count()
                 val totalPremiumUsers = UserEntity.find { UsersTable.isPremium eq true }.count()
-                val totalFcmDevices = FcmTokenEntity.count()
+                val platforms = FcmTokensTable.selectAll().map { it[FcmTokensTable.platform] }
+                val totalFcmDevices = platforms.size.toLong()
+                val healthTrackFcmDevices = platforms.count { isHealthTrackPlatform(it) }.toLong()
+                val planoraFcmDevices = totalFcmDevices - healthTrackFcmDevices
 
                 AdminDashboardStatsDto(
                     totalUsers = totalUsers,
@@ -153,7 +192,9 @@ fun Route.adminRoutes() {
                     totalRooms = totalRooms,
                     totalPosts = totalPosts,
                     totalPremiumUsers = totalPremiumUsers,
-                    totalFcmDevices = totalFcmDevices
+                    totalFcmDevices = totalFcmDevices,
+                    planoraFcmDevices = planoraFcmDevices,
+                    healthTrackFcmDevices = healthTrackFcmDevices
                 )
             }
 
@@ -183,7 +224,7 @@ fun Route.adminRoutes() {
                 entities.map { user ->
                     val taskCount = TasksTable.selectAll().where { TasksTable.creatorId eq user.id.value }.count()
                     val roomCount = PlanRoomMembersTable.selectAll().where { PlanRoomMembersTable.userId eq user.id.value }.count()
-                    val fcmCount = FcmTokensTable.selectAll().where { FcmTokensTable.userId eq user.id.value }.count()
+                    val fcmCounts = countUserFcmDevices(user.id.value)
 
                     AdminUserSummaryDto(
                         id = user.id.value,
@@ -196,7 +237,9 @@ fun Route.adminRoutes() {
                         createdAt = user.createdAt.toString(),
                         taskCount = taskCount,
                         roomCount = roomCount,
-                        fcmDeviceCount = fcmCount
+                        fcmDeviceCount = fcmCounts.total,
+                        planoraFcmDeviceCount = fcmCounts.planora,
+                        healthTrackFcmDeviceCount = fcmCounts.healthTrack
                     )
                 }
             }
@@ -295,7 +338,7 @@ fun Route.adminRoutes() {
 
                 val taskCount = TasksTable.selectAll().where { TasksTable.creatorId eq user.id.value }.count()
                 val roomCount = PlanRoomMembersTable.selectAll().where { PlanRoomMembersTable.userId eq user.id.value }.count()
-                val fcmCount = FcmTokensTable.selectAll().where { FcmTokensTable.userId eq user.id.value }.count()
+                val fcmCounts = countUserFcmDevices(user.id.value)
 
                 AdminUserSummaryDto(
                     id = user.id.value,
@@ -308,7 +351,9 @@ fun Route.adminRoutes() {
                     createdAt = user.createdAt.toString(),
                     taskCount = taskCount,
                     roomCount = roomCount,
-                    fcmDeviceCount = fcmCount
+                    fcmDeviceCount = fcmCounts.total,
+                    planoraFcmDeviceCount = fcmCounts.planora,
+                    healthTrackFcmDeviceCount = fcmCounts.healthTrack
                 )
             }
 
@@ -462,7 +507,7 @@ fun Route.adminRoutes() {
                 }
 
                 entities.map { user ->
-                    val fcmCount = FcmTokensTable.selectAll().where { FcmTokensTable.userId eq user.id.value }.count()
+                    val fcmCounts = countUserFcmDevices(user.id.value)
 
                     AdminUserSummaryDto(
                         id = user.id.value,
@@ -475,7 +520,9 @@ fun Route.adminRoutes() {
                         createdAt = user.createdAt.toString(),
                         taskCount = 0,
                         roomCount = 0,
-                        fcmDeviceCount = fcmCount
+                        fcmDeviceCount = fcmCounts.total,
+                        planoraFcmDeviceCount = fcmCounts.planora,
+                        healthTrackFcmDeviceCount = fcmCounts.healthTrack
                     )
                 }
             }
@@ -503,11 +550,22 @@ fun Route.adminRoutes() {
                 return@post
             }
 
+            val targetApp = request.targetApp.uppercase().trim().ifBlank { "PLANORA" }
+            if (targetApp !in setOf("PLANORA", "HEALTHTRACK", "BOTH")) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Geçersiz hedef uygulama (targetApp). 'PLANORA', 'HEALTHTRACK' veya 'BOTH' olmalıdır."
+                )
+                return@post
+            }
+
+            val targetAppLabel = targetAppDisplayName(targetApp)
             val pushData = request.data ?: emptyMap()
 
             if (request.broadcastAll) {
                 val targetUserIds = dbQuery {
                     FcmTokensTable.selectAll()
+                        .filter { matchesTargetApp(it[FcmTokensTable.platform], targetApp) }
                         .map { it[FcmTokensTable.userId].value }
                         .distinct()
                 }
@@ -517,20 +575,20 @@ fun Route.adminRoutes() {
                         HttpStatusCode.OK,
                         AdminSendPushResponse(
                             success = false,
-                            message = "Kayıtlı aktif FCM cihazı olan kullanıcı bulunamadı.",
+                            message = "$targetAppLabel için kayıtlı aktif FCM cihazı olan kullanıcı bulunamadı.",
                             recipientCount = 0
                         )
                     )
                     return@post
                 }
 
-                FcmService.sendPushToUsers(targetUserIds, request.title, request.body, pushData)
+                FcmService.sendPushToUsers(targetUserIds, request.title, request.body, pushData, targetApp = targetApp)
 
                 call.respond(
                     HttpStatusCode.OK,
                     AdminSendPushResponse(
                         success = true,
-                        message = "${targetUserIds.size} kullanıcıya genel bildirim başarıyla iletildi.",
+                        message = "$targetAppLabel üzerinden ${targetUserIds.size} kullanıcıya genel bildirim başarıyla iletildi.",
                         recipientCount = targetUserIds.size
                     )
                 )
@@ -559,29 +617,31 @@ fun Route.adminRoutes() {
                 return@post
             }
 
-            val tokenCount = dbQuery {
-                FcmTokenEntity.find { FcmTokensTable.userId eq user.id.value }.count()
+            val matchingTokenCount = dbQuery {
+                FcmTokenEntity.find { FcmTokensTable.userId eq user.id.value }
+                    .count { matchesTargetApp(it.platform, targetApp) }
+                    .toLong()
             }
 
-            if (tokenCount == 0L) {
+            if (matchingTokenCount == 0L) {
                 call.respond(
                     HttpStatusCode.OK,
                     AdminSendPushResponse(
                         success = false,
-                        message = "'${user.username}' kullanıcısı bulundu fakat kayıtlı aktif FCM cihaz/token'ı yok.",
+                        message = "'${user.username}' kullanıcısı bulundu fakat $targetAppLabel için kayıtlı aktif FCM cihaz/token'ı yok.",
                         recipientCount = 0
                     )
                 )
                 return@post
             }
 
-            FcmService.sendPushToUser(user.id.value, request.title, request.body, pushData)
+            FcmService.sendPushToUser(user.id.value, request.title, request.body, pushData, targetApp = targetApp)
 
             call.respond(
                 HttpStatusCode.OK,
                 AdminSendPushResponse(
                     success = true,
-                    message = "'${user.username}' kullanıcısına (${tokenCount} cihaz) bildirim başarıyla gönderildi.",
+                    message = "'${user.username}' kullanıcısına $targetAppLabel üzerinden ($matchingTokenCount cihaz) bildirim başarıyla gönderildi.",
                     recipientCount = 1
                 )
             )

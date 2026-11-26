@@ -135,10 +135,15 @@ class AdminApiClient {
     /**
      * Belirli bir kullanıcıya doğrudan Push bildirimi gönderir.
      */
-    suspend fun sendPushToUser(userId: Int, title: String, body: String): Result<AdminSendPushResponse> = runCatching {
+    suspend fun sendPushToUser(
+        userId: Int,
+        title: String,
+        body: String,
+        targetApp: String = "PLANORA"
+    ): Result<AdminSendPushResponse> = runCatching {
         val response = client.post("$baseUrl/admin/push") {
             attachAuth()
-            setBody(AdminSendPushRequest(userId = userId, title = title, body = body))
+            setBody(AdminSendPushRequest(userId = userId, targetApp = targetApp, title = title, body = body))
         }
         if (!response.status.isSuccess()) {
             throw Exception("Bildirim gönderilemedi: HTTP ${response.status.value}")
@@ -149,10 +154,14 @@ class AdminApiClient {
     /**
      * Tüm aktif FCM cihazı olan kullanıcılara toplu duyuru gönderir.
      */
-    suspend fun sendBroadcastPush(title: String, body: String): Result<AdminSendPushResponse> = runCatching {
+    suspend fun sendBroadcastPush(
+        title: String,
+        body: String,
+        targetApp: String = "PLANORA"
+    ): Result<AdminSendPushResponse> = runCatching {
         val response = client.post("$baseUrl/admin/push") {
             attachAuth()
-            setBody(AdminSendPushRequest(broadcastAll = true, title = title, body = body))
+            setBody(AdminSendPushRequest(broadcastAll = true, targetApp = targetApp, title = title, body = body))
         }
         if (!response.status.isSuccess()) {
             throw Exception("Toplu bildirim gönderilemedi: HTTP ${response.status.value}")
